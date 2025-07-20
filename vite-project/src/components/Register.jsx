@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './auth.css';
+import backgroundImage from '../assets/Login-reg.jpg'; // Fix the import path
 
 export default function Register() {
   const navigate = useNavigate();
@@ -22,7 +23,7 @@ export default function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (formData.password !== formData.confirmPassword) {
       setMessage('Passwords do not match');
       return;
@@ -44,7 +45,6 @@ export default function Register() {
       const data = await res.json();
       setMessage(data.message);
       if (res.ok) {
-        // Redirect to login page after successful registration
         setTimeout(() => navigate('/login'), 1500);
       }
     } catch (err) {
@@ -53,9 +53,8 @@ export default function Register() {
   };
 
   return (
-    <div className="auth-page">
-      <div className="auth-card">
-        <h1 className="auth-title">DwellSync</h1>
+    <div className="auth-page" style={{ backgroundImage: `url(${backgroundImage})` }}>
+      <div className="auth-container">
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-row">
             <div className="form-group">
@@ -65,7 +64,6 @@ export default function Register() {
                 name="firstName"
                 value={formData.firstName}
                 onChange={handleChange}
-                placeholder="First Name"
                 required
               />
             </div>
@@ -76,84 +74,79 @@ export default function Register() {
                 name="lastName"
                 value={formData.lastName}
                 onChange={handleChange}
-                placeholder="Last Name"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label>User Name</label>
+              <input
+                type="text"
+                name="userName"
+                value={formData.userName}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Email</label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label>Password</label>
+              <input
+                type="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Confirm Password</label>
+              <input
+                type="password"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
                 required
               />
             </div>
           </div>
 
           <div className="form-group">
-            <label>User Name</label>
-            <input
-              type="text"
-              name="userName"
-              value={formData.userName}
-              onChange={handleChange}
-              placeholder="User Name"
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Email</label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="Email"
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Password</label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="Password"
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Confirm Password</label>
-            <input
-              type="password"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              placeholder="Confirm Password"
-              required
-            />
-          </div>
-
-          <div className="form-group">
             <label>Who are you?</label>
             <select
-              name="role"
-              value={formData.role}
-              onChange={handleChange}
-              required
-            >
-              <option value="">Select</option>
-              <option value="tenant">Tenant</option>
-              <option value="landlord">Landlord</option>
-              <option value="admin">Admin</option>
-            </select>
+                name="role"
+                value={formData.role}
+                onChange={handleChange}
+                required
+              >
+                <option value="">Select</option>
+                <option value="Owner">Owner</option> {/* Change "owner" to "Owner" */}
+                <option value="Tenant">Tenant</option>
+                <option value="Security Guard">Security Guard</option>
+                <option value="Service Provider">Service Provider</option>
+              </select>
+
           </div>
 
-          <button type="submit" className="register-btn">Register</button>
-          
-          <div className="auth-divider">
-            <span>OR</span>
-          </div>
-
-          <button 
-            type="button" 
-            className="login-btn"
+          <button type="submit" className="auth-button">Register</button>
+          <div className="auth-divider">OR</div>
+          <button
+            type="button"
+            className="auth-button secondary"
             onClick={() => navigate('/login')}
           >
             Log In

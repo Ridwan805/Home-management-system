@@ -8,7 +8,9 @@ function App() {
   return (
     <BrowserRouter>
       <div className="app">
-        <h1>Home Management System</h1>
+        <header className="main-header">
+          <h1 className="main-title">DwellSync</h1>
+        </header>
         <div className="auth-sections">
           <Routes>
             <Route path="/register" element={<Register />} />
