@@ -1,10 +1,18 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './auth.css';
 
 export default function Login() {
-  const [name, setName] = useState('');
-  const [password, setPassword] = useState('');
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({
+    userName: '',
+    password: ''
+  });
   const [message, setMessage] = useState('');
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -12,13 +20,16 @@ export default function Login() {
       const res = await fetch('http://localhost:5000/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, password })
+        body: JSON.stringify({
+          name: formData.userName,
+          password: formData.password
+        })
       });
       const data = await res.json();
       setMessage(data.message);
       if (res.ok) {
-        setName('');
-        setPassword('');
+        // Handle successful login (e.g., save token, redirect)
+        setTimeout(() => navigate('/dashboard'), 1500);
       }
     } catch (err) {
       setMessage('Error in login');
@@ -26,28 +37,54 @@ export default function Login() {
   };
 
   return (
-    <div className="auth-container">
-      <h2>Login</h2>
-      <form onSubmit={handleSubmit} className="auth-form">
-        <input
-          type="text"
-          placeholder="Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-          className="auth-input"
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          className="auth-input"
-        />
-        <button type="submit" className="auth-button">Login</button>
-      </form>
-      {message && <p className={`message ${message.includes('successful') ? 'success' : 'error'}`}>{message}</p>}
+    <div className="auth-page">
+      <div className="auth-card">
+        <h1 className="auth-title">DwellSync</h1>
+        <form onSubmit={handleSubmit} className="auth-form">
+          <div className="form-group">
+            <label>User Name</label>
+            <input
+              type="text"
+              name="userName"
+              value={formData.userName}
+              onChange={handleChange}
+              placeholder="User Name"
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Password</label>
+            <input
+              type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              placeholder="Password"
+              required
+            />
+          </div>
+
+          <button type="submit" className="register-btn">Login</button>
+          
+          <div className="auth-divider">
+            <span>OR</span>
+          </div>
+
+          <button 
+            type="button" 
+            className="login-btn"
+            onClick={() => navigate('/register')}
+          >
+            Register
+          </button>
+        </form>
+        {message && (
+          <div className={`message ${message.includes('successfully') ? 'success' : 'error'}`}>
+            {message}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
