@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './auth.css';
-import backgroundImage from '../assets/Login-reg.jpg'; // Fix the import path
+import backgroundImage from '../assets/Login-reg.jpg';
+import { AuthContext } from '../App';
 
 export default function Register() {
   const navigate = useNavigate();
+  const { isLoggedIn } = useContext(AuthContext);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -16,6 +18,10 @@ export default function Register() {
   });
 
   const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    if (isLoggedIn) navigate('/');
+  }, [isLoggedIn, navigate]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -134,7 +140,7 @@ export default function Register() {
                 required
               >
                 <option value="">Select</option>
-                <option value="Owner">Owner</option> {/* Change "owner" to "Owner" */}
+                <option value="Owner">Owner</option>
                 <option value="Tenant">Tenant</option>
                 <option value="Security Guard">Security Guard</option>
                 <option value="Service Provider">Service Provider</option>

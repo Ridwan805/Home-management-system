@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './auth.css';
+import { AuthContext } from '../App';
 
 export default function Login() {
   const navigate = useNavigate();
+  const { login } = useContext(AuthContext);
   const [formData, setFormData] = useState({
     userName: '',
     password: ''
@@ -28,8 +30,8 @@ export default function Login() {
       const data = await res.json();
       setMessage(data.message);
       if (res.ok) {
-        // Handle successful login (e.g., save token, redirect)
-        setTimeout(() => navigate('/dashboard'), 1500);
+        login({ userName: formData.userName });
+        setTimeout(() => navigate('/'), 1000);
       }
     } catch (err) {
       setMessage('Error in login');
