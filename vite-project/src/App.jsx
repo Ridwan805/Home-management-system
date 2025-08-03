@@ -5,6 +5,7 @@ import Login from './components/Login';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import Navbar from './components/layout/Navbar';
 import HomePage from './HomePage/HomePage';
+import PropertyFilter from './components/PropertyFilter';
 
 // Session context for login state
 export const AuthContext = React.createContext();
@@ -37,6 +38,7 @@ function AppRoutes() {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/properties" element={<PropertyFilter />} />
         {/* Add more routes as needed */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>

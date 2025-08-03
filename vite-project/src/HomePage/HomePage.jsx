@@ -1,7 +1,9 @@
 import React from 'react';
 import './HomePage.css';
+import { useNavigate } from 'react-router-dom';
 
 const HomePage = () => {
+  const navigate = useNavigate();
   return (
     <div className="homepage-container">
       {/* Hero Section */}
@@ -12,6 +14,11 @@ const HomePage = () => {
             <input type="text" placeholder="Enter an address, neighborhood, city, or ZIP code" />
             <button type="submit">Search</button>
           </form>
+          <div style={{ marginTop: 24, display: 'flex', gap: 16 }}>
+            <button onClick={() => navigate('/properties?listingType=For Sale')}>Buy</button>
+            <button onClick={() => navigate('/properties?listingType=For Rent')}>Rent</button>
+            <button onClick={() => navigate('/properties?mortgage=true')}>Get a Mortgage</button>
+          </div>
         </div>
       </section>
 
