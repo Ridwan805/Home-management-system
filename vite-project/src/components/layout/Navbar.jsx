@@ -6,12 +6,14 @@ import { AuthContext } from '../../App';
 const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isLoggedIn, logout } = useContext(AuthContext);
+  const { isLoggedIn, logout, setPopupMessage } = useContext(AuthContext);
   // Hide navbar on login and register pages
   if (location.pathname === '/login' || location.pathname === '/register') return null;
 
   const handleLogout = () => {
     logout();
+    setPopupMessage('Logout successful!');
+    setTimeout(() => setPopupMessage(''), 2000);
     navigate('/');
   };
 

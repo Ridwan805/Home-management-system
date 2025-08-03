@@ -1,9 +1,18 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import './HomePage.css';
 import { useNavigate } from 'react-router-dom';
 
 const HomePage = () => {
   const navigate = useNavigate();
+  const [recommended, setRecommended] = useState([]);
+
+  useEffect(() => {
+    fetch('http://localhost:5000/api/properties/recommended')
+      .then(res => res.json())
+      .then(data => setRecommended(data))
+      .catch(() => setRecommended([]));
+  }, []);
+
   return (
     <div className="homepage-container">
       {/* Hero Section */}
@@ -24,19 +33,23 @@ const HomePage = () => {
 
       {/* Recommendations Section */}
       <section className="recommendations-section">
-        <div className="recommendations-card">
-          <div className="recommendation-badges">
-            <span className="badge green">Recommended homes</span>
-            <span className="badge orange">Preferred location</span>
-          </div>
-          <div className="recommendation-info">
-            <img src="https://via.placeholder.com/120x80" alt="Home" className="home-img" />
-            <div>
-              <div className="price">$695,000</div>
-              <div className="details">4 bd | 3 ba | 3,102 sqft | House for Sale</div>
+        {recommended.length > 0 ? recommended.map((prop) => (
+          <div className="recommendations-card" key={prop._id}>
+            <div className="recommendation-badges">
+              <span className="badge green">Recommended homes</span>
+              <span className="badge orange">{prop.city || 'Preferred location'}</span>
+            </div>
+            <div className="recommendation-info">
+              <img src={prop.images && prop.images.length > 0 ? prop.images[0] : 'https://via.placeholder.com/120x80'} alt="Home" className="home-img" />
+              <div>
+                <div className="price">${prop.price.toLocaleString()}</div>
+                <div className="details">{prop.bedrooms} bd | {prop.bathrooms} ba | {prop.squareFootage} sqft | {prop.propertyType} for {prop.listingType}</div>
+              </div>
             </div>
           </div>
-        </div>
+        )) : (
+          <div className="recommendations-card">No recommendations found.</div>
+        )}
       </section>
 
       {/* BuyAbility Section */}
@@ -68,4 +81,4 @@ const HomePage = () => {
   );
 };
 
-export default HomePage; 
+export default HomePage;

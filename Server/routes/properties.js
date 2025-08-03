@@ -143,4 +143,14 @@ router.delete('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-module.exports = router; 
+// GET /api/properties/recommended - Get top 5 latest properties
+router.get('/recommended', async (req, res) => {
+  try {
+    const properties = await Property.find().sort({ createdAt: -1 }).limit(5);
+    res.json(properties);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error: ' + err.message });
+  }
+});
+
+module.exports = router;

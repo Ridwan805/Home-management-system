@@ -1,6 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import './auth.css';
+import '../components/auth.css';
 import backgroundImage from '../assets/Login-reg.jpg';
 import { AuthContext } from '../App';
 

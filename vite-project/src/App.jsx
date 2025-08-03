@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import './App.css';
-import Register from './components/Register';
-import Login from './components/Login';
+import Register from './Login_and_Register/Register';
+import Login from './Login_and_Register/Login';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import Navbar from './components/layout/Navbar';
 import HomePage from './HomePage/HomePage';
@@ -12,6 +12,7 @@ export const AuthContext = React.createContext();
 
 function AppRoutes() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('dwellSyncUser'));
+  const [popupMessage, setPopupMessage] = useState('');
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -32,8 +33,11 @@ function AppRoutes() {
   };
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, login, logout }}>
+    <AuthContext.Provider value={{ isLoggedIn, login, logout, setPopupMessage }}>
       <Navbar />
+      {popupMessage && (
+        <div className="popup-message">{popupMessage}</div>
+      )}
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<Login />} />

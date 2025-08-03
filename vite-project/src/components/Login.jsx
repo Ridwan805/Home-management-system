@@ -6,7 +6,7 @@ import backgroundImage from '../assets/Login-reg.jpg';
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login } = useContext(AuthContext);
+  const { login, setPopupMessage } = useContext(AuthContext);
   const [formData, setFormData] = useState({
     userName: '',
     password: ''
@@ -32,7 +32,11 @@ export default function Login() {
       setMessage(data.message);
       if (res.ok) {
         login({ userName: data.user.name, token: data.token, role: data.user.role, email: data.user.email });
-        setTimeout(() => navigate('/'), 1000);
+        setPopupMessage(`Login Successful! Welcome ${data.user.name}`);
+        setTimeout(() => {
+          setPopupMessage('');
+          navigate('/');
+        }, 2000);
       }
     } catch (err) {
       setMessage('Error in login');
