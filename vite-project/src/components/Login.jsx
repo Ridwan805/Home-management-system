@@ -31,7 +31,7 @@ export default function Login() {
       const data = await res.json();
       setMessage(data.message);
       if (res.ok) {
-        login({ userName: formData.userName });
+        login({ userName: data.user.name, token: data.token, role: data.user.role, email: data.user.email });
         setTimeout(() => navigate('/'), 1000);
       }
     } catch (err) {

@@ -30,13 +30,13 @@ const register = async (req, res) => {
 
 const login = async (req, res) => {
   const { name, password } = req.body;
-
   try {
-    // Find user by username
-    const user = await User.findOne({ name });
+    // Find user by username OR email
+    const user = await User.findOne({ $or: [{ name }, { email: name }] });
     if (!user) {
-      return res.status(401).json({ message: 'Invalid username or password' });
+      return res.status(401).json({ message: 'Invalid username/email or password' });
     }
+    
 
     // Verify password
     const validPassword = await bcrypt.compare(password, user.password);

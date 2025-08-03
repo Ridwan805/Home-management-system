@@ -1,11 +1,19 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useContext } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import './Navbar.css';
+import { AuthContext } from '../../App';
 
 const Navbar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { isLoggedIn, logout } = useContext(AuthContext);
   // Hide navbar on login and register pages
   if (location.pathname === '/login' || location.pathname === '/register') return null;
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   return (
     <nav className="navbar">
@@ -21,10 +29,17 @@ const Navbar = () => {
         <li><Link to="/manage">Manage Rentals</Link></li>
         <li><Link to="/advertise">Advertise</Link></li>
         <li><Link to="/help">Help</Link></li>
-        <li><Link to="/login" className="navbar-signin">Sign In</Link></li>
+        {isLoggedIn ? (
+          <>
+            <li><button className="navbar-signin" onClick={handleLogout}>Logout</button></li>
+            <li><button className="navbar-signin" onClick={() => {}}>Profile</button></li>
+          </>
+        ) : (
+          <li><Link to="/login" className="navbar-signin">Sign In</Link></li>
+        )}
       </ul>
     </nav>
   );
 };
 
-export default Navbar; 
+export default Navbar;
