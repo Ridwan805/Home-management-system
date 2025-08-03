@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import './auth.css';
 import backgroundImage from '../assets/Login-reg.jpg';
 import { AuthContext } from '../App';
@@ -59,7 +59,12 @@ export default function Register() {
   };
 
   return (
-    <div className="auth-page" style={{ backgroundImage: `url(${backgroundImage})` }}>
+    <div className="auth-page">
+      <div className="auth-header">
+        <Link to="/" className="auth-title-link">
+          <h1 className="auth-title">DwellSync</h1>
+        </Link>
+      </div>
       <div className="auth-container">
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-row">
@@ -70,6 +75,7 @@ export default function Register() {
                 name="firstName"
                 value={formData.firstName}
                 onChange={handleChange}
+                placeholder="First Name"
                 required
               />
             </div>
@@ -80,6 +86,7 @@ export default function Register() {
                 name="lastName"
                 value={formData.lastName}
                 onChange={handleChange}
+                placeholder="Last Name"
                 required
               />
             </div>
@@ -93,6 +100,7 @@ export default function Register() {
                 name="userName"
                 value={formData.userName}
                 onChange={handleChange}
+                placeholder="User Name"
                 required
               />
             </div>
@@ -103,6 +111,7 @@ export default function Register() {
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
+                placeholder="Email"
                 required
               />
             </div>
@@ -116,6 +125,7 @@ export default function Register() {
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
+                placeholder="Password"
                 required
               />
             </div>
@@ -126,6 +136,7 @@ export default function Register() {
                 name="confirmPassword"
                 value={formData.confirmPassword}
                 onChange={handleChange}
+                placeholder="Confirm Password"
                 required
               />
             </div>
@@ -145,11 +156,12 @@ export default function Register() {
                 <option value="Security Guard">Security Guard</option>
                 <option value="Service Provider">Service Provider</option>
               </select>
-
           </div>
 
           <button type="submit" className="auth-button">Register</button>
-          <div className="auth-divider">OR</div>
+          <div className="auth-divider">
+            <span>OR</span>
+          </div>
           <button
             type="button"
             className="auth-button secondary"

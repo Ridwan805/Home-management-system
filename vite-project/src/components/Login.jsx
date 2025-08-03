@@ -1,7 +1,8 @@
 import React, { useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import './auth.css';
 import { AuthContext } from '../App';
+import backgroundImage from '../assets/Login-reg.jpg';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -40,17 +41,21 @@ export default function Login() {
 
   return (
     <div className="auth-page">
-      <div className="auth-card">
-        <h1 className="auth-title">DwellSync</h1>
+      <div className="auth-header">
+        <Link to="/" className="auth-title-link">
+          <h1 className="auth-title">DwellSync</h1>
+        </Link>
+      </div>
+      <div className="auth-container">
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
-            <label>User Name</label>
+            <label>User Name/Email</label>
             <input
               type="text"
               name="userName"
               value={formData.userName}
               onChange={handleChange}
-              placeholder="User Name"
+              placeholder="User Name/Email"
               required
             />
           </div>
@@ -67,7 +72,7 @@ export default function Login() {
             />
           </div>
 
-          <button type="submit" className="register-btn">Login</button>
+          <button type="submit" className="auth-button">Log In</button>
           
           <div className="auth-divider">
             <span>OR</span>
@@ -75,14 +80,14 @@ export default function Login() {
 
           <button 
             type="button" 
-            className="login-btn"
+            className="auth-button secondary"
             onClick={() => navigate('/register')}
           >
             Register
           </button>
         </form>
         {message && (
-          <div className={`message ${message.includes('successfully') ? 'success' : 'error'}`}>
+          <div className={`message ${message.includes('successful') ? 'success' : 'error'}`}>
             {message}
           </div>
         )}
