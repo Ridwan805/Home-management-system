@@ -1,8 +1,7 @@
-import React, { useState, useContext } from 'react';
+import { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import '../components/auth.css';
 import { AuthContext } from '../App';
-import backgroundImage from '../assets/Login-reg.jpg';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -29,14 +28,22 @@ export default function Login() {
         })
       });
       const data = await res.json();
-      setMessage(data.message);
       if (res.ok) {
-        login({ userName: data.user.name, token: data.token, role: data.user.role, email: data.user.email });
-        setPopupMessage(`Login Successful! Welcome ${data.user.name}`);
+        login({ 
+          userName: data.user.name, 
+          token: data.token, 
+          role: data.user.role, 
+          email: data.user.email,
+          firstName: data.user.firstName,
+          lastName: data.user.lastName
+        });
+        setPopupMessage(data.message);  // Use the message from server
         setTimeout(() => {
           setPopupMessage('');
           navigate('/');
         }, 2000);
+      } else {
+        setMessage(data.message);
       }
     } catch (err) {
       setMessage('Error in login');
