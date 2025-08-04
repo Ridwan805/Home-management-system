@@ -5,12 +5,29 @@ import { useNavigate } from 'react-router-dom';
 const HomePage = () => {
   const navigate = useNavigate();
   const [recommended, setRecommended] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/properties/recommended')
-      .then(res => res.json())
-      .then(data => setRecommended(data))
-      .catch(() => setRecommended([]));
+    const fetchTopProperties = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('http://localhost:5000/api/properties/top');
+        if (!response.ok) {
+          throw new Error('Failed to fetch properties');
+        }
+        const data = await response.json();
+        setRecommended(data);
+      } catch (err) {
+        console.error('Error fetching properties:', err);
+        setError(err.message);
+        setRecommended([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTopProperties();
   }, []);
 
   return (
@@ -33,22 +50,35 @@ const HomePage = () => {
 
       {/* Recommendations Section */}
       <section className="recommendations-section">
-        {recommended.length > 0 ? recommended.map((prop) => (
-          <div className="recommendations-card" key={prop._id}>
-            <div className="recommendation-badges">
-              <span className="badge green">Recommended homes</span>
-              <span className="badge orange">{prop.city || 'Preferred location'}</span>
-            </div>
-            <div className="recommendation-info">
-              <img src={prop.images && prop.images.length > 0 ? prop.images[0] : 'https://via.placeholder.com/120x80'} alt="Home" className="home-img" />
-              <div>
-                <div className="price">${prop.price.toLocaleString()}</div>
-                <div className="details">{prop.bedrooms} bd | {prop.bathrooms} ba | {prop.squareFootage} sqft | {prop.propertyType} for {prop.listingType}</div>
+        {loading ? (
+          <div className="recommendations-card">Loading top properties...</div>
+        ) : error ? (
+          <div className="recommendations-card">Error: {error}</div>
+        ) : recommended.length > 0 ? (
+          recommended.map((prop) => (
+            <div className="recommendations-card" key={prop._id}>
+              <div className="recommendation-badges">
+                <span className="badge green">Recommended</span>
+                <span className="badge orange">{prop.city || 'Preferred location'}</span>
+              </div>
+              <div className="recommendation-info">
+                <img 
+                  src={prop.images && prop.images.length > 0 ? prop.images[0] : 'https://via.placeholder.com/120x80'} 
+                  alt="Home" 
+                  className="home-img" 
+                />
+                <div>
+                  <div className="price">${prop.price.toLocaleString()}</div>
+                  <div className="details">
+                    {prop.bedrooms} bd | {prop.bathrooms} ba | {prop.squareFootage} sqft | {prop.propertyType} for {prop.listingType}
+                  </div>
+                  <div className="address">{prop.address}</div>
+                </div>
               </div>
             </div>
-          </div>
-        )) : (
-          <div className="recommendations-card">No recommendations found.</div>
+          ))
+        ) : (
+          <div className="recommendations-card">No properties found.</div>
         )}
       </section>
 

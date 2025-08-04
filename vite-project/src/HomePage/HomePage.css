@@ -65,18 +65,19 @@
 }
 
 .recommendations-card {
-  background: #fff;
+  background: #ffffff;
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.07);
-  padding: 1.5rem 2rem;
+  padding: 8px;
   min-width: 340px;
-  max-width: 400px;
+  max-width: 450px;
 }
 
 .recommendation-badges {
   display: flex;
   gap: 0.7rem;
   margin-bottom: 1rem;
+  padding: 3px ;
 }
 
 .badge {
@@ -97,9 +98,10 @@
 
 .home-img {
   border-radius: 8px;
-  width: 120px;
-  height: 80px;
+  width: 100px;
+  height: 100px;
   object-fit: cover;
+  object-position: center;
 }
 
 .price {

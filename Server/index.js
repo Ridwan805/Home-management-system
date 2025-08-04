@@ -7,17 +7,18 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGO_URL)
-  .then(() => {
-    console.log('✅ MongoDB connected');
-    // List all databases
-    mongoose.connection.db.admin().listDatabases()
-      .then(result => {
-        console.log('Available databases:', result.databases.map(db => db.name));
-      });
-  })
-  .catch(err => console.error('❌ MongoDB error:', err));
+// MongoDB connection with options
+mongoose.connect(process.env.MONGO_URL, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => {
+  console.log('✅ MongoDB connected successfully');
+  console.log('Database:', mongoose.connection.db.databaseName);
+})
+.catch(err => {
+  console.error('❌ MongoDB connection error:', err);
+});
 
 // Import routes
 const authRoutes = require('./routes/auth.routes');

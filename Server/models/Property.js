@@ -1,25 +1,28 @@
 const mongoose = require('mongoose');
 
 const PropertySchema = new mongoose.Schema({
-  ownerId: { type: String, required: true }, // Should reference User._id
+  ownerId: { type: String, required: true },
   address: { type: String, required: true },
-  propertyType: { type: String, required: true }, // e.g., House, Apartment, Condo, Villa
+  propertyType: { type: String, required: true },
   bedrooms: { type: Number, required: true },
-  bathrooms: { type: Number, required: true }, // Can be float for half-baths
+  bathrooms: { type: Number, required: true },
   squareFootage: { type: Number, required: true },
   price: { type: Number, required: true },
   description: { type: String },
-  amenities: { type: [String], default: [] }, // e.g., ["Pool", "Garage"]
-  images: { type: [String], default: [] }, // URLs for images
-  status: { type: String, default: 'Available' }, // e.g., Available, Sold, Rented, Under Contract
+  amenities: { type: [String], default: [] },
+  images: { type: [String], default: [] },
+  status: { type: String, default: 'Available' },
   yearBuilt: { type: Number },
   contactEmail: { type: String },
   contactPhone: { type: String },
   threeDModelUrl: { type: String, default: '' },
-  listingType: { type: String, enum: ['For Sale', 'For Rent'], required: true }, // New field for listing type
-  city: { type: String }, // New field for city
-  state: { type: String }, // New field for state
-  zipCode: { type: String }, // New field for zip code
-}, { timestamps: true });
+  listingType: { type: String, enum: ['For Sale', 'For Rent'], required: true },
+  city: { type: String },
+  state: { type: String },
+  zipCode: { type: String }
+}, { 
+  timestamps: true,
+  collection: 'Properties' // This will create the Properties collection in the User database
+});
 
-module.exports = mongoose.model('Property', PropertySchema); 
+module.exports = mongoose.model('Property', PropertySchema);
