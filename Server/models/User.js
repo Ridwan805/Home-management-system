@@ -10,7 +10,9 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['Owner', 'Tenant', 'Service Provider', 'Security Guard'],
     required: true
-  }
+  },
+  securityQuestion: { type: String, required: true },
+  securityAnswer: { type: String, required: true }
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

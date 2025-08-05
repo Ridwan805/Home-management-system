@@ -60,7 +60,7 @@
 }
 
 .auth-container {
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.85);
   width: 100%;
   max-width: 600px;
   margin: 2rem auto;
@@ -81,6 +81,23 @@
   gap: 1.25rem;
 }
 
+.auth-form h2 {
+  color: white;
+  font-size: 1.8rem;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 0.5rem;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.auth-form p {
+  color: #e2e8f0;
+  text-align: center;
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -94,9 +111,10 @@
 }
 
 .form-group label {
-  color: white;
-  font-size: 0.9rem;
-  font-weight: 500;
+  color: #f7fafc;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .form-group input,
@@ -111,7 +129,7 @@
 }
 
 .form-group input::placeholder {
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .form-group input:focus,
@@ -143,6 +161,47 @@
   background: white;
   color: black;
   padding: 0.5rem;
+}
+
+.forgot-password-link {
+  text-align: right;
+  margin-top: -0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.forgot-password-link a {
+  color: #60a5fa;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.forgot-password-link a:hover {
+  color: #93c5fd;
+  text-decoration: underline;
+}
+
+.security-question-display {
+  padding: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #f7fafc;
+  font-size: 1rem;
+  font-weight: 500;
+  min-height: 2.5rem;
+  display: flex;
+  align-items: center;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  word-wrap: break-word;
+  line-height: 1.4;
+}
+
+.security-question-display:empty::before {
+  content: "Loading security question...";
+  color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
 }
 
 .auth-button {
@@ -177,7 +236,7 @@
 .auth-divider {
   text-align: center;
   margin: 1rem 0;
-  color: white;
+  color: #e2e8f0;
   position: relative;
   font-weight: 500;
 }
@@ -201,7 +260,7 @@
 }
 
 .auth-divider span {
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.85);
   padding: 0 1rem;
 }
 
@@ -213,6 +272,7 @@
   color: white;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
+  font-weight: 500;
 }
 
 .message.success {

@@ -14,7 +14,9 @@ export default function Register() {
     userName: '',
     password: '',
     confirmPassword: '',
-    role: ''
+    role: '',
+    securityQuestion: '',
+    securityAnswer: ''
   });
 
   const [message, setMessage] = useState('');
@@ -45,7 +47,9 @@ export default function Register() {
           email: formData.email,
           name: formData.userName,
           password: formData.password,
-          role: formData.role
+          role: formData.role,
+          securityQuestion: formData.securityQuestion,
+          securityAnswer: formData.securityAnswer
         })
       });
       const data = await res.json();
@@ -156,6 +160,36 @@ export default function Register() {
                 <option value="Security Guard">Security Guard</option>
                 <option value="Service Provider">Service Provider</option>
               </select>
+          </div>
+
+          <div className="form-group">
+            <label>Security Question</label>
+            <select
+              name="securityQuestion"
+              value={formData.securityQuestion}
+              onChange={handleChange}
+              required
+            >
+              <option value="">Select a security question</option>
+              <option value="What was the name of your first pet?">What was the name of your first pet?</option>
+              <option value="In which city were you born?">In which city were you born?</option>
+              <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
+              <option value="What was your favorite subject in school?">What was your favorite subject in school?</option>
+              <option value="What is the name of the street you grew up on?">What is the name of the street you grew up on?</option>
+              <option value="What was your first car?">What was your first car?</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label>Security Answer</label>
+            <input
+              type="text"
+              name="securityAnswer"
+              value={formData.securityAnswer}
+              onChange={handleChange}
+              placeholder="Your answer to the security question"
+              required
+            />
           </div>
 
           <button type="submit" className="auth-button">Register</button>

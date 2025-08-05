@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import './App.css';
 import Register from './Login_and_Register/Register';
 import Login from './Login_and_Register/Login';
+import ForgotPassword from './Login_and_Register/ForgotPassword';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import Navbar from './components/layout/Navbar';
 import HomePage from './HomePage/HomePage';
@@ -42,6 +43,7 @@ function AppRoutes() {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/properties" element={<PropertyFilter />} />
         {/* Add more routes as needed */}
         <Route path="*" element={<Navigate to="/" />} />
