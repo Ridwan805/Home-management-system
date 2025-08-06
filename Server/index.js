@@ -24,12 +24,12 @@ mongoose.connect(process.env.MONGO_URL)
 // Import routes
 const authRoutes = require('./routes/auth.routes');
 const propertyRoutes = require('./routes/properties');
-
+const adminRoutes = require('./routes/admin.routes');
 // Use routes
 app.use('/api/auth', authRoutes);
 app.use('/api/properties', propertyRoutes);
 app.use('/uploads', express.static('uploads'));
-
+app.use('/api', adminRoutes);
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

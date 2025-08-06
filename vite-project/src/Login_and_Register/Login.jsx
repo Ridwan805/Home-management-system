@@ -46,6 +46,9 @@ export default function Login() {
             navigate('/dashboard');
           } else if (data.user.role === 'Tenant') {
             navigate('/tenant/profile');
+          } else if (data.user.role === 'admin') {
+            // Redirect to admin dashboard
+            navigate('/admin');
           } else if (data.user.role === 'Security Guard') {
             // Future implementation for security guard dashboard
             navigate('/');
