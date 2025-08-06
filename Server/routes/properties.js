@@ -26,6 +26,8 @@ router.get('/user', authMiddleware, async (req, res) => {
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
+    
+
     const properties = await Property.find({ ownerId: req.user.userId })
       .sort({ createdAt: -1 });
     
@@ -40,6 +42,8 @@ router.get('/user', authMiddleware, async (req, res) => {
     res.status(500).json({ message: 'Error fetching properties: ' + err.message });
   }
 });
+
+router.get('/top', propertyController.getTopProperties);
 
 // GET /api/properties (public route to fetch all properties)
 router.get('/', async (req, res) => {
