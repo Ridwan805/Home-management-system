@@ -10,7 +10,9 @@ const OwnerProfile = () => {
     firstName: '',
     lastName: '',
     email: '',
-    name: ''
+    name: '',
+    phoneNumber: '',
+    address: ''
   });
   const [updateLoading, setUpdateLoading] = useState(false);
   const [updateError, setUpdateError] = useState(null);
@@ -42,7 +44,9 @@ const OwnerProfile = () => {
           firstName: userDataToSet.firstName || '',
           lastName: userDataToSet.lastName || '',
           email: userDataToSet.email || '',
-          name: userDataToSet.name || ''
+          name: userDataToSet.name || '',
+          phoneNumber: userDataToSet.phoneNumber || '',
+          address: userDataToSet.address || ''
         });
       } catch (err) {
         setError(err.message || 'Failed to load user info');
@@ -65,7 +69,9 @@ const OwnerProfile = () => {
       firstName: userInfo.firstName || '',
       lastName: userInfo.lastName || '',
       email: userInfo.email || '',
-      name: userInfo.name || ''
+      name: userInfo.name || '',
+      phoneNumber: userInfo.phoneNumber || '',
+      address: userInfo.address || ''
     });
     setUpdateError(null);
     setUpdateSuccess(false);
@@ -166,9 +172,11 @@ const OwnerProfile = () => {
           <div className="owner-details">
             {!isEditing ? (
               <>
-                <h2>{userInfo.firstName} {userInfo.lastName}</h2>
+                            <h2>{userInfo.firstName} {userInfo.lastName}</h2>
                 <p className="owner-email">{userInfo.email}</p>
                 <p className="owner-username">Username: {userInfo.name}</p>
+                <p className="owner-phone">Phone: {userInfo.phoneNumber || 'Not provided'}</p>
+                <p className="owner-address">Address: {userInfo.address || 'Not provided'}</p>
                 <p className="owner-role">Role: {userInfo.role}</p>
                 <p className="owner-joined">Joined: {userInfo.createdAt ? new Date(userInfo.createdAt).toLocaleDateString() : '-'}</p>
                 <button 
@@ -225,6 +233,30 @@ const OwnerProfile = () => {
                     value={editForm.name}
                     onChange={handleInputChange}
                     className="form-input"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="phoneNumber">Phone Number</label>
+                  <input
+                    type="tel"
+                    id="phoneNumber"
+                    name="phoneNumber"
+                    value={editForm.phoneNumber}
+                    onChange={handleInputChange}
+                    className="form-input"
+                    placeholder="Enter phone number"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="address">Address</label>
+                  <textarea
+                    id="address"
+                    name="address"
+                    value={editForm.address}
+                    onChange={handleInputChange}
+                    className="form-input"
+                    placeholder="Enter your address"
+                    rows="3"
                   />
                 </div>
                 <div className="form-actions">
