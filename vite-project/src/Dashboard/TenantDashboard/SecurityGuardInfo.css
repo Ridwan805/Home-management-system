@@ -1,0 +1,217 @@
+.security-guard-info {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.emergency-contact {
+  background-color: #fee2e2;
+  border-left: 4px solid #ef4444;
+  padding: 1rem 1.5rem;
+  border-radius: 0.25rem;
+  margin-bottom: 2rem;
+}
+
+.emergency-contact h3 {
+  color: #b91c1c;
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-size: 1.25rem;
+}
+
+.emergency-contact p {
+  margin: 0;
+  color: #7f1d1d;
+}
+
+.security-guards-container {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.security-guards-container h3 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  color: #1e40af;
+  font-size: 1.25rem;
+}
+
+.security-guards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.security-guard-card {
+  display: flex;
+  background-color: #f8fafc;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.guard-image {
+  width: 120px;
+  overflow: hidden;
+}
+
+.guard-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.guard-info {
+  flex: 1;
+  padding: 1rem;
+}
+
+.guard-name {
+  margin-top: 0;
+  margin-bottom: 0.25rem;
+  font-size: 1.125rem;
+  color: #1e40af;
+}
+
+.guard-shift {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+}
+
+.guard-contact {
+  margin-bottom: 1rem;
+}
+
+.guard-contact p {
+  margin: 0.25rem 0;
+  font-size: 0.875rem;
+}
+
+.contact-btn {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+.security-info-section {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+}
+
+.security-info-section h3 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  color: #1e40af;
+  font-size: 1.25rem;
+}
+
+.protocol-item {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.protocol-item:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.protocol-item h4 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  color: #4b5563;
+}
+
+.protocol-item p {
+  margin: 0;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+/* Message Modal */
+.message-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.message-modal {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #1e40af;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #6b7280;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.selected-guard-info {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.guard-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 1rem;
+}
+
+.selected-guard-info h4 {
+  margin: 0 0 0.25rem 0;
+  color: #1e40af;
+}
+
+.selected-guard-info p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
