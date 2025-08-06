@@ -7,6 +7,12 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from
 import Navbar from './components/layout/Navbar';
 import HomePage from './HomePage/HomePage';
 import PropertyFilter from './components/PropertyFilter';
+import OwnerDashboard from './Dashboard/OwnerDashboard';
+import CreateListingForm from './Dashboard/CreateListingForm';
+import SidebarNav from './Dashboard/components/SidebarNav';
+import PropertyDetails from './Dashboard/PropertyDetails';
+import TenantInfo from './Dashboard/TenantInfo';
+import SecurityGuardInfo from './Dashboard/SecurityGuardInfo';
 
 // Session context for login state
 export const AuthContext = React.createContext();
@@ -33,9 +39,63 @@ function AppRoutes() {
     setIsLoggedIn(false);
   };
 
+  function CreateListingPage() {
+    const navigate = useNavigate();
+    return (
+      <div className="owner-dashboard">
+        <SidebarNav
+          activeSection="create-listing"
+          setActiveSection={key => {
+            if (key === 'profile') navigate('/dashboard');
+            else if (key === 'create-listing') navigate('/create-listing');
+            else if (key === 'property-details') navigate('/property-details');
+            else if (key === 'tenant-info') navigate('/tenant-info');
+            else if (key === 'security-guard-info') navigate('/security-guard-info');
+            else if (key === 'request-info') navigate('/request-info');
+          }}
+        />
+        <main className="dashboard-main">
+          <div className="dashboard-content">
+            <CreateListingForm onSuccess={() => navigate('/dashboard')} onCancel={() => navigate('/dashboard')} />
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  function UnderConstructionPage({ activeSection }) {
+    const navigate = useNavigate();
+    return (
+      <div className="owner-dashboard">
+        <SidebarNav
+          activeSection={activeSection}
+          setActiveSection={key => {
+            if (key === 'profile') navigate('/dashboard');
+            else if (key === 'create-listing') navigate('/create-listing');
+            else if (key === 'property-details') navigate('/property-details');
+            else if (key === 'tenant-info') navigate('/tenant-info');
+            else if (key === 'request-info') navigate('/request-info');
+          }}
+        />
+        <main className="dashboard-main">
+          <div className="dashboard-content" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+            <h2 style={{ color: '#2563eb', fontSize: '2rem' }}>Page under construction</h2>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <AuthContext.Provider value={{ isLoggedIn, login, logout, setPopupMessage }}>
-      <Navbar />
+      {!(
+        location.pathname.startsWith('/dashboard') ||
+        location.pathname === '/create-listing' ||
+        location.pathname === '/property-details' ||
+        location.pathname === '/tenant-info' ||
+        location.pathname === '/security-guard-info' ||
+        location.pathname === '/request-info'
+      ) && <Navbar />}
       {popupMessage && (
         <div className="popup-message">{popupMessage}</div>
       )}
@@ -45,6 +105,60 @@ function AppRoutes() {
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/properties" element={<PropertyFilter />} />
+        <Route path="/dashboard" element={<OwnerDashboard />} />
+        <Route path="/create-listing" element={<CreateListingPage />} />
+        <Route path="/property-details" element={
+          <div className="owner-dashboard">
+            <SidebarNav activeSection="property-details" setActiveSection={key => {
+              if (key === 'profile') navigate('/dashboard');
+              else if (key === 'create-listing') navigate('/create-listing');
+              else if (key === 'property-details') navigate('/property-details');
+              else if (key === 'tenant-info') navigate('/tenant-info');
+              else if (key === 'security-guard-info') navigate('/security-guard-info');
+              else if (key === 'request-info') navigate('/request-info');
+            }} />
+            <main className="dashboard-main">
+              <div className="dashboard-content">
+                <PropertyDetails />
+              </div>
+            </main>
+          </div>
+        } />
+        <Route path="/tenant-info" element={
+          <div className="owner-dashboard">
+            <SidebarNav activeSection="tenant-info" setActiveSection={key => {
+              if (key === 'profile') navigate('/dashboard');
+              else if (key === 'create-listing') navigate('/create-listing');
+              else if (key === 'property-details') navigate('/property-details');
+              else if (key === 'tenant-info') navigate('/tenant-info');
+              else if (key === 'security-guard-info') navigate('/security-guard-info');
+              else if (key === 'request-info') navigate('/request-info');
+            }} />
+            <main className="dashboard-main">
+              <div className="dashboard-content">
+                <TenantInfo />
+              </div>
+            </main>
+          </div>
+        } />
+        <Route path="/security-guard-info" element={
+          <div className="owner-dashboard">
+            <SidebarNav activeSection="security-guard-info" setActiveSection={key => {
+              if (key === 'profile') navigate('/dashboard');
+              else if (key === 'create-listing') navigate('/create-listing');
+              else if (key === 'property-details') navigate('/property-details');
+              else if (key === 'tenant-info') navigate('/tenant-info');
+              else if (key === 'security-guard-info') navigate('/security-guard-info');
+              else if (key === 'request-info') navigate('/request-info');
+            }} />
+            <main className="dashboard-main">
+              <div className="dashboard-content">
+                <SecurityGuardInfo />
+              </div>
+            </main>
+          </div>
+        } />
+        <Route path="/request-info" element={<UnderConstructionPage activeSection="request-info" />} />
         {/* Add more routes as needed */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>

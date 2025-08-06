@@ -63,7 +63,7 @@ const HomePage = () => {
               </div>
               <div className="recommendation-info">
                 <img 
-                  src={prop.images && prop.images.length > 0 ? prop.images[0] : 'https://via.placeholder.com/120x80'} 
+                  src={prop.images && prop.images.length > 0 ? `http://localhost:5000${prop.images[0]}` : 'https://via.placeholder.com/120x80'} 
                   alt="Home" 
                   className="home-img" 
                 />

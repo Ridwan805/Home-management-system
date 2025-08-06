@@ -8,13 +8,17 @@ const Navbar = () => {
   const navigate = useNavigate();
   const { isLoggedIn, logout, setPopupMessage } = useContext(AuthContext);
   // Hide navbar on login and register pages
-  if (location.pathname === '/login' || location.pathname === '/register') return null;
+  if (location.pathname === '/login' || location.pathname === '/register' || location.pathname.startsWith('/dashboard') || location.pathname === '/create-listing') return null;
 
   const handleLogout = () => {
     logout();
     setPopupMessage('Logout successful!');
     setTimeout(() => setPopupMessage(''), 2000);
     navigate('/');
+  };
+
+  const handleProfileClick = () => {
+    navigate('/dashboard');
   };
 
   return (
@@ -34,7 +38,7 @@ const Navbar = () => {
         {isLoggedIn ? (
           <>
             <li><button className="navbar-signin" onClick={handleLogout}>Logout</button></li>
-            <li><button className="navbar-signin" onClick={() => {}}>Profile</button></li>
+            <li><button className="navbar-signin" onClick={handleProfileClick}>Profile</button></li>
           </>
         ) : (
           <li><Link to="/login" className="navbar-signin">Sign In</Link></li>

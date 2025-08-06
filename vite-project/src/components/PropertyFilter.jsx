@@ -261,7 +261,7 @@ const PropertyFilter = () => {
             <div className="property-images">
               {property.images && property.images.length > 0 ? (
                 <img 
-                  src={property.images[0]} 
+                  src={`http://localhost:5000${property.images[0]}`} 
                   alt="Property" 
                   className="property-image"
                 />
