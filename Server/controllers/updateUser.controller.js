@@ -3,7 +3,7 @@ const User = require('../models/User');
 const updateUser = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { firstName, lastName, email, name } = req.body;
+    const { firstName, lastName, email, name, phoneNumber, address } = req.body;
 
     // Validate required fields
     if (!firstName || !lastName || !email) {
@@ -36,6 +36,12 @@ const updateUser = async (req, res) => {
       });
     }
 
+    // Get current user data to preserve existing phoneNumber and address if not provided
+    const currentUser = await User.findById(userId);
+    if (!currentUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
     // Update user information
     const updatedUser = await User.findByIdAndUpdate(
       userId,
@@ -43,7 +49,9 @@ const updateUser = async (req, res) => {
         firstName,
         lastName,
         email,
-        name: name || `${firstName} ${lastName}`
+        name: name || `${firstName} ${lastName}`,
+        phoneNumber: phoneNumber !== undefined ? phoneNumber : (currentUser.phoneNumber || ''),
+        address: address !== undefined ? address : (currentUser.address || '')
       },
       { new: true, runValidators: true }
     ).select('-password -securityAnswer');

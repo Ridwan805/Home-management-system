@@ -2,7 +2,7 @@ const User = require('../models/User');
 const bcrypt = require('bcrypt');
 
 const register = async (req, res) => {
-  const { firstName, lastName, email, name, password, role, securityQuestion, securityAnswer } = req.body;
+  const { firstName, lastName, email, name, password, role, securityQuestion, securityAnswer, phoneNumber, address } = req.body;
 
   try {
     // Check existing email
@@ -25,6 +25,8 @@ const register = async (req, res) => {
       lastName,
       email,
       name,
+      phoneNumber: phoneNumber || '',
+      address: address || '',
       password: hashed,
       role: role || 'user', // Default role if not specified
       securityQuestion,
@@ -40,6 +42,8 @@ const register = async (req, res) => {
         lastName,
         email,
         name,
+        phoneNumber: newUser.phoneNumber,
+        address: newUser.address,
         role: newUser.role
       }
     });

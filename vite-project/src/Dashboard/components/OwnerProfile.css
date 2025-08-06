@@ -291,6 +291,16 @@
   background: rgba(255, 255, 255, 0.15);
 }
 
+.form-input[type="tel"] {
+  font-family: monospace;
+}
+
+.form-input[rows] {
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+}
+
 .form-actions {
   display: flex;
   gap: 10px;
