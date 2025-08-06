@@ -68,4 +68,30 @@ router.post('/', authMiddleware, upload.array('images', 10), async (req, res) =>
   }
 });
 
+// GET /api/properties/:id (get property by ID)
+router.get('/:id', propertyController.getPropertyById);
+
+// PUT /api/properties/:id (update property)
+router.put('/:id', authMiddleware, upload.array('images', 10), async (req, res) => {
+  try {
+    // If new images were uploaded, add them to the existing ones
+    if (req.files && req.files.length > 0) {
+      const imageUrls = req.files.map(file => `/uploads/${file.filename}`);
+      // If we're updating images, we need to get the existing ones first
+      const property = await Property.findById(req.params.id);
+      if (property) {
+        req.body.images = [...(property.images || []), ...imageUrls];
+      } else {
+        req.body.images = imageUrls;
+      }
+    }
+    await propertyController.updateProperty(req, res);
+  } catch (err) {
+    res.status(500).json({ message: 'Error updating property: ' + err.message });
+  }
+});
+
+// DELETE /api/properties/:id (delete property)
+router.delete('/:id', authMiddleware, propertyController.deleteProperty);
+
 module.exports = router;

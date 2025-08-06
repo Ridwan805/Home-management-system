@@ -76,9 +76,10 @@ const updateProperty = async (req, res) => {
     }
     
     // Check if user owns the property
-    if (property.ownerId !== req.user.userId) {
-      return res.status(403).json({ message: 'Not authorized to update this property' });
+    if (String(property.ownerId) !== String(req.user.userId)) {
+        return res.status(403).json({ message: 'Not authorized to update this property' });
     }
+
     
     const updatedProperty = await Property.findByIdAndUpdate(
       req.params.id,
