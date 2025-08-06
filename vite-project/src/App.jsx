@@ -13,12 +13,14 @@ import SidebarNav from './Dashboard/components/SidebarNav';
 import PropertyDetails from './Dashboard/PropertyDetails';
 import TenantInfo from './Dashboard/TenantInfo';
 import SecurityGuardInfo from './Dashboard/SecurityGuardInfo';
+import TenantDashboard from './Dashboard/TenantDashboard/TenantDashboard';
 
 // Session context for login state
 export const AuthContext = React.createContext();
 
 function AppRoutes() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('dwellSyncUser'));
+  const [userRole, setUserRole] = useState(() => localStorage.getItem('dwellSyncUser') ? JSON.parse(localStorage.getItem('dwellSyncUser')).role : null);
   const [popupMessage, setPopupMessage] = useState('');
   const location = useLocation();
   const navigate = useNavigate();
@@ -33,10 +35,12 @@ function AppRoutes() {
   const login = (user) => {
     localStorage.setItem('dwellSyncUser', JSON.stringify(user));
     setIsLoggedIn(true);
+    setUserRole(user.role);
   };
   const logout = () => {
     localStorage.removeItem('dwellSyncUser');
     setIsLoggedIn(false);
+    setUserRole(null);
   };
 
   function CreateListingPage() {
@@ -87,14 +91,14 @@ function AppRoutes() {
   }
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, login, logout, setPopupMessage }}>
-      {!(
-        location.pathname.startsWith('/dashboard') ||
+    <AuthContext.Provider value={{ isLoggedIn, login, logout, setPopupMessage, userRole }}>
+      {!(        location.pathname.startsWith('/dashboard') ||
         location.pathname === '/create-listing' ||
         location.pathname === '/property-details' ||
         location.pathname === '/tenant-info' ||
         location.pathname === '/security-guard-info' ||
-        location.pathname === '/request-info'
+        location.pathname === '/request-info' ||
+        location.pathname.startsWith('/tenant')
       ) && <Navbar />}
       {popupMessage && (
         <div className="popup-message">{popupMessage}</div>
@@ -159,6 +163,11 @@ function AppRoutes() {
           </div>
         } />
         <Route path="/request-info" element={<UnderConstructionPage activeSection="request-info" />} />
+        
+        {/* Tenant Dashboard Routes */}
+        <Route path="/tenant/:section" element={<TenantDashboard />} />
+        <Route path="/tenant" element={<Navigate to="/tenant/profile" />} />
+        
         {/* Add more routes as needed */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>

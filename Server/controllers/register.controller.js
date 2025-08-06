@@ -5,19 +5,17 @@ const register = async (req, res) => {
   const { firstName, lastName, email, name, password, role, securityQuestion, securityAnswer, phoneNumber, address } = req.body;
 
   try {
-    // Check existing email
     const existingEmail = await User.findOne({ email });
     if (existingEmail) {
       return res.status(409).json({ message: 'Email already exists' });
     }
 
-    // Check existing username
     const existingUsername = await User.findOne({ name });
     if (existingUsername) {
       return res.status(409).json({ message: 'Username already exists' });
     }
 
-    const hashed = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
     const hashedSecurityAnswer = await bcrypt.hash(securityAnswer, 10);
 
     const newUser = new User({
@@ -30,12 +28,15 @@ const register = async (req, res) => {
       password: hashed,
       role: role || 'user', // Default role if not specified
       securityQuestion,
-      securityAnswer: hashedSecurityAnswer
+      securityAnswer: hashedSecurityAnswer,
+      phone,
+      address
     });
 
-    await newUser.save();
-    
-    res.status(201).json({ 
+    const savedUser = await newUser.save();
+    console.log('Saved user:', savedUser);
+
+    res.status(201).json({
       message: 'User registered successfully',
       user: {
         firstName,
@@ -48,8 +49,9 @@ const register = async (req, res) => {
       }
     });
 
-  } catch (err) {
-    res.status(500).json({ message: 'Server error: ' + err.message });
+  } catch (error) {
+    console.error('Registration error:', error.message);
+    res.status(500).json({ message: 'Server error: ' + error.message });
   }
 };
 

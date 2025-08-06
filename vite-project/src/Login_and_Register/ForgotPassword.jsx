@@ -1,209 +1,73 @@
-import React, { useState } from 'react';
+// pages/Register.jsx
+import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import '../components/auth.css';
+import backgroundImage from '../assets/Login-reg.jpg';
+import { AuthContext } from '../App';
 
-export default function ForgotPassword() {
+export default function Register() {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1); // 1: email, 2: security question, 3: new password
+  const { isLoggedIn } = useContext(AuthContext);
   const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
     email: '',
+    name: '', // Match backend key: 'name'
+    password: '',
+    confirmPassword: '',
+    role: '',
+    securityQuestion: '',
     securityAnswer: '',
-    newPassword: '',
-    confirmPassword: ''
+    phone: '',
+    address: ''
   });
-  const [securityQuestion, setSecurityQuestion] = useState('');
+
   const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    if (isLoggedIn) navigate('/');
+  }, [isLoggedIn, navigate]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleEmailSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      const res = await fetch('http://localhost:5000/api/auth/forgot-password/question', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email })
-      });
-      const data = await res.json();
-      
-      if (res.ok) {
-        console.log('Security question retrieved:', data.securityQuestion);
-        setSecurityQuestion(data.securityQuestion);
-        setStep(2);
-        setMessage('');
-      } else {
-        setMessage(data.message);
-        console.error('Error retrieving security question:', data.message);
-      }
-    } catch (err) {
-      setMessage('Error retrieving security question');
-      console.error('Network error:', err);
-    }
-  };
 
-  const handleSecurityAnswerSubmit = async (e) => {
-    e.preventDefault();
-    if (!formData.securityAnswer.trim()) {
-      setMessage('Please provide your security answer');
-      return;
-    }
-    setStep(3);
-    setMessage('');
-  };
-
-  const handlePasswordReset = async (e) => {
-    e.preventDefault();
-    
-    if (formData.newPassword !== formData.confirmPassword) {
+    if (formData.password !== formData.confirmPassword) {
       setMessage('Passwords do not match');
       return;
     }
 
-    if (formData.newPassword.length < 6) {
-      setMessage('Password must be at least 6 characters long');
-      return;
-    }
-
     try {
-      const res = await fetch('http://localhost:5000/api/auth/forgot-password/reset', {
+      const res = await fetch('http://localhost:5000/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
           email: formData.email,
+          name: formData.name, // Make sure this maps to 'name'
+          password: formData.password,
+          role: formData.role,
+          securityQuestion: formData.securityQuestion,
           securityAnswer: formData.securityAnswer,
-          newPassword: formData.newPassword
+          phone: formData.phone,
+          address: formData.address
         })
       });
+
       const data = await res.json();
-      
+      setMessage(data.message);
+
       if (res.ok) {
-        setMessage(data.message);
-        setTimeout(() => navigate('/login'), 2000);
-      } else {
-        setMessage(data.message);
+        setTimeout(() => navigate('/login'), 1500);
       }
     } catch (err) {
-      setMessage('Error resetting password');
+      setMessage('Registration failed. Try again.');
     }
   };
-
-  const renderStep1 = () => (
-    <form onSubmit={handleEmailSubmit} className="auth-form">
-      <h2>Forgot Password</h2>
-      <p>Enter your email address to retrieve your security question.</p>
-      
-      <div className="form-group">
-        <label>Email</label>
-        <input
-          type="email"
-          name="email"
-          value={formData.email}
-          onChange={handleChange}
-          placeholder="Enter your email"
-          required
-        />
-      </div>
-
-      <button type="submit" className="auth-button">Continue</button>
-      
-      <div className="auth-divider">
-        <span>OR</span>
-      </div>
-      
-      <button
-        type="button"
-        className="auth-button secondary"
-        onClick={() => navigate('/login')}
-      >
-        Back to Login
-      </button>
-    </form>
-  );
-
-  const renderStep2 = () => (
-    <form onSubmit={handleSecurityAnswerSubmit} className="auth-form">
-      <h2>Security Question</h2>
-      <p>Please answer your security question to reset your password.</p>
-      
-      <div className="form-group">
-        <label>Security Question</label>
-        <div className="security-question-display">
-          {securityQuestion ? (
-            securityQuestion
-          ) : (
-            <span style={{ color: 'rgba(255, 255, 255, 0.6)', fontStyle: 'italic' }}>
-              Loading security question...
-            </span>
-          )}
-        </div>
-      </div>
-
-      <div className="form-group">
-        <label>Your Answer</label>
-        <input
-          type="text"
-          name="securityAnswer"
-          value={formData.securityAnswer}
-          onChange={handleChange}
-          placeholder="Enter your answer"
-          required
-        />
-      </div>
-
-      <button type="submit" className="auth-button">Verify Answer</button>
-      
-      <button
-        type="button"
-        className="auth-button secondary"
-        onClick={() => setStep(1)}
-      >
-        Back
-      </button>
-    </form>
-  );
-
-  const renderStep3 = () => (
-    <form onSubmit={handlePasswordReset} className="auth-form">
-      <h2>Reset Password</h2>
-      <p>Enter your new password.</p>
-      
-      <div className="form-group">
-        <label>New Password</label>
-        <input
-          type="password"
-          name="newPassword"
-          value={formData.newPassword}
-          onChange={handleChange}
-          placeholder="Enter new password"
-          required
-        />
-      </div>
-
-      <div className="form-group">
-        <label>Confirm New Password</label>
-        <input
-          type="password"
-          name="confirmPassword"
-          value={formData.confirmPassword}
-          onChange={handleChange}
-          placeholder="Confirm new password"
-          required
-        />
-      </div>
-
-      <button type="submit" className="auth-button">Reset Password</button>
-      
-      <button
-        type="button"
-        className="auth-button secondary"
-        onClick={() => setStep(2)}
-      >
-        Back
-      </button>
-    </form>
-  );
 
   return (
     <div className="auth-page">
@@ -213,16 +77,96 @@ export default function ForgotPassword() {
         </Link>
       </div>
       <div className="auth-container">
-        {step === 1 && renderStep1()}
-        {step === 2 && renderStep2()}
-        {step === 3 && renderStep3()}
-        
+        <form onSubmit={handleSubmit} className="auth-form">
+          {/* Name Fields */}
+          <div className="form-row">
+            <div className="form-group">
+              <label>First Name</label>
+              <input type="text" name="firstName" value={formData.firstName} onChange={handleChange} required />
+            </div>
+            <div className="form-group">
+              <label>Last Name</label>
+              <input type="text" name="lastName" value={formData.lastName} onChange={handleChange} required />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label>Username</label>
+              <input type="text" name="name" value={formData.name} onChange={handleChange} required />
+            </div>
+            <div className="form-group">
+              <label>Email</label>
+              <input type="email" name="email" value={formData.email} onChange={handleChange} required />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label>Password</label>
+              <input type="password" name="password" value={formData.password} onChange={handleChange} required />
+            </div>
+            <div className="form-group">
+              <label>Confirm Password</label>
+              <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} required />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label>Phone Number</label>
+              <input type="tel" name="phone" value={formData.phone} onChange={handleChange} required />
+            </div>
+            <div className="form-group">
+              <label>Current Address</label>
+              <input type="text" name="address" value={formData.address} onChange={handleChange} required />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label>Who are you?</label>
+            <select name="role" value={formData.role} onChange={handleChange} required>
+              <option value="">Select</option>
+              <option value="Owner">Owner</option>
+              <option value="Tenant">Tenant</option>
+              <option value="Security Guard">Security Guard</option>
+              <option value="Service Provider">Service Provider</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label>Security Question</label>
+            <select name="securityQuestion" value={formData.securityQuestion} onChange={handleChange} required>
+              <option value="">Choose a question</option>
+              <option value="What was the name of your first pet?">What was the name of your first pet?</option>
+              <option value="In which city were you born?">In which city were you born?</option>
+              <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
+              <option value="What was your favorite subject in school?">What was your favorite subject in school?</option>
+              <option value="What is the name of the street you grew up on?">What is the name of the street you grew up on?</option>
+              <option value="What was your first car?">What was your first car?</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label>Security Answer</label>
+            <input type="text" name="securityAnswer" value={formData.securityAnswer} onChange={handleChange} required />
+          </div>
+
+          <button type="submit" className="auth-button">Register</button>
+
+          <div className="auth-divider"><span>OR</span></div>
+
+          <button type="button" className="auth-button secondary" onClick={() => navigate('/login')}>
+            Log In
+          </button>
+        </form>
+
         {message && (
-          <div className={`message ${message.includes('successfully') || message.includes('retrieved') ? 'success' : 'error'}`}>
+          <div className={`message ${message.includes('successfully') ? 'success' : 'error'}`}>
             {message}
           </div>
         )}
       </div>
     </div>
   );
-} 
+}

@@ -6,9 +6,9 @@ import { AuthContext } from '../../App';
 const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isLoggedIn, logout, setPopupMessage } = useContext(AuthContext);
+  const { isLoggedIn, logout, setPopupMessage, userRole } = useContext(AuthContext);
   // Hide navbar on login and register pages
-  if (location.pathname === '/login' || location.pathname === '/register' || location.pathname.startsWith('/dashboard') || location.pathname === '/create-listing') return null;
+  if (location.pathname === '/login' || location.pathname === '/register' || location.pathname.startsWith('/dashboard') || location.pathname === '/create-listing' || location.pathname.startsWith('/tenant')) return null;
 
   const handleLogout = () => {
     logout();
@@ -18,7 +18,14 @@ const Navbar = () => {
   };
 
   const handleProfileClick = () => {
-    navigate('/dashboard');
+    if (userRole === 'Owner') {
+      navigate('/dashboard');
+    } else if (userRole === 'Tenant') {
+      navigate('/tenant/profile');
+    } else {
+      // Default or handle other roles
+      navigate('/login');
+    }
   };
 
   return (

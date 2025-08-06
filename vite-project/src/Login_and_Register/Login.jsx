@@ -38,9 +38,23 @@ export default function Login() {
           lastName: data.user.lastName
         });
         setPopupMessage(data.message);  // Use the message from server
+        
+        // Redirect based on user role
         setTimeout(() => {
           setPopupMessage('');
-          navigate('/');
+          if (data.user.role === 'Owner') {
+            navigate('/dashboard');
+          } else if (data.user.role === 'Tenant') {
+            navigate('/tenant/profile');
+          } else if (data.user.role === 'Security Guard') {
+            // Future implementation for security guard dashboard
+            navigate('/');
+          } else if (data.user.role === 'Service Provider') {
+            // Future implementation for service provider dashboard
+            navigate('/');
+          } else {
+            navigate('/');
+          }
         }, 2000);
       } else {
         setMessage(data.message);
