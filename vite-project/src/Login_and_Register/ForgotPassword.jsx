@@ -1,72 +1,69 @@
-// pages/Register.jsx
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import '../components/auth.css';
-import backgroundImage from '../assets/Login-reg.jpg';
-import { AuthContext } from '../App';
 
-export default function Register() {
+export default function ForgotPassword() {
   const navigate = useNavigate();
-  const { isLoggedIn } = useContext(AuthContext);
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    name: '', // Match backend key: 'name'
-    password: '',
-    confirmPassword: '',
-    role: '',
-    securityQuestion: '',
-    securityAnswer: '',
-    phone: '',
-    address: ''
-  });
-
+  const [step, setStep] = useState(1);
+  const [email, setEmail] = useState('');
+  const [securityQuestion, setSecurityQuestion] = useState('');
+  const [securityAnswer, setSecurityAnswer] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (isLoggedIn) navigate('/');
-  }, [isLoggedIn, navigate]);
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e) => {
+  // Step 1: Enter email to get security question
+  const handleEmailSubmit = async (e) => {
     e.preventDefault();
-
-    if (formData.password !== formData.confirmPassword) {
-      setMessage('Passwords do not match');
-      return;
-    }
-
+    setLoading(true);
+    setMessage('');
     try {
-      const res = await fetch('http://localhost:5000/api/auth/register', {
+      const res = await fetch('http://localhost:5000/api/auth/forgot-password/question', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          name: formData.name, // Make sure this maps to 'name'
-          password: formData.password,
-          role: formData.role,
-          securityQuestion: formData.securityQuestion,
-          securityAnswer: formData.securityAnswer,
-          phone: formData.phone,
-          address: formData.address
-        })
+        body: JSON.stringify({ email })
       });
-
       const data = await res.json();
-      setMessage(data.message);
-
       if (res.ok) {
-        setTimeout(() => navigate('/login'), 1500);
+        setSecurityQuestion(data.securityQuestion);
+        setStep(2);
+      } else {
+        setMessage(data.message || 'Failed to retrieve security question');
       }
     } catch (err) {
-      setMessage('Registration failed. Try again.');
+      setMessage('Server error. Try again.');
     }
+    setLoading(false);
+  };
+
+  // Step 2: Answer security question and set new password
+  const handleResetSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage('');
+    if (newPassword !== confirmPassword) {
+      setMessage('Passwords do not match');
+      setLoading(false);
+      return;
+    }
+    try {
+      const res = await fetch('http://localhost:5000/api/auth/forgot-password/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, securityAnswer, newPassword })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMessage('Password reset successfully! Redirecting to login...');
+        setTimeout(() => navigate('/login'), 2000);
+      } else {
+        setMessage(data.message || 'Failed to reset password');
+      }
+    } catch (err) {
+      setMessage('Server error. Try again.');
+    }
+    setLoading(false);
   };
 
   return (
@@ -77,94 +74,74 @@ export default function Register() {
         </Link>
       </div>
       <div className="auth-container">
-        <form onSubmit={handleSubmit} className="auth-form">
-          {/* Name Fields */}
-          <div className="form-row">
-            <div className="form-group">
-              <label>First Name</label>
-              <input type="text" name="firstName" value={formData.firstName} onChange={handleChange} required />
-            </div>
-            <div className="form-group">
-              <label>Last Name</label>
-              <input type="text" name="lastName" value={formData.lastName} onChange={handleChange} required />
-            </div>
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label>Username</label>
-              <input type="text" name="name" value={formData.name} onChange={handleChange} required />
-            </div>
+        {step === 1 && (
+          <form onSubmit={handleEmailSubmit} className="auth-form">
             <div className="form-group">
               <label>Email</label>
-              <input type="email" name="email" value={formData.email} onChange={handleChange} required />
+              <input
+                type="email"
+                name="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+              />
             </div>
-          </div>
-
-          <div className="form-row">
+            <button type="submit" className="auth-button" disabled={loading}>
+              {loading ? 'Loading...' : 'Get Security Question'}
+            </button>
+            <div className="auth-divider"><span>OR</span></div>
+            <button type="button" className="auth-button secondary" onClick={() => navigate('/login')}>
+              Log In
+            </button>
+          </form>
+        )}
+        {step === 2 && (
+          <form onSubmit={handleResetSubmit} className="auth-form">
             <div className="form-group">
-              <label>Password</label>
-              <input type="password" name="password" value={formData.password} onChange={handleChange} required />
+              <label>Security Question</label>
+              <div className="security-question-display">{securityQuestion}</div>
             </div>
             <div className="form-group">
-              <label>Confirm Password</label>
-              <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} required />
+              <label>Security Answer</label>
+              <input
+                type="text"
+                name="securityAnswer"
+                value={securityAnswer}
+                onChange={e => setSecurityAnswer(e.target.value)}
+                required
+              />
             </div>
-          </div>
-
-          <div className="form-row">
             <div className="form-group">
-              <label>Phone Number</label>
-              <input type="tel" name="phone" value={formData.phone} onChange={handleChange} required />
+              <label>New Password</label>
+              <input
+                type="password"
+                name="newPassword"
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+                required
+              />
             </div>
             <div className="form-group">
-              <label>Current Address</label>
-              <input type="text" name="address" value={formData.address} onChange={handleChange} required />
+              <label>Confirm New Password</label>
+              <input
+                type="password"
+                name="confirmPassword"
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                required
+              />
             </div>
-          </div>
-
-          <div className="form-group">
-            <label>Who are you?</label>
-            <select name="role" value={formData.role} onChange={handleChange} required>
-              <option value="">Select</option>
-              <option value="Owner">Owner</option>
-              <option value="Tenant">Tenant</option>
-              <option value="Security Guard">Security Guard</option>
-              <option value="Service Provider">Service Provider</option>
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label>Security Question</label>
-            <select name="securityQuestion" value={formData.securityQuestion} onChange={handleChange} required>
-              <option value="">Choose a question</option>
-              <option value="What was the name of your first pet?">What was the name of your first pet?</option>
-              <option value="In which city were you born?">In which city were you born?</option>
-              <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
-              <option value="What was your favorite subject in school?">What was your favorite subject in school?</option>
-              <option value="What is the name of the street you grew up on?">What is the name of the street you grew up on?</option>
-              <option value="What was your first car?">What was your first car?</option>
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label>Security Answer</label>
-            <input type="text" name="securityAnswer" value={formData.securityAnswer} onChange={handleChange} required />
-          </div>
-
-          <button type="submit" className="auth-button">Register</button>
-
-          <div className="auth-divider"><span>OR</span></div>
-
-          <button type="button" className="auth-button secondary" onClick={() => navigate('/login')}>
-            Log In
-          </button>
-        </form>
-
+            <button type="submit" className="auth-button" disabled={loading}>
+              {loading ? 'Resetting...' : 'Reset Password'}
+            </button>
+            <div className="auth-divider"><span>OR</span></div>
+            <button type="button" className="auth-button secondary" onClick={() => navigate('/login')}>
+              Log In
+            </button>
+          </form>
+        )}
         {message && (
-          <div className={`message ${message.includes('successfully') ? 'success' : 'error'}`}>
-            {message}
-          </div>
+          <div className={`message ${message.includes('success') ? 'success' : 'error'}`}>{message}</div>
         )}
       </div>
     </div>
