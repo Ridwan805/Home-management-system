@@ -304,18 +304,17 @@ const PropertyDetails = () => {
                 
                 <div className="property-actions">
                   <button className="view-details-btn" onClick={() => handleViewDetails(property)}>View Details</button>
-                  <button className="edit-btn" onClick={() => handleEditClick(property)}>Edit</button>
-                <div className="status-action" style={{ position: "relative" }}>
-                  <button
-                    className={`status-btn status-dropdown-btn ${property.status?.toLowerCase().replace(/ /g, '-')}`}
-                    onClick={() =>
-                      setShowStatusDropdown(showStatusDropdown === property._id ? null : property._id)
-                    }
-                    style={{ fontWeight: 500 }}
-                  >
-                    Status: {property.status} <span style={{marginLeft: 6, fontSize: 12}}>▼</span>
-                  </button>
-                  {showStatusDropdown === property._id && (
+                  <button className="edit-btn" onClick={() => handleEditClick(property)} disabled={property.status === 'pending'}>Edit</button>
+                  <div className="status-action" style={{ position: "relative" }}>
+                    <button
+                      className={`status-btn status-dropdown-btn ${property.status?.toLowerCase().replace(/ /g, '-')}`}
+                      onClick={() => property.status === 'pending' ? null : setShowStatusDropdown(showStatusDropdown === property._id ? null : property._id)}
+                      style={{ fontWeight: 500, cursor: property.status === 'pending' ? 'not-allowed' : 'pointer' }}
+                      disabled={property.status === 'pending'}
+                    >
+                      Status: {property.status} <span style={{marginLeft: 6, fontSize: 12}}>▼</span>
+                    </button>
+                  {showStatusDropdown === property._id && property.status !== 'pending' && ( // Only show dropdown if not pending
                   <ul className="status-dropdown-menu">
                     {statusOptions.map(option => (
                       <li key={option}>
@@ -359,10 +358,8 @@ const PropertyDetails = () => {
                   ) : (
                     <button 
                       className="delete-btn" 
-                      onClick={() => setDeleteConfirm(property._id)}
-                    >
-                      Remove
-                    </button>
+                      onClick={() => setDeleteConfirm(property._id)} disabled={property.status === 'pending'}>Remove</button>
+                    
                   )}
                 </div>
               </div>

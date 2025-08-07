@@ -3,7 +3,7 @@ const Property = require('../models/Property');
 // Get all properties (public route)
 const getAllProperties = async (req, res) => {
   try {
-    const properties = await Property.find()
+    const properties = await Property.find({ status: 'available' })
       .sort({ createdAt: -1 });
     res.json(properties);
   } catch (err) {
@@ -34,25 +34,36 @@ const getUserProperties = async (req, res) => {
   }
 };
 
-// Create a new property
+
 const createProperty = async (req, res) => {
   try {
+    // Combine fields from req.body and add ownerId and status
     const propertyData = {
       ...req.body,
-      ownerId: req.user.userId
+      owner: req.user.userId,
+      status: 'pending',
     };
-    
+
+    // Handle image uploads
+    let imageUrls = [];
+    if (req.files && req.files.length > 0) {
+      imageUrls = req.files.map(file => `/uploads/${file.filename}`);
+    }
+    propertyData.images = imageUrls;
+
+    // Create new Property
     const property = new Property(propertyData);
     await property.save();
-    
+
     res.status(201).json({
-      message: 'Property created successfully',
+      message: 'Property created successfully and is pending admin approval',
       property
     });
   } catch (err) {
     res.status(500).json({ message: 'Server error: ' + err.message });
   }
 };
+
 
 // Get property by ID
 const getPropertyById = async (req, res) => {
@@ -125,4 +136,4 @@ module.exports = {
   getPropertyById,
   updateProperty,
   deleteProperty
-}; 
+};

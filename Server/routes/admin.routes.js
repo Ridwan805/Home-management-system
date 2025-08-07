@@ -7,7 +7,7 @@ const isAdmin = require('../middleware/isAdmin');
 router.post('/admin/login', adminController.adminLogin);
 
 // Dashboard
-router.get('/admin/dashboard', isAdmin, adminController.getDashboardMetrics);
+router.get('/admin/dashboard/stats', isAdmin, adminController.getDashboardMetrics);
 
 // Property management
 router.get('/admin/properties/pending', isAdmin, adminController.getPendingProperties);

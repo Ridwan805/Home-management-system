@@ -24,7 +24,7 @@ const DashboardOverview = () => {
         return;
       }
       
-      const res = await axios.get('http://localhost:5000/api/admin/dashboard', {
+      const res = await axios.get('http://localhost:5000/api/admin/dashboard/stats', {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       setStats(res.data);
@@ -46,9 +46,22 @@ const DashboardOverview = () => {
       {loading ? (
         <div className="loading-spinner">Loading dashboard statistics...</div>
       ) : error ? (
-        <div className="error-message">
-          {error}
-          <button className="retry-button" onClick={fetchDashboardStats}>
+        <div className="error-message" style={{ backgroundColor: '#fee2e2', padding: '20px', borderRadius: '8px', textAlign: 'center' }}>
+          Failed to load dashboard statistics. Please try again later.
+          <button 
+            className="retry-button" 
+            onClick={fetchDashboardStats}
+            style={{ 
+              marginTop: '15px', 
+              backgroundColor: '#3b82f6', 
+              color: 'white', 
+              border: 'none', 
+              padding: '8px 20px', 
+              borderRadius: '4px', 
+              cursor: 'pointer',
+              fontWeight: '500'
+            }}
+          >
             Retry
           </button>
         </div>

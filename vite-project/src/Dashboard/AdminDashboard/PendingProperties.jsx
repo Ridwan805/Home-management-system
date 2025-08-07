@@ -50,6 +50,7 @@ const PendingProperties = () => {
         { status: 'approved' }, 
         { headers: { Authorization: `Bearer ${user.token}` } }
       );
+      // Update the local state to remove the approved property
       setProperties(properties.filter(property => property._id !== id));
       setError(null);
     } catch (err) {
@@ -74,6 +75,7 @@ const PendingProperties = () => {
         { status: 'rejected' }, 
         { headers: { Authorization: `Bearer ${user.token}` } }
       );
+      // Update the local state to remove the rejected property
       setProperties(properties.filter(property => property._id !== id));
       setError(null);
     } catch (err) {
@@ -90,9 +92,22 @@ const PendingProperties = () => {
       {loading ? (
         <div className="loading-spinner">Loading pending properties...</div>
       ) : error ? (
-        <div className="error-message">
-          {error}
-          <button className="retry-button" onClick={fetchPendingProperties}>
+        <div className="error-message" style={{ backgroundColor: '#fee2e2', padding: '20px', borderRadius: '8px', textAlign: 'center' }}>
+          Failed to load pending properties. Please try again later.
+          <button 
+            className="retry-button" 
+            onClick={fetchPendingProperties}
+            style={{ 
+              marginTop: '15px', 
+              backgroundColor: '#3b82f6', 
+              color: 'white', 
+              border: 'none', 
+              padding: '8px 20px', 
+              borderRadius: '4px', 
+              cursor: 'pointer',
+              fontWeight: '500'
+            }}
+          >
             Retry
           </button>
         </div>

@@ -107,7 +107,7 @@ const PropertyFilter = () => {
           (p.zipCode && p.zipCode.toLowerCase().includes(search))
         );
       })
-    : properties;
+    : properties.filter((p) => p.status && p.status.toLowerCase() === 'available');
 
   return (
     <div className="property-filter-page">
@@ -332,4 +332,4 @@ const PropertyFilter = () => {
   );
 };
 
-export default PropertyFilter; 
+export default PropertyFilter;

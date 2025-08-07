@@ -1,7 +1,8 @@
 const mongoose = require('mongoose');
 
 const PropertySchema = new mongoose.Schema({
-  ownerId: { type: String, required: true },
+  owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  ownerId: { type: String, required: false },
   address: { type: String, required: true },
   propertyType: { type: String, required: true },
   bedrooms: { type: Number, required: true },
@@ -22,7 +23,7 @@ const PropertySchema = new mongoose.Schema({
   zipCode: { type: String }
 }, { 
   timestamps: true,
-  collection: 'Properties' // This will create the Properties collection in the User database
+  collection: 'Properties'
 });
 
 module.exports = mongoose.model('Property', PropertySchema);

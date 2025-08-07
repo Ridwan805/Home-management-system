@@ -62,11 +62,18 @@ exports.getDashboardMetrics = async (req, res) => {
       Report.countDocuments({ status: { $ne: 'resolved' } })
     ]);
 
+    // Calculate total properties (approved + pending + rejected)
+    const totalProperties = await Property.countDocuments();
+    
+    // For now, we'll use unresolvedReports as totalBookings since we don't have a Booking model
+    // This should be updated when a Booking model is implemented
+    const totalBookings = unresolvedReports;
+
     res.json({
       totalUsers,
-      activeProperties,
+      totalProperties,
       pendingProperties,
-      unresolvedReports
+      totalBookings
     });
   } catch (err) {
     console.error('Error fetching dashboard metrics:', err);
@@ -79,7 +86,7 @@ exports.getPendingProperties = async (req, res) => {
   try {
     const properties = await Property.find({ status: 'pending' })
       .populate('owner', 'name email')
-      .sort({ createdAt: -1 }); // Sort by newest first
+      .sort({ createdAt: -1 });
     res.json(properties);
   } catch (err) {
     console.error('Error fetching pending properties:', err);
