@@ -1,5 +1,5 @@
-const User = require('../models/User');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
+const User = require('../models/User'); // Also add this missing import
 
 // Get security question for a user
 const getSecurityQuestion = async (req, res) => {
@@ -54,4 +54,4 @@ const resetPassword = async (req, res) => {
 module.exports = {
   getSecurityQuestion,
   resetPassword
-}; 
+};
