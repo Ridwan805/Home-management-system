@@ -21,7 +21,7 @@ router.post('/login', async (req, res) => {
   if (user) {
     const match = await bcrypt.compare(password, user.password);
     if (match) {
-      const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
+      const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
       return res.json({
         message: `Login Successful! Welcome ${user.firstName || user.name}`,
         token,
@@ -43,10 +43,11 @@ router.post('/login', async (req, res) => {
     const match = await bcrypt.compare(password, admin.hashedPassword);
     if (match && admin.isActive) {
       const token = jwt.sign(
-        { id: admin._id, role: 'admin', permissions: admin.permissions },
+        { userId: admin._id, role: 'admin', permissions: admin.permissions },
         process.env.JWT_SECRET,
         { expiresIn: '1d' }
       );
+
       return res.json({
         message: 'Admin login successful',
         token,

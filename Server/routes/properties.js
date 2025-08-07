@@ -23,13 +23,9 @@ router.get('/user', authMiddleware, async (req, res) => {
   try {
     // Make sure we're getting the userId from the authenticated user
     if (!req.user || !req.user.userId) {
-      return res.status(401).json({ message: 'User not authenticated' });
+    return res.status(401).json({ message: 'User not authenticated' });
     }
-
-    
-
-    const properties = await Property.find({ ownerId: req.user.userId })
-      .sort({ createdAt: -1 });
+    const properties = await Property.find({ ownerId: req.user.userId });
     
     // Changed this condition since find() returns an empty array if no properties
     if (!properties || properties.length === 0) {
