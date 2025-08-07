@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { FaTachometerAlt, FaHourglass, FaFlag, FaUsers, FaSignOutAlt } from 'react-icons/fa';
 import './adminDashboard.css'; // Make sure your filename casing matches here
 
 const AdminSidebar = ({ activeTab }) => {
@@ -17,19 +18,34 @@ const AdminSidebar = ({ activeTab }) => {
       <nav>
         <ul>
           <li className={activeTab === 'overview' ? 'active' : ''}>
-            <Link to="/admin">Dashboard</Link>
+            <Link to="/admin">
+              <FaTachometerAlt className="nav-icon" />
+              <span>Dashboard</span>
+            </Link>
           </li>
           <li className={activeTab === 'pending-properties' ? 'active' : ''}>
-            <Link to="/admin/pending-properties">Pending Properties</Link>
+            <Link to="/admin/pending-properties">
+              <FaHourglass className="nav-icon" />
+              <span>Pending Properties</span>
+            </Link>
           </li>
           <li className={activeTab === 'report-management' ? 'active' : ''}>
-            <Link to="/admin/reports">Reports</Link>
+            <Link to="/admin/reports">
+              <FaFlag className="nav-icon" />
+              <span>Reports</span>
+            </Link>
           </li>
           <li className={activeTab === 'user-moderation' ? 'active' : ''}>
-            <Link to="/admin/users">User Moderation</Link>
+            <Link to="/admin/users">
+              <FaUsers className="nav-icon" />
+              <span>User Moderation</span>
+            </Link>
           </li>
           <li className="logout-item">
-            <button onClick={handleLogout} className="logout-button">Logout</button>
+            <button onClick={handleLogout} className="logout-button">
+              <FaSignOutAlt className="nav-icon" />
+              <span>Logout</span>
+            </button>
           </li>
         </ul>
       </nav>

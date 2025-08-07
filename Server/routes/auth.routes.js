@@ -43,7 +43,7 @@ router.post('/login', async (req, res) => {
     const match = await bcrypt.compare(password, admin.hashedPassword);
     if (match && admin.isActive) {
       const token = jwt.sign(
-        { userId: admin._id, role: 'admin', permissions: admin.permissions },
+        { id: admin._id, role: 'admin', permissions: admin.permissions },
         process.env.JWT_SECRET,
         { expiresIn: '1d' }
       );
