@@ -14,6 +14,7 @@ import PropertyDetails from './Dashboard/PropertyDetails';
 import TenantInfo from './Dashboard/TenantInfo';
 import SecurityGuardInfo from './Dashboard/SecurityGuardInfo';
 import TenantDashboard from './Dashboard/TenantDashboard/TenantDashboard';
+import PropertyListing from './components/PropertyListing';
 
 // ✅ ADD THIS IMPORT
 import AdminDashboard from './Dashboard/AdminDashboard/AdminDashboard'; 
@@ -58,6 +59,7 @@ function AppRoutes() {
             if (key === 'profile') navigate('/dashboard');
             else if (key === 'create-listing') navigate('/create-listing');
             else if (key === 'property-details') navigate('/property-details');
+            else if (key === 'property-listing') navigate('/property-listing');
             else if (key === 'tenant-info') navigate('/tenant-info');
             else if (key === 'security-guard-info') navigate('/security-guard-info');
             else if (key === 'request-info') navigate('/request-info');
@@ -82,6 +84,7 @@ function AppRoutes() {
             if (key === 'profile') navigate('/dashboard');
             else if (key === 'create-listing') navigate('/create-listing');
             else if (key === 'property-details') navigate('/property-details');
+            else if (key === 'property-listing') navigate('/property-listing');
             else if (key === 'tenant-info') navigate('/tenant-info');
             else if (key === 'request-info') navigate('/request-info');
           }}
@@ -122,6 +125,30 @@ function AppRoutes() {
         <Route path="/dashboard" element={<OwnerDashboard />} />
         <Route path="/create-listing" element={<CreateListingPage />} />
         <Route
+          path="/property-listing"
+          element={
+            <div className="owner-dashboard">
+              <SidebarNav
+                activeSection="property-listing"
+                setActiveSection={(key) => {
+                  if (key === 'profile') navigate('/dashboard');
+                  else if (key === 'create-listing') navigate('/create-listing');
+                  else if (key === 'property-details') navigate('/property-details');
+                  else if (key === 'property-listing') navigate('/property-listing');
+                  else if (key === 'tenant-info') navigate('/tenant-info');
+                  else if (key === 'security-guard-info') navigate('/security-guard-info');
+                  else if (key === 'request-info') navigate('/request-info');
+                }}
+              />
+              <main className="dashboard-main">
+                <div className="dashboard-content">
+                  <PropertyListing />
+                </div>
+              </main>
+            </div>
+          }
+        />
+        <Route
           path="/property-details"
           element={
             <div className="owner-dashboard">
@@ -131,6 +158,7 @@ function AppRoutes() {
                   if (key === 'profile') navigate('/dashboard');
                   else if (key === 'create-listing') navigate('/create-listing');
                   else if (key === 'property-details') navigate('/property-details');
+                  else if (key === 'property-listing') navigate('/property-listing');
                   else if (key === 'tenant-info') navigate('/tenant-info');
                   else if (key === 'security-guard-info') navigate('/security-guard-info');
                   else if (key === 'request-info') navigate('/request-info');
@@ -154,6 +182,7 @@ function AppRoutes() {
                   if (key === 'profile') navigate('/dashboard');
                   else if (key === 'create-listing') navigate('/create-listing');
                   else if (key === 'property-details') navigate('/property-details');
+                  else if (key === 'property-listing') navigate('/property-listing');
                   else if (key === 'tenant-info') navigate('/tenant-info');
                   else if (key === 'security-guard-info') navigate('/security-guard-info');
                   else if (key === 'request-info') navigate('/request-info');
@@ -177,6 +206,7 @@ function AppRoutes() {
                   if (key === 'profile') navigate('/dashboard');
                   else if (key === 'create-listing') navigate('/create-listing');
                   else if (key === 'property-details') navigate('/property-details');
+                  else if (key === 'property-listing') navigate('/property-listing');
                   else if (key === 'tenant-info') navigate('/tenant-info');
                   else if (key === 'security-guard-info') navigate('/security-guard-info');
                   else if (key === 'request-info') navigate('/request-info');

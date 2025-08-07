@@ -1,0 +1,239 @@
+/* Edit Form Modal Specific Styles */
+.edit-form-modal .modal-content {
+  max-width: 700px; /* Adjust as needed for form */
+}
+
+.edit-form-modal .modal-content h2 {
+  font-size: 1.75rem;
+}
+
+.edit-form-modal form {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+.edit-form-modal .form-group {
+  margin-bottom: 1rem;
+}
+
+.edit-form-modal label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #374151;
+  font-weight: 500;
+}
+
+.edit-form-modal input[type="text"],
+.edit-form-modal input[type="number"],
+.edit-form-modal input[type="email"],
+.edit-form-modal textarea,
+.edit-form-modal select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  color: #1f2937;
+}
+
+.edit-form-modal textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.edit-form-modal .form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.edit-form-modal .form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.edit-form-modal .checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.edit-form-modal .checkbox-group label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0;
+  font-weight: 400;
+}
+
+.edit-form-modal .checkbox-group input[type="checkbox"] {
+  width: auto;
+}
+
+.edit-form-modal .file-input-group {
+  margin-top: 1rem;
+}
+
+.edit-form-modal .file-input-group input[type="file"] {
+  border: 1px solid #d1d5db;
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+}
+
+.edit-form-modal .current-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.edit-form-modal .current-image-item {
+  position: relative;
+}
+
+.edit-form-modal .current-image-item img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 0.25rem;
+}
+
+.edit-form-modal .remove-image-btn {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.edit-form-modal .form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.edit-form-modal .submit-btn {
+  background-color: #22c55e;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.375rem;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.3s;
+}
+
+.edit-form-modal .submit-btn:hover {
+  background-color: #16a34a;
+}
+
+.edit-form-modal .cancel-btn {
+  background-color: #6b7280;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.375rem;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.3s;
+}
+
+.edit-form-modal .cancel-btn:hover {
+  background-color: #4b5563;
+}
+
+.error-state {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  margin-bottom: 1rem;
+}
+
+.success-state {
+  background-color: #d1fae5;
+  color: #065f46;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  margin-bottom: 1rem;
+}
+
+/* Modal Overlay and Content (shared with PropertyCard) */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.modal-content {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  max-width: 90%;
+  max-height: 90%;
+  overflow-y: auto;
+  position: relative;
+  animation: slideIn 0.3s ease-out;
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #6b7280;
+}
+
+.modal-close-btn:hover {
+  color: #1f2937;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { transform: translateY(-50px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .edit-form-modal .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .edit-form-modal .form-actions {
+    flex-direction: column-reverse;
+  }
+  
+  .edit-form-modal .submit-btn, 
+  .edit-form-modal .cancel-btn {
+    width: 100%;
+  }
+}

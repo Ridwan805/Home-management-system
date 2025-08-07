@@ -1,0 +1,362 @@
+.property-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transition: transform 0.3s, box-shadow 0.3s;
+  background-color: white;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: visible; /* Ensure dropdowns are not clipped */
+  position: relative;
+}
+
+.property-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.property-image {
+  position: relative;
+  height: 200px;
+  overflow: hidden;
+  flex-shrink: 0; /* Prevent image from shrinking */
+}
+
+.property-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s;
+}
+
+.property-card:hover .property-image img {
+  transform: scale(1.05);
+}
+
+.property-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: 500;
+}
+
+.status-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: white;
+}
+
+.status-badge.available {
+  background-color: #10b981;
+}
+
+.status-badge.not-available {
+  background-color: #f59e0b;
+}
+
+.status-badge.sold {
+  background-color: #ef4444;
+}
+
+.status-badge.rented {
+  background-color: #8b5cf6;
+}
+
+.property-info {
+  padding: 1.5rem;
+  flex-grow: 1; /* Allow info section to grow */
+  display: flex;
+  flex-direction: column;
+}
+
+.property-info h3 {
+  color: #1f2937;
+  font-size: 1.5rem;
+  margin: 0 0 0.5rem 0;
+}
+
+.property-address {
+  color: #4b5563;
+  font-weight: 500;
+  margin: 0.25rem 0;
+}
+
+.property-location {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin: 0.25rem 0 1rem 0;
+}
+
+.property-specs {
+  display: flex;
+  gap: 1rem;
+  margin: 1rem 0;
+  color: #4b5563;
+  font-size: 0.875rem;
+}
+
+.property-type-info {
+  display: flex;
+  gap: 0.75rem;
+  margin: 0.5rem 0;
+}
+
+.property-type, .listing-type {
+  background-color: #e5e7eb;
+  color: #4b5563;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.property-description {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin: 1rem 0;
+  line-height: 1.5;
+  flex-grow: 1; /* Allow description to grow */
+}
+
+.property-actions {
+  display: flex;
+  flex-wrap: wrap;         /* allow buttons to wrap to next line */
+  gap: 0.75rem;            /* slightly smaller gap */
+  margin-top: 1.5rem;
+  justify-content: stretch; /* stretch to full width if possible */
+  position: relative;
+  overflow: visible; /* Ensure dropdowns are not clipped */
+}
+
+.edit-btn, .delete-btn, .view-details-btn, .status-btn {
+  min-width: 110px;      /* prevent too small buttons */
+  flex-grow: 1;          /* share available space equally */
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  border: none;
+  margin-bottom: 0.5rem;  /* little space for wrapped buttons */
+}
+
+.edit-btn {
+  background-color: #2563eb;
+  color: white;
+}
+
+.edit-btn:hover {
+  background-color: #1d4ed8;
+}
+
+.delete-btn {
+  background-color: #ef4444;
+  color: white;
+}
+
+.delete-btn:hover {
+  background-color: #dc2626;
+}
+
+.view-details-btn {
+  background-color: #0ea5e9;
+  color: white;
+}
+
+.view-details-btn:hover {
+  background-color: #0284c7;
+}
+
+.status-btn {
+  background-color: #6b7280;
+  color: white;
+  position: relative;
+}
+
+.status-action {
+  position: relative;
+  z-index: 20; /* Ensure dropdown appears above other elements */
+}
+
+.status-btn:hover {
+  background-color: #4b5563;
+}
+
+.status-dropdown-menu {
+  position: absolute;
+  bottom: 100%; /* Position above the button */
+  left: 0;
+  right: 0;
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  z-index: 30; /* Higher z-index to ensure visibility */
+  margin-bottom: 0.5rem; /* Space between button and dropdown */
+  overflow: hidden;
+  padding: 0;
+  list-style: none;
+}
+
+.status-dropdown-option {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  color: #1f2937;
+}
+
+.status-dropdown-option:hover {
+  background-color: #f3f4f6;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.modal-content {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  max-width: 90%;
+  max-height: 90%;
+  overflow-y: auto;
+  position: relative;
+  animation: slideIn 0.3s ease-out;
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #6b7280;
+}
+
+.modal-close-btn:hover {
+  color: #1f2937;
+}
+
+.modal-content h2 {
+  color: #2563eb;
+  margin-bottom: 1.5rem;
+  font-size: 2rem;
+}
+
+.modal-image-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.modal-image-gallery img {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 0.5rem;
+}
+
+.modal-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem 2rem;
+  margin-bottom: 1.5rem;
+}
+
+.modal-detail-item strong {
+  color: #1f2937;
+}
+
+.modal-detail-item span {
+  color: #4b5563;
+}
+
+.modal-amenities-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.modal-amenity-item {
+  background-color: #e0f2fe;
+  color: #0284c7;
+  padding: 0.3rem 0.7rem;
+  border-radius: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.modal-description-full {
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+/* Status-specific button colors */
+.status-dropdown-btn.available { background-color: #10b981; }
+.status-dropdown-btn.not-available { background-color: #f59e0b; }
+.status-dropdown-btn.sold { background-color: #ef4444; }
+.status-dropdown-btn.rented { background-color: #8b5cf6; }
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { transform: translateY(-50px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .modal-content {
+    padding: 1.5rem;
+  }
+  
+  .modal-details-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .property-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .edit-btn, .delete-btn, .view-details-btn, .status-btn {
+    min-width: unset;
+    width: 100%;
+  }
+}

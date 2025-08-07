@@ -1,0 +1,79 @@
+.property-listing-container {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.property-listing-container h1 {
+  color: #2563eb;
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  color: #6b7280;
+  margin-bottom: 2rem;
+}
+
+.loading-state, .error-state {
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin: 1rem 0;
+  text-align: center;
+}
+
+.loading-state {
+  background-color: #f3f4f6;
+  color: #4b5563;
+}
+
+.error-state {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.no-properties {
+  text-align: center;
+  padding: 3rem;
+  background-color: #f9fafb;
+  border-radius: 0.5rem;
+  margin: 2rem 0;
+}
+
+.add-property-btn {
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 1rem;
+  transition: background-color 0.3s;
+}
+
+.add-property-btn:hover {
+  background-color: #1d4ed8;
+}
+
+.properties-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 2rem;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .properties-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .property-listing-container {
+    padding: 1rem;
+  }
+  
+  .properties-grid {
+    grid-template-columns: 1fr;
+  }
+}
