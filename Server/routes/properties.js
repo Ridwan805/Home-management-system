@@ -19,25 +19,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // Protected routes
-router.get('/user', authMiddleware, async (req, res) => {
-  try {
-    // Make sure we're getting the userId from the authenticated user
-    if (!req.user || !req.user.userId) {
-    return res.status(401).json({ message: 'User not authenticated' });
-    }
-    const properties = await Property.find({ ownerId: req.user.userId });
-    
-    // Changed this condition since find() returns an empty array if no properties
-    if (!properties || properties.length === 0) {
-      return res.json([]); // Return empty array instead of 404
-    }
-
-    res.json(properties);
-  } catch (err) {
-    console.error('Error in /user route:', err);
-    res.status(500).json({ message: 'Error fetching properties: ' + err.message });
-  }
-});
+router.get('/user', authMiddleware, propertyController.getUserProperties);
 
 router.get('/top', propertyController.getTopProperties);
 
@@ -89,5 +71,8 @@ router.put('/:id', authMiddleware, upload.array('images', 10), async (req, res) 
 
 // DELETE /api/properties/:id (delete property)
 router.delete('/:id', authMiddleware, propertyController.deleteProperty);
+
+// PATCH /api/properties/:id (update property status)
+router.patch('/:id', authMiddleware, propertyController.updatePropertyStatus);
 
 module.exports = router;

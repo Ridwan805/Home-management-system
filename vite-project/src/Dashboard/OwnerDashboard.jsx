@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import SidebarNav from './components/SidebarNav';
 import OwnerProfile from './components/OwnerProfile';
+import DebugLocalStorage from './components/DebugLocalStorage';
 import './OwnerDashboard.css';
 import { useNavigate } from 'react-router-dom';
 
@@ -51,7 +52,7 @@ const OwnerDashboard = () => {
           window.location.href = '/login';
           throw new Error('Session expired or invalid. Please log in again.');
         }
-        const response = await fetch('http://localhost:5000/api/Properties/user', {
+        const response = await fetch('http://localhost:5000/api/properties/user', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -65,7 +66,8 @@ const OwnerDashboard = () => {
         if (!Array.isArray(data)) {
           throw new Error('Invalid data received from server');
         }
-        setProperties(data.slice(0, 2));
+        console.log('Properties fetched:', data.length);
+        setProperties(data);
         setLoading(false);
       } catch (err) {
         console.error('Error fetching properties:', err);
@@ -95,17 +97,29 @@ const OwnerDashboard = () => {
           {activeSection === 'profile' && (
             <>
               <OwnerProfile />
+              <DebugLocalStorage />
               <div className="dashboard-grid">
                 {/* Top Properties Section */}
                 <section className="dashboard-section properties-section">
-                  <h2>Your Top Properties</h2>
+                  <div className="section-header">
+                    <h2>Your Top Properties</h2>
+                    {properties.length > 3 && (
+                      <button 
+                        className="view-all-btn"
+                        onClick={() => navigate('/property-details')}
+                      >
+                        View All Properties
+                      </button>
+                    )}
+                  </div>
                   <div className="properties-grid">
                     {loading ? (
                       <div className="loading-state">Loading properties...</div>
                     ) : error ? (
                       <div className="error-state">{error}</div>
                     ) : properties.length > 0 ? (
-                      properties.map(property => (
+                      // Show only top 3 properties
+                      properties.slice(0, 3).map(property => (
                         <div key={property._id} className="property-card">
                           <div className="property-image">
                             {property.images?.length > 0 ? (

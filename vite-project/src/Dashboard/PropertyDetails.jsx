@@ -30,7 +30,7 @@ const PropertyDetails = () => {
         }
         
         const user = JSON.parse(userData);
-        const response = await fetch('http://localhost:5000/api/Properties/user', {
+        const response = await fetch('http://localhost:5000/api/properties/user', {
           headers: {
             'Authorization': `Bearer ${user.token}`,
             'Content-Type': 'application/json'
@@ -153,7 +153,7 @@ const PropertyDetails = () => {
         }
       }
 
-      const response = await fetch(`http://localhost:5000/api/Properties/${editingProperty}`, {
+      const response = await fetch(`http://localhost:5000/api/properties/${editingProperty}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${user.token}`,
@@ -193,7 +193,7 @@ const PropertyDetails = () => {
       }
       
       const user = JSON.parse(userData);
-      const response = await fetch(`http://localhost:5000/api/Properties/${propertyId}`, {
+      const response = await fetch(`http://localhost:5000/api/properties/${propertyId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${user.token}`,
@@ -224,7 +224,7 @@ const PropertyDetails = () => {
       }
       
       const user = JSON.parse(userData);
-      const response = await fetch(`http://localhost:5000/api/Properties/${propertyId}`, {
+      const response = await fetch(`http://localhost:5000/api/properties/${propertyId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${user.token}`,
