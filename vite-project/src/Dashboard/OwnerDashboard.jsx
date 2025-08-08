@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import SidebarNav from './components/SidebarNav';
-import OwnerProfile from './components/OwnerProfile';
+import SidebarNav from './OwnerProfile/SidebarNav';
+import OwnerProfile from './OwnerProfile/OwnerProfile';
 
 import './OwnerDashboard.css';
 import { useNavigate } from 'react-router-dom';

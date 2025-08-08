@@ -9,7 +9,7 @@ import HomePage from './HomePage/HomePage';
 import PropertyFilter from './components/PropertyFilter';
 import OwnerDashboard from './Dashboard/OwnerDashboard';
 import CreateListingForm from './Dashboard/CreateListingForm';
-import SidebarNav from './Dashboard/components/SidebarNav';
+import SidebarNav from './Dashboard/OwnerProfile/SidebarNav';
 import PropertyDetails from './Dashboard/PropertyDetails';
 import TenantInfo from './Dashboard/TenantInfo';
 import SecurityGuardInfo from './Dashboard/SecurityGuardInfo';
