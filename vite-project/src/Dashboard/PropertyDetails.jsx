@@ -224,13 +224,13 @@ const PropertyDetails = () => {
       }
       
       const user = JSON.parse(userData);
-      const response = await fetch(`http://localhost:5000/api/properties/${propertyId}`, {
+      const response = await fetch(`http://localhost:5000/api/properties/${propertyId}/status`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${user.token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify({ status: newStatus }),
       });
 
       if (!response.ok) {

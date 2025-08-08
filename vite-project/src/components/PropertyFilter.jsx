@@ -107,7 +107,7 @@ const PropertyFilter = () => {
           (p.zipCode && p.zipCode.toLowerCase().includes(search))
         );
       })
-    : properties.filter((p) => p.status && p.status.toLowerCase() === 'available');
+    : properties.filter((p) => p.status && ['Available', 'Sold', 'Rented', 'Not Available'].includes(p.status));
 
   return (
     <div className="property-filter-page">

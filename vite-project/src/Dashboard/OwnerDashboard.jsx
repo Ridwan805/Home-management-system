@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import SidebarNav from './components/SidebarNav';
 import OwnerProfile from './components/OwnerProfile';
-import DebugLocalStorage from './components/DebugLocalStorage';
+
 import './OwnerDashboard.css';
 import { useNavigate } from 'react-router-dom';
 
@@ -97,7 +97,7 @@ const OwnerDashboard = () => {
           {activeSection === 'profile' && (
             <>
               <OwnerProfile />
-              <DebugLocalStorage />
+
               <div className="dashboard-grid">
                 {/* Top Properties Section */}
                 <section className="dashboard-section properties-section">

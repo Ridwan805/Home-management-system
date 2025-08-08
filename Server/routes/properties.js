@@ -24,14 +24,7 @@ router.get('/user', authMiddleware, propertyController.getUserProperties);
 router.get('/top', propertyController.getTopProperties);
 
 // GET /api/properties (public route to fetch all properties)
-router.get('/', async (req, res) => {
-  try {
-    const properties = await Property.find().sort({ createdAt: -1 });
-    res.json(properties);
-  } catch (err) {
-    res.status(500).json({ message: 'Server error: ' + err.message });
-  }
-});
+router.get('/', propertyController.getAllProperties);
 
 // POST /api/properties (create property with image upload)
 router.post('/', authMiddleware, upload.array('images', 10), async (req, res) => {
@@ -69,10 +62,13 @@ router.put('/:id', authMiddleware, upload.array('images', 10), async (req, res) 
   }
 });
 
-// DELETE /api/properties/:id (delete property)
-router.delete('/:id', authMiddleware, propertyController.deleteProperty);
+// PUT /api/properties/:id/status (update property status)
+router.put('/:id/status', authMiddleware, propertyController.updatePropertyStatus);
 
 // PATCH /api/properties/:id (update property status)
 router.patch('/:id', authMiddleware, propertyController.updatePropertyStatus);
+
+// DELETE /api/properties/:id (delete property)
+router.delete('/:id', authMiddleware, propertyController.deleteProperty);
 
 module.exports = router;

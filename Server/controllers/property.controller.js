@@ -3,8 +3,12 @@ const Property = require('../models/Property');
 // Get all properties (public route)
 const getAllProperties = async (req, res) => {
   try {
-    const properties = await Property.find({ status: 'available' })
-      .sort({ createdAt: -1 });
+    // Show properties with status: Available, Sold, Rented, Not Available
+    const properties = await Property.find({ 
+      status: { 
+        $in: ['Available', 'Sold', 'Rented', 'Not Available'] 
+      } 
+    }).sort({ createdAt: -1 });
     res.json(properties);
   } catch (err) {
     res.status(500).json({ message: 'Server error: ' + err.message });
@@ -14,11 +18,22 @@ const getAllProperties = async (req, res) => {
 // Get top 5 properties for homepage
 const getTopProperties = async (req, res) => {
   try {
-    const properties = await Property.find()
+    console.log('🔍 getTopProperties called - looking for Available properties...');
+    
+    const properties = await Property.find({ 
+      status: 'Available' 
+    })
       .sort({ createdAt: -1 })
       .limit(5);
+    
+    console.log(`📊 Found ${properties.length} Available properties for homepage`);
+    if (properties.length > 0) {
+      console.log('Sample property:', JSON.stringify(properties[0], null, 2));
+    }
+    
     res.json(properties);
   } catch (err) {
+    console.error('❌ Error in getTopProperties:', err);
     res.status(500).json({ message: 'Server error: ' + err.message });
   }
 };
@@ -43,17 +58,11 @@ const getUserProperties = async (req, res) => {
       console.log('Sample property with ownerId field:', JSON.stringify(ownerIdProperties[0], null, 2));
     }
     
-    // Also check for properties with owner field as string
-    const ownerStringProperties = await Property.find({ owner: req.user.userId.toString() });
-    console.log('Properties with owner as string:', ownerStringProperties.length);
-    
-    // Use $or to match either owner or ownerId field, including string versions
+    // Use $or to match either owner or ownerId field
     const properties = await Property.find({
       $or: [
         { owner: req.user.userId },
-        { owner: req.user.userId.toString() },
-        { ownerId: req.user.userId },
-        { ownerId: req.user.userId.toString() }
+        { ownerId: req.user.userId }
       ]
     }).sort({ createdAt: -1 });
     
@@ -68,8 +77,6 @@ const getUserProperties = async (req, res) => {
       console.log('Total properties in database:', allProperties.length);
       if (allProperties.length > 0) {
         console.log('Sample property from database:', JSON.stringify(allProperties[0], null, 2));
-        console.log('Sample property owner field:', allProperties[0].owner);
-        console.log('Sample property ownerId field:', allProperties[0].ownerId);
       }
     }
     
@@ -83,11 +90,11 @@ const getUserProperties = async (req, res) => {
 
 const createProperty = async (req, res) => {
   try {
-    // Combine fields from req.body and add owner and status
+    // Combine fields from req.body and add ownerId and status
     const propertyData = {
       ...req.body,
       owner: req.user.userId,
-      ownerId: req.user.userId, // Also set ownerId for compatibility
+      ownerId: req.user.userId,
       status: 'pending',
     };
 
@@ -184,7 +191,7 @@ const updatePropertyStatus = async (req, res) => {
     }
     
     // Check if user owns the property
-    if (String(property.owner) !== String(req.user.userId) && String(property.ownerId) !== String(req.user.userId)) {
+    if (String(property.owner) !== String(req.user.userId)) {
       return res.status(403).json({ message: 'Not authorized to update this property' });
     }
 
