@@ -43,7 +43,6 @@ const HomePage = () => {
           <div style={{ marginTop: 24, display: 'flex', gap: 16 }}>
             <button onClick={() => navigate('/properties?listingType=For Sale')}>Buy</button>
             <button onClick={() => navigate('/properties?listingType=For Rent')}>Rent</button>
-            <button onClick={() => navigate('/properties?mortgage=true')}>Get a Mortgage</button>
           </div>
         </div>
       </section>

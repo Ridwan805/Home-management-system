@@ -44,8 +44,13 @@
   transition: color 0.2s;
 }
 
-.navbar-links a:hover, .navbar-signin {
-  color: #006aff;
+.navbar-links li a:hover {
+  color: #007bff;
+}
+
+.navbar-links li .active-link {
+  color: #007bff;
+  font-weight: bold;
 }
 
 .navbar-signin {
@@ -62,4 +67,4 @@
 .navbar-signin:hover {
   background: #006aff;
   color: #fff;
-} 
+}

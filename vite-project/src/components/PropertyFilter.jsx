@@ -16,10 +16,6 @@ const PropertyFilter = () => {
     city: '',
     state: '',
     zipCode: '',
-    minYearBuilt: '',
-    maxYearBuilt: '',
-    hasPool: false,
-    hasGarage: false,
     mortgage: params.get('mortgage') === 'true',
     search: '', // New: for search bar
   };
@@ -61,6 +57,13 @@ const PropertyFilter = () => {
     fetchProperties();
     // eslint-disable-next-line
   }, [JSON.stringify({ ...filters, search: undefined })]);
+  
+  // Also fetch properties when component mounts to handle URL params
+  useEffect(() => {
+    if (params.get('listingType')) {
+      handleApply({ preventDefault: () => {} });
+    }
+  }, []);
 
   // Handlers for filter form
   const handleChange = (e) => {
@@ -72,6 +75,7 @@ const PropertyFilter = () => {
   };
   const handleApply = (e) => {
     e.preventDefault();
+    // Force a re-fetch by creating a new object
     setFilters({ ...filters }); // Triggers useEffect
   };
   const handleClear = () => {
@@ -84,10 +88,6 @@ const PropertyFilter = () => {
       city: '',
       state: '',
       zipCode: '',
-      minYearBuilt: '',
-      maxYearBuilt: '',
-      hasPool: false,
-      hasGarage: false,
       mortgage: false,
       search: '',
     });
@@ -199,32 +199,7 @@ const PropertyFilter = () => {
             className="filter-input"
             style={{ width: '90px' }}
           />
-          <input 
-            type="number" 
-            name="minYearBuilt" 
-            value={filters.minYearBuilt} 
-            onChange={handleChange} 
-            min="0" 
-            placeholder="Min Year" 
-            className="filter-input"
-            style={{ width: '100px' }}
-          />
-          <input 
-            type="number" 
-            name="maxYearBuilt" 
-            value={filters.maxYearBuilt} 
-            onChange={handleChange} 
-            min="0" 
-            placeholder="Max Year" 
-            className="filter-input"
-            style={{ width: '100px' }}
-          />
-          <label className="filter-checkbox-label">
-            <input type="checkbox" name="hasPool" checked={filters.hasPool} onChange={handleChange} /> Pool
-          </label>
-          <label className="filter-checkbox-label">
-            <input type="checkbox" name="hasGarage" checked={filters.hasGarage} onChange={handleChange} /> Garage
-          </label>
+
           <button type="submit" className="filter-button filter-button-primary">
             Apply
           </button>
