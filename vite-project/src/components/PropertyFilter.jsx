@@ -333,6 +333,16 @@ const PropertyFilter = () => {
                   📞 {property.contactPhone}
                 </div>
               </div>
+
+              {/* View Details Button */}
+              <div className="property-actions">
+                <button 
+                  onClick={() => navigate(`/property/${property._id}`)}
+                  className="view-details-btn"
+                >
+                  View Details
+                </button>
+              </div>
             </div>
           </div>
         ))}

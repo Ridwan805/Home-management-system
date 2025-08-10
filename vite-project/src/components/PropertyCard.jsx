@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './PropertyCard.css';
 
 const PropertyCard = ({ property, onEdit, onStatusChange }) => {
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const navigate = useNavigate();
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   
   // Status options for properties
@@ -10,12 +11,7 @@ const PropertyCard = ({ property, onEdit, onStatusChange }) => {
 
   // Handle view details button click
   const handleViewDetails = () => {
-    setShowDetailsModal(true);
-  };
-
-  // Handle close details modal
-  const handleCloseDetailsModal = () => {
-    setShowDetailsModal(false);
+    navigate(`/property/${property._id}`);
   };
 
   // Handle status change
@@ -85,56 +81,6 @@ const PropertyCard = ({ property, onEdit, onStatusChange }) => {
           </div>
         </div>
       </div>
-
-      {/* Property Details Modal */}
-      {showDetailsModal && (
-        <div className="modal-overlay" onClick={handleCloseDetailsModal}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <button className="modal-close-btn" onClick={handleCloseDetailsModal}>&times;</button>
-            <h2>{property.address}</h2>
-            
-            {property.images && property.images.length > 0 && (
-              <div className="modal-image-gallery">
-                {property.images.map((image, index) => (
-                  <img key={index} src={`http://localhost:5000${image}`} alt={`Property ${index + 1}`} />
-                ))}
-              </div>
-            )}
-
-            <div className="modal-details-grid">
-              <div className="modal-detail-item"><strong>Price:</strong> <span>${property.price?.toLocaleString()}</span></div>
-              <div className="modal-detail-item"><strong>Type:</strong> <span>{property.propertyType}</span></div>
-              <div className="modal-detail-item"><strong>Bedrooms:</strong> <span>{property.bedrooms}</span></div>
-              <div className="modal-detail-item"><strong>Bathrooms:</strong> <span>{property.bathrooms}</span></div>
-              <div className="modal-detail-item"><strong>Square Footage:</strong> <span>{property.squareFootage} sqft</span></div>
-              <div className="modal-detail-item"><strong>Listing Type:</strong> <span>{property.listingType}</span></div>
-              <div className="modal-detail-item"><strong>Status:</strong> <span>{property.status}</span></div>
-              {property.yearBuilt && <div className="modal-detail-item"><strong>Year Built:</strong> <span>{property.yearBuilt}</span></div>}
-              {property.city && <div className="modal-detail-item"><strong>Location:</strong> <span>{property.city}, {property.state} {property.zipCode}</span></div>}
-              {property.contactEmail && <div className="modal-detail-item"><strong>Contact Email:</strong> <span>{property.contactEmail}</span></div>}
-              {property.contactPhone && <div className="modal-detail-item"><strong>Contact Phone:</strong> <span>{property.contactPhone}</span></div>}
-            </div>
-
-            {property.amenities && property.amenities.length > 0 && (
-              <div className="modal-amenities">
-                <h3>Amenities:</h3>
-                <div className="modal-amenities-list">
-                  {property.amenities.map((amenity, index) => (
-                    <span key={index} className="modal-amenity-item">{amenity}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {property.description && (
-              <div className="modal-description">
-                <h3>Description:</h3>
-                <p className="modal-description-full">{property.description}</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
