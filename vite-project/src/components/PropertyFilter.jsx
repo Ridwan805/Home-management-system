@@ -1,24 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import './PropertyFilter.css';
 
 const API_BASE = 'http://localhost:5000/api/properties';
 
 const PropertyFilter = () => {
   const location = useLocation();
-  const [filters, setFilters] = useState(() => {
-    const params = new URLSearchParams(location.search);
-    return {
-      listingType: params.get('listingType') || '',
-      minPrice: params.get('minPrice') || '',
-      maxPrice: params.get('maxPrice') || '',
-      minBedrooms: params.get('minBedrooms') || '',
-      maxBedrooms: params.get('maxBedrooms') || '',
-      city: params.get('city') || '',
-      state: params.get('state') || '',
-      zipCode: params.get('zipCode') || '',
-      search: '',
-    };
+  const navigate = useNavigate();
+  const [filters, setFilters] = useState({
+    listingType: '',
+    minPrice: '',
+    maxPrice: '',
+    minBedrooms: '',
+    maxBedrooms: '',
+    city: '',
+    state: '',
+    zipCode: '',
+    search: '',
   });
 
 
@@ -39,13 +37,37 @@ const PropertyFilter = () => {
     return query.toString() ? `?${query.toString()}` : '';
   };
 
-  // Fetch properties when filters (except search) change
+  // Fetch properties when filters (except search) change or location.search changes
   useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    setFilters({
+      listingType: params.get('listingType') || '',
+      minPrice: params.get('minPrice') || '',
+      maxPrice: params.get('maxPrice') || '',
+      minBedrooms: params.get('minBedrooms') || '',
+      maxBedrooms: params.get('maxBedrooms') || '',
+      city: params.get('city') || '',
+      state: params.get('state') || '',
+      zipCode: params.get('zipCode') || '',
+      search: params.get('search') || '', // Initialize search from URL as well
+    });
+
     const fetchProperties = async () => {
       setLoading(true);
       setError(null);
       try {
-        const query = buildQueryString(filters);
+        const currentFilters = {
+          listingType: params.get('listingType') || '',
+          minPrice: params.get('minPrice') || '',
+          maxPrice: params.get('maxPrice') || '',
+          minBedrooms: params.get('minBedrooms') || '',
+          maxBedrooms: params.get('maxBedrooms') || '',
+          city: params.get('city') || '',
+          state: params.get('state') || '',
+          zipCode: params.get('zipCode') || '',
+          search: params.get('search') || '',
+        };
+        const query = buildQueryString(currentFilters);
         const res = await fetch(`${API_BASE}${query}`);
         if (!res.ok) throw new Error('Failed to fetch properties');
         const data = await res.json();
@@ -63,7 +85,7 @@ const PropertyFilter = () => {
     console.log('Calling fetchProperties...');
     fetchProperties();
     // eslint-disable-next-line
-  }, [JSON.stringify({ ...filters, search: undefined })]);
+  }, [location.search]); // Depend on location.search to re-fetch on URL changes
   
 
 
@@ -77,8 +99,13 @@ const PropertyFilter = () => {
   };
   const handleApply = (e) => {
     e.preventDefault();
-    // Force a re-fetch by creating a new object
-    setFilters({ ...filters }); // Triggers useEffect
+    const query = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== '' && value !== undefined && value !== null && !(typeof value === 'boolean' && value === false)) {
+        query.append(key, value);
+      }
+    });
+    navigate(`/properties?${query.toString()}`);
   };
   const handleClear = () => {
     setFilters({

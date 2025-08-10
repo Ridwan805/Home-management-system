@@ -35,13 +35,13 @@ const Navbar = () => {
       </div>
       <ul className="navbar-links">
         <li>
-          <Link to="/properties" className="nav-link">Properties</Link>
+          <button onClick={() => navigate('/properties')} className="nav-link">Properties</button>
         </li>
         <li>
-          <Link to="/properties?listingType=For%20Sale" className="nav-link">Buy</Link>
+          <button onClick={() => navigate('/properties?listingType=For%20Sale')} className="nav-link">Buy</button>
         </li>
         <li>
-          <Link to="/properties?listingType=For%20Rent" className="nav-link">Rent</Link>
+          <button onClick={() => navigate('/properties?listingType=For%20Rent')} className="nav-link">Rent</button>
         </li>
 
         <li><Link to="/advertise">Advertise</Link></li>
