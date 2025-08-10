@@ -1,7 +1,7 @@
 const Property = require('../models/Property');
 
 // Get all properties (public route)
-const getAllProperties = async (req, res) => {
+const getAllProperties = async (req, res) => { // This function retrieves all properties with optional filtering
   try {
     console.log('Query parameters:', req.query);
     
@@ -35,19 +35,19 @@ const getAllProperties = async (req, res) => {
        filter.bedrooms = { ...filter.bedrooms, $lte: Number(req.query.maxBedrooms) };
      }
      
-     // Add location filters if provided
+     // Add location filters if provided user input any string
      if (req.query.city) {
-       filter.city = { $regex: new RegExp(req.query.city, 'i') };
+       filter.city = { $regex: new RegExp(req.query.city, 'i') }; //user input for city in the form of a string
      }
      if (req.query.state) {
-       filter.state = { $regex: new RegExp(req.query.state, 'i') };
+       filter.state = { $regex: new RegExp(req.query.state, 'i') }; //user input for state in the form of a string
      }
      if (req.query.zipCode) {
-       filter.zipCode = { $regex: new RegExp(req.query.zipCode, 'i') };
+       filter.zipCode = { $regex: new RegExp(req.query.zipCode, 'i') }; //user input for zipCode in the form of a string
      }
     
     console.log('Final filter (before query):', JSON.stringify(filter));
-    const properties = await Property.find(filter).sort({ createdAt: -1 });
+    const properties = await Property.find(filter).sort({ createdAt: -1 }); //used to fetch from the database - Property.find(filter)
     console.log(`Found ${properties.length} properties matching criteria`);
     console.log('Properties returned from DB:', properties.map(p => ({ id: p._id, listingType: p.listingType })));
     

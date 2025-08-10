@@ -68,9 +68,10 @@ router.post('/login', async (req, res) => {
 });
 
 // ✅ Other existing routes
-router.post('/register', register);
+router.post('/register', register); //  goes to register.controller.js end point Register route for users from vite-project/src/Login_and_Register/Register.jsx
+router.post('/admin/register', register); // Register route for admins
 router.get('/me', authMiddleware, getMe);
-router.put('/update', authMiddleware, updateUser);
+router.put('/update', authMiddleware, updateUser); // Update user profile route
 router.post('/forgot-password/question', getSecurityQuestion);
 router.post('/forgot-password/reset', resetPassword);
 

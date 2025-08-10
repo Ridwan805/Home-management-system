@@ -22,7 +22,7 @@ const PropertyListing = () => {
         }
         
         const user = JSON.parse(userData);
-        const response = await fetch('http://localhost:5000/api/properties/user', {
+        const response = await fetch('http://localhost:5000/api/properties/user', { // Use the protected route to fetch user properties from properties.js
           headers: {
             'Authorization': `Bearer ${user.token}`,
             'Content-Type': 'application/json'

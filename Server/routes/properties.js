@@ -40,7 +40,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// GET /api/properties - Retrieve all properties with filtering
+// GET /api/properties - Retrieve all properties with filtering directed from propertyfilter.jsx and propertylisting.jsx
 router.get('/', async (req, res) => {
   try {
     const {
@@ -60,7 +60,7 @@ router.get('/', async (req, res) => {
 
     // Build query object dynamically
     const query = {};
-    // Only show public statuses
+    // Only show public statuses //goes to controller/property.controller.js for filtering
     query.status = { $in: ['Available', 'Sold', 'Rented'] };
     if (listingType && listingType !== 'All') query.listingType = listingType;
     if (city) query.city = city;
