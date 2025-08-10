@@ -3,14 +3,61 @@ const Property = require('../models/Property');
 // Get all properties (public route)
 const getAllProperties = async (req, res) => {
   try {
-    // Show properties with status: Available, Sold, Rented, Not Available
-    const properties = await Property.find({ 
+    console.log('Query parameters:', req.query);
+    
+    // Build filter object
+    const filter = {
       status: { 
         $in: ['Available', 'Sold', 'Rented', 'Not Available'] 
-      } 
-    }).sort({ createdAt: -1 });
+      }
+    };
+    
+    // Add listingType filter if provided
+     if (req.query.listingType && req.query.listingType !== 'All') {
+       filter.listingType = req.query.listingType;
+       console.log(`Filtering by listingType: ${req.query.listingType}`);
+       console.log('Filter after adding listingType:', JSON.stringify(filter));
+     }
+
+     // Add price range filters if provided
+     if (req.query.minPrice) {
+       filter.price = { ...filter.price, $gte: Number(req.query.minPrice) };
+     }
+     if (req.query.maxPrice) {
+       filter.price = { ...filter.price, $lte: Number(req.query.maxPrice) };
+     }
+     
+     // Add bedroom filters if provided
+     if (req.query.minBedrooms) {
+       filter.bedrooms = { ...filter.bedrooms, $gte: Number(req.query.minBedrooms) };
+     }
+     if (req.query.maxBedrooms) {
+       filter.bedrooms = { ...filter.bedrooms, $lte: Number(req.query.maxBedrooms) };
+     }
+     
+     // Add location filters if provided
+     if (req.query.city) {
+       filter.city = { $regex: new RegExp(req.query.city, 'i') };
+     }
+     if (req.query.state) {
+       filter.state = { $regex: new RegExp(req.query.state, 'i') };
+     }
+     if (req.query.zipCode) {
+       filter.zipCode = { $regex: new RegExp(req.query.zipCode, 'i') };
+     }
+    
+    console.log('Final filter (before query):', JSON.stringify(filter));
+    const properties = await Property.find(filter).sort({ createdAt: -1 });
+    console.log(`Found ${properties.length} properties matching criteria`);
+    console.log('Properties returned from DB:', properties.map(p => ({ id: p._id, listingType: p.listingType })));
+    
+    // Log the properties being sent in the response
+    console.log('Sending properties with listingTypes:', properties.map(p => ({ id: p._id, listingType: p.listingType })));
+    
     res.json(properties);
+    console.log('Response sent with properties:', properties.map(p => ({ id: p._id, listingType: p.listingType })));
   } catch (err) {
+    console.error('Error in getAllProperties:', err);
     res.status(500).json({ message: 'Server error: ' + err.message });
   }
 };

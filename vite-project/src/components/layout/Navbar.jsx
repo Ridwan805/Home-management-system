@@ -34,8 +34,15 @@ const Navbar = () => {
         <Link to="/" className="navbar-title">DwellSync</Link>
       </div>
       <ul className="navbar-links">
-        <li><Link to={{ pathname: '/properties', search: '?listingType=For Sale' }} className={location.search.includes('listingType=For Sale') ? 'active-link' : ''}>Buy</Link></li>
-        <li><Link to={{ pathname: '/properties', search: '?listingType=For Rent' }}>Rent</Link></li>
+        <li>
+          <Link to="/properties" className="nav-link">Properties</Link>
+        </li>
+        <li>
+          <Link to="/properties?listingType=For%20Sale" className="nav-link">Buy</Link>
+        </li>
+        <li>
+          <Link to="/properties?listingType=For%20Rent" className="nav-link">Rent</Link>
+        </li>
 
         <li><Link to="/advertise">Advertise</Link></li>
         <li><Link to="/help">Help</Link></li>

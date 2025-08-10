@@ -6,20 +6,23 @@ const API_BASE = 'http://localhost:5000/api/properties';
 
 const PropertyFilter = () => {
   const location = useLocation();
-  const params = new URLSearchParams(location.search);
-  const initialFilters = {
-    listingType: params.get('listingType') || 'All',
-    minPrice: '',
-    maxPrice: '',
-    minBedrooms: '',
-    maxBedrooms: '',
-    city: '',
-    state: '',
-    zipCode: '',
-    mortgage: params.get('mortgage') === 'true',
-    search: '', // New: for search bar
-  };
-  const [filters, setFilters] = useState(initialFilters);
+  const [filters, setFilters] = useState(() => {
+    const params = new URLSearchParams(location.search);
+    return {
+      listingType: params.get('listingType') || '',
+      minPrice: params.get('minPrice') || '',
+      maxPrice: params.get('maxPrice') || '',
+      minBedrooms: params.get('minBedrooms') || '',
+      maxBedrooms: params.get('maxBedrooms') || '',
+      city: params.get('city') || '',
+      state: params.get('state') || '',
+      zipCode: params.get('zipCode') || '',
+      search: '',
+    };
+  });
+
+
+
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -47,6 +50,7 @@ const PropertyFilter = () => {
         if (!res.ok) throw new Error('Failed to fetch properties');
         const data = await res.json();
         setProperties(data);
+        console.log('Fetched properties:', data);
       } catch (err) {
         console.error('Error fetching properties:', err);
         setError(err.message);
@@ -54,16 +58,14 @@ const PropertyFilter = () => {
         setLoading(false);
       }
     };
+    console.log('Current filters:', filters);
+    console.log('Building query string with filters:', filters);
+    console.log('Calling fetchProperties...');
     fetchProperties();
     // eslint-disable-next-line
   }, [JSON.stringify({ ...filters, search: undefined })]);
   
-  // Also fetch properties when component mounts to handle URL params
-  useEffect(() => {
-    if (params.get('listingType')) {
-      handleApply({ preventDefault: () => {} });
-    }
-  }, []);
+
 
   // Handlers for filter form
   const handleChange = (e) => {
@@ -80,7 +82,7 @@ const PropertyFilter = () => {
   };
   const handleClear = () => {
     setFilters({
-      listingType: 'All',
+      listingType: '',
       minPrice: '',
       maxPrice: '',
       minBedrooms: '',
@@ -88,7 +90,6 @@ const PropertyFilter = () => {
       city: '',
       state: '',
       zipCode: '',
-      mortgage: false,
       search: '',
     });
   };
@@ -97,17 +98,31 @@ const PropertyFilter = () => {
     setFilters((prev) => ({ ...prev, search: e.target.value }));
   };
 
-  // Filter properties client-side by search bar
-  const filteredProperties = filters.search
-    ? properties.filter((p) => {
-        const search = filters.search.toLowerCase();
-        return (
-          (p.address && p.address.toLowerCase().includes(search)) ||
-          (p.city && p.city.toLowerCase().includes(search)) ||
-          (p.zipCode && p.zipCode.toLowerCase().includes(search))
-        );
-      })
-    : properties.filter((p) => p.status && ['Available', 'Sold', 'Rented', 'Not Available'].includes(p.status));
+  // Filter properties client-side by search bar and listingType
+
+  console.log('Properties before filtering:', properties);
+  
+  const filteredProperties = properties.filter((p) => {
+    // Filter by search term if one exists
+    if (!filters.search) {
+      return true;
+    }
+    
+    const search = filters.search.toLowerCase();
+    const searchMatch = (
+      (p.address && p.address.toLowerCase().includes(search)) ||
+      (p.city && p.city.toLowerCase().includes(search)) ||
+      (p.zipCode && p.zipCode.toLowerCase().includes(search))
+    );
+    
+    return searchMatch;
+  });
+  
+  console.log('Properties after filtering:', filteredProperties);
+
+  console.log('Filtered properties for display:', filteredProperties);
+  console.log('Loading state:', loading);
+  console.log('Error state:', error);
 
   return (
     <div className="property-filter-page">
@@ -122,16 +137,8 @@ const PropertyFilter = () => {
           className="search-input"
         />
         <form className="filter-form" onSubmit={handleApply}>
-          <select 
-            name="listingType" 
-            value={filters.listingType} 
-            onChange={handleChange}
-            className="filter-select"
-          >
-            <option value="All">All Types</option>
-            <option value="For Sale">For Sale</option>
-            <option value="For Rent">For Rent</option>
-          </select>
+
+
           <input 
             type="number" 
             name="minPrice" 
