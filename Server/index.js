@@ -2,6 +2,8 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
+const path = require('path');
+const fs = require('fs');
 
 const app = express();
 app.use(cors());
@@ -28,7 +30,12 @@ const adminRoutes = require('./routes/admin.routes');
 // Use routes
 app.use('/api/auth', authRoutes);
 app.use('/api/properties', propertyRoutes);
-app.use('/uploads', express.static('uploads'));
+// Ensure uploads directory exists and serve it statically
+const uploadsDir = path.resolve(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+app.use('/uploads', express.static(uploadsDir));
 app.use('/api', adminRoutes);
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

@@ -125,11 +125,15 @@ const PropertyFilter = () => {
     setFilters((prev) => ({ ...prev, search: e.target.value }));
   };
 
-  // Filter properties client-side by search bar and listingType
-
+    // Filter properties client-side by search bar and listingType
+ 
   console.log('Properties before filtering:', properties);
   
-  const filteredProperties = properties.filter((p) => {
+  // Ensure only public statuses are shown even if backend misconfigures
+  const publicStatuses = ['Available', 'Sold', 'Rented'];
+  const visibleProperties = properties.filter(p => publicStatuses.includes(p.status));
+  
+  const filteredProperties = visibleProperties.filter((p) => {
     // Filter by search term if one exists
     if (!filters.search) {
       return true;

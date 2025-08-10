@@ -5,10 +5,10 @@ const getAllProperties = async (req, res) => {
   try {
     console.log('Query parameters:', req.query);
     
-    // Build filter object
+    // Build filter object (only public statuses)
     const filter = {
       status: { 
-        $in: ['Available', 'Sold', 'Rented', 'Not Available'] 
+        $in: ['Available', 'Sold', 'Rented'] 
       }
     };
     
