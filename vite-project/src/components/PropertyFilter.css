@@ -146,6 +146,9 @@
   border: 1px solid #e9ecef;
   max-width: 320px;
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .property-card:hover {
@@ -212,6 +215,9 @@
 
 .property-info {
   padding: 16px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .property-price {
@@ -360,7 +366,7 @@
 
 /* Property Actions */
 .property-actions {
-  margin-top: 20px;
+  margin-top: auto;
   padding-top: 20px;
   border-top: 1px solid #e9ecef;
 }
