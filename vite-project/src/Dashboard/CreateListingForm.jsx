@@ -134,8 +134,8 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
         <input name="price" type="number" value={form.price} onChange={handleChange} required />
       </div>
       <div className="form-row">
-        <label>Description</label>
-        <textarea name="description" value={form.description} onChange={handleChange} />
+        <label>Description*</label>
+        <textarea name="description" value={form.description} onChange={handleChange} required placeholder="Describe the property, highlights, nearby facilities, etc." />
       </div>
       <div className="form-row">
         <label>Amenities</label>

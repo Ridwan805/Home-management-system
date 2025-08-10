@@ -158,6 +158,11 @@ const ViewDetails = () => {
                 <span className="spec-label">Square Footage</span>
                 <span className="spec-value">{property.squareFootage} sqft</span>
               </div>
+              <div className="spec-item">
+                <span className="spec-icon">🏷️</span>
+                <span className="spec-label">Property Type</span>
+                <span className="spec-value">{property.propertyType}</span>
+              </div>
               {property.yearBuilt && (
                 <div className="spec-item">
                   <span className="spec-icon">🏗️</span>

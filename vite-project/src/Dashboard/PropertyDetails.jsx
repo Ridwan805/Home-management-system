@@ -552,13 +552,15 @@ const PropertyDetails = () => {
                 />
               </div>
               <div className="form-group full-width">
-                <label htmlFor="description">Description</label>
+                <label htmlFor="description">Description*</label>
                 <textarea
                   id="description"
                   name="description"
                   value={formData.description || ''}
                   onChange={handleInputChange}
                   rows="4"
+                  required
+                  placeholder="Describe the property, highlights, nearby facilities, etc."
                 ></textarea>
               </div>
               <div className="form-group">
