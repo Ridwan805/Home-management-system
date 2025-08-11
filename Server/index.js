@@ -12,7 +12,7 @@ app.use(express.json());
 // MongoDB connection with fallback
 const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/dwellsync';
 
-mongoose.connect(process.env.MONGO_URL)
+mongoose.connect(mongoUrl)
   .then(() => {
     console.log('✅ MongoDB connected successfully');
     console.log('Database:', mongoose.connection.db.databaseName);

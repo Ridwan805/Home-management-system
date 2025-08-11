@@ -18,19 +18,19 @@ const register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const hashedSecurityAnswer = await bcrypt.hash(securityAnswer, 10);
 
+    const phoneNumberValue = phoneNumber || req.body.phone || '';
+
     const newUser = new User({
       firstName,
       lastName,
       email,
       name,
-      phoneNumber: phoneNumber || '',
+      phoneNumber: phoneNumberValue,
       address: address || '',
-      password: hashed,
-      role: role || 'user', // Default role if not specified
+      password: hashedPassword,
+      role, // value provided by client must match allowed enum
       securityQuestion,
-      securityAnswer: hashedSecurityAnswer,
-      phone,
-      address
+      securityAnswer: hashedSecurityAnswer
     });
 
     const savedUser = await newUser.save();

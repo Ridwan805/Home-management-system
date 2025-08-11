@@ -15,8 +15,7 @@ const userSchema = new mongoose.Schema({
     required: true
   },
   securityQuestion: { type: String, required: true },
-  securityAnswer: { type: String, required: true },
-  phoneNumber: { type: String, default: '' }
+  securityAnswer: { type: String, required: true }
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);
