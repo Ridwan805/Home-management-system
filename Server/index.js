@@ -26,8 +26,8 @@ app.use(
     allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
-// Explicitly handle preflight for all routes
-app.options('*', cors());
+// Explicitly handle preflight for API routes if needed (Express 5 does not accept '*' wildcard)
+// app.options('/api/*', cors());
 app.use(express.json());
 
 // MongoDB connection with fallback
