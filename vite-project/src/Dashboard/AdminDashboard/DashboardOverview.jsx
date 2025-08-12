@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import { FaUsers, FaHome, FaHourglassHalf, FaCalendarCheck } from 'react-icons/fa';
+import { apiUrl } from '../../lib/api';
 
 const DashboardOverview = () => {
   const [stats, setStats] = useState({
@@ -24,7 +25,7 @@ const DashboardOverview = () => {
         return;
       }
       
-      const res = await axios.get('http://localhost:5000/api/admin/dashboard/stats', {
+      const res = await axios.get(apiUrl('/api/admin/dashboard/stats'), {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       setStats(res.data);

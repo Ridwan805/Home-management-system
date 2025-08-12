@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import './PropertyFilter.css';
+import { apiUrl, assetUrl } from '../lib/api';
 
-const API_BASE = 'http://localhost:5000/api/properties';
+const API_BASE = apiUrl('/api/properties');
 
 const PropertyFilter = () => {
   const location = useLocation();
@@ -274,7 +275,7 @@ const PropertyFilter = () => {
             <div className="property-images">
               {property.images && property.images.length > 0 ? (
                 <img 
-                  src={`http://localhost:5000${property.images[0]}`} 
+                  src={assetUrl(property.images[0])} 
                   alt="Property" 
                   className="property-image"
                 />

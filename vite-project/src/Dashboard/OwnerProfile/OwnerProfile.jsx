@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './OwnerProfile.css';
+import { apiUrl } from '../../lib/api';
 
 const OwnerProfile = () => {
   const [ownerInfo, setOwnerInfo] = useState(null);
@@ -73,7 +74,7 @@ const OwnerProfile = () => {
       const storedUser = localStorage.getItem('dwellSyncUser');
       if (!storedUser) throw new Error('User not logged in');
       const user = JSON.parse(storedUser);
-      const res = await fetch('http://localhost:5000/api/auth/update', { //fetched from the server to update profile using PUT method
+      const res = await fetch(apiUrl('/api/auth/update'), { //fetched from the server to update profile using PUT method
         method: 'PUT', //goes to auth.routes.js
         headers: {
           'Authorization': `Bearer ${user.token}`,

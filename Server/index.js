@@ -6,7 +6,28 @@ const path = require('path');
 const fs = require('fs');
 
 const app = express();
-app.use(cors());
+// Configure CORS more robustly to ensure preflight works across browsers
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost',
+  'http://127.0.0.1'
+];
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // Allow requests with no origin like mobile apps or curl
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      // In development, you can relax this further if needed
+      return callback(null, true);
+    },
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
+// Explicitly handle preflight for all routes
+app.options('*', cors());
 app.use(express.json());
 
 // MongoDB connection with fallback

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import './HomePage.css';
 import { useNavigate } from 'react-router-dom';
+import { apiUrl, assetUrl } from '../lib/api';
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -12,7 +13,7 @@ const HomePage = () => {
     const fetchTopProperties = async () => {
       try {
         setLoading(true);
-        const response = await fetch('http://localhost:5000/api/properties/top');
+        const response = await fetch(apiUrl('/api/properties/top'));
         if (!response.ok) {
           throw new Error('Failed to fetch properties');
         }
@@ -62,7 +63,7 @@ const HomePage = () => {
               </div>
               <div className="recommendation-info">
                 <img 
-                  src={prop.images && prop.images.length > 0 ? `http://localhost:5000${prop.images[0]}` : 'https://via.placeholder.com/120x80'} 
+                  src={prop.images && prop.images.length > 0 ? assetUrl(prop.images[0]) : 'https://via.placeholder.com/120x80'} 
                   alt="Home" 
                   className="home-img" 
                 />

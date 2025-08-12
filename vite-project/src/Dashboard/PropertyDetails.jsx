@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './PropertyDetails.css';
+import { apiUrl, assetUrl } from '../lib/api';
 
 const PropertyDetails = () => {
   const [properties, setProperties] = useState([]);
@@ -30,7 +31,7 @@ const PropertyDetails = () => {
         }
         
         const user = JSON.parse(userData);
-        const response = await fetch('http://localhost:5000/api/properties/user', {
+        const response = await fetch(apiUrl('/api/properties/user'), {
           headers: {
             'Authorization': `Bearer ${user.token}`,
             'Content-Type': 'application/json'
@@ -153,7 +154,7 @@ const PropertyDetails = () => {
         }
       }
 
-      const response = await fetch(`http://localhost:5000/api/properties/${editingProperty}`, {
+      const response = await fetch(apiUrl(`/api/properties/${editingProperty}`), {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${user.token}`,
@@ -193,7 +194,7 @@ const PropertyDetails = () => {
       }
       
       const user = JSON.parse(userData);
-      const response = await fetch(`http://localhost:5000/api/properties/${propertyId}`, {
+      const response = await fetch(apiUrl(`/api/properties/${propertyId}`), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${user.token}`,
@@ -224,7 +225,7 @@ const PropertyDetails = () => {
       }
       
       const user = JSON.parse(userData);
-      const response = await fetch(`http://localhost:5000/api/properties/${propertyId}/status`, {
+      const response = await fetch(apiUrl(`/api/properties/${propertyId}/status`), {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${user.token}`,
@@ -273,7 +274,7 @@ const PropertyDetails = () => {
             <div key={property._id} className="property-card">
               <div className="property-image">
                 {property.images && property.images.length > 0 ? (
-                  <img src={`http://localhost:5000${property.images[0]}`} alt="Property" />
+                  <img src={assetUrl(property.images[0])} alt="Property" />
                 ) : (
                   <div className="property-placeholder">No Image Available</div>
                 )}
@@ -378,7 +379,7 @@ const PropertyDetails = () => {
             {selectedProperty.images && selectedProperty.images.length > 0 && (
               <div className="modal-image-gallery">
                 {selectedProperty.images.map((image, index) => (
-                  <img key={index} src={`http://localhost:5000${image}`} alt={`Property ${index + 1}`} />
+                  <img key={index} src={assetUrl(image)} alt={`Property ${index + 1}`} />
                 ))}
               </div>
             )}
@@ -608,7 +609,7 @@ const PropertyDetails = () => {
                   <div className="current-images">
                     {formData.images.map((image, index) => (
                       <div key={index} className="current-image-item">
-                        <img src={`http://localhost:5000${image}`} alt={`Current ${index + 1}`} />
+                        <img src={assetUrl(image)} alt={`Current ${index + 1}`} />
                         <button 
                           type="button" 
                           className="remove-image-btn" 

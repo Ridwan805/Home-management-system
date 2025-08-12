@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './PropertyCard.css';
+import { assetUrl } from '../lib/api';
 
 const PropertyCard = ({ property, onEdit, onStatusChange }) => {
   const navigate = useNavigate();
@@ -24,7 +25,7 @@ const PropertyCard = ({ property, onEdit, onStatusChange }) => {
     <div className="property-card">
       <div className="property-image">
         {property.images && property.images.length > 0 ? (
-          <img src={`http://localhost:5000${property.images[0]}`} alt="Property" />
+          <img src={assetUrl(property.images[0])} alt="Property" />
         ) : (
           <div className="property-placeholder">No Image Available</div>
         )}

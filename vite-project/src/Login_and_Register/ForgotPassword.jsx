@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import '../components/auth.css';
+import { apiUrl } from '../lib/api';
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
@@ -19,7 +20,7 @@ export default function ForgotPassword() {
     setLoading(true);
     setMessage('');
     try {
-      const res = await fetch('http://localhost:5000/api/auth/forgot-password/question', {
+      const res = await fetch(apiUrl('/api/auth/forgot-password/question'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
@@ -48,7 +49,7 @@ export default function ForgotPassword() {
       return;
     }
     try {
-      const res = await fetch('http://localhost:5000/api/auth/forgot-password/reset', {
+      const res = await fetch(apiUrl('/api/auth/forgot-password/reset'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, securityAnswer, newPassword })

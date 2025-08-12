@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import { FaUserAlt, FaEnvelope, FaUserShield, FaBan, FaUnlock, FaTrash } from 'react-icons/fa';
+import { apiUrl } from '../../lib/api';
 
 const UserModeration = () => {
   const [users, setUsers] = useState([]);
@@ -20,7 +21,7 @@ const UserModeration = () => {
         return;
       }
       
-      const res = await axios.get('http://localhost:5000/api/admin/users', {
+      const res = await axios.get(apiUrl('/api/admin/users'), {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       setUsers(res.data);
@@ -46,7 +47,7 @@ const UserModeration = () => {
         return;
       }
       
-      await axios.put(`http://localhost:5000/api/admin/users/${id}/ban`, {}, {
+      await axios.put(apiUrl(`/api/admin/users/${id}/ban`), {}, {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       setUsers(users.map(user => {
@@ -74,7 +75,7 @@ const UserModeration = () => {
         return;
       }
       
-      await axios.put(`http://localhost:5000/api/admin/users/${id}/unban`, {}, {
+      await axios.put(apiUrl(`/api/admin/users/${id}/unban`), {}, {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       setUsers(users.map(user => {
@@ -102,7 +103,7 @@ const UserModeration = () => {
         return;
       }
       
-      await axios.delete(`http://localhost:5000/api/admin/users/${id}`, {
+      await axios.delete(apiUrl(`/api/admin/users/${id}`), {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       setUsers(users.filter(user => user._id !== id));

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import { FaCheck, FaTimes, FaHourglass, FaMapMarkerAlt, FaHome, FaMoneyBillWave, FaUser } from 'react-icons/fa';
+import { apiUrl } from '../../lib/api';
 
 const PendingProperties = () => {
   const [properties, setProperties] = useState([]);
@@ -20,7 +21,7 @@ const PendingProperties = () => {
         return;
       }
       
-      const res = await axios.get('http://localhost:5000/api/admin/properties/pending', {
+      const res = await axios.get(apiUrl('/api/admin/properties/pending'), {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       setProperties(res.data);
@@ -46,7 +47,7 @@ const PendingProperties = () => {
         return;
       }
       
-      await axios.put(`http://localhost:5000/api/admin/properties/${id}/approve`, 
+      await axios.put(apiUrl(`/api/admin/properties/${id}/approve`), 
         { status: 'approved' }, 
         { headers: { Authorization: `Bearer ${user.token}` } }
       );
@@ -71,7 +72,7 @@ const PendingProperties = () => {
         return;
       }
       
-      await axios.put(`http://localhost:5000/api/admin/properties/${id}/approve`, 
+      await axios.put(apiUrl(`/api/admin/properties/${id}/approve`), 
         { status: 'rejected' }, 
         { headers: { Authorization: `Bearer ${user.token}` } }
       );

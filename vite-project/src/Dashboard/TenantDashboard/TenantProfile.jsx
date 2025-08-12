@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './TenantProfile.css';
+import { apiUrl } from '../../lib/api';
 
 const TenantProfile = () => {
   const [user, setUser] = useState(null);
@@ -19,7 +20,7 @@ const TenantProfile = () => {
         if (!saved) throw new Error("User not logged in");
         const token = JSON.parse(saved).token;
 
-        const res = await fetch('http://localhost:5000/api/auth/me', {
+        const res = await fetch(apiUrl('/api/auth/me'), {
           headers: { Authorization: `Bearer ${token}` }
         });
 
@@ -47,7 +48,7 @@ const TenantProfile = () => {
     try {
       const token = JSON.parse(localStorage.getItem('dwellSyncUser')).token;
 
-      const res = await fetch('http://localhost:5000/api/auth/update', {
+      const res = await fetch(apiUrl('/api/auth/update'), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

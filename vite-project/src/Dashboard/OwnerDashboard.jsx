@@ -4,6 +4,7 @@ import OwnerProfile from './OwnerProfile/OwnerProfile';
 
 import './OwnerDashboard.css';
 import { useNavigate } from 'react-router-dom';
+import { apiUrl, assetUrl } from '../lib/api';
 
 const OwnerDashboard = () => {
   const [activeSection, setActiveSection] = useState('profile');
@@ -52,7 +53,7 @@ const OwnerDashboard = () => {
           window.location.href = '/login';
           throw new Error('Session expired or invalid. Please log in again.');
         }
-        const response = await fetch('http://localhost:5000/api/properties/user', {
+        const response = await fetch(apiUrl('/api/properties/user'), {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -123,7 +124,7 @@ const OwnerDashboard = () => {
                         <div key={property._id} className="property-card">
                           <div className="property-image">
                             {property.images?.length > 0 ? (
-                              <img src={`http://localhost:5000${property.images[0]}`} alt="Property" />
+                              <img src={assetUrl(property.images[0])} alt="Property" />
                             ) : (
                               <div className="property-placeholder">No Image Available</div>
                             )}
