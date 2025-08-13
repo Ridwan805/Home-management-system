@@ -20,7 +20,7 @@ const UserModeration = () => {
         return;
       }
       
-      const res = await axios.get('http://localhost:5000/api/admin/users', {
+      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/admin/users`, {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       setUsers(res.data);
@@ -46,7 +46,7 @@ const UserModeration = () => {
         return;
       }
       
-      await axios.put(`http://localhost:5000/api/admin/users/${id}/ban`, {}, {
+      await axios.put(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/admin/users/${id}/ban`, {}, {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       setUsers(users.map(user => {
@@ -74,7 +74,7 @@ const UserModeration = () => {
         return;
       }
       
-      await axios.put(`http://localhost:5000/api/admin/users/${id}/unban`, {}, {
+      await axios.put(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/admin/users/${id}/unban`, {}, {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       setUsers(users.map(user => {
@@ -102,7 +102,7 @@ const UserModeration = () => {
         return;
       }
       
-      await axios.delete(`http://localhost:5000/api/admin/users/${id}`, {
+      await axios.delete(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/admin/users/${id}`, {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       setUsers(users.filter(user => user._id !== id));

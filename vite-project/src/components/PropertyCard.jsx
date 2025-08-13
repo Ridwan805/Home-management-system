@@ -24,7 +24,7 @@ const PropertyCard = ({ property, onEdit, onStatusChange }) => {
     <div className="property-card">
       <div className="property-image">
         {property.images && property.images.length > 0 ? (
-          <img src={`http://localhost:5000${property.images[0]}`} alt="Property" />
+          <img src={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}${property.images[0]}`} alt="Property" />
         ) : (
           <div className="property-placeholder">No Image Available</div>
         )}

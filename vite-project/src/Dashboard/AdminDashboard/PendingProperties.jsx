@@ -20,7 +20,7 @@ const PendingProperties = () => {
         return;
       }
       
-      const res = await axios.get('http://localhost:5000/api/admin/properties/pending', {
+      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/admin/properties/pending`, {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       setProperties(res.data);
@@ -46,7 +46,7 @@ const PendingProperties = () => {
         return;
       }
       
-      await axios.put(`http://localhost:5000/api/admin/properties/${id}/approve`, 
+      await axios.put(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/admin/properties/${id}/approve`, 
         { status: 'approved' }, 
         { headers: { Authorization: `Bearer ${user.token}` } }
       );
@@ -71,7 +71,7 @@ const PendingProperties = () => {
         return;
       }
       
-      await axios.put(`http://localhost:5000/api/admin/properties/${id}/approve`, 
+      await axios.put(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/admin/properties/${id}/approve`, 
         { status: 'rejected' }, 
         { headers: { Authorization: `Bearer ${user.token}` } }
       );

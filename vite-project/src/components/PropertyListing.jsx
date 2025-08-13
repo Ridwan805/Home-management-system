@@ -22,7 +22,7 @@ const PropertyListing = () => {
         }
         
         const user = JSON.parse(userData);
-        const response = await fetch('http://localhost:5000/api/properties/user', { // Use the protected route to fetch user properties from properties.js
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/properties/user`, { // Use the protected route to fetch user properties from properties.js
           headers: {
             'Authorization': `Bearer ${user.token}`,
             'Content-Type': 'application/json'
@@ -66,7 +66,7 @@ const PropertyListing = () => {
       }
       
       const user = JSON.parse(userData);
-      const response = await fetch(`http://localhost:5000/api/properties/${propertyId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/properties/${propertyId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${user.token}`,
@@ -103,7 +103,7 @@ const PropertyListing = () => {
       }
       
       const user = JSON.parse(userData);
-      const response = await fetch(`http://localhost:5000/api/properties/${propertyId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/properties/${propertyId}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${user.token}`,

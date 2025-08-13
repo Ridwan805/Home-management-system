@@ -83,7 +83,7 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
       // Append images
       imageFiles.forEach(file => formData.append('images', file));
       // Send request
-      const res = await fetch('http://localhost:5000/api/properties', {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/properties`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

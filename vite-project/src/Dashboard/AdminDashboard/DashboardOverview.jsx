@@ -24,7 +24,7 @@ const DashboardOverview = () => {
         return;
       }
       
-      const res = await axios.get('http://localhost:5000/api/admin/dashboard/stats', {
+      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/admin/dashboard/stats`, {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       setStats(res.data);

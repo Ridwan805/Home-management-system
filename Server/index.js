@@ -6,7 +6,16 @@ const path = require('path');
 const fs = require('fs');
 
 const app = express();
-app.use(cors());
+// Allow dev front-end origins explicitly; fall back to permissive CORS in dev
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:5174',
+    'http://127.0.0.1:5174'
+  ],
+  credentials: true,
+}));
 app.use(express.json());
 
 // MongoDB connection with fallback
@@ -37,7 +46,8 @@ if (!fs.existsSync(uploadsDir)) {
 }
 app.use('/uploads', express.static(uploadsDir));
 app.use('/api', adminRoutes);
-const PORT = process.env.PORT || 5000;
+// Use 5001 by default on macOS to avoid conflicts with system services using :5000
+const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

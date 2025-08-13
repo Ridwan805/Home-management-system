@@ -52,7 +52,7 @@ const OwnerDashboard = () => {
           window.location.href = '/login';
           throw new Error('Session expired or invalid. Please log in again.');
         }
-        const response = await fetch('http://localhost:5000/api/properties/user', {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/properties/user`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -123,7 +123,7 @@ const OwnerDashboard = () => {
                         <div key={property._id} className="property-card">
                           <div className="property-image">
                             {property.images?.length > 0 ? (
-                              <img src={`http://localhost:5000${property.images[0]}`} alt="Property" />
+                              <img src={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}${property.images[0]}`} alt="Property" />
                             ) : (
                               <div className="property-placeholder">No Image Available</div>
                             )}
