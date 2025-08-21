@@ -857,6 +857,7 @@
   align-items: center;
   justify-content: center;
 }
+
 .status-dropdown-btn.available { background-color: #10b981; }
 .status-dropdown-btn.not-available { background-color: #f59e0b; }
 .status-dropdown-btn.sold { background-color: #ef4444; }
@@ -868,65 +869,43 @@
   position: absolute;
   top: 110%;
   left: 0;
-  z-index: 100;
+  z-index: 1000;
   min-width: 150px;
   background: #fff;
-  box-shadow: 0 2px 16px rgba(239, 245, 255, 0.904);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   border-radius: 0.375rem;
   overflow: hidden;
   border: 1px solid #e5e7eb;
   padding: 0;
   margin: 0;
-  /* Remove bullet points and fix stacking */
   list-style: none;
   display: flex;
   flex-direction: column;
 }
 
 .status-dropdown-option {
-  padding: 0.5rem 1rem;
+  padding: 0.75rem 1rem;
   cursor: pointer;
-  color: #ffffff; /* Changed from #ffffff to a darker color */
-  background-color: #0284c7;
-  background: none;
-  border-bottom: 1px solid #eee;
+  color: #374151;
+  background: #fff;
+  border: none;
+  border-bottom: 1px solid #f3f4f6;
+  text-align: left;
+  width: 100%;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
 }
 
-.status-dropdown-option:hover {
-  background-color: #f3f4f6;
-  color: #2563eb;
-}
 .status-dropdown-option:last-child {
   border-bottom: none;
 }
+
 .status-dropdown-option:hover,
 .status-dropdown-option:focus {
-  background: #2563eb;
+  background-color: #2563eb;
   color: #fff;
+  outline: none;
 }
-
-.status-dropdown-btn {
-  min-width: 110px;
-  padding: 0.5rem 1rem;
-  border-radius: 0.375rem;
-  background-color: #6b7280;
-  color: #fff;
-  border: none;
-  font-size: 1rem;
-  cursor: pointer;
-  margin-bottom: 0.5rem;
-  transition: background 0.2s;
-  box-shadow: 0 1px 4px rgba(59,130,246,0.06);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.status-dropdown-btn.available { background-color: #10b981; }
-.status-dropdown-btn.not-available { background-color: #f59e0b; }
-.status-dropdown-btn.sold { background-color: #ef4444; }
-.status-dropdown-btn.rented { background-color: #8b5cf6; }
-.status-dropdown-btn:focus,
-.status-dropdown-btn:hover { background-color: #4b5563; }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {

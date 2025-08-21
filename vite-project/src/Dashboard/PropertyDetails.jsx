@@ -14,36 +14,32 @@ const PropertyDetails = () => {
   const [selectedProperty, setSelectedProperty] = useState(null);
   const [showStatusDropdown, setShowStatusDropdown] = useState(null);
 
-  // Status options for properties
   const statusOptions = ['Available', 'Not Available', 'Sold', 'Rented'];
 
-  // Fetch user properties
   useEffect(() => {
     const fetchProperties = async () => {
       try {
-        setLoading(true);
-        const userData = localStorage.getItem('dwellSyncUser');
-        if (!userData) {
-          // Redirect to login page if user is not logged in
-          window.location.href = '/login'; 
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setError('No authentication token found');
+          setLoading(false);
           return;
         }
-        
-        const user = JSON.parse(userData);
+
         const response = await fetch('http://localhost:5000/api/properties/user', {
+          method: 'GET',
           headers: {
-            'Authorization': `Bearer ${user.token}`,
+            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           }
         });
-        
+
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to fetch properties');
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data = await response.json();
-        setProperties(data);
+        setProperties(data.properties || []);
       } catch (err) {
         console.error('Error fetching properties:', err);
         setError(err.message);
@@ -51,48 +47,58 @@ const PropertyDetails = () => {
         setLoading(false);
       }
     };
-    
+
     fetchProperties();
   }, []);
 
-  // Handle view details button click
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.status-action')) {
+        setShowStatusDropdown(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   const handleViewDetails = (property) => {
     setSelectedProperty(property);
     setShowDetailsModal(true);
   };
 
-  // Handle close details modal
   const handleCloseDetailsModal = () => {
     setShowDetailsModal(false);
     setSelectedProperty(null);
   };
 
-  // Handle edit button click
   const handleEditClick = (property) => {
-    setEditingProperty(property._id);
+    setEditingProperty(property);
     setFormData({
-      address: property.address,
-      propertyType: property.propertyType,
-      bedrooms: property.bedrooms,
-      bathrooms: property.bathrooms,
-      squareFootage: property.squareFootage,
-      price: property.price,
-      description: property.description || '',
-      status: property.status,
-      yearBuilt: property.yearBuilt || '',
-      contactEmail: property.contactEmail || '',
-      contactPhone: property.contactPhone || '',
-      listingType: property.listingType,
+      address: property.address || '',
+      propertyType: property.propertyType || '',
+      bedrooms: property.bedrooms || '',
+      bathrooms: property.bathrooms || '',
+      squareFootage: property.squareFootage || '',
+      price: property.price || '',
+      listingType: property.listingType || '',
+      status: property.status || '',
       city: property.city || '',
       state: property.state || '',
       zipCode: property.zipCode || '',
-      images: property.images || [] // Include existing images
+      description: property.description || '',
+      yearBuilt: property.yearBuilt || '',
+      contactEmail: property.contactEmail || '',
+      contactPhone: property.contactPhone || '',
+      amenities: property.amenities || []
     });
     setUpdateSuccess(false);
     setUpdateError(null);
   };
 
-  // Handle cancel edit
   const handleCancelEdit = () => {
     setEditingProperty(null);
     setFormData({});
@@ -100,114 +106,91 @@ const PropertyDetails = () => {
     setUpdateError(null);
   };
 
-  // Handle form input changes
   const handleInputChange = (e) => {
-    const { name, value, type } = e.target;
+    const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'number' ? Number(value) : value
+      [name]: value
     }));
   };
 
-  // Handle image file selection
   const handleImageChange = (e) => {
-    setFormData(prev => ({
-      ...prev,
-      newImages: e.target.files
-    }));
+    const files = Array.from(e.target.files);
+    setFormData(prev => ({ ...prev, newImages: files }));
   };
 
-  // Handle removing an existing image
   const handleRemoveImage = (indexToRemove) => {
     setFormData(prev => ({
       ...prev,
-      images: prev.images.filter((_, index) => index !== indexToRemove)
+      existingImages: prev.existingImages.filter((_, index) => index !== indexToRemove)
     }));
   };
 
-  // Handle form submission for updating property
   const handleUpdateSubmit = async (e) => {
     e.preventDefault();
+    setUpdateError(null);
+    
     try {
-      setUpdateError(null);
-      setUpdateSuccess(false);
+      const token = localStorage.getItem('token');
+      const formDataToSend = new FormData();
       
-      const userData = localStorage.getItem('dwellSyncUser');
-      if (!userData) {
-        throw new Error('User not logged in');
-      }
-      
-      const user = JSON.parse(userData);
-      const data = new FormData();
-      for (const key in formData) {
-        if (key === 'newImages') {
-          for (let i = 0; i < formData.newImages.length; i++) {
-            data.append('images', formData.newImages[i]);
-          }
-        } else if (key === 'images') {
-          // Append existing image URLs separately if your backend expects them
-          // Or handle them as part of the main JSON data if not re-uploading
-          formData.images.forEach(img => data.append('existingImages', img));
-        } else {
-          data.append(key, formData[key]);
+      Object.keys(formData).forEach(key => {
+        if (key === 'newImages' && formData[key]) {
+          formData[key].forEach(file => {
+            formDataToSend.append('images', file);
+          });
+        } else if (key === 'amenities') {
+          formDataToSend.append(key, JSON.stringify(formData[key]));
+        } else if (formData[key] !== undefined && formData[key] !== null) {
+          formDataToSend.append(key, formData[key]);
         }
-      }
+      });
 
-      const response = await fetch(`http://localhost:5000/api/properties/${editingProperty}`, {
+      const response = await fetch(`http://localhost:5000/api/properties/${editingProperty._id}`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${user.token}`,
+          'Authorization': `Bearer ${token}`
         },
-        body: data
+        body: formDataToSend
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to update property');
       }
-      
+
       const updatedProperty = await response.json();
-      
-      // Update the properties list with the updated property
-      setProperties(properties.map(prop => 
-        prop._id === editingProperty ? updatedProperty.property : prop
+      setProperties(prev => prev.map(prop => 
+        prop._id === editingProperty._id ? updatedProperty.property : prop
       ));
       
       setUpdateSuccess(true);
       setTimeout(() => {
-        setEditingProperty(null);
-        setUpdateSuccess(false);
+        handleCancelEdit();
       }, 2000);
+      
     } catch (err) {
       console.error('Error updating property:', err);
       setUpdateError(err.message);
     }
   };
 
-  // Handle delete property
   const handleDeleteProperty = async (propertyId) => {
     try {
-      const userData = localStorage.getItem('dwellSyncUser');
-      if (!userData) {
-        throw new Error('User not logged in');
-      }
-      
-      const user = JSON.parse(userData);
+      const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:5000/api/properties/${propertyId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${user.token}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to delete property');
+        throw new Error('Failed to delete property');
       }
-      
-      // Remove the deleted property from the list
-      setProperties(properties.filter(prop => prop._id !== propertyId));
+
+      setProperties(prev => prev.filter(prop => prop._id !== propertyId));
       setDeleteConfirm(null);
     } catch (err) {
       console.error('Error deleting property:', err);
@@ -215,34 +198,28 @@ const PropertyDetails = () => {
     }
   };
 
-  // Handle status update
   const handleStatusUpdate = async (propertyId, newStatus) => {
     try {
-      const userData = localStorage.getItem('dwellSyncUser');
-      if (!userData) {
-        throw new Error('User not logged in');
-      }
-      
-      const user = JSON.parse(userData);
+      const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:5000/api/properties/${propertyId}/status`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${user.token}`,
-          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ status: newStatus })
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update status');
+        throw new Error('Failed to update status');
       }
 
       const updatedProperty = await response.json();
-      setProperties(properties.map(prop => 
-        prop._id === propertyId ? updatedProperty.property : prop
+      setProperties(prev => prev.map(prop => 
+        prop._id === propertyId ? { ...prop, status: newStatus } : prop
       ));
-      setShowStatusDropdown(null); // Close dropdown after update
+      
+      setShowStatusDropdown(null);
     } catch (err) {
       console.error('Error updating status:', err);
       setError(err.message);
@@ -253,15 +230,15 @@ const PropertyDetails = () => {
     <div className="property-details-container">
       <h1>Property Details</h1>
       <p className="subtitle">View and manage your property listings</p>
-      
+
       {loading && <div className="loading-state">Loading properties...</div>}
-      
+
       {error && <div className="error-state">Error: {error}</div>}
-      
+
       {!loading && !error && properties.length === 0 && (
         <div className="no-properties">
           <p>You haven't listed any properties yet.</p>
-          <button className="add-property-btn" onClick={() => window.location.href = '/create-listing'}>
+          <button className="add-property-btn" onClick={() => window.location.href = '/dashboard/create-listing'}>
             Add Your First Property
           </button>
         </div>
@@ -305,37 +282,33 @@ const PropertyDetails = () => {
                 <div className="property-actions">
                   <button className="view-details-btn" onClick={() => handleViewDetails(property)}>View Details</button>
                   <button className="edit-btn" onClick={() => handleEditClick(property)} disabled={property.status === 'pending'}>Edit</button>
-                  <div className="status-action" style={{ position: "relative" }}>
+                  
+                  <div className="status-action">
                     <button
                       className={`status-btn status-dropdown-btn ${property.status?.toLowerCase().replace(/ /g, '-')}`}
                       onClick={() => property.status === 'pending' ? null : setShowStatusDropdown(showStatusDropdown === property._id ? null : property._id)}
-                      style={{ fontWeight: 500, cursor: property.status === 'pending' ? 'not-allowed' : 'pointer' }}
                       disabled={property.status === 'pending'}
                     >
                       Status: {property.status} <span style={{marginLeft: 6, fontSize: 12}}>▼</span>
                     </button>
-                  {showStatusDropdown === property._id && property.status !== 'pending' && ( // Only show dropdown if not pending
-                  <ul className="status-dropdown-menu">
-                    {statusOptions.map(option => (
-                      <li key={option}>
-                        <button
-                          className="status-dropdown-option"
-                          onClick={() => {
-                            handleStatusUpdate(property._id, option);
-                            setShowStatusDropdown(null);
-                          }}
-                        >
-                          {option}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
-                </div>
-
-
-
+                    {showStatusDropdown === property._id && property.status !== 'pending' && (
+                      <ul className="status-dropdown-menu">
+                        {statusOptions.map(option => (
+                          <li key={option}>
+                            <button
+                              className="status-dropdown-option"
+                              onClick={() => {
+                                handleStatusUpdate(property._id, option);
+                                setShowStatusDropdown(null);
+                              }}
+                            >
+                              {option}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
 
                   {deleteConfirm === property._id ? (
                     <div className="delete-confirm">
@@ -358,8 +331,11 @@ const PropertyDetails = () => {
                   ) : (
                     <button 
                       className="delete-btn" 
-                      onClick={() => setDeleteConfirm(property._id)} disabled={property.status === 'pending'}>Remove</button>
-                    
+                      onClick={() => setDeleteConfirm(property._id)} 
+                      disabled={property.status === 'pending'}
+                    >
+                      Remove
+                    </button>
                   )}
                 </div>
               </div>
@@ -371,7 +347,7 @@ const PropertyDetails = () => {
       {/* Property Details Modal */}
       {showDetailsModal && selectedProperty && (
         <div className="modal-overlay" onClick={handleCloseDetailsModal}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <button className="modal-close-btn" onClick={handleCloseDetailsModal}>&times;</button>
             <h2>{selectedProperty.address}</h2>
             
@@ -421,7 +397,7 @@ const PropertyDetails = () => {
       {/* Edit Property Modal */}
       {editingProperty && (
         <div className="modal-overlay edit-form-modal" onClick={handleCancelEdit}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <button className="modal-close-btn" onClick={handleCancelEdit}>&times;</button>
             <h2>Edit Property</h2>
             {updateError && <div className="error-state">Error: {updateError}</div>}
@@ -439,6 +415,7 @@ const PropertyDetails = () => {
                   required
                 />
               </div>
+              
               <div className="form-group">
                 <label htmlFor="propertyType">Property Type</label>
                 <input
@@ -450,6 +427,7 @@ const PropertyDetails = () => {
                   required
                 />
               </div>
+              
               <div className="form-group">
                 <label htmlFor="bedrooms">Bedrooms</label>
                 <input
@@ -461,6 +439,7 @@ const PropertyDetails = () => {
                   required
                 />
               </div>
+              
               <div className="form-group">
                 <label htmlFor="bathrooms">Bathrooms</label>
                 <input
@@ -472,6 +451,7 @@ const PropertyDetails = () => {
                   required
                 />
               </div>
+              
               <div className="form-group">
                 <label htmlFor="squareFootage">Square Footage</label>
                 <input
@@ -483,6 +463,7 @@ const PropertyDetails = () => {
                   required
                 />
               </div>
+              
               <div className="form-group">
                 <label htmlFor="price">Price</label>
                 <input
@@ -494,6 +475,7 @@ const PropertyDetails = () => {
                   required
                 />
               </div>
+              
               <div className="form-group">
                 <label htmlFor="listingType">Listing Type</label>
                 <select
@@ -507,6 +489,7 @@ const PropertyDetails = () => {
                   <option value="For Rent">For Rent</option>
                 </select>
               </div>
+              
               <div className="form-group">
                 <label htmlFor="status">Status</label>
                 <select
@@ -521,6 +504,7 @@ const PropertyDetails = () => {
                   ))}
                 </select>
               </div>
+              
               <div className="form-group">
                 <label htmlFor="city">City</label>
                 <input
@@ -531,6 +515,7 @@ const PropertyDetails = () => {
                   onChange={handleInputChange}
                 />
               </div>
+              
               <div className="form-group">
                 <label htmlFor="state">State</label>
                 <input
@@ -541,6 +526,7 @@ const PropertyDetails = () => {
                   onChange={handleInputChange}
                 />
               </div>
+              
               <div className="form-group">
                 <label htmlFor="zipCode">Zip Code</label>
                 <input
@@ -551,6 +537,7 @@ const PropertyDetails = () => {
                   onChange={handleInputChange}
                 />
               </div>
+              
               <div className="form-group full-width">
                 <label htmlFor="description">Description*</label>
                 <textarea
@@ -563,6 +550,7 @@ const PropertyDetails = () => {
                   placeholder="Describe the property, highlights, nearby facilities, etc."
                 ></textarea>
               </div>
+              
               <div className="form-group">
                 <label htmlFor="yearBuilt">Year Built</label>
                 <input
@@ -573,6 +561,7 @@ const PropertyDetails = () => {
                   onChange={handleInputChange}
                 />
               </div>
+              
               <div className="form-group">
                 <label htmlFor="contactEmail">Contact Email</label>
                 <input
@@ -583,6 +572,7 @@ const PropertyDetails = () => {
                   onChange={handleInputChange}
                 />
               </div>
+              
               <div className="form-group">
                 <label htmlFor="contactPhone">Contact Phone</label>
                 <input
@@ -600,30 +590,14 @@ const PropertyDetails = () => {
                   type="file"
                   id="newImages"
                   name="newImages"
-                  accept="image/*"
                   multiple
+                  accept="image/*"
                   onChange={handleImageChange}
                 />
-                {formData.images && formData.images.length > 0 && (
-                  <div className="current-images">
-                    {formData.images.map((image, index) => (
-                      <div key={index} className="current-image-item">
-                        <img src={`http://localhost:5000${image}`} alt={`Current ${index + 1}`} />
-                        <button 
-                          type="button" 
-                          className="remove-image-btn" 
-                          onClick={() => handleRemoveImage(index)}
-                        >
-                          &times;
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
-              
+
               <div className="form-actions">
-                <button type="submit" className="submit-btn">Save Changes</button>
+                <button type="submit" className="submit-btn">Update Property</button>
                 <button type="button" className="cancel-btn" onClick={handleCancelEdit}>Cancel</button>
               </div>
             </form>

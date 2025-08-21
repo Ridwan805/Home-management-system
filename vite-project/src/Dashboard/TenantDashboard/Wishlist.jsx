@@ -12,7 +12,15 @@ const Wishlist = () => {
     const fetchWishlist = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem('token');
+        const userData = localStorage.getItem('dwellSyncUser');
+        
+        if (!userData) {
+          setError('You must be logged in to view your wishlist');
+          return;
+        }
+        
+        const user = JSON.parse(userData);
+        const token = user.token;
         
         if (!token) {
           setError('You must be logged in to view your wishlist');
@@ -44,7 +52,15 @@ const Wishlist = () => {
 
   const handleRemoveFromWishlist = async (propertyId) => {
     try {
-      const token = localStorage.getItem('token');
+      const userData = localStorage.getItem('dwellSyncUser');
+      
+      if (!userData) {
+        toast.error('You must be logged in to manage your wishlist');
+        return;
+      }
+      
+      const user = JSON.parse(userData);
+      const token = user.token;
       
       if (!token) {
         toast.error('You must be logged in to manage your wishlist');

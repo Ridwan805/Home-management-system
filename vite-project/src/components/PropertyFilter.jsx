@@ -198,7 +198,7 @@ const PropertyFilter = () => {
             min="0" 
             placeholder="Min Beds" 
             className="filter-input"
-            style={{ width: '90px' }}
+            style={{ width: '100px' }}
           />
           <input 
             type="number" 
@@ -208,7 +208,7 @@ const PropertyFilter = () => {
             min="0" 
             placeholder="Max Beds" 
             className="filter-input"
-            style={{ width: '90px' }}
+            style={{ width: '100px' }}
           />
           <input 
             type="text" 
@@ -217,7 +217,7 @@ const PropertyFilter = () => {
             onChange={handleChange} 
             placeholder="City" 
             className="filter-input"
-            style={{ width: '120px' }}
+            style={{ width: '100px' }}
           />
           <input 
             type="text" 
@@ -226,7 +226,7 @@ const PropertyFilter = () => {
             onChange={handleChange} 
             placeholder="State" 
             className="filter-input"
-            style={{ width: '80px' }}
+            style={{ width: '100px' }}
           />
           <input 
             type="text" 
@@ -235,7 +235,7 @@ const PropertyFilter = () => {
             onChange={handleChange} 
             placeholder="Zip" 
             className="filter-input"
-            style={{ width: '90px' }}
+            style={{ width: '100px' }}
           />
 
           <button type="submit" className="filter-button filter-button-primary">
@@ -341,7 +341,7 @@ const PropertyFilter = () => {
               {/* View Details Button */}
               <div className="property-actions">
                 <button 
-                  onClick={() => navigate(`/property/${property._id}`)}
+                  onClick={() => navigate(`/properties/${property._id}`)}
                   className="view-details-btn"
                 >
                   View Details

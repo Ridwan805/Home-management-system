@@ -11,6 +11,7 @@ const ViewDetails = () => {
   const [error, setError] = useState(null);
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
+  const [userRole, setUserRole] = useState(null);
 
   useEffect(() => {
     const fetchPropertyDetails = async () => {
@@ -32,9 +33,25 @@ const ViewDetails = () => {
       }
     };
 
+    const getUserRole = () => {
+      try {
+        const userData = localStorage.getItem('dwellSyncUser');
+        if (userData) {
+          const user = JSON.parse(userData);
+          setUserRole(user.role);
+        }
+      } catch (err) {
+        console.error('Error getting user role:', err);
+      }
+    };
+
     const checkWishlistStatus = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const userData = localStorage.getItem('dwellSyncUser');
+        if (!userData) return;
+        
+        const user = JSON.parse(userData);
+        const token = user.token;
         if (!token) return;
 
         const response = await fetch('http://localhost:5000/api/wishlist', {
@@ -55,6 +72,7 @@ const ViewDetails = () => {
 
     if (propertyId) {
       fetchPropertyDetails();
+      getUserRole();
       checkWishlistStatus();
     }
   }, [propertyId]);
@@ -62,7 +80,16 @@ const ViewDetails = () => {
   const handleWishlist = async () => {
     try {
       setWishlistLoading(true);
-      const token = localStorage.getItem('token');
+      const userData = localStorage.getItem('dwellSyncUser');
+      
+      if (!userData) {
+        toast.error('Please login to add properties to your wishlist');
+        navigate('/login');
+        return;
+      }
+      
+      const user = JSON.parse(userData);
+      const token = user.token;
       
       if (!token) {
         toast.error('Please login to add properties to your wishlist');
@@ -291,28 +318,38 @@ const ViewDetails = () => {
 
           <div className="property-actions-card">
             <h3>Actions</h3>
-            <button 
-            onClick={handleWishlist} 
-            className={`action-btn wishlist-btn ${isInWishlist ? 'in-wishlist' : ''}`}
-            disabled={wishlistLoading}
-          >
-            {wishlistLoading ? 'Processing...' : isInWishlist ? '❤️ Remove from Wishlist' : '❤️ Add to Wishlist'}
-          </button>
-            
-            {property.listingType === 'For Rent' ? (
-              <button 
-                onClick={handleApplyToRent} 
-                className="action-btn apply-rent-btn"
-              >
-                📝 Apply to Rent
-              </button>
-            ) : (
-              <button 
-                onClick={handleApplyToBuy} 
-                className="action-btn apply-buy-btn"
-              >
-                💰 Apply to Buy
-              </button>
+            {userRole && userRole !== 'Owner' && (
+              <>
+                <button 
+                  onClick={handleWishlist} 
+                  className={`action-btn wishlist-btn ${isInWishlist ? 'in-wishlist' : ''}`}
+                  disabled={wishlistLoading}
+                >
+                  {wishlistLoading ? 'Processing...' : isInWishlist ? '❤️ Remove from Wishlist' : '❤️ Add to Wishlist'}
+                </button>
+                
+                {property.listingType === 'For Rent' ? (
+                  <button 
+                    onClick={handleApplyToRent} 
+                    className="action-btn apply-rent-btn"
+                  >
+                    📝 Apply to Rent
+                  </button>
+                ) : (
+                  <button 
+                    onClick={handleApplyToBuy} 
+                    className="action-btn apply-buy-btn"
+                  >
+                    💰 Apply to Buy
+                  </button>
+                )}
+              </>
+            )}
+            {userRole === 'Owner' && (
+              <p className="owner-message">As an owner, you can view property details but cannot add to wishlist or apply.</p>
+            )}
+            {!userRole && (
+              <p className="login-message">Please <a href="/login">login</a> to add to wishlist or apply.</p>
             )}
           </div>
         </div>

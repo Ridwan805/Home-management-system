@@ -13,6 +13,7 @@ import TenantInfo from './Dashboard/TenantInfo';
 import SecurityGuardInfo from './Dashboard/SecurityGuardInfo';
 import TenantDashboard from './Dashboard/TenantDashboard/TenantDashboard';
 import PropertyListing from './components/PropertyListing';
+import PropertyFilter from './components/PropertyFilter';
 import ViewDetails from './components/ViewDetails';
 
 // ✅ ADD THIS IMPORT
@@ -118,7 +119,7 @@ function AppRoutes() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/properties" element={<PropertyListing isFilterPage={true} />} />
+        <Route path="/properties" element={<PropertyFilter />} />
         <Route path="/properties/:propertyId" element={<ViewDetails />} />
         <Route path="/tenant/:section" element={<TenantDashboard />} />
         <Route path="/dashboard" element={<OwnerDashboard />} />
