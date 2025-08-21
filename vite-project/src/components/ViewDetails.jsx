@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import './ViewDetails.css';
 import { toast } from 'react-toastify';
+import UnifiedInquiryForm from './UnifiedInquiryForm';
 
 const ViewDetails = () => {
   const { propertyId } = useParams();
@@ -12,6 +13,8 @@ const ViewDetails = () => {
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [userRole, setUserRole] = useState(null);
+  const [showRequestForm, setShowRequestForm] = useState(false);
+  const [requestType, setRequestType] = useState(null);
 
   useEffect(() => {
     const fetchPropertyDetails = async () => {
@@ -141,13 +144,72 @@ const ViewDetails = () => {
   };
 
   const handleApplyToRent = () => {
-    // TODO: Implement apply to rent functionality
-    console.log('Apply to rent button clicked for property:', propertyId);
+    setRequestType('Rent');
+    setShowRequestForm(true);
   };
 
   const handleApplyToBuy = () => {
-    // TODO: Implement apply to buy functionality
-    console.log('Apply to buy button clicked for property:', propertyId);
+    setRequestType('Buy');
+    setShowRequestForm(true);
+  };
+
+  const handleCloseRequestForm = () => {
+    setShowRequestForm(false);
+    setRequestType(null);
+  };
+
+  const handleSubmitRequest = async (requestData, documents) => {
+    try {
+      const userData = localStorage.getItem('dwellSyncUser');
+      if (!userData) {
+        toast.error('Please login to submit a request');
+        return;
+      }
+
+      const user = JSON.parse(userData);
+      const token = localStorage.getItem('dwellSyncToken');
+
+      // Create FormData for file uploads
+      const formData = new FormData();
+      
+      // Add request data
+      formData.append('propertyId', requestData.propertyId);
+      formData.append('requestType', requestData.requestType);
+      formData.append('payload', JSON.stringify(requestData.payload));
+      formData.append('consent', JSON.stringify(requestData.consent));
+      
+      // Add documents
+      Object.entries(documents).forEach(([key, file]) => {
+        if (file) {
+          formData.append(key, file);
+        }
+      });
+
+      const response = await fetch('http://localhost:5000/api/requests', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        toast.success('Request submitted successfully!');
+        handleCloseRequestForm();
+        
+        // Optionally redirect to My Requests page
+        setTimeout(() => {
+          navigate('/my-requests');
+        }, 2000);
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.message || 'Failed to submit request');
+      }
+    } catch (error) {
+      console.error('Error submitting request:', error);
+      toast.error('An error occurred while submitting the request');
+    }
   };
 
   const handleBackToProperties = () => {
@@ -354,6 +416,16 @@ const ViewDetails = () => {
           </div>
         </div>
       </div>
+      
+      {/* Unified Inquiry Form Modal */}
+      {showRequestForm && (
+        <UnifiedInquiryForm
+          property={property}
+          requestType={requestType}
+          onClose={handleCloseRequestForm}
+          onSubmit={handleSubmitRequest}
+        />
+      )}
     </div>
   );
 };

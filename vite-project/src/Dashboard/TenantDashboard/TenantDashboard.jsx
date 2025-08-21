@@ -4,10 +4,10 @@ import TenantSidebarNav from './TenantSidebarNav';
 import TenantProfile from './TenantProfile';
 import PaymentInfo from './PaymentInfo';
 import HouseInfo from './HouseInfo';
-import SecurityGuardInfo from './SecurityGuardInfo';
+import SecurityGuardInfo from '../OwnerProfile/SecurityGuardInfo';
 import ReportProblem from './ReportProblem';
 import Wishlist from './Wishlist';
-import MyRequests from './MyRequests';
+import TenantMyRequests from './TenantMyRequests';
 import './TenantDashboard.css';
 
 const TenantDashboard = () => {
@@ -42,7 +42,7 @@ const TenantDashboard = () => {
           {activeSection === 'security-guard-info' && <SecurityGuardInfo />}
           {activeSection === 'report-problem' && <ReportProblem />}
           {activeSection === 'wishlist' && <Wishlist />}
-          {activeSection === 'request-info' && <MyRequests />}
+          {activeSection === 'request-info' && <TenantMyRequests />}
         </div>
       </main>
     </div>
