@@ -20,7 +20,12 @@ const PropertySchema = new mongoose.Schema({
   listingType: { type: String, enum: ['For Sale', 'For Rent'], required: true },
   city: { type: String },
   state: { type: String },
-  zipCode: { type: String }
+  zipCode: { type: String },
+  
+  // Tenant assignment fields
+  assignedTenant: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  assignedAt: { type: Date },
+  assignmentType: { type: String, enum: ['Rent', 'Buy'] }
 }, { 
   timestamps: true,
   collection: 'Properties'

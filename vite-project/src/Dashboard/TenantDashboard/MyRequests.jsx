@@ -10,6 +10,12 @@ const MyRequests = () => {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [stats, setStats] = useState({});
+  const [showPaymentProofModal, setShowPaymentProofModal] = useState(false);
+  const [paymentProofForm, setPaymentProofForm] = useState({
+    proofFile: null,
+    note: ''
+  });
+  const [uploadLoading, setUploadLoading] = useState(false);
 
   const statusFilters = [
     { key: 'all', label: 'All Requests' },
@@ -26,6 +32,21 @@ const MyRequests = () => {
   useEffect(() => {
     fetchRequests();
     fetchStats();
+    
+    // Handle payment status from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentStatus = urlParams.get('payment');
+    const sessionId = urlParams.get('session_id');
+    
+    if (paymentStatus === 'success' && sessionId) {
+      alert('Payment completed successfully! Your request is being processed.');
+      // Clean up URL parameters
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (paymentStatus === 'cancelled') {
+      alert('Payment was cancelled. You can try again anytime.');
+      // Clean up URL parameters
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
   }, [selectedStatus]);
 
   const fetchRequests = async () => {
@@ -142,6 +163,134 @@ const MyRequests = () => {
     } catch (err) {
       console.error('Error canceling request:', err);
       alert('Failed to cancel request');
+    }
+  };
+
+  const handlePayNow = async (requestId) => {
+    try {
+      const userData = JSON.parse(localStorage.getItem('dwellSyncUser'));
+      const token = userData?.token;
+
+      if (!token) {
+        alert('Please log in to make payment');
+        return;
+      }
+
+      // Create Stripe payment session
+      const response = await fetch(`http://localhost:5000/api/stripe/create-payment-session/${requestId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.url) {
+        // Redirect to Stripe checkout
+        window.location.href = data.url;
+      } else {
+        alert(data.message || 'Failed to create payment session');
+      }
+    } catch (err) {
+      console.error('Error creating payment session:', err);
+      alert('Failed to initiate payment. Please try again.');
+    }
+  };
+
+  const handleUploadPaymentProof = () => {
+    setShowPaymentProofModal(true);
+  };
+
+  const handlePaymentProofSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!paymentProofForm.proofFile) {
+      alert('Please select a payment proof file');
+      return;
+    }
+
+    try {
+      setUploadLoading(true);
+      const userData = JSON.parse(localStorage.getItem('dwellSyncUser'));
+      const token = userData?.token;
+
+      if (!token) {
+        alert('Please log in to upload payment proof');
+        return;
+      }
+
+      // First upload the file
+      const formData = new FormData();
+      formData.append('file', paymentProofForm.proofFile);
+      formData.append('type', 'payment-proof');
+
+      const uploadResponse = await fetch('http://localhost:5000/api/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload file');
+      }
+
+      const uploadData = await uploadResponse.json();
+      
+      // Then submit payment proof
+      const proofResponse = await fetch(`http://localhost:5000/api/requests/${selectedRequest.requestId}/payment-proof`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          proofUrl: uploadData.fileUrl,
+          note: paymentProofForm.note
+        })
+      });
+
+      if (!proofResponse.ok) {
+        throw new Error('Failed to submit payment proof');
+      }
+
+      alert('Payment proof submitted successfully! The owner will review it shortly.');
+      setShowPaymentProofModal(false);
+      setPaymentProofForm({ proofFile: null, note: '' });
+      fetchRequests(); // Refresh the requests list
+      
+    } catch (err) {
+      console.error('Error submitting payment proof:', err);
+      alert('Failed to submit payment proof. Please try again.');
+    } finally {
+      setUploadLoading(false);
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type (images and PDFs)
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+      if (!allowedTypes.includes(file.type)) {
+        alert('Please upload only JPG, PNG, or PDF files');
+        return;
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('File size must be less than 5MB');
+        return;
+      }
+      
+      setPaymentProofForm(prev => ({ ...prev, proofFile: file }));
     }
   };
 
@@ -364,8 +513,103 @@ const MyRequests = () => {
                       Cancel Request
                     </button>
                   )}
+                  {selectedRequest.status === 'Approved – Pay Advance' && selectedRequest.advancePayment && (
+                    <>
+                      <button 
+                        className="pay-btn"
+                        onClick={() => handlePayNow(selectedRequest._id)}
+                      >
+                        Pay Online (${selectedRequest.advancePayment.amount})
+                      </button>
+                      <button 
+                        className="upload-proof-btn"
+                        onClick={handleUploadPaymentProof}
+                      >
+                        Upload Payment Proof
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Payment Proof Upload Modal */}
+      {showPaymentProofModal && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h3>Upload Payment Proof</h3>
+                <button 
+                  className="close-btn" 
+                  onClick={() => setShowPaymentProofModal(false)}
+                >
+                  ×
+                </button>
+              </div>
+              
+              <form onSubmit={handlePaymentProofSubmit}>
+                <div className="modal-body">
+                  <div className="payment-proof-info">
+                    <h4>Payment Details</h4>
+                    <p><strong>Amount:</strong> ${selectedRequest?.advancePayment?.amount}</p>
+                    <p><strong>Due Date:</strong> {formatDate(selectedRequest?.advancePayment?.dueDate)}</p>
+                    {selectedRequest?.advancePayment?.instructions && (
+                      <p><strong>Instructions:</strong> {selectedRequest.advancePayment.instructions}</p>
+                    )}
+                  </div>
+                  
+                  <div className="form-group">
+                    <label htmlFor="proofFile">Payment Proof File *</label>
+                    <input
+                      type="file"
+                      id="proofFile"
+                      accept=".jpg,.jpeg,.png,.pdf"
+                      onChange={handleFileChange}
+                      required
+                    />
+                    <small className="file-info">
+                      Accepted formats: JPG, PNG, PDF (Max 5MB)
+                    </small>
+                    {paymentProofForm.proofFile && (
+                      <div className="selected-file">
+                        Selected: {paymentProofForm.proofFile.name}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="form-group">
+                    <label htmlFor="proofNote">Additional Note (Optional)</label>
+                    <textarea
+                      id="proofNote"
+                      value={paymentProofForm.note}
+                      onChange={(e) => setPaymentProofForm(prev => ({ ...prev, note: e.target.value }))}
+                      placeholder="Add any additional information about the payment..."
+                      rows="3"
+                    />
+                  </div>
+                </div>
+                
+                <div className="modal-actions">
+                  <button 
+                    type="button" 
+                    className="close-btn" 
+                    onClick={() => setShowPaymentProofModal(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit" 
+                    className="submit-proof-btn"
+                    disabled={uploadLoading || !paymentProofForm.proofFile}
+                  >
+                    {uploadLoading ? 'Uploading...' : 'Submit Payment Proof'}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>

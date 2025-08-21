@@ -248,6 +248,30 @@
   background: #c82333;
 }
 
+.verify-payment-btn {
+  background: #28a745;
+  color: white;
+}
+
+.verify-payment-btn:hover:not(:disabled) {
+  background: #1e7e34;
+}
+
+.reject-payment-btn {
+  background: #dc3545;
+  color: white;
+}
+
+.reject-payment-btn:hover:not(:disabled) {
+  background: #c82333;
+}
+
+.payment-verification-actions {
+  display: flex;
+  gap: 15px;
+  margin-top: 15px;
+}
+
 /* Modal Styles */
 .modal-overlay {
   position: fixed;

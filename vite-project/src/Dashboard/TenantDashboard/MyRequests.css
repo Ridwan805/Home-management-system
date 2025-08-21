@@ -563,6 +563,153 @@
   font-size: 0.9rem;
 }
 
+.modal-actions .pay-btn {
+  background: #28a745;
+  color: white;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.modal-actions .pay-btn:hover {
+  background: #218838;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+}
+
+.modal-actions .upload-proof-btn {
+  background: #6c757d;
+  color: white;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.modal-actions .upload-proof-btn:hover {
+  background: #5a6268;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(108, 117, 125, 0.3);
+}
+
+.modal-actions .submit-proof-btn {
+  background: #007bff;
+  color: white;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.modal-actions .submit-proof-btn:hover:not(:disabled) {
+  background: #0056b3;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+}
+
+.modal-actions .submit-proof-btn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Payment Proof Modal Styles */
+.payment-proof-info {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  border-left: 4px solid #007bff;
+}
+
+.payment-proof-info h4 {
+  margin: 0 0 0.5rem 0;
+  color: #007bff;
+  font-size: 1.1rem;
+}
+
+.payment-proof-info p {
+  margin: 0.25rem 0;
+  font-size: 0.9rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.form-group input[type="file"] {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px dashed #ddd;
+  border-radius: 8px;
+  background: #f8f9fa;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.form-group input[type="file"]:hover {
+  border-color: #007bff;
+  background: #e3f2fd;
+}
+
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  resize: vertical;
+  font-family: inherit;
+  transition: border-color 0.3s ease;
+}
+
+.form-group textarea:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+
+.file-info {
+  display: block;
+  margin-top: 0.5rem;
+  color: #6c757d;
+  font-size: 0.8rem;
+}
+
+.selected-file {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: #e8f5e8;
+  border: 1px solid #28a745;
+  border-radius: 4px;
+  color: #155724;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
 /* Responsive Design */
 @media (max-width: 1200px) {
   .stats-grid {
@@ -708,7 +855,10 @@
   }
 
   .modal-actions .close-btn,
-  .modal-actions .cancel-btn {
+  .modal-actions .cancel-btn,
+  .modal-actions .pay-btn,
+  .modal-actions .upload-proof-btn,
+  .modal-actions .submit-proof-btn {
     width: 100%;
     padding: 12px;
     text-align: center;

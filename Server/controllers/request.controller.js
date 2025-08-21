@@ -4,6 +4,8 @@ const User = require('../models/User');
 const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
+const NotificationService = require('../services/notificationService');
+const GuardrailsService = require('../services/guardrailsService');
 
 // Create a new request
 const createRequest = async (req, res) => {
@@ -33,6 +35,56 @@ const createRequest = async (req, res) => {
     // Parse JSON strings from FormData
     const parsedPayload = typeof payload === 'string' ? JSON.parse(payload) : payload;
     const parsedConsent = typeof consent === 'string' ? JSON.parse(consent) : consent;
+    
+    // Guardrails: Check rate limiting
+    const rateLimitCheck = await GuardrailsService.checkRequestRateLimit(tenantId);
+    if (!rateLimitCheck.allowed) {
+      return res.status(429).json({ 
+        message: `Rate limit exceeded. You can only make ${rateLimitCheck.limit} requests per day. Current: ${rateLimitCheck.current}`,
+        resetTime: rateLimitCheck.resetTime
+      });
+    }
+    
+    // Guardrails: Validate request data
+    const requestData = { propertyId, tenantId, requestType, payload: parsedPayload };
+    const validation = GuardrailsService.validateRequestData(requestData);
+    if (!validation.isValid) {
+      return res.status(400).json({ 
+        message: 'Invalid request data',
+        errors: validation.errors
+      });
+    }
+    
+    // Guardrails: Check if user can request this property
+    const permissionCheck = await GuardrailsService.canUserRequestProperty(tenantId, propertyId);
+    if (!permissionCheck.allowed) {
+      return res.status(403).json({ 
+        message: permissionCheck.reason
+      });
+    }
+    
+    // Guardrails: Detect suspicious activity
+    const suspiciousActivity = await GuardrailsService.detectSuspiciousActivity(tenantId, 'request_creation', {
+      propertyId,
+      requestType,
+      userAgent: req.get('User-Agent'),
+      ipAddress: req.ip || req.connection.remoteAddress
+    });
+    
+    if (suspiciousActivity.isSuspicious) {
+      await GuardrailsService.logSecurityEvent(tenantId, 'suspicious_request_creation', {
+        indicators: suspiciousActivity.indicators,
+        propertyId,
+        userAgent: req.get('User-Agent'),
+        ipAddress: req.ip || req.connection.remoteAddress
+      }, suspiciousActivity.riskLevel);
+      
+      if (suspiciousActivity.riskLevel === 'high') {
+        return res.status(403).json({ 
+          message: 'Request blocked due to suspicious activity. Please contact support.'
+        });
+      }
+    }
     
     // Handle uploaded identity documents
     const identityFiles = {};
@@ -110,6 +162,20 @@ const createRequest = async (req, res) => {
       .populate('propertyId', 'address price listingType')
       .populate('tenantId', 'firstName lastName email')
       .populate('ownerId', 'firstName lastName email');
+
+    // Send notification to property owner
+    try {
+      await NotificationService.createNotification(
+        property.owner._id,
+        'info',
+        'New Property Request',
+        `${populatedRequest.tenantId.firstName} ${populatedRequest.tenantId.lastName} has submitted a ${requestType.toLowerCase()} request for ${property.address}`,
+        { requestId: newRequest._id, propertyId, tenantId }
+      );
+    } catch (notificationError) {
+      console.error('Error sending notification:', notificationError);
+      // Don't fail the request creation if notification fails
+    }
 
     res.status(201).json({
       message: 'Request created successfully',
@@ -232,13 +298,37 @@ const updateRequestStatus = async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    // Validate status transition
-    if (!request.canTransitionTo(status)) {
+    // Guardrails: Validate status transition with role-based checks
+    const transitionValidation = GuardrailsService.validateStatusTransition(request.status, status, userRole.toLowerCase());
+    if (!transitionValidation.allowed) {
       return res.status(400).json({ 
-        message: `Invalid status transition from ${request.status} to ${status}`,
-        validTransitions: Request.getValidStatusTransitions()[request.status]
+        message: `Invalid status transition from ${request.status} to ${status} for ${userRole}`,
+        allowedTransitions: transitionValidation.allowedTransitions
       });
     }
+    
+    // Guardrails: Detect suspicious activity for status changes
+    const suspiciousActivity = await GuardrailsService.detectSuspiciousActivity(userId, 'status_change', {
+      requestId,
+      oldStatus: request.status,
+      newStatus: status,
+      userAgent: req.get('User-Agent'),
+      ipAddress: req.ip || req.connection.remoteAddress
+    });
+    
+    if (suspiciousActivity.isSuspicious) {
+      await GuardrailsService.logSecurityEvent(userId, 'suspicious_status_change', {
+        indicators: suspiciousActivity.indicators,
+        requestId,
+        oldStatus: request.status,
+        newStatus: status,
+        userAgent: req.get('User-Agent'),
+        ipAddress: req.ip || req.connection.remoteAddress
+      }, suspiciousActivity.riskLevel);
+    }
+    
+    // Store old status for notifications
+    const oldStatus = request.status;
 
     // Handle advance payment data
     if (status === 'Approved – Pay Advance' && advancePayment) {
@@ -256,6 +346,56 @@ const updateRequestStatus = async (req, res) => {
         request.advancePayment.verifiedBy = userId;
         request.advancePayment.verificationNote = note;
       }
+
+      // Assign property to tenant when payment is completed
+      const property = await Property.findById(request.propertyId);
+      if (property) {
+        // Update property status based on request type
+        const newPropertyStatus = request.requestType === 'Rent' ? 'Rented' : 'Sold';
+        property.status = newPropertyStatus;
+        
+        // Add tenant assignment (we'll add this field to Property model)
+        property.assignedTenant = request.tenantId;
+        property.assignedAt = new Date();
+        property.assignmentType = request.requestType;
+        
+        await property.save();
+        
+        // Add timeline event for property assignment
+        request.timeline.push({
+          event: `Property ${newPropertyStatus.toLowerCase()} to tenant`,
+          actor: userId,
+          timestamp: new Date(),
+          note: `Property status changed to ${newPropertyStatus} and assigned to tenant`
+        });
+      }
+    }
+
+    // Handle property status changes for various transitions
+    if (['Rejected', 'Canceled', 'Expired'].includes(status) || 
+        (request.status === 'Payment Submitted' && status === 'Approved – Pay Advance')) {
+      // Request was rejected, canceled, expired, or payment was rejected
+      const property = await Property.findById(request.propertyId);
+      if (property && property.assignedTenant && property.assignedTenant.toString() === request.tenantId.toString()) {
+        // Clear tenant assignment and reset to available
+        property.assignedTenant = undefined;
+        property.assignedAt = undefined;
+        property.assignmentType = undefined;
+        property.status = 'Available';
+        await property.save();
+        
+        // Add timeline event
+        const eventMessage = status === 'Approved – Pay Advance' ? 
+          'Property assignment reverted due to payment rejection' :
+          `Property assignment reverted due to request ${status.toLowerCase()}`;
+        
+        request.timeline.push({
+          event: eventMessage,
+          actor: userId,
+          timestamp: new Date(),
+          note: 'Property status reset to Available'
+        });
+      }
     }
 
     // Transition status
@@ -266,6 +406,54 @@ const updateRequestStatus = async (req, res) => {
       .populate('tenantId', 'firstName lastName email')
       .populate('ownerId', 'firstName lastName email')
       .populate('timeline.actor', 'firstName lastName');
+
+    // Send notifications based on status change
+    try {
+      if (oldStatus !== status) {
+        // Notify tenant about status changes (except when tenant initiated the change)
+        if (userRole !== 'Tenant') {
+          await NotificationService.sendRequestStatusNotification(
+            updatedRequest.tenantId._id,
+            updatedRequest._id,
+            oldStatus,
+            status,
+            note
+          );
+        }
+        
+        // Notify owner about status changes (except when owner initiated the change)
+        if (userRole !== 'Owner') {
+          await NotificationService.sendRequestStatusNotification(
+            updatedRequest.ownerId._id,
+            updatedRequest._id,
+            oldStatus,
+            status,
+            note
+          );
+        }
+        
+        // Special notifications for payment completion
+        if (status === 'Paid/Completed') {
+          await NotificationService.sendPropertyAssignmentNotification(
+            updatedRequest.tenantId._id,
+            updatedRequest.propertyId._id,
+            updatedRequest.requestType
+          );
+        }
+        
+        // Special notifications for advance payment requests
+        if (status === 'Approved – Pay Advance') {
+          await NotificationService.sendAdvancePaymentRequestNotification(
+            updatedRequest.tenantId._id,
+            updatedRequest._id,
+            updatedRequest.advancePayment
+          );
+        }
+      }
+    } catch (notificationError) {
+      console.error('Error sending notifications:', notificationError);
+      // Don't fail the request if notifications fail
+    }
 
     res.json({
       message: 'Request status updated successfully',

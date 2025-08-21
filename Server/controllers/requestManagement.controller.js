@@ -324,6 +324,150 @@ const markMessagesAsRead = async (req, res) => {
   }
 };
 
+// Set up advance payment (for owners when approving)
+const setupAdvancePayment = async (req, res) => {
+  try {
+    const { requestId } = req.params;
+    const { amount, currency, dueDate, instructions, note } = req.body;
+    const userId = req.user.userId;
+    
+    const request = await Request.findById(requestId);
+    
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        message: 'Request not found'
+      });
+    }
+    
+    // Check if user is the property owner
+    if (request.ownerId.toString() !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to set up payment for this request'
+      });
+    }
+    
+    // Validate current status allows advance payment setup
+    if (!['Under Review', 'Submitted'].includes(request.status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot set up advance payment for request in status: ${request.status}`
+      });
+    }
+    
+    // Set up advance payment
+    request.advancePayment = {
+      amount: parseFloat(amount),
+      currency: currency || 'BDT',
+      dueDate: new Date(dueDate),
+      instructions: instructions || '',
+      note: note || '',
+      status: 'Pending',
+      createdAt: new Date(),
+      createdBy: userId
+    };
+    
+    // Update request status
+    const oldStatus = request.status;
+    request.status = 'Approved – Pay Advance';
+    
+    // Add timeline event
+    request.timeline.push({
+      event: `Advance payment set up - Amount: ${amount} ${currency}`,
+      actor: userId,
+      timestamp: new Date(),
+      note: `Due date: ${dueDate}. ${note ? 'Note: ' + note : ''}`
+    });
+    
+    await request.save();
+    
+    // TODO: Send notification to tenant
+    
+    res.status(200).json({
+      success: true,
+      message: 'Advance payment set up successfully',
+      request
+    });
+  } catch (error) {
+    console.error('Error setting up advance payment:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to set up advance payment'
+    });
+  }
+};
+
+// Reject request with reason (for owners)
+const rejectRequest = async (req, res) => {
+  try {
+    const { requestId } = req.params;
+    const { reason } = req.body;
+    const userId = req.user.userId;
+    
+    if (!reason || !reason.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Rejection reason is required'
+      });
+    }
+    
+    const request = await Request.findById(requestId);
+    
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        message: 'Request not found'
+      });
+    }
+    
+    // Check if user is the property owner
+    if (request.ownerId.toString() !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to reject this request'
+      });
+    }
+    
+    // Validate status transition
+    const validStatuses = ['Submitted', 'Under Review', 'Info Requested'];
+    if (!validStatuses.includes(request.status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot reject request in status: ${request.status}`
+      });
+    }
+    
+    // Update request status
+    const oldStatus = request.status;
+    request.status = 'Rejected';
+    
+    // Add timeline event
+    request.timeline.push({
+      event: `Request rejected`,
+      actor: userId,
+      timestamp: new Date(),
+      note: `Reason: ${reason.trim()}`
+    });
+    
+    await request.save();
+    
+    // TODO: Send notification to tenant
+    
+    res.status(200).json({
+      success: true,
+      message: 'Request rejected successfully',
+      request
+    });
+  } catch (error) {
+    console.error('Error rejecting request:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reject request'
+    });
+  }
+};
+
 module.exports = {
   getMyRequests,
   getOwnerRequests,
@@ -331,5 +475,7 @@ module.exports = {
   cancelRequest,
   updateRequestStatus,
   addMessage,
-  markMessagesAsRead
+  markMessagesAsRead,
+  setupAdvancePayment,
+  rejectRequest
 };

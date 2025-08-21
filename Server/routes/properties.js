@@ -6,6 +6,8 @@ const multer = require('multer');
 const path = require('path');
 const {
   createProperty,
+  getPropertyAssignments,
+  getTenantAssignments
 } = require('../controllers/property.controller');
 
 // Simple role guard using decoded token placed by auth middleware
@@ -210,4 +212,10 @@ router.delete('/:id', auth, async (req, res) => {
   }
 });
 
-module.exports = router; 
+// GET /api/properties/assignments - Get property assignments for owners
+router.get('/assignments', auth, authorizeRole(['owner', 'admin']), getPropertyAssignments);
+
+// GET /api/properties/my-assignments - Get tenant's assigned properties
+router.get('/my-assignments', auth, authorizeRole(['tenant', 'admin']), getTenantAssignments);
+
+module.exports = router;

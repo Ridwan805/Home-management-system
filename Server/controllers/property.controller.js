@@ -270,6 +270,57 @@ const updatePropertyStatus = async (req, res) => {
   }
 };
 
+// Get property assignments (for owners to see their assigned properties)
+const getPropertyAssignments = async (req, res) => {
+  try {
+    const ownerId = req.user.userId;
+    
+    const assignedProperties = await Property.find({
+      owner: ownerId,
+      assignedTenant: { $exists: true, $ne: null }
+    })
+    .populate('assignedTenant', 'firstName lastName email phone')
+    .select('address propertyType bedrooms bathrooms price status assignedAt assignmentType listingType');
+    
+    res.json({
+      success: true,
+      count: assignedProperties.length,
+      assignments: assignedProperties
+    });
+  } catch (error) {
+    console.error('Error fetching property assignments:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch property assignments' 
+    });
+  }
+};
+
+// Get tenant's assigned properties
+const getTenantAssignments = async (req, res) => {
+  try {
+    const tenantId = req.user.userId;
+    
+    const assignedProperties = await Property.find({
+      assignedTenant: tenantId
+    })
+    .populate('owner', 'firstName lastName email phone')
+    .select('address propertyType bedrooms bathrooms price status assignedAt assignmentType listingType');
+    
+    res.json({
+      success: true,
+      count: assignedProperties.length,
+      assignments: assignedProperties
+    });
+  } catch (error) {
+    console.error('Error fetching tenant assignments:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch tenant assignments' 
+    });
+  }
+};
+
 module.exports = {
   getAllProperties,
   getTopProperties,
@@ -278,5 +329,7 @@ module.exports = {
   getPropertyById,
   updateProperty,
   updatePropertyStatus,
-  deleteProperty
+  deleteProperty,
+  getPropertyAssignments,
+  getTenantAssignments
 };
