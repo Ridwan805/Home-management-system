@@ -341,7 +341,7 @@ const PropertyFilter = () => {
               {/* View Details Button */}
               <div className="property-actions">
                 <button 
-                  onClick={() => navigate(`/property/${property._id}`)}
+                  onClick={() => navigate(`/properties/${property._id}`)}
                   className="view-details-btn"
                 >
                   View Details

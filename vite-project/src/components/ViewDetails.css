@@ -294,6 +294,16 @@
   border-color: #fca5a5;
 }
 
+.wishlist-btn.in-wishlist {
+  background-color: #ef4444;
+  color: white;
+}
+
+.wishlist-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 .apply-rent-btn {
   background: #eff6ff;
   color: #2563eb;
@@ -386,4 +396,4 @@
     padding: 12px;
     font-size: 14px;
   }
-} 
+}

@@ -27,9 +27,11 @@ mongoose.connect(mongoUrl)
 const authRoutes = require('./routes/auth.routes');
 const propertyRoutes = require('./routes/properties');
 const adminRoutes = require('./routes/admin.routes');
+const wishlistRoutes = require('./routes/wishlist.routes');
 // Use routes
 app.use('/api/auth', authRoutes);
 app.use('/api/properties', propertyRoutes);
+app.use('/api/wishlist', wishlistRoutes);
 // Ensure uploads directory exists and serve it statically
 const uploadsDir = path.resolve(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {

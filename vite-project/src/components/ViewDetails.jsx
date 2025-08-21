@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import './ViewDetails.css';
+import { toast } from 'react-toastify';
 
 const ViewDetails = () => {
+
   const { propertyId } = useParams();
   const navigate = useNavigate();
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isInWishlist, setIsInWishlist] = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
 
   useEffect(() => {
     const fetchPropertyDetails = async () => {
@@ -29,14 +33,93 @@ const ViewDetails = () => {
       }
     };
 
+    const checkWishlistStatus = async () => {
+      try {
+        const userData = localStorage.getItem('dwellSyncUser');
+        if (!userData) return;
+        
+        const user = JSON.parse(userData);
+        const token = user.token;
+
+        const response = await fetch('http://localhost:5000/api/wishlist', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const isInList = data.wishlist.some(item => item._id === propertyId);
+          setIsInWishlist(isInList);
+        }
+      } catch (err) {
+        console.error('Error checking wishlist status:', err);
+      }
+    };
+
     if (propertyId) {
       fetchPropertyDetails();
+      checkWishlistStatus();
     }
   }, [propertyId]);
 
-  const handleWishlist = () => {
-    // TODO: Implement wishlist functionality
-    console.log('Wishlist button clicked for property:', propertyId);
+  const handleWishlist = async () => {
+    try {
+      setWishlistLoading(true);
+      const userData = localStorage.getItem('dwellSyncUser');
+      
+      if (!userData) {
+        toast.error('Please login to add properties to your wishlist');
+        navigate('/login');
+        return;
+      }
+      
+      const user = JSON.parse(userData);
+      const token = user.token;
+
+      if (isInWishlist) {
+        // Remove from wishlist
+        const response = await fetch(`http://localhost:5000/api/wishlist/remove/${propertyId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          setIsInWishlist(false);
+          toast.success('Property removed from wishlist');
+        } else {
+          const errorData = await response.json();
+          toast.error(errorData.message || 'Failed to remove from wishlist');
+        }
+      } else {
+        // Add to wishlist
+        const response = await fetch('http://localhost:5000/api/wishlist/add', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ propertyId })
+        });
+
+        if (response.ok) {
+          setIsInWishlist(true);
+          toast.success('Property added to wishlist');
+
+          navigate('/tenant/wishlist');
+        } else {
+          const errorData = await response.json();
+          toast.error(errorData.message || 'Failed to add to wishlist');
+        }
+      }
+    } catch (err) {
+      console.error('Error updating wishlist:', err);
+      toast.error('An error occurred while updating wishlist');
+    } finally {
+      setWishlistLoading(false);
+    }
   };
 
   const handleApplyToRent = () => {
@@ -218,11 +301,12 @@ const ViewDetails = () => {
           <div className="property-actions-card">
             <h3>Actions</h3>
             <button 
-              onClick={handleWishlist} 
-              className="action-btn wishlist-btn"
-            >
-              ❤️ Add to Wishlist
-            </button>
+            onClick={handleWishlist} 
+            className={`action-btn wishlist-btn ${isInWishlist ? 'in-wishlist' : ''}`}
+            disabled={wishlistLoading}
+          >
+            {wishlistLoading ? 'Processing...' : isInWishlist ? '❤️ Remove from Wishlist' : '❤️ Add to Wishlist'}
+          </button>
             
             {property.listingType === 'For Rent' ? (
               <button 
@@ -246,4 +330,4 @@ const ViewDetails = () => {
   );
 };
 
-export default ViewDetails; 
+export default ViewDetails;

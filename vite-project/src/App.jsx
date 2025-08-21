@@ -123,7 +123,8 @@ function AppRoutes() {
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/properties" element={<PropertyFilter />} />
-        <Route path="/property/:propertyId" element={<ViewDetails />} />
+        <Route path="/properties/:propertyId" element={<ViewDetails />} />
+        <Route path="/tenant/:section" element={<TenantDashboard />} />
         <Route path="/dashboard" element={<OwnerDashboard />} />
         <Route path="/create-listing" element={<CreateListingPage />} />
         <Route

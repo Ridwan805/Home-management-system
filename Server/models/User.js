@@ -15,7 +15,8 @@ const userSchema = new mongoose.Schema({
     required: true
   },
   securityQuestion: { type: String, required: true },
-  securityAnswer: { type: String, required: true }
+  securityAnswer: { type: String, required: true },
+  wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Property' }]
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

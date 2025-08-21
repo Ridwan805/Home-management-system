@@ -11,7 +11,7 @@ const PropertyCard = ({ property, onEdit, onStatusChange }) => {
 
   // Handle view details button click
   const handleViewDetails = () => {
-    navigate(`/property/${property._id}`);
+    navigate(`/properties/${property._id}`);
   };
 
   // Handle status change
