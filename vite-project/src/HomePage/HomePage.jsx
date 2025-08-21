@@ -67,7 +67,7 @@ const HomePage = () => {
                   className="home-img" 
                 />
                 <div>
-                  <div className="price">${prop.price.toLocaleString()}</div>
+                  <div className="price">৳{prop.price.toLocaleString()}</div>
                   <div className="details">
                     {prop.bedrooms} bd | {prop.bathrooms} ba | {prop.squareFootage} sqft | {prop.propertyType} for {prop.listingType}
                   </div>
@@ -87,9 +87,9 @@ const HomePage = () => {
         <div className="buyability-cards">
           <div className="buyability-summary">
             <div>Zillow Home Loans</div>
-            <div>Suggested target price: $--</div>
-            <div>BuyAbility™: $--</div>
-            <div>Mo. payment: $--</div>
+            <div>Suggested target price: ৳--</div>
+            <div>BuyAbility™: ৳--</div>
+            <div>Mo. payment: ৳--</div>
             <div>Today's rate: --%</div>
             <div>APR: --%</div>
             <button>Let's get started</button>

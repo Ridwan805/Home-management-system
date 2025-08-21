@@ -210,7 +210,7 @@ const ViewDetails = () => {
         {/* Left Column - Main Info */}
         <div className="property-main-info">
           <div className="property-price-section">
-            <h2 className="property-price">${property.price?.toLocaleString()}</h2>
+            <h2 className="property-price">৳{property.price?.toLocaleString()}</h2>
             <div className="property-type-badge">
               {property.propertyType} - {property.listingType}
             </div>

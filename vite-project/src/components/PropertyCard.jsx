@@ -34,7 +34,7 @@ const PropertyCard = ({ property, onEdit, onStatusChange }) => {
       </div>
       
       <div className="property-info">
-        <h3>${property.price?.toLocaleString()}</h3>
+        <h3>৳{property.price?.toLocaleString()}</h3>
         <p className="property-address">{property.address}</p>
         <p className="property-location">{property.city}, {property.state} {property.zipCode}</p>
         

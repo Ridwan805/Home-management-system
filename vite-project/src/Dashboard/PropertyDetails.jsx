@@ -283,7 +283,7 @@ const PropertyDetails = () => {
               </div>
               
               <div className="property-info">
-                <h3>${property.price?.toLocaleString()}</h3>
+                <h3>৳{property.price?.toLocaleString()}</h3>
                 <p className="property-address">{property.address}</p>
                 <p className="property-location">{property.city}, {property.state} {property.zipCode}</p>
                 
@@ -384,7 +384,7 @@ const PropertyDetails = () => {
             )}
 
             <div className="modal-details-grid">
-              <div className="modal-detail-item"><strong>Price:</strong> <span>${selectedProperty.price?.toLocaleString()}</span></div>
+              <div className="modal-detail-item"><strong>Price:</strong> <span>৳{selectedProperty.price?.toLocaleString()}</span></div>
               <div className="modal-detail-item"><strong>Type:</strong> <span>{selectedProperty.propertyType}</span></div>
               <div className="modal-detail-item"><strong>Bedrooms:</strong> <span>{selectedProperty.bedrooms}</span></div>
               <div className="modal-detail-item"><strong>Bathrooms:</strong> <span>{selectedProperty.bathrooms}</span></div>
