@@ -12,15 +12,12 @@ const Wishlist = () => {
     const fetchWishlist = async () => {
       try {
         setLoading(true);
-        const userData = localStorage.getItem('dwellSyncUser');
+        const token = localStorage.getItem('token');
         
-        if (!userData) {
+        if (!token) {
           setError('You must be logged in to view your wishlist');
           return;
         }
-        
-        const user = JSON.parse(userData);
-        const token = user.token;
 
         const response = await fetch('http://localhost:5000/api/wishlist', {
           headers: {
@@ -47,15 +44,12 @@ const Wishlist = () => {
 
   const handleRemoveFromWishlist = async (propertyId) => {
     try {
-      const userData = localStorage.getItem('dwellSyncUser');
+      const token = localStorage.getItem('token');
       
-      if (!userData) {
+      if (!token) {
         toast.error('You must be logged in to manage your wishlist');
         return;
       }
-      
-      const user = JSON.parse(userData);
-      const token = user.token;
 
       const response = await fetch(`http://localhost:5000/api/wishlist/remove/${propertyId}`, {
         method: 'DELETE',
@@ -111,7 +105,7 @@ const Wishlist = () => {
             <div key={property._id} className="wishlist-item">
               <div className="wishlist-item-image">
                 {property.images && property.images.length > 0 ? (
-                  <img src={`http://localhost:5000${property.images[0]}`} alt={property.address} />
+                  <img src={`http://localhost:5000/${property.images[0]}`} alt={property.address} />
                 ) : (
                   <div className="no-image">No Image Available</div>
                 )}
@@ -119,7 +113,7 @@ const Wishlist = () => {
               
               <div className="wishlist-item-details">
                 <h3>{property.address}</h3>
-                <p className="price">৳{property.price.toLocaleString()}</p>
+                <p className="price">${property.price.toLocaleString()} {property.listingType === 'For Rent' ? '/month' : ''}</p>
                 <p>{property.bedrooms} beds • {property.bathrooms} baths • {property.squareFootage} sqft</p>
                 <p className="listing-type">{property.listingType}</p>
               </div>

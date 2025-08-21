@@ -4,7 +4,6 @@ import './ViewDetails.css';
 import { toast } from 'react-toastify';
 
 const ViewDetails = () => {
-
   const { propertyId } = useParams();
   const navigate = useNavigate();
   const [property, setProperty] = useState(null);
@@ -35,11 +34,8 @@ const ViewDetails = () => {
 
     const checkWishlistStatus = async () => {
       try {
-        const userData = localStorage.getItem('dwellSyncUser');
-        if (!userData) return;
-        
-        const user = JSON.parse(userData);
-        const token = user.token;
+        const token = localStorage.getItem('token');
+        if (!token) return;
 
         const response = await fetch('http://localhost:5000/api/wishlist', {
           headers: {
@@ -66,16 +62,13 @@ const ViewDetails = () => {
   const handleWishlist = async () => {
     try {
       setWishlistLoading(true);
-      const userData = localStorage.getItem('dwellSyncUser');
+      const token = localStorage.getItem('token');
       
-      if (!userData) {
+      if (!token) {
         toast.error('Please login to add properties to your wishlist');
         navigate('/login');
         return;
       }
-      
-      const user = JSON.parse(userData);
-      const token = user.token;
 
       if (isInWishlist) {
         // Remove from wishlist
@@ -107,8 +100,6 @@ const ViewDetails = () => {
         if (response.ok) {
           setIsInWishlist(true);
           toast.success('Property added to wishlist');
-
-          navigate('/tenant/wishlist');
         } else {
           const errorData = await response.json();
           toast.error(errorData.message || 'Failed to add to wishlist');
@@ -210,7 +201,7 @@ const ViewDetails = () => {
         {/* Left Column - Main Info */}
         <div className="property-main-info">
           <div className="property-price-section">
-            <h2 className="property-price">৳{property.price?.toLocaleString()}</h2>
+            <h2 className="property-price">${property.price?.toLocaleString()}</h2>
             <div className="property-type-badge">
               {property.propertyType} - {property.listingType}
             </div>

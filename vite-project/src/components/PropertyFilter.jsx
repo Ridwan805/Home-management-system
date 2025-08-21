@@ -294,7 +294,7 @@ const PropertyFilter = () => {
             <div className="property-info">
               {/* Price */}
               <div className="property-price">
-                ৳{property.price?.toLocaleString()}
+                ${property.price?.toLocaleString()}
               </div>
 
               {/* Type and Listing Type */}
@@ -341,7 +341,7 @@ const PropertyFilter = () => {
               {/* View Details Button */}
               <div className="property-actions">
                 <button 
-                  onClick={() => navigate(`/properties/${property._id}`)}
+                  onClick={() => navigate(`/property/${property._id}`)}
                   className="view-details-btn"
                 >
                   View Details
