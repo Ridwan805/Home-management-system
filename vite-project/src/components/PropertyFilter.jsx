@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import './PropertyFilter.css';
+import { FaFilter } from 'react-icons/fa';
 
 const API_BASE = 'http://localhost:5000/api/properties';
 
@@ -8,7 +9,6 @@ const PropertyFilter = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [filters, setFilters] = useState({
-    listingType: '',
     minPrice: '',
     maxPrice: '',
     minBedrooms: '',
@@ -18,6 +18,8 @@ const PropertyFilter = () => {
     zipCode: '',
     search: '',
   });
+  
+  const [showFilters, setShowFilters] = useState(false);
 
 
 
@@ -41,7 +43,6 @@ const PropertyFilter = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     setFilters({
-      listingType: params.get('listingType') || '',
       minPrice: params.get('minPrice') || '',
       maxPrice: params.get('maxPrice') || '',
       minBedrooms: params.get('minBedrooms') || '',
@@ -57,7 +58,6 @@ const PropertyFilter = () => {
       setError(null);
       try {
         const currentFilters = {
-          listingType: params.get('listingType') || '',
           minPrice: params.get('minPrice') || '',
           maxPrice: params.get('maxPrice') || '',
           minBedrooms: params.get('minBedrooms') || '',
@@ -109,7 +109,6 @@ const PropertyFilter = () => {
   };
   const handleClear = () => {
     setFilters({
-      listingType: '',
       minPrice: '',
       maxPrice: '',
       minBedrooms: '',
@@ -119,6 +118,10 @@ const PropertyFilter = () => {
       zipCode: '',
       search: '',
     });
+  };
+  
+  const toggleFilters = () => {
+    setShowFilters(!showFilters);
   };
   // Search bar handler
   const handleSearchChange = (e) => {
@@ -157,94 +160,102 @@ const PropertyFilter = () => {
 
   return (
     <div className="property-filter-page">
-      {/* Top bar with search and filters */}
+      {/* Top bar with search and filter button */}
       <div className="filter-header">
-        <input
-          type="text"
-          name="search"
-          value={filters.search}
-          onChange={handleSearchChange}
-          placeholder="Search address, city, or zip code..."
-          className="search-input"
-        />
-        <form className="filter-form" onSubmit={handleApply}>
-
-
-          <input 
-            type="number" 
-            name="minPrice" 
-            value={filters.minPrice} 
-            onChange={handleChange} 
-            min="0" 
-            placeholder="Min Price" 
-            className="filter-input"
-            style={{ width: '100px' }}
+        <div className="search-filter-container">
+          <input
+            type="text"
+            name="search"
+            value={filters.search}
+            onChange={handleSearchChange}
+            placeholder="Search address, city, or zip code..."
+            className="search-input"
           />
-          <input 
-            type="number" 
-            name="maxPrice" 
-            value={filters.maxPrice} 
-            onChange={handleChange} 
-            min="0" 
-            placeholder="Max Price" 
-            className="filter-input"
-            style={{ width: '100px' }}
-          />
-          <input 
-            type="number" 
-            name="minBedrooms" 
-            value={filters.minBedrooms} 
-            onChange={handleChange} 
-            min="0" 
-            placeholder="Min Beds" 
-            className="filter-input"
-            style={{ width: '100px' }}
-          />
-          <input 
-            type="number" 
-            name="maxBedrooms" 
-            value={filters.maxBedrooms} 
-            onChange={handleChange} 
-            min="0" 
-            placeholder="Max Beds" 
-            className="filter-input"
-            style={{ width: '100px' }}
-          />
-          <input 
-            type="text" 
-            name="city" 
-            value={filters.city} 
-            onChange={handleChange} 
-            placeholder="City" 
-            className="filter-input"
-            style={{ width: '100px' }}
-          />
-          <input 
-            type="text" 
-            name="state" 
-            value={filters.state} 
-            onChange={handleChange} 
-            placeholder="State" 
-            className="filter-input"
-            style={{ width: '100px' }}
-          />
-          <input 
-            type="text" 
-            name="zipCode" 
-            value={filters.zipCode} 
-            onChange={handleChange} 
-            placeholder="Zip" 
-            className="filter-input"
-            style={{ width: '100px' }}
-          />
-
-          <button type="submit" className="filter-button filter-button-primary">
-            Apply
+          <button 
+            type="button" 
+            onClick={toggleFilters} 
+            className="filter-toggle-button"
+            aria-label="Toggle filters"
+          >
+            <FaFilter /> {showFilters ? 'Hide Filters' : 'Show Filters'}
           </button>
-          <button type="button" onClick={handleClear} className="filter-button filter-button-secondary">
-            Clear
-          </button>
-        </form>
+        </div>
+        
+        {showFilters && (
+          <form className="filter-form horizontal" onSubmit={handleApply}>
+            <div className="filter-inputs-container">
+              <input 
+                type="number" 
+                name="minPrice" 
+                value={filters.minPrice} 
+                onChange={handleChange} 
+                min="0" 
+                placeholder="Min Price" 
+                className="filter-input"
+              />
+              <input 
+                type="number" 
+                name="maxPrice" 
+                value={filters.maxPrice} 
+                onChange={handleChange} 
+                min="0" 
+                placeholder="Max Price" 
+                className="filter-input"
+              />
+              <input 
+                type="number" 
+                name="minBedrooms" 
+                value={filters.minBedrooms} 
+                onChange={handleChange} 
+                min="0" 
+                placeholder="Min Beds" 
+                className="filter-input"
+              />
+              <input 
+                type="number" 
+                name="maxBedrooms" 
+                value={filters.maxBedrooms} 
+                onChange={handleChange} 
+                min="0" 
+                placeholder="Max Beds" 
+                className="filter-input"
+              />
+              <input 
+                type="text" 
+                name="city" 
+                value={filters.city} 
+                onChange={handleChange} 
+                placeholder="City" 
+                className="filter-input"
+              />
+              <input 
+                type="text" 
+                name="state" 
+                value={filters.state} 
+                onChange={handleChange} 
+                placeholder="State" 
+                className="filter-input"
+              />
+              <input 
+                type="text" 
+                name="zipCode" 
+                value={filters.zipCode} 
+                onChange={handleChange} 
+                placeholder="Zip" 
+                className="filter-input"
+              />
+            </div>
+            
+            <div className="filter-buttons">
+              <button type="submit" className="filter-button filter-button-primary">
+                Apply
+              </button>
+              <button type="button" onClick={handleClear} className="filter-button filter-button-secondary">
+                Clear
+              </button>
+            </div>
+          </form>
+        )}
       </div>
 
       {/* Loading and Error States */}
