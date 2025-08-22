@@ -411,10 +411,11 @@ const UnifiedInquiryForm = ({ property, requestType, onClose, onSubmit }) => {
                   <div className="form-group">
                     <label>Name *</label>
                     <input
-                      type="text"
+                      type="search"
                       value={member.name}
                       onChange={(e) => updateFamilyMember(index, 'name', e.target.value)}
-                      className={errors[`familyMember_${index}_name`] ? 'error' : ''}
+                      className={`name-input ${errors[`familyMember_${index}_name`] ? 'error' : ''}`}
+                      style={{background: '#ffffff !important', color: '#1f2937 !important', border: '1px solid #e5e7eb !important', boxShadow: '0 2px 6px rgba(0, 0, 0, 0.03) !important', padding: '14px 18px !important', borderRadius: '10px !important'}}
                     />
                     {errors[`familyMember_${index}_name`] && (
                       <span className="error-message">{errors[`familyMember_${index}_name`]}</span>
@@ -427,6 +428,7 @@ const UnifiedInquiryForm = ({ property, requestType, onClose, onSubmit }) => {
                       value={member.relation}
                       onChange={(e) => updateFamilyMember(index, 'relation', e.target.value)}
                       className={errors[`familyMember_${index}_relation`] ? 'error' : ''}
+                      style={{background: '#ffffff', color: '#1f2937'}}
                     >
                       <option value="">Select relation</option>
                       <option value="spouse">Spouse</option>
@@ -449,6 +451,7 @@ const UnifiedInquiryForm = ({ property, requestType, onClose, onSubmit }) => {
                       value={member.age}
                       onChange={(e) => updateFamilyMember(index, 'age', e.target.value)}
                       className={errors[`familyMember_${index}_age`] ? 'error' : ''}
+                      style={{background: '#ffffff', color: '#1f2937'}}
                     />
                     {errors[`familyMember_${index}_age`] && (
                       <span className="error-message">{errors[`familyMember_${index}_age`]}</span>
@@ -613,7 +616,7 @@ const UnifiedInquiryForm = ({ property, requestType, onClose, onSubmit }) => {
               <div className="form-group">
                 <label>Role/Position *</label>
                 <input
-                  type="text"
+                  type="search"
                   value={formData.occupation.role}
                   onChange={(e) => setFormData(prev => ({
                     ...prev,
@@ -622,7 +625,8 @@ const UnifiedInquiryForm = ({ property, requestType, onClose, onSubmit }) => {
                       role: e.target.value
                     }
                   }))}
-                  className={errors.role ? 'error' : ''}
+                  className={`name-input ${errors.role ? 'error' : ''}`}
+                  style={{background: '#ffffff !important', color: '#1f2937 !important', border: '1px solid #e5e7eb !important', boxShadow: '0 2px 6px rgba(0, 0, 0, 0.03) !important', padding: '14px 18px !important', borderRadius: '10px !important'}}
                   placeholder="Your job title or role"
                 />
                 {errors.role && <span className="error-message">{errors.role}</span>}
@@ -841,7 +845,7 @@ const UnifiedInquiryForm = ({ property, requestType, onClose, onSubmit }) => {
               <div className="form-group">
                 <label>Bank Name <span className="optional">(Optional)</span></label>
                 <input
-                  type="text"
+                  type="search"
                   value={formData.financials.bankName}
                   onChange={(e) => setFormData(prev => ({
                     ...prev,
@@ -850,6 +854,8 @@ const UnifiedInquiryForm = ({ property, requestType, onClose, onSubmit }) => {
                       bankName: e.target.value
                     }
                   }))}
+                  className="name-input"
+                  style={{background: '#ffffff !important', color: '#1f2937 !important', border: '1px solid #e5e7eb !important', boxShadow: '0 2px 6px rgba(0, 0, 0, 0.03) !important', padding: '14px 18px !important', borderRadius: '10px !important'}}
                   placeholder="Your primary bank"
                 />
               </div>
@@ -857,7 +863,7 @@ const UnifiedInquiryForm = ({ property, requestType, onClose, onSubmit }) => {
               <div className="form-group">
                 <label>Account Number <span className="optional">(Optional)</span></label>
                 <input
-                  type="text"
+                  type="search"
                   value={formData.financials.accountNumber}
                   onChange={(e) => setFormData(prev => ({
                     ...prev,
@@ -866,6 +872,8 @@ const UnifiedInquiryForm = ({ property, requestType, onClose, onSubmit }) => {
                       accountNumber: e.target.value
                     }
                   }))}
+                  className="name-input"
+                  style={{background: '#ffffff !important', color: '#1f2937 !important', border: '1px solid #e5e7eb !important', boxShadow: '0 2px 6px rgba(0, 0, 0, 0.03) !important', padding: '14px 18px !important', borderRadius: '10px !important'}}
                   placeholder="Your account number"
                 />
               </div>

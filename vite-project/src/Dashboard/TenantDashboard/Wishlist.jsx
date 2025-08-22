@@ -121,7 +121,7 @@ const Wishlist = () => {
             <div key={property._id} className="wishlist-item">
               <div className="wishlist-item-image">
                 {property.images && property.images.length > 0 ? (
-                  <img src={`http://localhost:5000/${property.images[0]}`} alt={property.address} />
+                  <img src={`http://localhost:5000${property.images[0]}`} alt={property.address} />
                 ) : (
                   <div className="no-image">No Image Available</div>
                 )}

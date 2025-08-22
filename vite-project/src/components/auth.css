@@ -128,6 +128,18 @@
   transition: all 0.3s ease;
 }
 
+/* Test input holders fix */
+.form-group input[type="text"],
+.form-group input[type="password"],
+.form-group input[type="email"],
+.form-group input[type="tel"] {
+  background-color: rgba(10, 15, 25, 0.9) !important;
+  color: white !important;
+  -webkit-text-fill-color: white !important;
+  box-shadow: 0 0 0 1000px rgba(10, 15, 25, 0.9) inset !important;
+  -webkit-box-shadow: 0 0 0 1000px rgba(10, 15, 25, 0.9) inset !important;
+}
+
 .form-group input::placeholder {
   color: rgba(255, 255, 255, 0.7);
 }
