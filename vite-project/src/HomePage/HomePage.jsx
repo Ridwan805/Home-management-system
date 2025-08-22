@@ -41,8 +41,8 @@ const HomePage = () => {
             <button type="submit">Search</button>
           </form>
           <div style={{ marginTop: 24, display: 'flex', gap: 16 }}>
-            <button onClick={() => navigate('/properties?listingType=For Sale')}>Buy</button>
-            <button onClick={() => navigate('/properties?listingType=For Rent')}>Rent</button>
+            <button onClick={() => navigate('/properties?listingType=For%20Sale')}>Buy</button>
+            <button onClick={() => navigate('/properties?listingType=For%20Rent')}>Rent</button>
           </div>
         </div>
       </section>

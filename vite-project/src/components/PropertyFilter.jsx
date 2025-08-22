@@ -17,6 +17,7 @@ const PropertyFilter = () => {
     state: '',
     zipCode: '',
     search: '',
+    listingType: '',
   });
   
   const [showFilters, setShowFilters] = useState(false);
@@ -51,6 +52,7 @@ const PropertyFilter = () => {
       state: params.get('state') || '',
       zipCode: params.get('zipCode') || '',
       search: params.get('search') || '', // Initialize search from URL as well
+      listingType: params.get('listingType') || '',
     });
 
     const fetchProperties = async () => {
@@ -66,6 +68,7 @@ const PropertyFilter = () => {
           state: params.get('state') || '',
           zipCode: params.get('zipCode') || '',
           search: params.get('search') || '',
+          listingType: params.get('listingType') || '',
         };
         const query = buildQueryString(currentFilters);
         const res = await fetch(`${API_BASE}${query}`);
@@ -117,6 +120,7 @@ const PropertyFilter = () => {
       state: '',
       zipCode: '',
       search: '',
+      listingType: '',
     });
   };
   
