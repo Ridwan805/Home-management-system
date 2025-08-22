@@ -13,6 +13,10 @@ const authMiddleware = (req, res, next) => {
     req.user = { userId: decoded.userId, role: decoded.role };
     next();
   } catch (err) {
+    // Check if the error is due to an expired token
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: 'Token has expired, please login again', expired: true });
+    }
     res.status(401).json({ message: 'Invalid token' });
   }
 };

@@ -1,17 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './PropertyCard.css';
 
-const PropertyCard = ({ property, onEdit, onStatusChange }) => {
+const PropertyCard = ({ property, onEdit, onStatusChange, onViewDetails, onDelete }) => {
   const navigate = useNavigate();
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  const dropdownRef = useRef(null);
   
   // Status options for properties
   const statusOptions = ['Available', 'Not Available', 'Sold', 'Rented'];
 
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowStatusDropdown(false);
+      }
+    };
+
+    // Add event listener when dropdown is open
+    if (showStatusDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    // Clean up event listener
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showStatusDropdown]);
+
   // Handle view details button click
   const handleViewDetails = () => {
-    navigate(`/property/${property._id}`);
+    if (onViewDetails) {
+      onViewDetails(property);
+    } else {
+      navigate(`/properties/${property._id}`);
+    }
   };
 
   // Handle status change
@@ -34,7 +58,7 @@ const PropertyCard = ({ property, onEdit, onStatusChange }) => {
       </div>
       
       <div className="property-info">
-        <h3>${property.price?.toLocaleString()}</h3>
+        <h3>৳{property.price?.toLocaleString()}</h3>
         <p className="property-address">{property.address}</p>
         <p className="property-location">{property.city}, {property.state} {property.zipCode}</p>
         
@@ -56,10 +80,17 @@ const PropertyCard = ({ property, onEdit, onStatusChange }) => {
         <div className="property-actions">
           <button className="view-details-btn" onClick={handleViewDetails}>View Details</button>
           <button className="edit-btn" onClick={() => onEdit(property)}>Edit</button>
-          <div className="status-action" style={{ position: "relative" }}>
+          <button className="remove-btn" onClick={(e) => {
+            e.stopPropagation();
+            onDelete(property._id);
+          }}>Remove</button>
+          <div className="status-action" style={{ position: "relative" }} ref={dropdownRef}>
             <button
               className={`status-btn status-dropdown-btn ${property.status?.toLowerCase().replace(/ /g, '-')}`}
-              onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowStatusDropdown(!showStatusDropdown);
+              }}
               style={{ fontWeight: 500 }}
             >
               Status: {property.status} <span style={{marginLeft: 6, fontSize: 12}}>▼</span>
@@ -70,7 +101,10 @@ const PropertyCard = ({ property, onEdit, onStatusChange }) => {
                   <li key={option}>
                     <button
                       className="status-dropdown-option"
-                      onClick={() => handleStatusUpdate(option)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStatusUpdate(option);
+                      }}
                     >
                       {option}
                     </button>

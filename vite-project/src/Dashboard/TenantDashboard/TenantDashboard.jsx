@@ -4,7 +4,7 @@ import TenantSidebarNav from './TenantSidebarNav';
 import TenantProfile from './TenantProfile';
 import PaymentInfo from './PaymentInfo';
 import HouseInfo from './HouseInfo';
-import SecurityGuardInfo from './SecurityGuardInfo';
+import SecurityGuardInfo from '../OwnerProfile/SecurityGuardInfo';
 import ReportProblem from './ReportProblem';
 import Wishlist from './Wishlist';
 import MyRequests from './MyRequests';

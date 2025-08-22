@@ -139,7 +139,7 @@
   overflow: visible; /* Ensure dropdowns are not clipped */
 }
 
-.edit-btn, .delete-btn, .view-details-btn, .status-btn {
+.edit-btn, .delete-btn, .view-details-btn, .status-btn, .remove-btn {
   min-width: 110px;      /* prevent too small buttons */
   flex-grow: 1;          /* share available space equally */
   padding: 0.5rem 1rem;
@@ -160,12 +160,12 @@
   background-color: #1d4ed8;
 }
 
-.delete-btn {
+.delete-btn, .remove-btn {
   background-color: #ef4444;
   color: white;
 }
 
-.delete-btn:hover {
+.delete-btn:hover, .remove-btn:hover {
   background-color: #dc2626;
 }
 
@@ -195,18 +195,19 @@
 
 .status-dropdown-menu {
   position: absolute;
-  bottom: 100%; /* Position above the button */
+  top: 100%; /* Position below the button */
   left: 0;
   right: 0;
+  z-index: 9999; /* Even higher z-index to ensure it appears above all other elements */
+  margin-top: 5px; /* Add some space between button and dropdown */
   background-color: white;
   border: 1px solid #e5e7eb;
   border-radius: 0.375rem;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  z-index: 30; /* Higher z-index to ensure visibility */
-  margin-bottom: 0.5rem; /* Space between button and dropdown */
   overflow: hidden;
   padding: 0;
   list-style: none;
+  pointer-events: auto; /* Ensure the dropdown receives mouse events */
 }
 
 .status-dropdown-option {

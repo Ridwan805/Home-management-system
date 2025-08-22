@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import './ViewDetails.css';
+import { toast } from 'react-toastify';
+import UnifiedInquiryForm from './UnifiedInquiryForm';
 
 const ViewDetails = () => {
   const { propertyId } = useParams();
@@ -8,6 +10,11 @@ const ViewDetails = () => {
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isInWishlist, setIsInWishlist] = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
+  const [userRole, setUserRole] = useState(null);
+  const [showRequestForm, setShowRequestForm] = useState(false);
+  const [requestType, setRequestType] = useState(null);
 
   useEffect(() => {
     const fetchPropertyDetails = async () => {
@@ -29,24 +36,138 @@ const ViewDetails = () => {
       }
     };
 
+    const getUserRole = () => {
+      try {
+        const userData = localStorage.getItem('dwellSyncUser');
+        if (userData) {
+          const user = JSON.parse(userData);
+          setUserRole(user.role);
+        }
+      } catch (err) {
+        console.error('Error getting user role:', err);
+      }
+    };
+
+    const checkWishlistStatus = async () => {
+      try {
+        const userData = localStorage.getItem('dwellSyncUser');
+        if (!userData) return;
+        
+        const user = JSON.parse(userData);
+        const token = user.token;
+        if (!token) return;
+
+        const response = await fetch('http://localhost:5000/api/wishlist', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const isInList = data.wishlist.some(item => item._id === propertyId);
+          setIsInWishlist(isInList);
+        }
+      } catch (err) {
+        console.error('Error checking wishlist status:', err);
+      }
+    };
+
     if (propertyId) {
       fetchPropertyDetails();
+      getUserRole();
+      checkWishlistStatus();
     }
   }, [propertyId]);
 
-  const handleWishlist = () => {
-    // TODO: Implement wishlist functionality
-    console.log('Wishlist button clicked for property:', propertyId);
+  const handleWishlist = async () => {
+    try {
+      setWishlistLoading(true);
+      const userData = localStorage.getItem('dwellSyncUser');
+      
+      if (!userData) {
+        toast.error('Please login to add properties to your wishlist');
+        navigate('/login');
+        return;
+      }
+      
+      const user = JSON.parse(userData);
+      const token = user.token;
+      
+      if (!token) {
+        toast.error('Please login to add properties to your wishlist');
+        navigate('/login');
+        return;
+      }
+
+      if (isInWishlist) {
+        // Remove from wishlist
+        const response = await fetch(`http://localhost:5000/api/wishlist/remove/${propertyId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          setIsInWishlist(false);
+          toast.success('Property removed from wishlist');
+        } else {
+          const errorData = await response.json();
+          toast.error(errorData.message || 'Failed to remove from wishlist');
+        }
+      } else {
+        // Add to wishlist
+        const response = await fetch('http://localhost:5000/api/wishlist/add', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ propertyId })
+        });
+
+        if (response.ok) {
+          setIsInWishlist(true);
+          toast.success('Property added to wishlist');
+        } else {
+          const errorData = await response.json();
+          toast.error(errorData.message || 'Failed to add to wishlist');
+        }
+      }
+    } catch (err) {
+      console.error('Error updating wishlist:', err);
+      toast.error('An error occurred while updating wishlist');
+    } finally {
+      setWishlistLoading(false);
+    }
   };
 
   const handleApplyToRent = () => {
-    // TODO: Implement apply to rent functionality
-    console.log('Apply to rent button clicked for property:', propertyId);
+    setRequestType('Rent');
+    setShowRequestForm(true);
   };
 
   const handleApplyToBuy = () => {
-    // TODO: Implement apply to buy functionality
-    console.log('Apply to buy button clicked for property:', propertyId);
+    setRequestType('Buy');
+    setShowRequestForm(true);
+  };
+
+  const handleCloseRequestForm = () => {
+    setShowRequestForm(false);
+    setRequestType(null);
+  };
+
+  const handleSubmitRequest = async (result) => {
+    // The form submission is now handled directly in UnifiedInquiryForm component
+    // This function is called only on successful submission
+    toast.success('Request submitted successfully!');
+    handleCloseRequestForm();
+    
+    // Optionally redirect to My Requests page
+    setTimeout(() => {
+      navigate('/my-requests');
+    }, 2000);
   };
 
   const handleBackToProperties = () => {
@@ -127,7 +248,7 @@ const ViewDetails = () => {
         {/* Left Column - Main Info */}
         <div className="property-main-info">
           <div className="property-price-section">
-            <h2 className="property-price">${property.price?.toLocaleString()}</h2>
+            <h2 className="property-price">৳{property.price?.toLocaleString()}</h2>
             <div className="property-type-badge">
               {property.propertyType} - {property.listingType}
             </div>
@@ -217,33 +338,54 @@ const ViewDetails = () => {
 
           <div className="property-actions-card">
             <h3>Actions</h3>
-            <button 
-              onClick={handleWishlist} 
-              className="action-btn wishlist-btn"
-            >
-              ❤️ Add to Wishlist
-            </button>
-            
-            {property.listingType === 'For Rent' ? (
-              <button 
-                onClick={handleApplyToRent} 
-                className="action-btn apply-rent-btn"
-              >
-                📝 Apply to Rent
-              </button>
-            ) : (
-              <button 
-                onClick={handleApplyToBuy} 
-                className="action-btn apply-buy-btn"
-              >
-                💰 Apply to Buy
-              </button>
+            {userRole && userRole !== 'Owner' && (
+              <>
+                <button 
+                  onClick={handleWishlist} 
+                  className={`action-btn wishlist-btn ${isInWishlist ? 'in-wishlist' : ''}`}
+                  disabled={wishlistLoading}
+                >
+                  {wishlistLoading ? 'Processing...' : isInWishlist ? '❤️ Remove from Wishlist' : '❤️ Add to Wishlist'}
+                </button>
+                
+                {property.listingType === 'For Rent' ? (
+                  <button 
+                    onClick={handleApplyToRent} 
+                    className="action-btn apply-rent-btn"
+                  >
+                    📝 Apply to Rent
+                  </button>
+                ) : (
+                  <button 
+                    onClick={handleApplyToBuy} 
+                    className="action-btn apply-buy-btn"
+                  >
+                    💰 Apply to Buy
+                  </button>
+                )}
+              </>
+            )}
+            {userRole === 'Owner' && (
+              <p className="owner-message">As an owner, you can view property details but cannot add to wishlist or apply.</p>
+            )}
+            {!userRole && (
+              <p className="login-message">Please <a href="/login">login</a> to add to wishlist or apply.</p>
             )}
           </div>
         </div>
       </div>
+      
+      {/* Unified Inquiry Form Modal */}
+      {showRequestForm && (
+        <UnifiedInquiryForm
+          property={property}
+          requestType={requestType}
+          onClose={handleCloseRequestForm}
+          onSubmit={handleSubmitRequest}
+        />
+      )}
     </div>
   );
 };
 
-export default ViewDetails; 
+export default ViewDetails;

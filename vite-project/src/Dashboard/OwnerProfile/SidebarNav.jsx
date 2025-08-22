@@ -7,7 +7,6 @@ const menuItems = [
   { key: 'profile', label: 'Profile', description: 'Owner Information' },
   { key: 'create-listing', label: 'Create Listing', description: 'Add New Property' },
   { key: 'property-details', label: 'Property Details', description: 'View Listed Properties' },
-  { key: 'property-listing', label: 'Property Listing', description: 'View & Edit Properties' },
   { key: 'tenant-info', label: 'Tenant Info', description: 'Manage Tenants' },
   { key: 'security-guard-info', label: 'Security Guard Info', description: 'Manage Security Guards' },
   { key: 'request-info', label: 'Request Info', description: 'View Requests' },

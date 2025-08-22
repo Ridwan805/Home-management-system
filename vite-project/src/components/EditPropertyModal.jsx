@@ -91,8 +91,8 @@ const EditPropertyModal = ({ property, onClose, onUpdate }) => {
                 required
               >
                 <option value="">Select Listing Type</option>
-                <option value="Sale">For Sale</option>
-                <option value="Rent">For Rent</option>
+                <option value="For Sale">For Sale</option>
+                <option value="For Rent">For Rent</option>
               </select>
             </div>
           </div>
