@@ -49,6 +49,8 @@ const createRequest = async (req, res) => {
     const requestData = { propertyId, tenantId, requestType, payload: parsedPayload };
     const validation = GuardrailsService.validateRequestData(requestData);
     if (!validation.isValid) {
+      console.log('Validation errors:', validation.errors);
+      console.log('Request payload:', JSON.stringify(parsedPayload, null, 2));
       return res.status(400).json({ 
         message: 'Invalid request data',
         errors: validation.errors
@@ -91,13 +93,19 @@ const createRequest = async (req, res) => {
     if (req.files) {
       // Map specific file fields to identity document URLs
       if (req.files.nidFile && req.files.nidFile[0]) {
-        identityFiles.nidFileUrl = req.files.nidFile[0].path;
+        // Convert file path to URL format
+        const relativePath = req.files.nidFile[0].path.replace(/\\/g, '/').replace('tenant_pics/', '');
+        identityFiles.nidFileUrl = `/tenant_pics/${relativePath}`;
       }
       if (req.files.tinFile && req.files.tinFile[0]) {
-        identityFiles.tinFileUrl = req.files.tinFile[0].path;
+        // Convert file path to URL format
+        const relativePath = req.files.tinFile[0].path.replace(/\\/g, '/').replace('tenant_pics/', '');
+        identityFiles.tinFileUrl = `/tenant_pics/${relativePath}`;
       }
       if (req.files.personalPhoto && req.files.personalPhoto[0]) {
-        identityFiles.personalPhotoUrl = req.files.personalPhoto[0].path;
+        // Convert file path to URL format
+        const relativePath = req.files.personalPhoto[0].path.replace(/\\/g, '/').replace('tenant_pics/', '');
+        identityFiles.personalPhotoUrl = `/tenant_pics/${relativePath}`;
       }
     }
     
@@ -141,19 +149,26 @@ const createRequest = async (req, res) => {
       tenantId,
       requestType,
       payload: {
-        ...parsedPayload,
+        familyMembers: parsedPayload.familyMembers || [],
+        belongings: parsedPayload.belongings || {},
+        occupation: parsedPayload.occupation || {},
         identity: {
-          ...parsedPayload.identity,
+          ...(parsedPayload.identity || {}),
           ...identityFiles
-        }
+        },
+        financials: parsedPayload.financials || {},
+        letterToOwner: parsedPayload.letterToOwner || ''
       },
       consent: {
-        ...parsedConsent,
+        agreed: parsedConsent.agreed || false,
+        version: parsedConsent.version || 'v1.0',
         timestamp: new Date(),
         ipAddress: req.ip || req.connection.remoteAddress,
         userAgent: req.get('User-Agent')
       }
     });
+    
+    console.log('Creating new request:', JSON.stringify(newRequest, null, 2));
 
     await newRequest.save();
 

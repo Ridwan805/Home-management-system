@@ -197,7 +197,7 @@ const OwnerDashboard = () => {
                             </span>
                           </div>
                           <div className="property-details">
-                            <h3>${property.price?.toLocaleString()}</h3>
+                            <h3>৳{property.price?.toLocaleString()}</h3>
                             <p className="property-address">{property.address}</p>
                             <div className="property-specs">
                               <span>🛏️ {property.bedrooms} bd</span>

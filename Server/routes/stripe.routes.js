@@ -19,7 +19,7 @@ router.post('/create-payment-session/:requestId', authMiddleware, createPaymentS
 router.post('/create-full-payment-session/:requestId', authMiddleware, createFullPaymentSession);
 
 // Stripe webhook endpoint (no auth middleware)
-router.post('/webhook', express.raw({type: 'application/json'}), handleWebhook);
+router.post('/webhook', express.json({type: 'application/json'}), handleWebhook);
 
 // Get payment status
 router.get('/payment-status/:sessionId', authMiddleware, getPaymentStatus);

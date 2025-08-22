@@ -27,7 +27,7 @@ const storage = multer.diskStorage({
       subfolder = 'personal';
     }
     
-    const destinationPath = `tenant_pics/${subfolder}/`;
+    const destinationPath = path.join(__dirname, '..', 'tenant_pics', subfolder);
     cb(null, destinationPath);
   },
   filename: function (req, file, cb) {

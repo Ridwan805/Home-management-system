@@ -62,7 +62,7 @@ const MyRequests = () => {
       }
 
       const statusParam = selectedStatus !== 'all' ? `?status=${encodeURIComponent(selectedStatus)}` : '';
-      const response = await fetch(`http://localhost:5000/api/requests${statusParam}`, {
+      const response = await fetch(`http://localhost:5000/api/request-management/my-requests${statusParam}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -96,6 +96,7 @@ const MyRequests = () => {
           'Content-Type': 'application/json'
         }
       });
+      // Note: If stats endpoint doesn't work, we can switch to using the request-management endpoint
 
       if (response.ok) {
         const data = await response.json();
@@ -142,14 +143,13 @@ const MyRequests = () => {
       const userData = JSON.parse(localStorage.getItem('dwellSyncUser'));
       const token = userData?.token;
 
-      const response = await fetch(`http://localhost:5000/api/requests/${requestId}/status`, {
-        method: 'PUT',
+      const response = await fetch(`http://localhost:5000/api/request-management/my-requests/${requestId}/cancel`, {
+        method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          status: 'Canceled',
           note: 'Request canceled by tenant'
         })
       });
@@ -386,7 +386,7 @@ const MyRequests = () => {
                 <div className="request-header">
                   <div>
                     <h3 className="property-price">
-                      ${request.propertyId?.price?.toLocaleString()}
+                      ৳{request.propertyId?.price?.toLocaleString()}
                       {request.requestType === 'Rent' && <span className="rent-period">/month</span>}
                     </h3>
                   </div>
@@ -468,7 +468,7 @@ const MyRequests = () => {
                   <div className="info-item">
                     <span className="info-label">Price</span>
                     <span className="info-value">
-                      ${selectedRequest.propertyId?.price?.toLocaleString()}
+                      ৳{selectedRequest.propertyId?.price?.toLocaleString()}
                       {selectedRequest.requestType === 'Rent' && '/month'}
                     </span>
                   </div>
@@ -532,7 +532,7 @@ const MyRequests = () => {
                         onClick={() => handlePayNow(selectedRequest._id)}
                         disabled={paymentLoading}
                       >
-                        {paymentLoading ? 'Processing...' : `Pay Online ($${selectedRequest.advancePayment.amount})`}
+                        {paymentLoading ? 'Processing...' : `Pay Online (৳${selectedRequest.advancePayment.amount})`}
                       </button>
                       <button 
                         className="upload-proof-btn"
@@ -568,7 +568,7 @@ const MyRequests = () => {
                 <div className="modal-body">
                   <div className="payment-proof-info">
                     <h4>Payment Details</h4>
-                    <p><strong>Amount:</strong> ${selectedRequest?.advancePayment?.amount}</p>
+                    <p><strong>Amount:</strong> ৳{selectedRequest?.advancePayment?.amount}</p>
                     <p><strong>Due Date:</strong> {formatDate(selectedRequest?.advancePayment?.dueDate)}</p>
                     {selectedRequest?.advancePayment?.instructions && (
                       <p><strong>Instructions:</strong> {selectedRequest.advancePayment.instructions}</p>

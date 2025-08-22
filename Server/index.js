@@ -73,6 +73,13 @@ if (!fs.existsSync(uploadsDir)) {
 }
 app.use('/uploads', express.static(uploadsDir));
 
+// Ensure tenant_pics directory exists and serve it statically
+const tenantPicsDir = path.resolve(__dirname, 'tenant_pics');
+if (!fs.existsSync(tenantPicsDir)) {
+  fs.mkdirSync(tenantPicsDir, { recursive: true });
+}
+app.use('/tenant_pics', express.static(tenantPicsDir));
+
 // Test endpoint to verify server is working (BEFORE admin routes)
 app.get('/api/request-management/test-direct', (req, res) => {
   console.log('🔧 Direct test route hit!');

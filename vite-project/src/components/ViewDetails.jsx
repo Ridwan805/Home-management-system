@@ -158,58 +158,16 @@ const ViewDetails = () => {
     setRequestType(null);
   };
 
-  const handleSubmitRequest = async (requestData, documents) => {
-    try {
-      const userData = localStorage.getItem('dwellSyncUser');
-      if (!userData) {
-        toast.error('Please login to submit a request');
-        return;
-      }
-
-      const user = JSON.parse(userData);
-      const token = localStorage.getItem('dwellSyncToken');
-
-      // Create FormData for file uploads
-      const formData = new FormData();
-      
-      // Add request data
-      formData.append('propertyId', requestData.propertyId);
-      formData.append('requestType', requestData.requestType);
-      formData.append('payload', JSON.stringify(requestData.payload));
-      formData.append('consent', JSON.stringify(requestData.consent));
-      
-      // Add documents
-      Object.entries(documents).forEach(([key, file]) => {
-        if (file) {
-          formData.append(key, file);
-        }
-      });
-
-      const response = await fetch('http://localhost:5000/api/requests', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        toast.success('Request submitted successfully!');
-        handleCloseRequestForm();
-        
-        // Optionally redirect to My Requests page
-        setTimeout(() => {
-          navigate('/my-requests');
-        }, 2000);
-      } else {
-        const errorData = await response.json();
-        toast.error(errorData.message || 'Failed to submit request');
-      }
-    } catch (error) {
-      console.error('Error submitting request:', error);
-      toast.error('An error occurred while submitting the request');
-    }
+  const handleSubmitRequest = async (result) => {
+    // The form submission is now handled directly in UnifiedInquiryForm component
+    // This function is called only on successful submission
+    toast.success('Request submitted successfully!');
+    handleCloseRequestForm();
+    
+    // Optionally redirect to My Requests page
+    setTimeout(() => {
+      navigate('/my-requests');
+    }, 2000);
   };
 
   const handleBackToProperties = () => {
@@ -290,7 +248,7 @@ const ViewDetails = () => {
         {/* Left Column - Main Info */}
         <div className="property-main-info">
           <div className="property-price-section">
-            <h2 className="property-price">${property.price?.toLocaleString()}</h2>
+            <h2 className="property-price">৳{property.price?.toLocaleString()}</h2>
             <div className="property-type-badge">
               {property.propertyType} - {property.listingType}
             </div>

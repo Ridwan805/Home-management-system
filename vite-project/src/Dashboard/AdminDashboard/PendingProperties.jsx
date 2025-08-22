@@ -144,7 +144,7 @@ const PendingProperties = () => {
                   
                   <div className="property-detail-item">
                     <FaMoneyBillWave className="detail-icon" />
-                    <p><strong>Price:</strong> ${property.price}</p>
+                    <p><strong>Price:</strong> ৳{property.price}</p>
                   </div>
                 </div>
                 

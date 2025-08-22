@@ -129,7 +129,7 @@ const Wishlist = () => {
               
               <div className="wishlist-item-details">
                 <h3>{property.address}</h3>
-                <p className="price">${property.price.toLocaleString()} {property.listingType === 'For Rent' ? '/month' : ''}</p>
+                <p className="price">৳{property.price.toLocaleString()} {property.listingType === 'For Rent' ? '/month' : ''}</p>
                 <p>{property.bedrooms} beds • {property.bathrooms} baths • {property.squareFootage} sqft</p>
                 <p className="listing-type">{property.listingType}</p>
               </div>

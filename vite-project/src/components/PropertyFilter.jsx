@@ -309,7 +309,7 @@ const PropertyFilter = () => {
             <div className="property-info">
               {/* Price */}
               <div className="property-price">
-                ${property.price?.toLocaleString()}
+                ৳{property.price?.toLocaleString()}
               </div>
 
               {/* Type and Listing Type */}

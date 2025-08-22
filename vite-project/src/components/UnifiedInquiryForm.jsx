@@ -357,24 +357,39 @@ const UnifiedInquiryForm = ({ property, requestType, onClose, onSubmit }) => {
         
         // Call the onSubmit callback
         onSubmit(result);
+        return true; // Indicate success
       } else {
         let errorMessage = 'Failed to submit request';
         try {
           const errorData = await response.json();
           errorMessage = errorData.message || errorMessage;
+          console.error('Server error response:', errorData);
+          // Log the full error data to help with debugging
+          console.error('Full error data:', JSON.stringify(errorData));
         } catch (jsonError) {
           // If JSON parsing fails, use the response status text or a generic message
           console.error('Failed to parse error response as JSON:', jsonError);
           errorMessage = response.statusText || `Server error (${response.status})`;
         }
-        throw new Error(errorMessage);
+        // Instead of throwing an error, display it to the user
+        alert(`Error: ${errorMessage}`);
+        return false; // Indicate failure
       }
     } catch (error) {
       console.error('Error submitting request:', error);
-      alert(`Failed to submit request: ${error.message}. Please try again.`);
+      // Show a more detailed error message
+      const errorMessage = error.message || 'An unknown error occurred';
+      alert(`Failed to submit request data. Please try again.\n\nDetails: ${errorMessage}`);
+      
+      // Log additional debugging information
+      if (error.stack) {
+        console.error('Error stack:', error.stack);
+      }
+      return false; // Indicate failure
     } finally {
       setLoading(false);
     }
+    return true; // Indicate success if we reach here
   };
   
   const handleCancel = () => {

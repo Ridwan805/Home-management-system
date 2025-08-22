@@ -101,7 +101,7 @@ const HomePage = () => {
                     <div className="property-type-badge">{prop.listingType}</div>
                   </div>
                   <div className="property-details">
-                    <h3 className="property-price">${prop.price.toLocaleString()}</h3>
+                    <h3 className="property-price">৳{prop.price.toLocaleString()}</h3>
                     <p className="property-specs">
                       <span className="spec"><strong>{prop.bedrooms}</strong> beds</span>
                       <span className="spec"><strong>{prop.bathrooms}</strong> baths</span>

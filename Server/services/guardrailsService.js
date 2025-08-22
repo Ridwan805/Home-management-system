@@ -44,21 +44,57 @@ class GuardrailsService {
       errors.push('Invalid request type');
     }
 
-    // Payload validation based on request type
+    // Payload validation for the unified inquiry form
     if (requestData.payload) {
-      if (requestData.requestType === 'Rent') {
-        if (!requestData.payload.moveInDate) {
-          errors.push('Move-in date is required for rent requests');
+      // Validate family members
+      if (!requestData.payload.familyMembers || !Array.isArray(requestData.payload.familyMembers) || requestData.payload.familyMembers.length === 0) {
+        errors.push('At least one family member is required');
+      } else {
+        // Validate each family member
+        requestData.payload.familyMembers.forEach((member, index) => {
+          if (!member.name) {
+            errors.push(`Family member ${index + 1} name is required`);
+          }
+          if (!member.relation) {
+            errors.push(`Family member ${index + 1} relation is required`);
+          }
+          if (!member.age && member.age !== 0) {
+            errors.push(`Family member ${index + 1} age is required`);
+          }
+        });
+      }
+
+      // Validate occupation
+      if (!requestData.payload.occupation) {
+        errors.push('Occupation information is required');
+      } else {
+        if (!requestData.payload.occupation.employmentType) {
+          errors.push('Employment type is required');
         }
-        if (!requestData.payload.leaseDuration) {
-          errors.push('Lease duration is required for rent requests');
+        if (!requestData.payload.occupation.role) {
+          errors.push('Occupation role is required');
+        }
+        if (!requestData.payload.occupation.yearsOfExperience && requestData.payload.occupation.yearsOfExperience !== 0) {
+          errors.push('Years of experience is required');
         }
       }
 
-      if (requestData.requestType === 'Buy') {
-        if (!requestData.payload.financingType) {
-          errors.push('Financing type is required for buy requests');
+      // Validate financials
+      if (!requestData.payload.financials) {
+        errors.push('Financial information is required');
+      } else {
+        if (!requestData.payload.financials.monthlyIncome && requestData.payload.financials.monthlyIncome !== 0) {
+          errors.push('Monthly income is required');
         }
+      }
+
+      // Validate letter to owner
+      if (!requestData.payload.letterToOwner) {
+        errors.push('Letter to owner is required');
+      } else if (requestData.payload.letterToOwner.length < 20) {
+        errors.push('Letter to owner must be at least 20 characters');
+      } else if (requestData.payload.letterToOwner.length > 1500) {
+        errors.push('Letter to owner must not exceed 1500 characters');
       }
     }
 
