@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import './MyRequests.css';
+import { authenticatedFetch } from '../../utils/apiUtils.js';
 
 const MyRequests = () => {
   const [requests, setRequests] = useState([]);
@@ -50,30 +51,19 @@ const MyRequests = () => {
     }
   }, [selectedStatus]);
 
+  const navigate = useNavigate();
+
   const fetchRequests = async () => {
     try {
       setLoading(true);
-      const userData = JSON.parse(localStorage.getItem('dwellSyncUser'));
-      const token = userData?.token;
-
-      if (!token) {
-        setError('Authentication required');
-        return;
-      }
-
       const statusParam = selectedStatus !== 'all' ? `?status=${encodeURIComponent(selectedStatus)}` : '';
-      const response = await fetch(`http://localhost:5000/api/request-management/my-requests${statusParam}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch requests');
-      }
-
-      const data = await response.json();
+      
+      const data = await authenticatedFetch(
+        `http://localhost:5000/api/request-management/my-requests${statusParam}`,
+        { method: 'GET' },
+        navigate
+      );
+      
       setRequests(data.requests || []);
     } catch (err) {
       console.error('Error fetching requests:', err);
@@ -85,25 +75,17 @@ const MyRequests = () => {
 
   const fetchStats = async () => {
     try {
-      const userData = JSON.parse(localStorage.getItem('dwellSyncUser'));
-      const token = userData?.token;
-
-      if (!token) return;
-
-      const response = await fetch('http://localhost:5000/api/requests/stats', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      // Note: If stats endpoint doesn't work, we can switch to using the request-management endpoint
-
-      if (response.ok) {
-        const data = await response.json();
-        setStats(data.statusBreakdown || {});
-      }
+      const data = await authenticatedFetch(
+        'http://localhost:5000/api/requests/stats',
+        { method: 'GET' },
+        navigate
+      );
+      
+      setStats(data.statusBreakdown || {});
     } catch (err) {
       console.error('Error fetching stats:', err);
+      // We don't set an error state here as this is a secondary feature
+      // and we don't want to block the main functionality
     }
   };
 

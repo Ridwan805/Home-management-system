@@ -26,6 +26,12 @@ const authMiddleware = (req, res, next) => {
   } catch (err) {
     console.error('🔐 AUTH MIDDLEWARE: Error in auth middleware:', err);
     console.error('🔐 AUTH MIDDLEWARE: Error stack:', err.stack);
+    
+    // Check if the error is due to an expired token
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: 'Token has expired, please login again', expired: true });
+    }
+    
     res.status(401).json({ message: 'Token is not valid' });
   }
 };

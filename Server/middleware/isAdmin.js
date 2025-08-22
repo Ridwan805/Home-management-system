@@ -17,6 +17,10 @@ module.exports = async (req, res, next) => {
     req.admin = admin;
     next();
   } catch (err) {
+    // Check if the error is due to an expired token
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: 'Token has expired, please login again', expired: true });
+    }
     return res.status(401).json({ message: 'Invalid token' });
   }
 };

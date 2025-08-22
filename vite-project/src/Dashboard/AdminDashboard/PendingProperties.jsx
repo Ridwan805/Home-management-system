@@ -1,36 +1,38 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import { FaCheck, FaTimes, FaHourglass, FaMapMarkerAlt, FaHome, FaMoneyBillWave, FaUser } from 'react-icons/fa';
+import { authenticatedAxios } from '../../utils/apiUtils.js';
 
 const PendingProperties = () => {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actionInProgress, setActionInProgress] = useState(false);
+  const navigate = useNavigate();
 
   const fetchPendingProperties = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const user = JSON.parse(localStorage.getItem('dwellSyncUser') || '{}');
       
-      if (!user.token) {
-        setError('You must be logged in to view this page');
-        setLoading(false);
-        return;
-      }
+      const data = await authenticatedAxios(
+        axios,
+        {
+          method: 'get',
+          url: 'http://localhost:5000/api/admin/properties/pending'
+        },
+        navigate
+      );
       
-      const res = await axios.get('http://localhost:5000/api/admin/properties/pending', {
-        headers: { Authorization: `Bearer ${user.token}` },
-      });
-      setProperties(res.data);
+      setProperties(data);
     } catch (err) {
       console.error('Error fetching pending properties:', err);
       setError('Failed to load pending properties. Please try again later.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     fetchPendingProperties();
@@ -39,17 +41,17 @@ const PendingProperties = () => {
   const handleApprove = async (id) => {
     try {
       setActionInProgress(true);
-      const user = JSON.parse(localStorage.getItem('dwellSyncUser') || '{}');
       
-      if (!user.token) {
-        setError('You must be logged in to perform this action');
-        return;
-      }
-      
-      await axios.put(`http://localhost:5000/api/admin/properties/${id}/approve`, 
-        { status: 'approved' }, 
-        { headers: { Authorization: `Bearer ${user.token}` } }
+      await authenticatedAxios(
+        axios,
+        {
+          method: 'put',
+          url: `http://localhost:5000/api/admin/properties/${id}/approve`,
+          data: { status: 'approved' }
+        },
+        navigate
       );
+      
       // Update the local state to remove the approved property
       setProperties(properties.filter(property => property._id !== id));
       setError(null);
@@ -64,17 +66,17 @@ const PendingProperties = () => {
   const handleReject = async (id) => {
     try {
       setActionInProgress(true);
-      const user = JSON.parse(localStorage.getItem('dwellSyncUser') || '{}');
       
-      if (!user.token) {
-        setError('You must be logged in to perform this action');
-        return;
-      }
-      
-      await axios.put(`http://localhost:5000/api/admin/properties/${id}/approve`, 
-        { status: 'rejected' }, 
-        { headers: { Authorization: `Bearer ${user.token}` } }
+      await authenticatedAxios(
+        axios,
+        {
+          method: 'put',
+          url: `http://localhost:5000/api/admin/properties/${id}/approve`,
+          data: { status: 'rejected' }
+        },
+        navigate
       );
+      
       // Update the local state to remove the rejected property
       setProperties(properties.filter(property => property._id !== id));
       setError(null);
