@@ -179,6 +179,48 @@ class NotificationService {
     }
   }
 
+  // Send payment receipt notification
+  static async sendPaymentReceiptNotification(userId, requestId, amount, currency) {
+    try {
+      const request = await Request.findById(requestId)
+        .populate('propertyId', 'address')
+        .populate('tenantId', 'firstName lastName')
+        .populate('ownerId', 'firstName lastName');
+      
+      if (!request) {
+        throw new Error('Request not found');
+      }
+      
+      const user = await User.findById(userId);
+      if (!user) {
+        throw new Error('User not found');
+      }
+      
+      const isOwner = userId.toString() === request.ownerId._id.toString();
+      const title = isOwner ? 'Payment Received' : 'Payment Confirmed';
+      const message = isOwner 
+        ? `You have received a payment of ${amount} ${currency} from ${request.tenantId.firstName} ${request.tenantId.lastName} for ${request.propertyId.address}`
+        : `Your payment of ${amount} ${currency} for ${request.propertyId.address} has been confirmed`;
+      
+      await this.createNotification(
+        userId,
+        'success',
+        title,
+        message,
+        {
+          requestId,
+          amount,
+          currency,
+          propertyAddress: request.propertyId.address
+        }
+      );
+      
+    } catch (error) {
+      console.error('Error sending payment receipt notification:', error);
+      throw error;
+    }
+  }
+
   // Helper method to determine notification type based on status
   static getStatusNotificationType(status) {
     const statusTypes = {

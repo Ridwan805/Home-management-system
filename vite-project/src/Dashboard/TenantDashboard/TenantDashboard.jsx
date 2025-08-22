@@ -7,7 +7,7 @@ import HouseInfo from './HouseInfo';
 import SecurityGuardInfo from '../OwnerProfile/SecurityGuardInfo';
 import ReportProblem from './ReportProblem';
 import Wishlist from './Wishlist';
-import TenantMyRequests from './TenantMyRequests';
+import MyRequests from './MyRequests';
 import './TenantDashboard.css';
 
 const TenantDashboard = () => {
@@ -42,7 +42,7 @@ const TenantDashboard = () => {
           {activeSection === 'security-guard-info' && <SecurityGuardInfo />}
           {activeSection === 'report-problem' && <ReportProblem />}
           {activeSection === 'wishlist' && <Wishlist />}
-          {activeSection === 'request-info' && <TenantMyRequests />}
+          {activeSection === 'request-info' && <MyRequests />}
         </div>
       </main>
     </div>

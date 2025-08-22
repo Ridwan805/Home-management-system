@@ -583,6 +583,20 @@
   box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
 }
 
+.modal-actions .pay-btn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  opacity: 0.6;
+}
+
+.modal-actions .pay-btn:disabled:hover {
+  background: #6c757d;
+  transform: none;
+  box-shadow: none;
+}
+
 .modal-actions .upload-proof-btn {
   background: #6c757d;
   color: white;

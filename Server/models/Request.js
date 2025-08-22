@@ -48,6 +48,20 @@ const AdvancePaymentSchema = new mongoose.Schema({
   verificationNote: { type: String, default: '' }
 }, { _id: false });
 
+// Full payment schema for handling complete payment details
+const FullPaymentSchema = new mongoose.Schema({
+  status: { type: String, enum: ['pending', 'completed', 'failed'], default: 'pending' },
+  amount: { type: Number, required: true },
+  currency: { type: String, default: 'BDT' },
+  stripeSessionId: { type: String, default: '' },
+  paymentIntentId: { type: String, default: '' },
+  paidAt: { type: Date },
+  proofUrl: { type: String, default: '' },
+  verifiedAt: { type: Date },
+  verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  verificationNote: { type: String, default: '' }
+}, { _id: false });
+
 // Main Request schema
 const RequestSchema = new mongoose.Schema({
   // IDs & Context
@@ -158,6 +172,9 @@ const RequestSchema = new mongoose.Schema({
   
   // Advance Payment Details
   advancePayment: AdvancePaymentSchema,
+  
+  // Full payment details (for complete payment processing)
+  fullPayment: FullPaymentSchema,
   
   // Messaging thread between tenant and owner
   messages: [MessageSchema],

@@ -11,6 +11,7 @@ const MyRequests = () => {
   const [showModal, setShowModal] = useState(false);
   const [stats, setStats] = useState({});
   const [showPaymentProofModal, setShowPaymentProofModal] = useState(false);
+  const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentProofForm, setPaymentProofForm] = useState({
     proofFile: null,
     note: ''
@@ -167,7 +168,10 @@ const MyRequests = () => {
   };
 
   const handlePayNow = async (requestId) => {
+    if (paymentLoading) return; // Prevent double clicks
+    
     try {
+      setPaymentLoading(true);
       const userData = JSON.parse(localStorage.getItem('dwellSyncUser'));
       const token = userData?.token;
 
@@ -175,6 +179,8 @@ const MyRequests = () => {
         alert('Please log in to make payment');
         return;
       }
+
+      console.log('🔄 Creating payment session for request:', requestId);
 
       // Create Stripe payment session
       const response = await fetch(`http://localhost:5000/api/stripe/create-payment-session/${requestId}`, {
@@ -191,15 +197,21 @@ const MyRequests = () => {
 
       const data = await response.json();
       
+      console.log('💳 Payment session response:', data);
+      
       if (data.success && data.url) {
+        console.log('✅ Redirecting to Stripe checkout:', data.url);
         // Redirect to Stripe checkout
         window.location.href = data.url;
       } else {
+        console.error('❌ Payment session creation failed:', data);
         alert(data.message || 'Failed to create payment session');
       }
     } catch (err) {
-      console.error('Error creating payment session:', err);
+      console.error('❌ Error creating payment session:', err);
       alert('Failed to initiate payment. Please try again.');
+    } finally {
+      setPaymentLoading(false);
     }
   };
 
@@ -518,8 +530,9 @@ const MyRequests = () => {
                       <button 
                         className="pay-btn"
                         onClick={() => handlePayNow(selectedRequest._id)}
+                        disabled={paymentLoading}
                       >
-                        Pay Online (${selectedRequest.advancePayment.amount})
+                        {paymentLoading ? 'Processing...' : `Pay Online ($${selectedRequest.advancePayment.amount})`}
                       </button>
                       <button 
                         className="upload-proof-btn"
