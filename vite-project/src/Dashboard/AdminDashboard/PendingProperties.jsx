@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { FaCheck, FaTimes, FaHourglass, FaMapMarkerAlt, FaHome, FaMoneyBillWave, FaUser } from 'react-icons/fa';
 import { authenticatedAxios } from '../../utils/apiUtils.js';
+import API from '../../config/api';
 
 const PendingProperties = () => {
   const [properties, setProperties] = useState([]);
@@ -20,19 +21,12 @@ const PendingProperties = () => {
         axios,
         {
           method: 'get',
-          url: 'http://localhost:5001/api/admin/properties/pending'
+          url: API.baseUrl + API.endpoints.pendingProperties
         },
         navigate
       );
       
-<<<<<<< HEAD
-      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/admin/properties/pending`, {
-        headers: { Authorization: `Bearer ${user.token}` },
-      });
-      setProperties(res.data);
-=======
       setProperties(data);
->>>>>>> main
     } catch (err) {
       console.error('Error fetching pending properties:', err);
       setError('Failed to load pending properties. Please try again later.');
@@ -49,25 +43,14 @@ const PendingProperties = () => {
     try {
       setActionInProgress(true);
       
-<<<<<<< HEAD
-      if (!user.token) {
-        setError('You must be logged in to perform this action');
-        return;
-      }
-      
-      await axios.put(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/admin/properties/${id}/approve`, 
-        { status: 'approved' }, 
-        { headers: { Authorization: `Bearer ${user.token}` } }
-=======
       await authenticatedAxios(
         axios,
         {
           method: 'put',
-          url: `http://localhost:5001/api/admin/properties/${id}/approve`,
+          url: API.baseUrl + API.endpoints.approveProperty(id),
           data: { status: 'approved' }
         },
         navigate
->>>>>>> main
       );
       
       // Update the local state to remove the approved property
@@ -85,25 +68,14 @@ const PendingProperties = () => {
     try {
       setActionInProgress(true);
       
-<<<<<<< HEAD
-      if (!user.token) {
-        setError('You must be logged in to perform this action');
-        return;
-      }
-      
-      await axios.put(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/admin/properties/${id}/approve`, 
-        { status: 'rejected' }, 
-        { headers: { Authorization: `Bearer ${user.token}` } }
-=======
       await authenticatedAxios(
         axios,
         {
           method: 'put',
-          url: `http://localhost:5001/api/admin/properties/${id}/approve`,
+          url: API.baseUrl + API.endpoints.approveProperty(id),
           data: { status: 'rejected' }
         },
         navigate
->>>>>>> main
       );
       
       // Update the local state to remove the rejected property

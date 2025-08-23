@@ -53,6 +53,8 @@ export default {
     reports: '/api/admin/reports',
     deleteReport: (id) => `/api/admin/reports/${id}`,
     escalateReport: (id) => `/api/admin/reports/${id}/escalate`,
+    pendingProperties: '/api/admin/properties/pending',
+    approveProperty: (id) => `/api/admin/properties/${id}/approve`,
   },
   
   // Helper function to get full URL for an endpoint
