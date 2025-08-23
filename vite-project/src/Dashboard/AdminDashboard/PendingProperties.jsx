@@ -25,7 +25,14 @@ const PendingProperties = () => {
         navigate
       );
       
+<<<<<<< HEAD
+      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/admin/properties/pending`, {
+        headers: { Authorization: `Bearer ${user.token}` },
+      });
+      setProperties(res.data);
+=======
       setProperties(data);
+>>>>>>> main
     } catch (err) {
       console.error('Error fetching pending properties:', err);
       setError('Failed to load pending properties. Please try again later.');
@@ -42,6 +49,16 @@ const PendingProperties = () => {
     try {
       setActionInProgress(true);
       
+<<<<<<< HEAD
+      if (!user.token) {
+        setError('You must be logged in to perform this action');
+        return;
+      }
+      
+      await axios.put(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/admin/properties/${id}/approve`, 
+        { status: 'approved' }, 
+        { headers: { Authorization: `Bearer ${user.token}` } }
+=======
       await authenticatedAxios(
         axios,
         {
@@ -50,6 +67,7 @@ const PendingProperties = () => {
           data: { status: 'approved' }
         },
         navigate
+>>>>>>> main
       );
       
       // Update the local state to remove the approved property
@@ -67,6 +85,16 @@ const PendingProperties = () => {
     try {
       setActionInProgress(true);
       
+<<<<<<< HEAD
+      if (!user.token) {
+        setError('You must be logged in to perform this action');
+        return;
+      }
+      
+      await axios.put(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/admin/properties/${id}/approve`, 
+        { status: 'rejected' }, 
+        { headers: { Authorization: `Bearer ${user.token}` } }
+=======
       await authenticatedAxios(
         axios,
         {
@@ -75,6 +103,7 @@ const PendingProperties = () => {
           data: { status: 'rejected' }
         },
         navigate
+>>>>>>> main
       );
       
       // Update the local state to remove the rejected property

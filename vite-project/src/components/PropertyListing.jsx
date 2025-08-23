@@ -30,6 +30,14 @@ const PropertyListing = () => {
         
         // Fetch user's properties
         const user = JSON.parse(userData);
+<<<<<<< HEAD
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/properties/user`, { // Use the protected route to fetch user properties from properties.js
+          headers: {
+            'Authorization': `Bearer ${user.token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+=======
         const url = `${API_BASE}/user`;
         const headers = {
           'Authorization': `Bearer ${user.token}`,
@@ -37,6 +45,7 @@ const PropertyListing = () => {
         };
         
         const response = await fetch(url, { headers });
+>>>>>>> main
         
         if (!response.ok) {
           const errorData = await response.json();
@@ -87,8 +96,13 @@ const PropertyListing = () => {
       }
       
       const user = JSON.parse(userData);
+<<<<<<< HEAD
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/properties/${propertyId}`, {
+        method: 'PUT',
+=======
       const response = await fetch(`${API_BASE}/${propertyId}`, {
         method: 'PATCH', // Changed from PUT to PATCH to match backend endpoint
+>>>>>>> main
         headers: {
           'Authorization': `Bearer ${user.token}`,
           'Content-Type': 'application/json'
@@ -163,8 +177,13 @@ const PropertyListing = () => {
       }
       
       const user = JSON.parse(userData);
+<<<<<<< HEAD
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/properties/${propertyId}`, {
+        method: 'PATCH',
+=======
       const response = await fetch(`${API_BASE}/${propertyId}/status`, {
         method: 'PUT',
+>>>>>>> main
         headers: {
           'Authorization': `Bearer ${user.token}`,
           'Content-Type': 'application/json'
