@@ -9,15 +9,24 @@ const GuardrailsService = require('../services/guardrailsService');
 // Get Stripe publishable key
 const getPublishableKey = async (req, res) => {
   try {
+    console.log('🔑 Stripe Secret Key exists:', !!process.env.STRIPE_SECRET_KEY);
+    console.log('🔑 Stripe Publishable Key exists:', !!process.env.STRIPE_PUBLISHABLE_KEY);
+    console.log('🔑 Testing Stripe connection...');
+    
+    // Test Stripe connection
+    const testProduct = await stripe.products.list({ limit: 1 });
+    console.log('✅ Stripe connection successful');
+    
     res.status(200).json({
       success: true,
       publishableKey: process.env.STRIPE_PUBLISHABLE_KEY
     });
   } catch (error) {
-    console.error('Error getting publishable key:', error);
+    console.error('❌ Error getting publishable key:', error);
+    console.error('❌ Error message:', error.message);
     res.status(500).json({
       success: false,
-      message: 'Failed to get publishable key'
+      message: 'Failed to get publishable key: ' + error.message
     });
   }
 };
@@ -25,6 +34,10 @@ const getPublishableKey = async (req, res) => {
 // Create Stripe checkout session for advance payment
 const createPaymentSession = async (req, res) => {
   try {
+    console.log('🔄 Creating payment session - Request ID:', req.params.requestId);
+    console.log('🔄 User ID:', req.user.userId || req.user._id || req.user.id);
+    console.log('🔄 Request body:', req.body);
+    
     const { requestId } = req.params;
     const userId = req.user.userId || req.user._id || req.user.id;
 
@@ -62,23 +75,54 @@ const createPaymentSession = async (req, res) => {
       });
     }
 
-    // Calculate payment amount (10% of property price)
-    const propertyPrice = request.propertyId.price;
-    const paymentAmount = Math.round(propertyPrice * 0.1);
+    // Use advance payment amount set by owner
+    if (!request.advancePayment || !request.advancePayment.amount) {
+      return res.status(400).json({
+        success: false,
+        message: 'Advance payment amount not set by property owner'
+      });
+    }
+    
+    let paymentAmount = request.advancePayment.amount;
+    
+    // Fix for extremely large payment amounts - cap at reasonable maximum
+    if (paymentAmount > 1000000) { // Cap at 1 million BDT
+      console.log('⚠️ Payment amount too large, capping at 1,000,000 BDT');
+      paymentAmount = 1000000;
+    }
 
+    // Debug: Log the originUrl being received
+    console.log('🔍 Debug - originUrl received:', req.body.originUrl);
+    console.log('🔍 Debug - FRONTEND_URL fallback:', process.env.FRONTEND_URL);
+    const redirectBaseUrl = req.body.originUrl || process.env.FRONTEND_URL;
+    console.log('🔍 Debug - Final redirect base URL:', redirectBaseUrl);
+
+    console.log('💰 Payment amount (BDT):', paymentAmount);
+    const usdAmount = Math.round(paymentAmount * 100 / 110);
+    console.log('💰 USD amount (cents):', usdAmount);
+    
+    // Validate USD amount is within Stripe limits (max $999,999.99)
+    if (usdAmount > 99999999) {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment amount exceeds maximum allowed limit'
+      });
+    }
+    
     // Create Stripe checkout session
+    console.log('🔄 Creating Stripe session...');
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
         {
           price_data: {
-            currency: 'bdt',
-            product_data: {
-              name: `Advance Payment for ${request.propertyId.title}`,
-              description: `10% advance payment for property at ${request.propertyId.location}`
-            },
-            unit_amount: paymentAmount * 100, // Convert to cents
+          currency: 'usd', // Changed from 'bdt' to 'usd' as BDT has limited Stripe support
+          product_data: {
+            name: `Advance Payment for ${request.propertyId.title}`,
+            description: `Advance payment for property at ${request.propertyId.location}`
           },
+          unit_amount: usdAmount, // Convert BDT to USD (approximate rate 1 USD = 110 BDT) and to cents
+        },
           quantity: 1,
         },
       ],
@@ -89,9 +133,12 @@ const createPaymentSession = async (req, res) => {
         requestType: 'advance_payment'
       },
       mode: 'payment',
-      success_url: `${process.env.FRONTEND_URL}/tenant/request-info?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.FRONTEND_URL}/tenant/request-info?payment=cancelled`,
+      success_url: `http://localhost:5001/api/pdf/generate-receipt?session_id={CHECKOUT_SESSION_ID}&originUrl=${encodeURIComponent(redirectBaseUrl)}`,
+      cancel_url: `${redirectBaseUrl}/tenant/request-info?payment=cancelled`,
     });
+    
+    console.log('✅ Stripe session created successfully:', session.id);
+    console.log('🔗 Session URL:', session.url);
 
     // Update request with payment session info
     request.advancePayment = {
@@ -124,10 +171,12 @@ const createPaymentSession = async (req, res) => {
       url: session.url
     });
   } catch (error) {
-    console.error('Error creating payment session:', error);
+    console.error('❌ Error creating payment session:', error);
+    console.error('❌ Error message:', error.message);
+    console.error('❌ Error stack:', error.stack);
     res.status(500).json({
       success: false,
-      message: 'Failed to create payment session'
+      message: 'Failed to create payment session: ' + error.message
     });
   }
 };
@@ -184,19 +233,25 @@ const createFullPaymentSession = async (req, res) => {
     const propertyPrice = request.propertyId.price;
     const paymentAmount = Math.round(propertyPrice * 0.9);
 
+    // Debug: Log the originUrl being received
+    console.log('🔍 Debug Full Payment - originUrl received:', req.body.originUrl);
+    console.log('🔍 Debug Full Payment - FRONTEND_URL fallback:', process.env.FRONTEND_URL);
+    const redirectBaseUrl = req.body.originUrl || process.env.FRONTEND_URL;
+    console.log('🔍 Debug Full Payment - Final redirect base URL:', redirectBaseUrl);
+
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
         {
           price_data: {
-            currency: 'bdt',
-            product_data: {
-              name: `Full Payment for ${request.propertyId.title}`,
-              description: `Remaining 90% payment for property at ${request.propertyId.location}`
-            },
-            unit_amount: paymentAmount * 100, // Convert to cents
+          currency: 'usd', // Changed from 'bdt' to 'usd' as BDT has limited Stripe support
+          product_data: {
+            name: `Full Payment for ${request.propertyId.title}`,
+            description: `Remaining 90% payment for property at ${request.propertyId.location}`
           },
+          unit_amount: Math.round(paymentAmount * 100 / 110), // Convert BDT to USD (approximate rate 1 USD = 110 BDT) and to cents
+        },
           quantity: 1,
         },
       ],
@@ -207,8 +262,8 @@ const createFullPaymentSession = async (req, res) => {
         requestType: 'full_payment'
       },
       mode: 'payment',
-      success_url: `${process.env.FRONTEND_URL}/tenant/request-info?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.FRONTEND_URL}/tenant/request-info?payment=cancelled`,
+      success_url: `${redirectBaseUrl}/tenant/request-info?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${redirectBaseUrl}/tenant/request-info?payment=cancelled`,
     });
 
     // Update request with payment session info
