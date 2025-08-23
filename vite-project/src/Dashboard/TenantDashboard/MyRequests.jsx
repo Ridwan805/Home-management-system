@@ -40,46 +40,11 @@ const MyRequests = () => {
   useEffect(() => {
     fetchRequests();
     fetchStats();
-    
-    // Handle payment status from URL parameters
-    const urlParams = new URLSearchParams(window.location.search);
-    const paymentStatus = urlParams.get('payment');
-    const sessionId = urlParams.get('session_id');
-    
-    if (paymentStatus === 'success' && sessionId) {
-      handlePaymentSuccess(sessionId);
-    } else if (paymentStatus === 'cancelled') {
-      alert('Payment was cancelled. You can try again anytime.');
-      // Clean up URL parameters
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
   }, [selectedStatus]);
 
   const navigate = useNavigate();
 
-  const handlePaymentSuccess = async (sessionId) => {
-    try {
-      alert('Payment completed successfully! Downloading your receipt...');
-      
-      // Trigger PDF download
-      const pdfUrl = `http://localhost:5001/api/pdf/generate-receipt?session_id=${sessionId}&originUrl=${encodeURIComponent(window.location.origin)}`;
-      
-      // Open PDF in new tab for download
-      window.open(pdfUrl, '_blank');
-      
-      // Refresh requests to show updated status
-      setTimeout(() => {
-        fetchRequests();
-      }, 2000);
-      
-    } catch (error) {
-      console.error('Error handling payment success:', error);
-      alert('Payment was successful, but there was an issue downloading the receipt. You can download it later from your request details.');
-    } finally {
-      // Clean up URL parameters
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-  };
+
 
   const fetchRequests = async () => {
     try {

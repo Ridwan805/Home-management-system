@@ -133,8 +133,8 @@ const createPaymentSession = async (req, res) => {
         requestType: 'advance_payment'
       },
       mode: 'payment',
-      success_url: `http://localhost:5001/api/pdf/generate-receipt?session_id={CHECKOUT_SESSION_ID}&originUrl=${encodeURIComponent(redirectBaseUrl)}`,
-      cancel_url: `${redirectBaseUrl}/tenant/request-info?payment=cancelled`,
+      success_url: `${redirectBaseUrl}/pdf-download?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${redirectBaseUrl}/pdf-download?payment=cancelled`,
     });
     
     console.log('✅ Stripe session created successfully:', session.id);
@@ -262,8 +262,8 @@ const createFullPaymentSession = async (req, res) => {
         requestType: 'full_payment'
       },
       mode: 'payment',
-      success_url: `${redirectBaseUrl}/tenant/request-info?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${redirectBaseUrl}/tenant/request-info?payment=cancelled`,
+      success_url: `${redirectBaseUrl}/pdf-download?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${redirectBaseUrl}/pdf-download?payment=cancelled`,
     });
 
     // Update request with payment session info
@@ -343,7 +343,7 @@ const handlePaymentSuccess = async (session) => {
   try {
     const { requestId, tenantId } = session.metadata;
     
-    const request = await Request.findById(requestId);
+    const request = await Request.findById(requestId).populate('propertyId');
     if (!request) {
       console.error('Request not found for payment success:', requestId);
       return;
@@ -359,11 +359,15 @@ const handlePaymentSuccess = async (session) => {
     const paymentIntent = await stripe.paymentIntents.retrieve(session.payment_intent);
     const charge = paymentIntent.charges.data[0];
     
+    // Get user details for receipt
+    const tenant = await User.findById(tenantId);
+    const owner = await User.findById(request.ownerId);
+    
     // Generate receipt data with more detailed information
     const receiptData = {
       paymentId: `PAY-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
       propertyTitle: request.propertyId ? request.propertyId.title : 'Property',
-      propertyAddress: request.propertyId ? request.propertyId.address : 'Address not available',
+      propertyAddress: request.propertyId ? (request.propertyId.address || request.propertyId.location) : 'Address not available',
       amount: request.advancePayment.amount,
       currency: 'BDT',
       paymentDate: new Date(),
@@ -372,26 +376,48 @@ const handlePaymentSuccess = async (session) => {
       transactionId: session.payment_intent,
       receiptUrl: charge.receipt_url,
       paymentType: 'Advance Payment',
-      payerName: await User.findById(tenantId).then(user => user.name),
-      payeeName: await User.findById(request.ownerId).then(user => user.name),
+      payerName: tenant ? `${tenant.firstName || ''} ${tenant.lastName || ''}`.trim() : 'N/A',
+      payeeName: owner ? `${owner.firstName || ''} ${owner.lastName || ''}`.trim() : 'N/A',
       paymentDescription: `Advance Payment for property purchase request`,
       generatedAt: new Date()
     };
     
-    // Update payment record with receipt information
-    await Payment.findOneAndUpdate(
-      { 'stripeDetails.sessionId': session.id },
-      { 
+    // Find and update the payment record, or create if not found
+    let payment = await Payment.findOne({ 'stripeDetails.sessionId': session.id });
+    
+    if (payment) {
+      // Update existing payment record
+      payment.status = 'completed';
+      payment.paidAt = new Date();
+      payment.stripeDetails.paymentIntentId = session.payment_intent;
+      payment.stripeDetails.chargeId = charge.id;
+      payment.stripeDetails.receiptUrl = charge.receipt_url;
+      payment.receiptData = receiptData;
+      await payment.save();
+      console.log('✅ Payment record updated successfully:', payment._id);
+    } else {
+      // Create new payment record if not found
+      payment = await Payment.create({
+        requestId: requestId,
+        payerId: tenantId,
+        propertyId: request.propertyId._id,
+        payeeId: request.ownerId,
+        stripeDetails: { 
+          sessionId: session.id,
+          paymentIntentId: session.payment_intent,
+          chargeId: charge.id,
+          receiptUrl: charge.receipt_url
+        },
+        amount: request.advancePayment.amount,
+        type: 'advance_payment',
         status: 'completed',
+        method: 'stripe',
+        description: `Advance Payment for ${request.propertyId.title}`,
         paidAt: new Date(),
-        'stripeDetails.paymentIntentId': session.payment_intent,
-        'stripeDetails.chargeId': charge.id,
-        'stripeDetails.receiptUrl': charge.receipt_url,
-        receiptData: receiptData,
-        receiptGenerated: true,
-        receiptGeneratedAt: new Date()
-      }
-    );
+        receiptData: receiptData
+      });
+      console.log('✅ New payment record created successfully:', payment._id);
+    }
     
     // Send notification to owner
     await NotificationService.createNotification({

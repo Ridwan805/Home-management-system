@@ -19,7 +19,8 @@ import OwnerRequestsInbox from './Dashboard/OwnerProfile/OwnerRequestsInbox';
 import SidebarNav from './Dashboard/OwnerProfile/SidebarNav';
 
 // ✅ ADD THIS IMPORT
-import AdminDashboard from './Dashboard/AdminDashboard/AdminDashboard'; 
+import AdminDashboard from './Dashboard/AdminDashboard/AdminDashboard';
+import PdfDownload from './components/PdfDownload'; 
 
 // Session context for login state
 export const AuthContext = React.createContext();
@@ -223,6 +224,9 @@ function AppRoutes() {
         {/* Tenant Dashboard Routes */}
         <Route path="/tenant/:section" element={<TenantDashboard />} />
         <Route path="/tenant" element={<Navigate to="/tenant/profile" />} />
+        
+        {/* PDF Download Route */}
+        <Route path="/pdf-download" element={<PdfDownload />} />
 
         {/* ✅ Admin Dashboard Route */}
         <Route path="/admin/*" element={<AdminDashboard />} />

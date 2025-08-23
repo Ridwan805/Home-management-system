@@ -1,12 +1,15 @@
+const puppeteer = require('puppeteer');
+const fs = require('fs');
+const path = require('path');
 const Request = require('../models/Request');
 const Payment = require('../models/Payment');
+const Property = require('../models/Property');
 const User = require('../models/User');
 
-// Generate PDF receipt and redirect
+// Generate PDF and redirect to success page
 const generatePDFAndRedirect = async (req, res) => {
   try {
     const { session_id } = req.query;
-    const { originUrl } = req.query;
     
     if (!session_id) {
       return res.status(400).json({
@@ -15,247 +18,626 @@ const generatePDFAndRedirect = async (req, res) => {
       });
     }
 
-    // Find payment record by session ID
+    console.log('🔍 Looking for payment with session ID:', session_id);
+    
+    // Find the payment record
     const payment = await Payment.findOne({ 'stripeDetails.sessionId': session_id })
-      .populate('propertyId')
-      .populate('payerId')
-      .populate('payeeId');
+      .populate('requestId')
+      .populate({
+        path: 'requestId',
+        populate: {
+          path: 'propertyId',
+          model: 'Property'
+        }
+      })
+      .populate({
+        path: 'requestId',
+        populate: {
+          path: 'tenantId',
+          model: 'User'
+        }
+      })
+      .populate({
+        path: 'requestId',
+        populate: {
+          path: 'ownerId',
+          model: 'User'
+        }
+      });
 
     if (!payment) {
+      console.log('❌ Payment not found for session:', session_id);
       return res.status(404).json({
         success: false,
-        message: 'Payment record not found'
+        message: 'Payment not found'
       });
     }
 
-    // Update payment status to 'Paid' if it's still pending (for localhost development)
-    if (payment.status === 'pending') {
-      payment.status = 'Paid';
-      payment.paidAt = new Date();
-      await payment.save();
-      
-      // Also update the request's advance payment status
-      const requestToUpdate = await Request.findById(payment.requestId);
-      if (requestToUpdate && requestToUpdate.advancePayment) {
-        requestToUpdate.advancePayment.status = 'paid';
-        await requestToUpdate.save();
-      }
-    }
+    console.log('✅ Payment found:', {
+      id: payment._id,
+      amount: payment.amount,
+      status: payment.status
+    });
 
-    // Find the related request
-    const request = await Request.findById(payment.requestId).populate('propertyId');
-    if (!request) {
-      return res.status(404).json({
-        success: false,
-        message: 'Request not found'
-      });
-    }
+    // Prepare receipt data
+    const receiptData = {
+      paymentId: payment._id,
+      sessionId: payment.stripeDetails?.sessionId || payment.sessionId,
+      propertyTitle: payment.requestId?.propertyId?.title || 'Property',
+      propertyAddress: payment.requestId?.propertyId?.address || 'Address not available',
+      amount: payment.amount,
+      currency: payment.currency || 'BDT',
+      paymentDate: payment.createdAt,
+      paymentMethod: payment.paymentMethod || 'Credit/Debit Card',
+      paymentStatus: payment.status,
+      transactionId: payment.transactionId || payment.stripeDetails?.sessionId || payment.sessionId,
+      paymentType: payment.paymentType || 'Payment',
+      payerName: payment.requestId?.tenantId?.name || 'Tenant',
+      payeeName: payment.requestId?.ownerId?.name || 'Owner',
+      paymentDescription: `Payment for ${payment.requestId?.propertyId?.title || 'property'}`,
+      generatedAt: new Date()
+    };
 
-    // Generate HTML receipt that will trigger PDF download and redirect
-    const filename = `payment-receipt-${payment.receiptData?.paymentId || payment._id}.pdf`;
-    const redirectUrl = originUrl || process.env.FRONTEND_URL || 'http://localhost:5173';
+    // Generate HTML content for the receipt
+    const htmlContent = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Payment Receipt - ${receiptData.paymentId}</title>
+        <style>
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                margin: 0;
+                padding: 20px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            .container {
+                background: white;
+                border-radius: 15px;
+                box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+                padding: 40px;
+                max-width: 600px;
+                width: 100%;
+                text-align: center;
+            }
+            .header {
+                border-bottom: 3px solid #667eea;
+                padding-bottom: 20px;
+                margin-bottom: 30px;
+            }
+            .logo {
+                font-size: 28px;
+                font-weight: bold;
+                color: #667eea;
+                margin-bottom: 10px;
+            }
+            .receipt-title {
+                font-size: 24px;
+                color: #333;
+                margin-bottom: 10px;
+            }
+            .payment-id {
+                font-size: 14px;
+                color: #666;
+                font-family: monospace;
+            }
+            .status {
+                display: inline-block;
+                padding: 8px 20px;
+                background: #28a745;
+                color: white;
+                border-radius: 20px;
+                font-weight: bold;
+                margin: 20px 0;
+            }
+            .amount-section {
+                background: #f8f9fa;
+                padding: 20px;
+                border-radius: 10px;
+                margin: 20px 0;
+            }
+            .amount-label {
+                font-size: 14px;
+                color: #666;
+                margin-bottom: 5px;
+            }
+            .amount-value {
+                font-size: 32px;
+                font-weight: bold;
+                color: #28a745;
+            }
+            .details-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 15px;
+                margin: 20px 0;
+                text-align: left;
+            }
+            .detail-item {
+                padding: 15px;
+                background: #f8f9fa;
+                border-radius: 8px;
+            }
+            .detail-label {
+                font-size: 12px;
+                color: #666;
+                text-transform: uppercase;
+                margin-bottom: 5px;
+            }
+            .detail-value {
+                font-size: 14px;
+                color: #333;
+                font-weight: 500;
+            }
+            .download-section {
+                margin: 30px 0;
+                padding: 20px;
+                background: #e3f2fd;
+                border-radius: 10px;
+            }
+            .download-btn {
+                background: #667eea;
+                color: white;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 8px;
+                font-size: 16px;
+                cursor: pointer;
+                text-decoration: none;
+                display: inline-block;
+                margin: 10px;
+            }
+            .download-btn:hover {
+                transform: translateY(-2px);
+            }
+            .footer {
+                margin-top: 30px;
+                padding-top: 20px;
+                border-top: 1px solid #eee;
+                font-size: 12px;
+                color: #666;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <div class="logo">🏠 Home Management System</div>
+                <div class="receipt-title">Payment Receipt</div>
+                <div class="payment-id">Receipt ID: ${receiptData.paymentId}</div>
+            </div>
+
+            <div class="status">✅ ${receiptData.paymentStatus}</div>
+
+            <div class="amount-section">
+                <div class="amount-label">Total Amount Paid</div>
+                <div class="amount-value">${receiptData.amount.toLocaleString()} ${receiptData.currency}</div>
+            </div>
+
+            <div class="details-grid">
+                <div class="detail-item">
+                    <div class="detail-label">Property</div>
+                    <div class="detail-value">${receiptData.propertyTitle}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Payment Type</div>
+                    <div class="detail-value">${receiptData.paymentType}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Payment Method</div>
+                    <div class="detail-value">${receiptData.paymentMethod}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Transaction ID</div>
+                    <div class="detail-value">${receiptData.transactionId}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Payer</div>
+                    <div class="detail-value">${receiptData.payerName}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Payment Date</div>
+                    <div class="detail-value">${new Date(receiptData.paymentDate).toLocaleDateString()}</div>
+                </div>
+            </div>
+
+            <div class="detail-item" style="grid-column: 1 / -1; margin: 20px 0;">
+                <div class="detail-label">Property Address</div>
+                <div class="detail-value">${receiptData.propertyAddress}</div>
+            </div>
+
+            <div class="download-section">
+                <h3>Download Your Receipt</h3>
+                <p>Click the button below to download your payment receipt as a PDF file.</p>
+                <a href="/api/pdf/download-receipt?session_id=${receiptData.sessionId}" class="download-btn" download>
+                    📄 Download PDF Receipt
+                </a>
+            </div>
+
+            <div class="footer">
+                <p>This is an official receipt from Home Management System</p>
+                <p>Generated on: ${new Date(receiptData.generatedAt).toLocaleString()}</p>
+                <p>For support, please contact our customer service team.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    `;
+
+    res.send(htmlContent);
+    console.log('✅ Receipt page generated successfully');
     
-    // Create HTML content with receipt data
+  } catch (error) {
+    console.error('❌ Error generating receipt:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to generate receipt: ' + error.message
+    });
+  }
+};
+
+// Generate PDF on server side and send as download
+const generatePDFServerSide = async (req, res) => {
+  let browser;
+  
+  try {
+    const { session_id } = req.query;
+    
+    if (!session_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Session ID is required'
+      });
+    }
+
+    console.log('🔍 Generating server-side PDF for session:', session_id);
+    
+    // Find the payment record
+    const payment = await Payment.findOne({ 'stripeDetails.sessionId': session_id })
+      .populate('requestId')
+      .populate({
+        path: 'requestId',
+        populate: {
+          path: 'propertyId',
+          model: 'Property'
+        }
+      })
+      .populate({
+        path: 'requestId',
+        populate: {
+          path: 'tenantId',
+          model: 'User'
+        }
+      })
+      .populate({
+        path: 'requestId',
+        populate: {
+          path: 'ownerId',
+          model: 'User'
+        }
+      });
+
+    if (!payment) {
+      console.log('❌ Payment not found for session:', session_id);
+      return res.status(404).json({
+        success: false,
+        message: 'Payment not found'
+      });
+    }
+
+    // Prepare receipt data
+    const receiptData = {
+      paymentId: payment._id,
+      sessionId: payment.stripeDetails?.sessionId || payment.sessionId,
+      propertyTitle: payment.requestId?.propertyId?.title || 'Property',
+      propertyAddress: payment.requestId?.propertyId?.address || 'Address not available',
+      amount: payment.amount,
+      currency: payment.currency || 'BDT',
+      paymentDate: payment.createdAt,
+      paymentMethod: payment.paymentMethod || 'Credit/Debit Card',
+      paymentStatus: payment.status,
+      transactionId: payment.transactionId || payment.stripeDetails?.sessionId || payment.sessionId,
+      paymentType: payment.paymentType || 'Payment',
+      payerName: payment.requestId?.tenantId?.name || 'Tenant',
+      payeeName: payment.requestId?.ownerId?.name || 'Owner',
+      paymentDescription: `Payment for ${payment.requestId?.propertyId?.title || 'property'}`,
+      generatedAt: new Date()
+    };
+
+    // Generate clean HTML for PDF
     const htmlContent = `
     <!DOCTYPE html>
     <html>
     <head>
-        <title>Payment Receipt</title>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+        <meta charset="UTF-8">
         <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .receipt-container { max-width: 600px; margin: 0 auto; }
-            .header { text-align: center; margin-bottom: 30px; }
-            .section { margin-bottom: 20px; }
-            .section h3 { color: #333; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
-            .info-row { margin: 8px 0; }
-            .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }
-            .download-btn { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 10px; }
-            .redirect-info { background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0; }
+            body {
+                font-family: Arial, sans-serif;
+                margin: 40px;
+                color: #333;
+            }
+            .header {
+                text-align: center;
+                border-bottom: 2px solid #667eea;
+                padding-bottom: 20px;
+                margin-bottom: 30px;
+            }
+            .logo {
+                font-size: 24px;
+                font-weight: bold;
+                color: #667eea;
+                margin-bottom: 10px;
+            }
+            .receipt-title {
+                font-size: 20px;
+                margin-bottom: 10px;
+            }
+            .payment-id {
+                font-size: 12px;
+                color: #666;
+                font-family: monospace;
+            }
+            .status {
+                text-align: center;
+                padding: 10px;
+                background: #28a745;
+                color: white;
+                border-radius: 5px;
+                margin: 20px 0;
+                font-weight: bold;
+            }
+            .amount-section {
+                text-align: center;
+                background: #f8f9fa;
+                padding: 20px;
+                border-radius: 5px;
+                margin: 20px 0;
+            }
+            .amount-value {
+                font-size: 28px;
+                font-weight: bold;
+                color: #28a745;
+            }
+            .details {
+                margin: 20px 0;
+            }
+            .detail-row {
+                display: flex;
+                justify-content: space-between;
+                padding: 8px 0;
+                border-bottom: 1px solid #eee;
+            }
+            .detail-label {
+                font-weight: bold;
+                color: #666;
+            }
+            .footer {
+                margin-top: 40px;
+                padding-top: 20px;
+                border-top: 1px solid #eee;
+                text-align: center;
+                font-size: 12px;
+                color: #666;
+            }
         </style>
     </head>
     <body>
-        <div class="receipt-container">
-            <div class="header">
-                <h1>PAYMENT RECEIPT</h1>
+        <div class="header">
+            <div class="logo">🏠 Home Management System</div>
+            <div class="receipt-title">Payment Receipt</div>
+            <div class="payment-id">Receipt ID: ${receiptData.paymentId}</div>
+        </div>
+
+        <div class="status">✅ ${receiptData.paymentStatus}</div>
+
+        <div class="amount-section">
+            <div>Total Amount Paid</div>
+            <div class="amount-value">${receiptData.amount.toLocaleString()} ${receiptData.currency}</div>
+        </div>
+
+        <div class="details">
+            <div class="detail-row">
+                <span class="detail-label">Property:</span>
+                <span>${receiptData.propertyTitle}</span>
             </div>
-            
-            <div class="section">
-                <h3>Payment Information</h3>
-                <div class="info-row"><strong>Payment ID:</strong> ${payment.receiptData?.paymentId || payment._id}</div>
-                <div class="info-row"><strong>Transaction ID:</strong> ${payment.stripeDetails?.paymentIntentId || 'N/A'}</div>
-                <div class="info-row"><strong>Amount:</strong> BDT ${payment.amount.toLocaleString()}</div>
-                <div class="info-row"><strong>Payment Date:</strong> ${new Date(payment.paidAt || payment.createdAt).toLocaleDateString()}</div>
-                <div class="info-row"><strong>Payment Method:</strong> Credit/Debit Card</div>
-                <div class="info-row"><strong>Payment Status:</strong> Completed</div>
-                <div class="info-row"><strong>Payment Type:</strong> ${payment.type === 'advance_payment' ? 'Advance Payment' : 'Full Payment'}</div>
+            <div class="detail-row">
+                <span class="detail-label">Payment Type:</span>
+                <span>${receiptData.paymentType}</span>
             </div>
-            
-            <div class="section">
-                <h3>Property Information</h3>
-                <div class="info-row"><strong>Property:</strong> ${request.propertyId?.title || 'N/A'}</div>
-                <div class="info-row"><strong>Address:</strong> ${request.propertyId?.address || request.propertyId?.location || 'N/A'}</div>
-                <div class="info-row"><strong>Property Price:</strong> BDT ${request.propertyId?.price?.toLocaleString() || 'N/A'}</div>
-                <div class="info-row"><strong>Listing Type:</strong> ${request.propertyId?.listingType || 'N/A'}</div>
+            <div class="detail-row">
+                <span class="detail-label">Payment Method:</span>
+                <span>${receiptData.paymentMethod}</span>
             </div>
-            
-            <div class="section">
-                <h3>Payer Information</h3>
-                <div class="info-row"><strong>Name:</strong> ${payment.payerId?.firstName || ''} ${payment.payerId?.lastName || ''}</div>
-                <div class="info-row"><strong>Email:</strong> ${payment.payerId?.email || 'N/A'}</div>
+            <div class="detail-row">
+                <span class="detail-label">Transaction ID:</span>
+                <span>${receiptData.transactionId}</span>
             </div>
-            
-            <div class="section">
-                <h3>Property Owner Information</h3>
-                <div class="info-row"><strong>Name:</strong> ${payment.payeeId?.firstName || ''} ${payment.payeeId?.lastName || ''}</div>
-                <div class="info-row"><strong>Email:</strong> ${payment.payeeId?.email || 'N/A'}</div>
+            <div class="detail-row">
+                <span class="detail-label">Payer:</span>
+                <span>${receiptData.payerName}</span>
             </div>
-            
-            <div class="footer">
-                <p>This is a computer-generated receipt.</p>
-                <p>Generated on: ${new Date().toLocaleString()}</p>
+            <div class="detail-row">
+                <span class="detail-label">Payment Date:</span>
+                <span>${new Date(receiptData.paymentDate).toLocaleDateString()}</span>
             </div>
-            
-            <div class="redirect-info">
-                <p><strong>Your payment was successful!</strong></p>
-                <p>The PDF receipt will download automatically, and you'll be redirected back to your dashboard in a few seconds.</p>
-                <button class="download-btn" onclick="downloadPDF()">Download PDF Again</button>
-                <button class="download-btn" onclick="redirectNow()">Go to Dashboard</button>
+            <div class="detail-row">
+                <span class="detail-label">Property Address:</span>
+                <span>${receiptData.propertyAddress}</span>
             </div>
         </div>
-        
-        <script>
-            function downloadPDF() {
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
-                
-                // Header
-                doc.setFontSize(20);
-                doc.text('PAYMENT RECEIPT', 105, 30, { align: 'center' });
-                
-                let y = 60;
-                const lineHeight = 8;
-                
-                // Payment Information
-                doc.setFontSize(14);
-                doc.text('Payment Information', 20, y);
-                y += lineHeight + 5;
-                
-                doc.setFontSize(11);
-                const paymentInfo = [
-                    'Payment ID: ${payment.receiptData?.paymentId || payment._id}',
-                    'Transaction ID: ${payment.stripeDetails?.paymentIntentId || 'N/A'}',
-                    'Amount: BDT ${payment.amount.toLocaleString()}',
-                    'Payment Date: ${new Date(payment.paidAt || payment.createdAt).toLocaleDateString()}',
-                    'Payment Method: Credit/Debit Card',
-                    'Payment Status: Completed',
-                    'Payment Type: ${payment.type === 'advance_payment' ? 'Advance Payment' : 'Full Payment'}'
-                ];
-                
-                paymentInfo.forEach(info => {
-                    doc.text(info, 20, y);
-                    y += lineHeight;
-                });
-                
-                y += 10;
-                
-                // Property Information
-                doc.setFontSize(14);
-                doc.text('Property Information', 20, y);
-                y += lineHeight + 5;
-                
-                doc.setFontSize(11);
-                const propertyInfo = [
-                    'Property: ${request.propertyId?.title || 'N/A'}',
-                    'Address: ${request.propertyId?.address || request.propertyId?.location || 'N/A'}',
-                    'Property Price: BDT ${request.propertyId?.price?.toLocaleString() || 'N/A'}',
-                    'Listing Type: ${request.propertyId?.listingType || 'N/A'}'
-                ];
-                
-                propertyInfo.forEach(info => {
-                    doc.text(info, 20, y);
-                    y += lineHeight;
-                });
-                
-                y += 10;
-                
-                // Payer Information
-                doc.setFontSize(14);
-                doc.text('Payer Information', 20, y);
-                y += lineHeight + 5;
-                
-                doc.setFontSize(11);
-                const payerInfo = [
-                    'Name: ${payment.payerId?.firstName || ''} ${payment.payerId?.lastName || ''}',
-                    'Email: ${payment.payerId?.email || 'N/A'}'
-                ];
-                
-                payerInfo.forEach(info => {
-                    doc.text(info, 20, y);
-                    y += lineHeight;
-                });
-                
-                y += 10;
-                
-                // Property Owner Information
-                doc.setFontSize(14);
-                doc.text('Property Owner Information', 20, y);
-                y += lineHeight + 5;
-                
-                doc.setFontSize(11);
-                const payeeInfo = [
-                    'Name: ${payment.payeeId?.firstName || ''} ${payment.payeeId?.lastName || ''}',
-                    'Email: ${payment.payeeId?.email || 'N/A'}'
-                ];
-                
-                payeeInfo.forEach(info => {
-                    doc.text(info, 20, y);
-                    y += lineHeight;
-                });
-                
-                // Footer
-                y += 20;
-                doc.setFontSize(10);
-                doc.text('This is a computer-generated receipt.', 105, y, { align: 'center' });
-                doc.text('Generated on: ${new Date().toLocaleString()}', 105, y + 10, { align: 'center' });
-                
-                // Save the PDF
-                doc.save('${filename}');
-            }
-            
-            function redirectNow() {
-                window.location.href = '${redirectUrl}/tenant/request-info?payment=success';
-            }
-            
-            // Auto-download PDF and redirect after 3 seconds
-            window.onload = function() {
-                setTimeout(function() {
-                    downloadPDF();
-                    setTimeout(function() {
-                        redirectNow();
-                    }, 2000);
-                }, 1000);
-            };
-        </script>
+
+        <div class="footer">
+            <p>This is an official receipt from Home Management System</p>
+            <p>Generated on: ${new Date(receiptData.generatedAt).toLocaleString()}</p>
+            <p>For support, please contact our customer service team.</p>
+        </div>
     </body>
     </html>
     `;
+
+    // Launch Puppeteer
+    console.log('🚀 Launching Puppeteer...');
+    browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
     
-    // Send HTML response
-    res.setHeader('Content-Type', 'text/html');
-    res.send(htmlContent);
+    const page = await browser.newPage();
+    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
     
-    console.log('PDF receipt generated and sent for session:', session_id);
+    // Generate PDF
+    console.log('📄 Generating PDF...');
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: {
+        top: '20px',
+        right: '20px',
+        bottom: '20px',
+        left: '20px'
+      }
+    });
+    
+    await browser.close();
+    
+    // Set headers for file download
+    const filename = `payment-receipt-${receiptData.paymentId}.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    
+    // Send the PDF
+    res.send(pdfBuffer);
+    console.log('✅ PDF generated and sent successfully');
     
   } catch (error) {
-    console.error('Error generating PDF receipt:', error);
+    console.error('❌ Error generating PDF:', error);
     
-    // Fallback redirect on error
-    const redirectUrl = req.query.originUrl || process.env.FRONTEND_URL || 'http://localhost:5173';
-    res.redirect(`${redirectUrl}/tenant/request-info?payment=success&pdf_error=true`);
+    if (browser) {
+      await browser.close();
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: 'Failed to generate PDF: ' + error.message
+    });
+  }
+};
+
+// Create a test payment record for testing PDF generation
+const createTestPayment = async (req, res) => {
+  try {
+    console.log('🧪 Creating test payment record...');
+    
+    // Create a test payment record with a known session ID
+    const testSessionId = 'cs_test_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    
+    // First create a test request record
+    const testRequest = await Request.create({
+      propertyId: '507f1f77bcf86cd799439011', // Mock ObjectId
+      ownerId: '507f1f77bcf86cd799439013', // Mock ObjectId
+      tenantId: '507f1f77bcf86cd799439012', // Mock ObjectId
+      requestType: 'Buy',
+      payload: {
+        familyMembers: [{
+          name: 'John Doe',
+          relation: 'Self',
+          age: 30
+        }],
+        belongings: {
+          items: ['Furniture', 'Electronics'],
+          hasPets: false,
+          petDetails: '',
+          hasVehicle: false,
+          vehicleDetails: ''
+        },
+        occupation: {
+          employmentType: 'employed',
+          role: 'Software Engineer',
+          yearsOfExperience: 5,
+          companyName: 'Test Company',
+          companyAddress: 'Test Address',
+          supervisorName: 'Test Supervisor',
+          supervisorContact: 'test@example.com'
+        },
+        identity: {
+          nidFileUrl: 'https://example.com/test-nid.jpg',
+          tinFileUrl: 'https://example.com/test-tin.jpg',
+          personalPhotoUrl: 'https://example.com/test-photo.jpg'
+        },
+        financials: {
+          monthlyIncome: 50000,
+          bankName: 'Test Bank',
+          accountNumber: '1234567890',
+          creditScore: 750,
+          additionalIncome: 10000,
+          incomeSource: 'Freelancing'
+        },
+        letterToOwner: 'This is a test letter to the owner for PDF generation testing purposes. I am interested in this property and would like to proceed with the rental process.'
+      },
+      consent: {
+        agreed: true,
+        version: 'v1.0',
+        timestamp: new Date(),
+        ipAddress: '127.0.0.1',
+        userAgent: 'Test User Agent'
+      },
+      status: 'Paid/Completed'
+    });
+    
+    // Create a test payment record
+    const testPayment = await Payment.create({
+      requestId: testRequest._id,
+      propertyId: testRequest.propertyId,
+      payerId: testRequest.tenantId,
+      payeeId: testRequest.ownerId,
+      type: 'advance_payment',
+      status: 'completed',
+      method: 'stripe',
+      amount: 50000,
+      currency: 'BDT',
+      description: 'Test advance payment for PDF generation',
+      stripeDetails: {
+        sessionId: testSessionId,
+        paymentIntentId: 'pi_test_' + Date.now(),
+        chargeId: 'ch_test_' + Date.now()
+      },
+      paidAt: new Date()
+    });
+    
+    console.log('✅ Test payment created:', {
+      sessionId: testSessionId,
+      paymentId: testPayment._id,
+      requestId: testRequest._id
+    });
+    
+    res.json({
+      success: true,
+      message: 'Test payment created successfully',
+      data: {
+        sessionId: testSessionId,
+        paymentId: testPayment._id,
+        requestId: testRequest._id
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Error creating test payment:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create test payment: ' + error.message
+    });
   }
 };
 
 module.exports = {
-  generatePDFAndRedirect
+  generatePDFAndRedirect,
+  generatePDFServerSide,
+  createTestPayment
 };
