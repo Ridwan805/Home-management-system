@@ -27,7 +27,7 @@ const Wishlist = () => {
           return;
         }
 
-        const response = await fetch('http://localhost:5000/api/wishlist', {
+        const response = await fetch('http://localhost:5001/api/wishlist', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -67,7 +67,7 @@ const Wishlist = () => {
         return;
       }
 
-      const response = await fetch(`http://localhost:5000/api/wishlist/remove/${propertyId}`, {
+      const response = await fetch(`http://localhost:5001/api/wishlist/remove/${propertyId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -121,7 +121,7 @@ const Wishlist = () => {
             <div key={property._id} className="wishlist-item">
               <div className="wishlist-item-image">
                 {property.images && property.images.length > 0 ? (
-                  <img src={`http://localhost:5000${property.images[0]}`} alt={property.address} />
+                  <img src={`http://localhost:5001${property.images[0]}`} alt={property.address} />
                 ) : (
                   <div className="no-image">No Image Available</div>
                 )}

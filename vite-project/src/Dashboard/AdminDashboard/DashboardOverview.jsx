@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
+import API from '../../config/api';
 import { FaUsers, FaHome, FaHourglassHalf, FaCalendarCheck } from 'react-icons/fa';
 
 const DashboardOverview = () => {
@@ -24,7 +25,7 @@ const DashboardOverview = () => {
         return;
       }
       
-      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/admin/dashboard/stats`, {
+      const res = await axios.get(API.getUrl(API.endpoints.adminStats), {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       setStats(res.data);

@@ -20,7 +20,7 @@ const PendingProperties = () => {
         axios,
         {
           method: 'get',
-          url: 'http://localhost:5000/api/admin/properties/pending'
+          url: 'http://localhost:5001/api/admin/properties/pending'
         },
         navigate
       );
@@ -63,7 +63,7 @@ const PendingProperties = () => {
         axios,
         {
           method: 'put',
-          url: `http://localhost:5000/api/admin/properties/${id}/approve`,
+          url: `http://localhost:5001/api/admin/properties/${id}/approve`,
           data: { status: 'approved' }
         },
         navigate
@@ -99,7 +99,7 @@ const PendingProperties = () => {
         axios,
         {
           method: 'put',
-          url: `http://localhost:5000/api/admin/properties/${id}/approve`,
+          url: `http://localhost:5001/api/admin/properties/${id}/approve`,
           data: { status: 'rejected' }
         },
         navigate

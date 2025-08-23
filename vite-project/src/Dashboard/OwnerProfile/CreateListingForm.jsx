@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import API from '../../config/api';
+import './CreateListingForm.css';
 
 const initialState = {
   address: '',
@@ -83,7 +86,7 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
       // Append images
       imageFiles.forEach(file => formData.append('images', file));
       // Send request
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/properties`, {
+      const res = await fetch(API.getUrl(API.endpoints.properties), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

@@ -7,16 +7,7 @@ const path = require('path');
 const fs = require('fs');
 
 const app = express();
-// Allow dev front-end origins explicitly; fall back to permissive CORS in dev
-app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-    'http://localhost:5174',
-    'http://127.0.0.1:5174'
-  ],
-  credentials: true,
-}));
+app.use(cors());
 app.use(express.json());
 
 // MongoDB connection with fallback
@@ -81,11 +72,6 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 app.use('/uploads', express.static(uploadsDir));
-<<<<<<< HEAD
-app.use('/api', adminRoutes);
-// Use 5001 by default on macOS to avoid conflicts with system services using :5000
-const PORT = process.env.PORT || 5001;
-=======
 
 // Ensure tenant_pics directory exists and serve it statically
 const tenantPicsDir = path.resolve(__dirname, 'tenant_pics');
@@ -133,8 +119,7 @@ app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
 
-const PORT = process.env.PORT || 5000;
->>>>>>> main
+const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

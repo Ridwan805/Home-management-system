@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import SidebarNav from './SidebarNav';
 import OwnerProfile from './OwnerProfile';
+import API from '../../config/api';
 
 import './OwnerDashboard.css';
 import { useNavigate } from 'react-router-dom';
@@ -55,7 +56,7 @@ const OwnerDashboard = () => {
           window.location.href = '/login';
           throw new Error('Session expired or invalid. Please log in again.');
         }
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/properties/user`, {
+        const response = await fetch(API.getUrl(API.endpoints.userProperties), {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -84,7 +85,7 @@ const OwnerDashboard = () => {
         const token = getAuthToken();
         if (!token) return;
         
-        const response = await fetch('http://localhost:5000/api/request-management/owner-requests', {
+        const response = await fetch(API.getUrl(API.endpoints.ownerRequests), {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -113,7 +114,7 @@ const OwnerDashboard = () => {
       const token = localStorage.getItem('dwellSyncUser') ? JSON.parse(localStorage.getItem('dwellSyncUser')).token : null;
       if (!token) return;
 
-      const response = await fetch(`http://localhost:5000/api/requests/${requestId}/status`, {
+      const response = await fetch(API.getUrl(API.endpoints.requestStatus(requestId)), {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -124,7 +125,7 @@ const OwnerDashboard = () => {
 
       if (response.ok) {
         // Refresh requests
-        const requestsResponse = await fetch('http://localhost:5000/api/request-management/owner-requests', {
+        const requestsResponse = await fetch(API.getUrl(API.endpoints.ownerRequests), {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -188,7 +189,7 @@ const OwnerDashboard = () => {
                         <div key={property._id} className="property-card">
                           <div className="property-image">
                             {property.images?.length > 0 ? (
-                              <img src={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}${property.images[0]}`} alt="Property" />
+                              <img src={`${API.baseUrl}${property.images[0]}`} alt="Property" />
                             ) : (
                               <div className="property-placeholder">No Image Available</div>
                             )}

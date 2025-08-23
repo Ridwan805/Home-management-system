@@ -14,8 +14,7 @@ const HomePage = () => {
     const fetchTopProperties = async () => {
       try {
         setLoading(true);
-        const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
-        const response = await fetch(`${apiBase}/api/properties/top`);
+        const response = await fetch('http://localhost:5001/api/properties/top');
         if (!response.ok) {
           throw new Error('Failed to fetch properties');
         }
@@ -72,31 +71,6 @@ const HomePage = () => {
         </div>
       </section>
 
-<<<<<<< HEAD
-      {/* Recommendations Section */}
-      <section className="recommendations-section">
-        {loading ? (
-          <div className="recommendations-card">Loading top properties...</div>
-        ) : error ? (
-          <div className="recommendations-card">Error: {error}</div>
-        ) : recommended.length > 0 ? (
-          recommended.map((prop) => (
-            <div className="recommendations-card" key={prop._id}>
-              <div className="recommendation-badges">
-                <span className="badge green">Recommended</span>
-                <span className="badge orange">{prop.city || 'Preferred location'}</span>
-              </div>
-              <div className="recommendation-info">
-                <img 
-                  src={prop.images && prop.images.length > 0 ? `${(import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001')}${prop.images[0]}` : 'https://via.placeholder.com/120x80'} 
-                  alt="Home" 
-                  className="home-img" 
-                />
-                <div>
-                  <div className="price">${prop.price.toLocaleString()}</div>
-                  <div className="details">
-                    {prop.bedrooms} bd | {prop.bathrooms} ba | {prop.squareFootage} sqft | {prop.propertyType} for {prop.listingType}
-=======
       {/* Featured Properties Section */}
       <section className="featured-properties-section">
         <h2 className="section-title">Featured Properties</h2>
@@ -116,7 +90,7 @@ const HomePage = () => {
                 <div className="property-card" key={prop._id} onClick={() => navigate(`/properties/${prop._id}`)}>
                   <div className="property-image-container">
                     <img 
-                      src={prop.images && prop.images.length > 0 ? `http://localhost:5000${prop.images[0]}` : 'https://via.placeholder.com/400x300'} 
+                      src={prop.images && prop.images.length > 0 ? `http://localhost:5001${prop.images[0]}` : 'https://via.placeholder.com/400x300'} 
                       alt={prop.address} 
                       className="property-image" 
                     />
@@ -125,7 +99,6 @@ const HomePage = () => {
                       <span className="badge location">{prop.city || 'Preferred location'}</span>
                     </div>
                     <div className="property-type-badge">{prop.listingType}</div>
->>>>>>> main
                   </div>
                   <div className="property-details">
                     <h3 className="property-price">৳{prop.price.toLocaleString()}</h3>

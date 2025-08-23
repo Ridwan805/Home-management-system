@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
+import API from '../../config/api';
 import { FaTrash, FaBan, FaExclamationTriangle, FaFlag, FaUser, FaExclamationCircle } from 'react-icons/fa';
 
 const ReportManagement = () => {
@@ -20,7 +21,7 @@ const ReportManagement = () => {
         return;
       }
       
-      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/admin/reports`, {
+      const res = await axios.get(API.getUrl(API.endpoints.reports), {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       setReports(res.data);
@@ -46,7 +47,7 @@ const ReportManagement = () => {
         return;
       }
       
-      await axios.delete(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/admin/reports/${id}`, {
+      await axios.delete(API.getUrl(API.endpoints.deleteReport(id)), {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       setReports(reports.filter(report => report._id !== id));
@@ -69,7 +70,7 @@ const ReportManagement = () => {
         return;
       }
       
-      await axios.put(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/admin/users/${userId}/ban`, {}, {
+      await axios.put(API.getUrl(API.endpoints.banUser(userId)), {}, {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       // Update UI to show user is banned
@@ -98,7 +99,7 @@ const ReportManagement = () => {
         return;
       }
       
-      await axios.put(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/admin/reports/${reportId}/escalate`, {}, {
+      await axios.put(API.getUrl(API.endpoints.escalateReport(reportId)), {}, {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       // Update UI to show report is escalated

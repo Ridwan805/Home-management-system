@@ -19,7 +19,7 @@ const TenantProfile = () => {
         if (!saved) throw new Error("User not logged in");
         const token = JSON.parse(saved).token;
 
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/auth/me`, {
+        const res = await fetch('http://localhost:5001/api/auth/me', {
           headers: { Authorization: `Bearer ${token}` }
         });
 
@@ -47,7 +47,7 @@ const TenantProfile = () => {
     try {
       const token = JSON.parse(localStorage.getItem('dwellSyncUser')).token;
 
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/auth/update`, {
+      const res = await fetch('http://localhost:5001/api/auth/update', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

@@ -45,6 +45,20 @@ const MobileBankingDetailsSchema = new mongoose.Schema({
   receiverNumber: { type: String }
 }, { _id: false });
 
+// Receipt data schema
+const ReceiptDataSchema = new mongoose.Schema({
+  paymentId: { type: String },
+  propertyTitle: { type: String },
+  propertyAddress: { type: String },
+  amount: { type: Number },
+  currency: { type: String },
+  paymentDate: { type: Date },
+  paymentMethod: { type: String },
+  paymentStatus: { type: String },
+  transactionId: { type: String },
+  receiptUrl: { type: String }
+}, { _id: false });
+
 // Main Payment schema
 const PaymentSchema = new mongoose.Schema({
   // Unique payment identifier
@@ -79,6 +93,9 @@ const PaymentSchema = new mongoose.Schema({
   stripeDetails: StripeDetailsSchema,
   bankTransferDetails: BankTransferDetailsSchema,
   mobileBankingDetails: MobileBankingDetailsSchema,
+  
+  // Receipt data
+  receiptData: ReceiptDataSchema,
   
   // Proof and verification
   proofUrls: [{ type: String }], // URLs to payment proof documents

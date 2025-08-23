@@ -20,9 +20,19 @@ function authorizeRole(roles) {
       if (!tokenRole) return res.status(403).json({ error: 'Forbidden' });
       const allowed = roles.map(r => String(r).toLowerCase());
       const normalized = String(tokenRole).toLowerCase();
+      
+      // Debug log to help troubleshoot role issues
+      console.log('Role check:', { 
+        userRole: tokenRole, 
+        normalizedRole: normalized, 
+        allowedRoles: allowed, 
+        isAllowed: allowed.includes(normalized) 
+      });
+      
       if (!allowed.includes(normalized)) return res.status(403).json({ error: 'Forbidden' });
       return next();
-    } catch {
+    } catch (error) {
+      console.error('Role authorization error:', error);
       return res.status(403).json({ error: 'Forbidden' });
     }
   };

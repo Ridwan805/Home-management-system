@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import './MyRequests.css';
 import { authenticatedFetch } from '../../utils/apiUtils.js';
+import { FaDownload, FaUpload, FaReceipt } from 'react-icons/fa';
 
 const MyRequests = () => {
   const [requests, setRequests] = useState([]);
@@ -12,12 +13,15 @@ const MyRequests = () => {
   const [showModal, setShowModal] = useState(false);
   const [stats, setStats] = useState({});
   const [showPaymentProofModal, setShowPaymentProofModal] = useState(false);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentProofForm, setPaymentProofForm] = useState({
     proofFile: null,
     note: ''
   });
   const [uploadLoading, setUploadLoading] = useState(false);
+  const [paymentReceipt, setPaymentReceipt] = useState(null);
+  const [receiptLoading, setReceiptLoading] = useState(false);
 
   const statusFilters = [
     { key: 'all', label: 'All Requests' },
@@ -59,7 +63,7 @@ const MyRequests = () => {
       const statusParam = selectedStatus !== 'all' ? `?status=${encodeURIComponent(selectedStatus)}` : '';
       
       const data = await authenticatedFetch(
-        `http://localhost:5000/api/request-management/my-requests${statusParam}`,
+        `http://localhost:5001/api/request-management/my-requests${statusParam}`,
         { method: 'GET' },
         navigate
       );
@@ -75,17 +79,21 @@ const MyRequests = () => {
 
   const fetchStats = async () => {
     try {
+      console.log('Fetching request stats...');
       const data = await authenticatedFetch(
-        'http://localhost:5000/api/requests/stats',
+        'http://localhost:5001/api/requests/stats',
         { method: 'GET' },
         navigate
       );
       
+      console.log('Stats received:', data);
       setStats(data.statusBreakdown || {});
     } catch (err) {
       console.error('Error fetching stats:', err);
       // We don't set an error state here as this is a secondary feature
       // and we don't want to block the main functionality
+      // Initialize with empty stats to prevent UI issues
+      setStats({});
     }
   };
 
@@ -125,7 +133,7 @@ const MyRequests = () => {
       const userData = JSON.parse(localStorage.getItem('dwellSyncUser'));
       const token = userData?.token;
 
-      const response = await fetch(`http://localhost:5000/api/request-management/my-requests/${requestId}/cancel`, {
+      const response = await fetch(`http://localhost:5001/api/request-management/my-requests/${requestId}/cancel`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -165,7 +173,7 @@ const MyRequests = () => {
       console.log('🔄 Creating payment session for request:', requestId);
 
       // Create Stripe payment session
-      const response = await fetch(`http://localhost:5000/api/stripe/create-payment-session/${requestId}`, {
+      const response = await fetch(`http://localhost:5001/api/stripe/create-payment-session/${requestId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -197,6 +205,53 @@ const MyRequests = () => {
     }
   };
 
+  // Handle receipt download
+  const handleGetReceipt = async (paymentId) => {
+    try {
+      setReceiptLoading(true);
+      const userData = JSON.parse(localStorage.getItem('dwellSyncUser'));
+      const token = userData?.token;
+
+      if (!token) {
+        alert('Please log in to view receipt');
+        return;
+      }
+
+      const response = await fetch(`http://localhost:5001/api/stripe/receipt/${paymentId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setPaymentReceipt(data);
+        
+        // If there's a direct receipt URL from Stripe, open it in a new tab
+        if (data.receiptUrl) {
+          window.open(data.receiptUrl, '_blank');
+        } else if (data.receiptData) {
+          // Otherwise, display the receipt data in a modal
+          setShowReceiptModal(true);
+        }
+      } else {
+        alert(data.message || 'Failed to retrieve receipt');
+      }
+    } catch (err) {
+      console.error('Error retrieving receipt:', err);
+      alert('Failed to retrieve receipt. Please try again.');
+    } finally {
+      setReceiptLoading(false);
+    }
+  };
+
   const handleUploadPaymentProof = () => {
     setShowPaymentProofModal(true);
   };
@@ -224,7 +279,7 @@ const MyRequests = () => {
       formData.append('file', paymentProofForm.proofFile);
       formData.append('type', 'payment-proof');
 
-      const uploadResponse = await fetch('http://localhost:5000/api/upload', {
+      const uploadResponse = await fetch('http://localhost:5001/api/upload', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -239,7 +294,7 @@ const MyRequests = () => {
       const uploadData = await uploadResponse.json();
       
       // Then submit payment proof
-      const proofResponse = await fetch(`http://localhost:5000/api/requests/${selectedRequest.requestId}/payment-proof`, {
+      const proofResponse = await fetch(`http://localhost:5001/api/requests/${selectedRequest.requestId}/payment-proof`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -356,7 +411,7 @@ const MyRequests = () => {
               <div className="request-image">
                 {request.propertyId?.images && request.propertyId.images.length > 0 ? (
                   <img 
-                    src={`http://localhost:5000/${request.propertyId.images[0]}`} 
+                    src={`http://localhost:5001/${request.propertyId.images[0]}`} 
                     alt={request.propertyId.address}
                   />
                 ) : (
@@ -432,7 +487,7 @@ const MyRequests = () => {
               {selectedRequest.propertyId?.images && selectedRequest.propertyId.images.length > 0 && (
                 <div className="modal-property-image">
                   <img 
-                    src={`http://localhost:5000/${selectedRequest.propertyId.images[0]}`} 
+                    src={`http://localhost:5001/${selectedRequest.propertyId.images[0]}`} 
                     alt={selectedRequest.propertyId.address}
                   />
                 </div>
@@ -520,9 +575,19 @@ const MyRequests = () => {
                         className="upload-proof-btn"
                         onClick={handleUploadPaymentProof}
                       >
-                        Upload Payment Proof
+                        <FaUpload /> Upload Payment Proof
                       </button>
                     </>
+                  )}
+                  
+                  {selectedRequest.status === 'Advance Payment Received' && (
+                    <button 
+                      className="download-receipt-btn"
+                      onClick={() => handleGetReceipt(selectedRequest.advancePayment?.paymentId)}
+                      disabled={receiptLoading}
+                    >
+                      {receiptLoading ? 'Loading...' : <><FaReceipt /> Download Receipt</>}
+                    </button>
                   )}
                 </div>
               </div>
@@ -605,6 +670,96 @@ const MyRequests = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Receipt Modal */}
+      {showReceiptModal && paymentReceipt && (
+        <div className="modal-overlay">
+          <div className="modal receipt-modal">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h3>Payment Receipt</h3>
+                <button 
+                  className="close-btn" 
+                  onClick={() => setShowReceiptModal(false)}
+                >
+                  ×
+                </button>
+              </div>
+              
+              <div className="modal-body receipt-body">
+                <div className="receipt-container">
+                  <div className="receipt-header">
+                    <h2>Payment Receipt</h2>
+                    <p className="receipt-id">Receipt ID: {paymentReceipt.receiptData?.paymentId || 'N/A'}</p>
+                  </div>
+                  
+                  <div className="receipt-details">
+                    <div className="receipt-row">
+                      <span className="receipt-label">Property:</span>
+                      <span className="receipt-value">{paymentReceipt.receiptData?.propertyTitle || 'N/A'}</span>
+                    </div>
+                    <div className="receipt-row">
+                      <span className="receipt-label">Address:</span>
+                      <span className="receipt-value">{paymentReceipt.receiptData?.propertyAddress || 'N/A'}</span>
+                    </div>
+                    <div className="receipt-row">
+                      <span className="receipt-label">Amount:</span>
+                      <span className="receipt-value">{paymentReceipt.receiptData?.currency || '৳'} {paymentReceipt.receiptData?.amount?.toLocaleString() || 'N/A'}</span>
+                    </div>
+                    <div className="receipt-row">
+                      <span className="receipt-label">Payment Date:</span>
+                      <span className="receipt-value">{paymentReceipt.receiptData?.paymentDate ? formatDate(paymentReceipt.receiptData.paymentDate) : 'N/A'}</span>
+                    </div>
+                    <div className="receipt-row">
+                      <span className="receipt-label">Payment Method:</span>
+                      <span className="receipt-value">{paymentReceipt.receiptData?.paymentMethod || 'N/A'}</span>
+                    </div>
+                    <div className="receipt-row">
+                      <span className="receipt-label">Status:</span>
+                      <span className="receipt-value receipt-status">{paymentReceipt.receiptData?.paymentStatus || 'N/A'}</span>
+                    </div>
+                    <div className="receipt-row">
+                      <span className="receipt-label">Transaction ID:</span>
+                      <span className="receipt-value">{paymentReceipt.receiptData?.transactionId || 'N/A'}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="receipt-footer">
+                    <p>Thank you for your payment!</p>
+                    <p className="receipt-timestamp">Generated on: {new Date().toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="modal-actions">
+                <button 
+                  type="button" 
+                  className="close-btn" 
+                  onClick={() => setShowReceiptModal(false)}
+                >
+                  Close
+                </button>
+                {paymentReceipt.receiptUrl && (
+                  <button 
+                    type="button" 
+                    className="download-btn" 
+                    onClick={() => window.open(paymentReceipt.receiptUrl, '_blank')}
+                  >
+                    <FaDownload /> Download Official Receipt
+                  </button>
+                )}
+                <button 
+                  type="button" 
+                  className="print-btn" 
+                  onClick={() => window.print()}
+                >
+                  Print Receipt
+                </button>
+              </div>
             </div>
           </div>
         </div>

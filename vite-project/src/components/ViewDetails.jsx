@@ -20,7 +20,7 @@ const ViewDetails = () => {
     const fetchPropertyDetails = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/properties/${propertyId}`);
+        const response = await fetch(`http://localhost:5001/api/properties/${propertyId}`);
         
         if (!response.ok) {
           throw new Error('Failed to fetch property details');
@@ -57,7 +57,7 @@ const ViewDetails = () => {
         const token = user.token;
         if (!token) return;
 
-        const response = await fetch('http://localhost:5000/api/wishlist', {
+        const response = await fetch('http://localhost:5001/api/wishlist', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -102,7 +102,7 @@ const ViewDetails = () => {
 
       if (isInWishlist) {
         // Remove from wishlist
-        const response = await fetch(`http://localhost:5000/api/wishlist/remove/${propertyId}`, {
+        const response = await fetch(`http://localhost:5001/api/wishlist/remove/${propertyId}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`
@@ -118,7 +118,7 @@ const ViewDetails = () => {
         }
       } else {
         // Add to wishlist
-        const response = await fetch('http://localhost:5000/api/wishlist/add', {
+        const response = await fetch('http://localhost:5001/api/wishlist/add', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -219,7 +219,7 @@ const ViewDetails = () => {
         {property.images && property.images.length > 0 ? (
           <div className="property-image-gallery">
             <img 
-              src={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}${property.images[0]}`} 
+              src={`http://localhost:5001${property.images[0]}`} 
               alt="Property" 
               className="main-property-image"
             />
@@ -228,7 +228,7 @@ const ViewDetails = () => {
                 {property.images.slice(1).map((image, index) => (
                   <img 
                     key={index} 
-                    src={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}${image}`} 
+                    src={`http://localhost:5001${image}`} 
                     alt={`Property ${index + 2}`} 
                     className="property-thumbnail"
                   />

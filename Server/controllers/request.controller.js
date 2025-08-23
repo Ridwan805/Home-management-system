@@ -580,16 +580,32 @@ const addInternalNote = async (req, res) => {
 // Get request statistics
 const getRequestStats = async (req, res) => {
   try {
+    console.log('📊 Getting request stats for user');
     const userId = req.user.userId;
     const userRole = req.user.role;
+    
+    console.log('📊 User info:', { userId, userRole });
 
     let matchFilter = {};
-    if (userRole === 'Tenant') {
-      matchFilter.tenantId = new mongoose.Types.ObjectId(userId);
-    } else if (userRole === 'Owner') {
-      matchFilter.ownerId = new mongoose.Types.ObjectId(userId);
+    try {
+      if (userRole === 'Tenant') {
+        matchFilter.tenantId = new mongoose.Types.ObjectId(userId);
+      } else if (userRole === 'Owner') {
+        matchFilter.ownerId = new mongoose.Types.ObjectId(userId);
+      }
+      console.log('📊 Match filter:', matchFilter);
+    } catch (err) {
+      console.error('📊 Error creating ObjectId:', err);
+      // Fallback to string comparison if ObjectId fails
+      if (userRole === 'Tenant') {
+        matchFilter.tenantId = userId;
+      } else if (userRole === 'Owner') {
+        matchFilter.ownerId = userId;
+      }
+      console.log('📊 Fallback match filter:', matchFilter);
     }
 
+    console.log('📊 Running aggregate query...');
     const stats = await Request.aggregate([
       { $match: matchFilter },
       {
@@ -599,18 +615,24 @@ const getRequestStats = async (req, res) => {
         }
       }
     ]);
+    
+    console.log('📊 Aggregate results:', stats);
 
     const totalRequests = await Request.countDocuments(matchFilter);
+    console.log('📊 Total requests:', totalRequests);
 
-    res.json({
+    const response = {
       totalRequests,
       statusBreakdown: stats.reduce((acc, stat) => {
         acc[stat._id] = stat.count;
         return acc;
       }, {})
-    });
+    };
+    
+    console.log('📊 Sending response:', response);
+    res.json(response);
   } catch (error) {
-    console.error('Error fetching stats:', error);
+    console.error('📊 Error fetching stats:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };

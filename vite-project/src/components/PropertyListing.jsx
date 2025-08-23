@@ -4,7 +4,7 @@ import './PropertyListing.css';
 import PropertyCard from './PropertyCard';
 import EditPropertyModal from './EditPropertyModal';
 
-const API_BASE = 'http://localhost:5000/api/properties';
+const API_BASE = 'http://localhost:5001/api/properties';
 
 const PropertyListing = () => {
   const location = useLocation();
@@ -272,7 +272,7 @@ const PropertyListing = () => {
             {selectedProperty.images && selectedProperty.images.length > 0 && (
               <div className="modal-image-gallery">
                 {selectedProperty.images.map((image, index) => (
-                  <img key={index} src={`http://localhost:5000${image}`} alt={`Property ${index + 1}`} />
+                  <img key={index} src={`http://localhost:5001${image}`} alt={`Property ${index + 1}`} />
                 ))}
               </div>
             )}

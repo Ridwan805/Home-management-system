@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import API from '../../config/api';
 import './PropertyDetails.css';
 
 const PropertyDetails = () => {
@@ -25,15 +27,9 @@ const PropertyDetails = () => {
           setLoading(false);
           return;
         }
-<<<<<<< HEAD:vite-project/src/Dashboard/PropertyDetails.jsx
-        
-        const user = JSON.parse(userData);
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/properties/user`, {
-=======
 
-        const response = await fetch('http://localhost:5000/api/properties/user', {
+        const response = await fetch(API.getUrl(API.endpoints.userProperties), {
           method: 'GET',
->>>>>>> main:vite-project/src/Dashboard/OwnerProfile/PropertyDetails.jsx
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -152,11 +148,7 @@ const PropertyDetails = () => {
         }
       });
 
-<<<<<<< HEAD:vite-project/src/Dashboard/PropertyDetails.jsx
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/properties/${editingProperty}`, {
-=======
-      const response = await fetch(`http://localhost:5000/api/properties/${editingProperty._id}`, {
->>>>>>> main:vite-project/src/Dashboard/OwnerProfile/PropertyDetails.jsx
+      const response = await fetch(API.getUrl(API.endpoints.propertyById(editingProperty._id)), {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -187,18 +179,8 @@ const PropertyDetails = () => {
 
   const handleDeleteProperty = async (propertyId) => {
     try {
-<<<<<<< HEAD:vite-project/src/Dashboard/PropertyDetails.jsx
-      const userData = localStorage.getItem('dwellSyncUser');
-      if (!userData) {
-        throw new Error('User not logged in');
-      }
-      
-      const user = JSON.parse(userData);
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/properties/${propertyId}`, {
-=======
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/properties/${propertyId}`, {
->>>>>>> main:vite-project/src/Dashboard/OwnerProfile/PropertyDetails.jsx
+      const response = await fetch(API.getUrl(API.endpoints.propertyById(propertyId)), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -220,20 +202,9 @@ const PropertyDetails = () => {
 
   const handleStatusUpdate = async (propertyId, newStatus) => {
     try {
-<<<<<<< HEAD:vite-project/src/Dashboard/PropertyDetails.jsx
-      const userData = localStorage.getItem('dwellSyncUser');
-      if (!userData) {
-        throw new Error('User not logged in');
-      }
-      
-      const user = JSON.parse(userData);
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/properties/${propertyId}/status`, {
-        method: 'PUT',
-=======
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/properties/${propertyId}/status`, {
+      const response = await fetch(API.getUrl(API.endpoints.propertyStatus(propertyId)), {
         method: 'PATCH',
->>>>>>> main:vite-project/src/Dashboard/OwnerProfile/PropertyDetails.jsx
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -281,7 +252,7 @@ const PropertyDetails = () => {
             <div key={property._id} className="property-card">
               <div className="property-image">
                 {property.images && property.images.length > 0 ? (
-                  <img src={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}${property.images[0]}`} alt="Property" />
+                  <img src={`${API.baseUrl}${property.images[0]}`} alt="Property" />
                 ) : (
                   <div className="property-placeholder">No Image Available</div>
                 )}
@@ -385,7 +356,7 @@ const PropertyDetails = () => {
             {selectedProperty.images && selectedProperty.images.length > 0 && (
               <div className="modal-image-gallery">
                 {selectedProperty.images.map((image, index) => (
-                  <img key={index} src={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}${image}`} alt={`Property ${index + 1}`} />
+                  <img key={index} src={`${API.baseUrl}${image}`} alt={`Property ${index + 1}`} />
                 ))}
               </div>
             )}
@@ -625,25 +596,6 @@ const PropertyDetails = () => {
                   accept="image/*"
                   onChange={handleImageChange}
                 />
-<<<<<<< HEAD:vite-project/src/Dashboard/PropertyDetails.jsx
-                {formData.images && formData.images.length > 0 && (
-                  <div className="current-images">
-                    {formData.images.map((image, index) => (
-                      <div key={index} className="current-image-item">
-                        <img src={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}${image}`} alt={`Current ${index + 1}`} />
-                        <button 
-                          type="button" 
-                          className="remove-image-btn" 
-                          onClick={() => handleRemoveImage(index)}
-                        >
-                          &times;
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-=======
->>>>>>> main:vite-project/src/Dashboard/OwnerProfile/PropertyDetails.jsx
               </div>
 
               <div className="form-actions">
