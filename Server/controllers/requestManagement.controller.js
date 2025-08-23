@@ -6,8 +6,19 @@ const User = require('../models/User');
 const getMyRequests = async (req, res) => {
   try {
     const tenantId = req.user.userId;
+    const { status } = req.query;
     
-    const requests = await Request.find({ tenantId })
+    // Build query object
+    const query = { tenantId };
+    
+    // Add status filter if provided
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+    
+    console.log('🔍 Fetching tenant requests with query:', query);
+    
+    const requests = await Request.find(query)
       .populate('propertyId', 'address city state rent buyPrice images')
       .populate('ownerId', 'firstName lastName email')
       .sort({ createdAt: -1 });

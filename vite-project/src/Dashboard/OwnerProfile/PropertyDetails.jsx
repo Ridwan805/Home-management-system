@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import API from '../../config/api';
 import './PropertyDetails.css';
 
 const PropertyDetails = () => {
@@ -26,7 +28,7 @@ const PropertyDetails = () => {
           return;
         }
 
-        const response = await fetch('http://localhost:5000/api/properties/user', {
+        const response = await fetch(API.getUrl(API.endpoints.userProperties), {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -146,7 +148,7 @@ const PropertyDetails = () => {
         }
       });
 
-      const response = await fetch(`http://localhost:5000/api/properties/${editingProperty._id}`, {
+      const response = await fetch(API.getUrl(API.endpoints.propertyById(editingProperty._id)), {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -178,7 +180,7 @@ const PropertyDetails = () => {
   const handleDeleteProperty = async (propertyId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/properties/${propertyId}`, {
+      const response = await fetch(API.getUrl(API.endpoints.propertyById(propertyId)), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -201,7 +203,7 @@ const PropertyDetails = () => {
   const handleStatusUpdate = async (propertyId, newStatus) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/properties/${propertyId}/status`, {
+      const response = await fetch(API.getUrl(API.endpoints.propertyStatus(propertyId)), {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -250,7 +252,7 @@ const PropertyDetails = () => {
             <div key={property._id} className="property-card">
               <div className="property-image">
                 {property.images && property.images.length > 0 ? (
-                  <img src={`http://localhost:5000${property.images[0]}`} alt="Property" />
+                  <img src={`${API.baseUrl}${property.images[0]}`} alt="Property" />
                 ) : (
                   <div className="property-placeholder">No Image Available</div>
                 )}
@@ -354,7 +356,7 @@ const PropertyDetails = () => {
             {selectedProperty.images && selectedProperty.images.length > 0 && (
               <div className="modal-image-gallery">
                 {selectedProperty.images.map((image, index) => (
-                  <img key={index} src={`http://localhost:5000${image}`} alt={`Property ${index + 1}`} />
+                  <img key={index} src={`${API.baseUrl}${image}`} alt={`Property ${index + 1}`} />
                 ))}
               </div>
             )}

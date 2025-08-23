@@ -79,17 +79,21 @@ const MyRequests = () => {
 
   const fetchStats = async () => {
     try {
+      console.log('Fetching request stats...');
       const data = await authenticatedFetch(
         'http://localhost:5001/api/requests/stats',
         { method: 'GET' },
         navigate
       );
       
+      console.log('Stats received:', data);
       setStats(data.statusBreakdown || {});
     } catch (err) {
       console.error('Error fetching stats:', err);
       // We don't set an error state here as this is a secondary feature
       // and we don't want to block the main functionality
+      // Initialize with empty stats to prevent UI issues
+      setStats({});
     }
   };
 

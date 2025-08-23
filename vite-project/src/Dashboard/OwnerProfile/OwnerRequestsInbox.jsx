@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import API from '../../config/api';
 import './OwnerRequestsInbox.css';
 
 const OwnerRequestsInbox = () => {
@@ -41,7 +42,7 @@ const OwnerRequestsInbox = () => {
         return;
       }
 
-      const response = await fetch('http://localhost:5000/api/request-management/owner-requests', {
+      const response = await fetch(API.getUrl(API.endpoints.ownerRequests), {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -91,7 +92,7 @@ const OwnerRequestsInbox = () => {
       const token = getAuthToken();
       if (!token) return;
       
-      const response = await fetch(`http://localhost:5000/api/request-management/${requestId}`, {
+      const response = await fetch(API.getUrl(API.endpoints.requestManagement(requestId)), {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -122,7 +123,7 @@ const OwnerRequestsInbox = () => {
       const token = getAuthToken();
       if (!token) return;
       
-      const response = await fetch(`http://localhost:5000/api/request-management/${requestId}/messages`, {
+      const response = await fetch(API.getUrl(API.endpoints.requestMessages(requestId)), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -153,7 +154,7 @@ const OwnerRequestsInbox = () => {
       const token = getAuthToken();
       if (!token) return;
       
-      await fetch(`http://localhost:5000/api/request-management/${requestId}/messages/read`, {
+      await fetch(API.getUrl(API.endpoints.readMessages(requestId)), {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -222,7 +223,7 @@ const OwnerRequestsInbox = () => {
         return;
       }
       
-      const response = await fetch(`http://localhost:5000/api/requests/${requestId}/status`, {
+      const response = await fetch(API.getUrl(API.endpoints.requestStatus(requestId)), {
          method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -288,7 +289,7 @@ const OwnerRequestsInbox = () => {
       const user = JSON.parse(userData);
       const token = user.token;
       
-      const response = await fetch(`http://localhost:5000/api/request-management/owner-requests/${selectedRequestForReject}/reject`, {
+      const response = await fetch(API.getUrl(API.endpoints.rejectRequest(selectedRequestForReject)), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -328,7 +329,7 @@ const OwnerRequestsInbox = () => {
     setActionLoading(true);
     try {
       const token = getAuthToken();
-      const response = await fetch(`http://localhost:5000/api/requests/${requestId}/status`, {
+      const response = await fetch(API.getUrl(API.endpoints.requestStatus(requestId)), {
          method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -366,7 +367,7 @@ const OwnerRequestsInbox = () => {
     setActionLoading(true);
     try {
       const token = getAuthToken();
-      const response = await fetch(`http://localhost:5000/api/request-management/owner-requests/${requestId}/status`, {
+      const response = await fetch(API.getUrl(API.endpoints.requestStatusUpdate(requestId)), {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -423,7 +424,7 @@ const OwnerRequestsInbox = () => {
       const user = JSON.parse(userData);
       const token = user.token;
       
-      const response = await fetch(`http://localhost:5000/api/request-management/owner-requests/${selectedRequestForPayment}/advance-payment`, {
+      const response = await fetch(API.getUrl(API.endpoints.advancePayment(selectedRequestForPayment)), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
