@@ -31,6 +31,7 @@ const MyRequests = () => {
     { key: 'Info Requested', label: 'Info Requested' },
     { key: 'Approved – Pay Advance', label: 'Approved' },
     { key: 'Payment Submitted', label: 'Payment Submitted' },
+    { key: 'AdvancePaid', label: 'Advance Paid' },
     { key: 'Paid/Completed', label: 'Completed' },
     { key: 'Rejected', label: 'Rejected' },
     { key: 'Canceled', label: 'Canceled' }
@@ -123,6 +124,7 @@ const MyRequests = () => {
   const getStatusClass = (status) => {
     switch (status) {
       case 'Paid/Completed':
+      case 'AdvancePaid':
       case 'Approved – Pay Advance':
         return 'status-approved';
       case 'Submitted':
@@ -612,7 +614,7 @@ const MyRequests = () => {
                     </>
                   )}
                   
-                  {selectedRequest.status === 'Advance Payment Received' && (
+                  {(selectedRequest.status === 'Advance Payment Received' || selectedRequest.status === 'AdvancePaid') && (
                     <button 
                       className="download-receipt-btn"
                       onClick={() => handleGetReceipt(selectedRequest.advancePayment?.paymentId)}

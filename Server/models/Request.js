@@ -7,6 +7,7 @@ const VALID_STATUSES = [
   'Info Requested',
   'Approved – Pay Advance',
   'Payment Submitted',
+  'AdvancePaid',
   'Paid/Completed',
   'Rejected',
   'Canceled',
@@ -35,6 +36,7 @@ const MessageSchema = new mongoose.Schema({
 
 // Advance payment schema for handling payment details
 const AdvancePaymentSchema = new mongoose.Schema({
+  status: { type: String, enum: ['pending', 'Paid', 'failed'], default: 'pending' },
   amount: { type: Number, required: true },
   currency: { type: String, default: 'BDT' },
   dueDate: { type: Date, required: true },
@@ -43,6 +45,7 @@ const AdvancePaymentSchema = new mongoose.Schema({
   proofUrl: { type: String, default: '' },
   stripeSessionId: { type: String, default: '' },
   paymentIntentId: { type: String, default: '' },
+  paidAt: { type: Date },
   verifiedAt: { type: Date },
   verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   verificationNote: { type: String, default: '' }
