@@ -42,12 +42,6 @@ const PendingProperties = () => {
     try {
       setActionInProgress(true);
       
-
-      if (!user.token) {
-        setError('You must be logged in to perform this action');
-        return;
-      }
-      
       await authenticatedAxios(
         axios,
         {

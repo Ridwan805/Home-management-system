@@ -172,10 +172,9 @@ export default {
     
     // Property endpoints
     properties: '/api/properties',
-    userProperties: '/api/properties/user',
     propertyById: (id) => `/api/properties/${id}`,
-    propertyImages: (id) => `/api/properties/${id}/images`,
     propertyStatus: (id) => `/api/properties/${id}/status`,
+    userProperties: '/api/properties/user',
     
     // Request endpoints
     requests: '/api/requests',
@@ -195,13 +194,13 @@ export default {
     adminStats: '/api/admin/dashboard/stats',
     adminUsers: '/api/admin/users',
     banUser: (id) => `/api/admin/users/${id}/ban`,
-    pendingProperties: '/api/admin/properties/pending',
-    approveProperty: (id) => `/api/admin/properties/${id}/approve`,
     unbanUser: (id) => `/api/admin/users/${id}/unban`,
     deleteUser: (id) => `/api/admin/users/${id}`,
     reports: '/api/admin/reports',
     deleteReport: (id) => `/api/admin/reports/${id}`,
     escalateReport: (id) => `/api/admin/reports/${id}/escalate`,
+    pendingProperties: '/api/admin/properties/pending',
+    approveProperty: (id) => `/api/admin/properties/${id}/approve`,
   },
   
   // Helper function to get full URL for an endpoint

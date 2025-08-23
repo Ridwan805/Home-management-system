@@ -5,6 +5,8 @@ import PropertyCard from './PropertyCard';
 import EditPropertyModal from './EditPropertyModal';
 import API from '../config/api';
 
+// Using API configuration from config/api.js
+
 const PropertyListing = () => {
   const location = useLocation();
   const [properties, setProperties] = useState([]);
@@ -29,13 +31,12 @@ const PropertyListing = () => {
         
         // Fetch user's properties
         const user = JSON.parse(userData);
-        const url = API.baseUrl + API.endpoints.userProperties;
         const headers = {
           'Authorization': `Bearer ${user.token}`,
           'Content-Type': 'application/json'
         };
         
-        const response = await fetch(url, { headers });
+        const response = await fetch(API.baseUrl + API.endpoints.userProperties, { headers });
         
         if (!response.ok) {
           const errorData = await response.json();
