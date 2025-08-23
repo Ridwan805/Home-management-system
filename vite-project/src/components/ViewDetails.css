@@ -326,6 +326,23 @@
   border-color: #86efac;
 }
 
+.action-btn.already-applied {
+  background: #f3f4f6;
+  color: #6b7280;
+  border: 2px solid #d1d5db;
+  cursor: not-allowed;
+}
+
+.action-btn.already-applied:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.action-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 /* Loading and Error States */
 .loading-state,
 .error-state {

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import './MyRequests.css';
-import { authenticatedFetch } from '../../utils/apiUtils.js';
+import { authenticatedFetch } from '../../config/api.js';
+import API from '../../config/api.js';
 import { FaDownload, FaUpload, FaReceipt } from 'react-icons/fa';
 
 const MyRequests = () => {
@@ -45,9 +46,7 @@ const MyRequests = () => {
     const sessionId = urlParams.get('session_id');
     
     if (paymentStatus === 'success' && sessionId) {
-      alert('Payment completed successfully! Your request is being processed.');
-      // Clean up URL parameters
-      window.history.replaceState({}, document.title, window.location.pathname);
+      handlePaymentSuccess(sessionId);
     } else if (paymentStatus === 'cancelled') {
       alert('Payment was cancelled. You can try again anytime.');
       // Clean up URL parameters
@@ -56,6 +55,30 @@ const MyRequests = () => {
   }, [selectedStatus]);
 
   const navigate = useNavigate();
+
+  const handlePaymentSuccess = async (sessionId) => {
+    try {
+      alert('Payment completed successfully! Downloading your receipt...');
+      
+      // Trigger PDF download
+      const pdfUrl = `http://localhost:5001/api/pdf/generate-receipt?session_id=${sessionId}&originUrl=${encodeURIComponent(window.location.origin)}`;
+      
+      // Open PDF in new tab for download
+      window.open(pdfUrl, '_blank');
+      
+      // Refresh requests to show updated status
+      setTimeout(() => {
+        fetchRequests();
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Error handling payment success:', error);
+      alert('Payment was successful, but there was an issue downloading the receipt. You can download it later from your request details.');
+    } finally {
+      // Clean up URL parameters
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  };
 
   const fetchRequests = async () => {
     try {
@@ -178,14 +201,22 @@ const MyRequests = () => {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify({
+          originUrl: window.location.origin
+        })
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      console.log('🔍 Response status:', response.status);
+      console.log('🔍 Response headers:', response.headers);
 
       const data = await response.json();
+      console.log('🔍 Full response data:', data);
+
+      if (!response.ok) {
+        console.error('❌ HTTP Error:', response.status, data);
+        throw new Error(`HTTP error! status: ${response.status}, message: ${data.message || 'Unknown error'}`);
+      }
       
       console.log('💳 Payment session response:', data);
       
@@ -199,7 +230,8 @@ const MyRequests = () => {
       }
     } catch (err) {
       console.error('❌ Error creating payment session:', err);
-      alert('Failed to initiate payment. Please try again.');
+      console.error('❌ Error details:', err.message, err.stack);
+      alert('Failed to initiate payment. Please try again. Error: ' + err.message);
     } finally {
       setPaymentLoading(false);
     }
@@ -411,7 +443,7 @@ const MyRequests = () => {
               <div className="request-image">
                 {request.propertyId?.images && request.propertyId.images.length > 0 ? (
                   <img 
-                    src={`http://localhost:5001/${request.propertyId.images[0]}`} 
+                    src={`${API.baseUrl}${request.propertyId.images[0]}`} 
                     alt={request.propertyId.address}
                   />
                 ) : (
@@ -487,7 +519,7 @@ const MyRequests = () => {
               {selectedRequest.propertyId?.images && selectedRequest.propertyId.images.length > 0 && (
                 <div className="modal-property-image">
                   <img 
-                    src={`http://localhost:5001/${selectedRequest.propertyId.images[0]}`} 
+                    src={`${API.baseUrl}${selectedRequest.propertyId.images[0]}`} 
                     alt={selectedRequest.propertyId.address}
                   />
                 </div>
@@ -536,7 +568,7 @@ const MyRequests = () => {
                     <div className="property-info-grid">
                       <div className="info-item">
                         <span className="info-label">Amount</span>
-                        <span className="info-value">${selectedRequest.advancePayment.amount?.toLocaleString()}</span>
+                        <span className="info-value">{selectedRequest.advancePayment.amount?.toLocaleString()} {selectedRequest.advancePayment.currency || 'BDT'}</span>
                       </div>
                       <div className="info-item">
                         <span className="info-label">Due Date</span>

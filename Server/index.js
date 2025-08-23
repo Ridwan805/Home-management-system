@@ -33,6 +33,7 @@ const requestRoutes = require('./routes/request.routes');
 const stripeRoutes = require('./routes/stripe.routes');
 const uploadRoutes = require('./routes/upload.routes');
 const notificationRoutes = require('./routes/notifications');
+const pdfRoutes = require('./routes/pdf.routes');
 let requestManagementRoutes;
 try {
   requestManagementRoutes = require('./routes/requestManagement.routes');
@@ -62,6 +63,7 @@ app.use('/api/requests', requestRoutes);
 app.use('/api/stripe', stripeRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/pdf', pdfRoutes);
 console.log('🔧 Mounting request-management routes at /api/request-management');
 console.log('🔧 requestManagementRoutes value:', requestManagementRoutes);
 console.log('🔧 requestManagementRoutes type:', typeof requestManagementRoutes);

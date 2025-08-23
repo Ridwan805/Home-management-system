@@ -277,6 +277,37 @@ const UnifiedInquiryForm = ({ property, requestType, onClose, onSubmit }) => {
   const handleSubmit = async () => {
     if (!validateStep(currentStep)) return;
     
+    // Check if user has already applied to this property
+    try {
+      const userData = localStorage.getItem('dwellSyncUser');
+      if (userData) {
+        const user = JSON.parse(userData);
+        const token = user.token;
+        if (token) {
+          const response = await fetch('http://localhost:5001/api/requests', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            const hasExistingApplication = data.requests.some(request => 
+              request.propertyId._id === property._id
+            );
+            
+            if (hasExistingApplication) {
+              alert('You have already applied to this property. Multiple applications are not allowed.');
+              return;
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error checking existing applications:', error);
+      // Continue with submission if check fails
+    }
+    
     setLoading(true);
     try {
       // Prepare form data for submission

@@ -15,6 +15,8 @@ const ViewDetails = () => {
   const [userRole, setUserRole] = useState(null);
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [requestType, setRequestType] = useState(null);
+  const [hasApplied, setHasApplied] = useState(false);
+  const [applicationLoading, setApplicationLoading] = useState(false);
 
   useEffect(() => {
     const fetchPropertyDetails = async () => {
@@ -73,10 +75,41 @@ const ViewDetails = () => {
       }
     };
 
+    const checkApplicationStatus = async () => {
+      try {
+        setApplicationLoading(true);
+        const userData = localStorage.getItem('dwellSyncUser');
+        if (!userData) return;
+        
+        const user = JSON.parse(userData);
+        const token = user.token;
+        if (!token) return;
+
+        const response = await fetch('http://localhost:5001/api/requests', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const hasExistingApplication = data.requests.some(request => 
+            request.propertyId._id === propertyId
+          );
+          setHasApplied(hasExistingApplication);
+        }
+      } catch (err) {
+        console.error('Error checking application status:', err);
+      } finally {
+        setApplicationLoading(false);
+      }
+    };
+
     if (propertyId) {
       fetchPropertyDetails();
       getUserRole();
       checkWishlistStatus();
+      checkApplicationStatus();
     }
   }, [propertyId]);
 
@@ -163,6 +196,9 @@ const ViewDetails = () => {
     // This function is called only on successful submission
     toast.success('Request submitted successfully!');
     handleCloseRequestForm();
+    
+    // Update application status to reflect the new application
+    setHasApplied(true);
     
     // Optionally redirect to My Requests page
     setTimeout(() => {
@@ -350,17 +386,19 @@ const ViewDetails = () => {
                 
                 {property.listingType === 'For Rent' ? (
                   <button 
-                    onClick={handleApplyToRent} 
-                    className="action-btn apply-rent-btn"
+                    onClick={hasApplied ? null : handleApplyToRent} 
+                    className={`action-btn apply-rent-btn ${hasApplied ? 'already-applied' : ''}`}
+                    disabled={hasApplied || applicationLoading}
                   >
-                    📝 Apply to Rent
+                    {applicationLoading ? 'Checking...' : hasApplied ? '✓ Already Applied to Rent' : '📝 Apply to Rent'}
                   </button>
                 ) : (
                   <button 
-                    onClick={handleApplyToBuy} 
-                    className="action-btn apply-buy-btn"
+                    onClick={hasApplied ? null : handleApplyToBuy} 
+                    className={`action-btn apply-buy-btn ${hasApplied ? 'already-applied' : ''}`}
+                    disabled={hasApplied || applicationLoading}
                   >
-                    💰 Apply to Buy
+                    {applicationLoading ? 'Checking...' : hasApplied ? '✓ Already Applied to Buy' : '💰 Apply to Buy'}
                   </button>
                 )}
               </>
