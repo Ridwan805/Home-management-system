@@ -3,8 +3,7 @@ import { useLocation } from 'react-router-dom';
 import './PropertyListing.css';
 import PropertyCard from './PropertyCard';
 import EditPropertyModal from './EditPropertyModal';
-
-const API_BASE = 'http://localhost:5001/api/properties';
+import API from '../config/api';
 
 const PropertyListing = () => {
   const location = useLocation();
@@ -30,22 +29,13 @@ const PropertyListing = () => {
         
         // Fetch user's properties
         const user = JSON.parse(userData);
-<<<<<<< HEAD
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/properties/user`, { // Use the protected route to fetch user properties from properties.js
-          headers: {
-            'Authorization': `Bearer ${user.token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-=======
-        const url = `${API_BASE}/user`;
+        const url = API.baseUrl + API.endpoints.userProperties;
         const headers = {
           'Authorization': `Bearer ${user.token}`,
           'Content-Type': 'application/json'
         };
         
         const response = await fetch(url, { headers });
->>>>>>> main
         
         if (!response.ok) {
           const errorData = await response.json();
@@ -96,13 +86,8 @@ const PropertyListing = () => {
       }
       
       const user = JSON.parse(userData);
-<<<<<<< HEAD
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/properties/${propertyId}`, {
-        method: 'PUT',
-=======
-      const response = await fetch(`${API_BASE}/${propertyId}`, {
-        method: 'PATCH', // Changed from PUT to PATCH to match backend endpoint
->>>>>>> main
+      const response = await fetch(API.baseUrl + API.endpoints.propertyById(propertyId), {
+        method: 'PATCH', // Using PATCH to match backend endpoint
         headers: {
           'Authorization': `Bearer ${user.token}`,
           'Content-Type': 'application/json'
@@ -177,13 +162,8 @@ const PropertyListing = () => {
       }
       
       const user = JSON.parse(userData);
-<<<<<<< HEAD
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/properties/${propertyId}`, {
-        method: 'PATCH',
-=======
-      const response = await fetch(`${API_BASE}/${propertyId}/status`, {
+      const response = await fetch(API.baseUrl + API.endpoints.propertyStatus(propertyId), {
         method: 'PUT',
->>>>>>> main
         headers: {
           'Authorization': `Bearer ${user.token}`,
           'Content-Type': 'application/json'
