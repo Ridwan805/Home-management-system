@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import './PropertyFilter.css';
 import { FaFilter } from 'react-icons/fa';
 
-const API_BASE = 'http://localhost:5000/api/properties';
+const API_BASE = 'http://localhost:5001/api/properties';
 
 const PropertyFilter = () => {
   const location = useLocation();
@@ -289,7 +289,7 @@ const PropertyFilter = () => {
             <div className="property-images">
               {property.images && property.images.length > 0 ? (
                 <img 
-                  src={`http://localhost:5000${property.images[0]}`} 
+                  src={`http://localhost:5001${property.images[0]}`} 
                   alt="Property" 
                   className="property-image"
                 />

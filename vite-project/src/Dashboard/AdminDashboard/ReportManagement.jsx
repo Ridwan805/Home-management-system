@@ -20,7 +20,7 @@ const ReportManagement = () => {
         return;
       }
       
-      const res = await axios.get('http://localhost:5000/api/admin/reports', {
+      const res = await axios.get('http://localhost:5001/api/admin/reports', {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       setReports(res.data);
@@ -46,7 +46,7 @@ const ReportManagement = () => {
         return;
       }
       
-      await axios.delete(`http://localhost:5000/api/admin/reports/${id}`, {
+      await axios.delete(`http://localhost:5001/api/admin/reports/${id}`, {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       setReports(reports.filter(report => report._id !== id));
@@ -98,7 +98,7 @@ const ReportManagement = () => {
         return;
       }
       
-      await axios.put(`http://localhost:5000/api/admin/reports/${reportId}/escalate`, {}, {
+      await axios.put(`http://localhost:5001/api/admin/reports/${reportId}/escalate`, {}, {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       // Update UI to show report is escalated

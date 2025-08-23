@@ -14,7 +14,7 @@ const HomePage = () => {
     const fetchTopProperties = async () => {
       try {
         setLoading(true);
-        const response = await fetch('http://localhost:5000/api/properties/top');
+        const response = await fetch('http://localhost:5001/api/properties/top');
         if (!response.ok) {
           throw new Error('Failed to fetch properties');
         }
@@ -90,7 +90,7 @@ const HomePage = () => {
                 <div className="property-card" key={prop._id} onClick={() => navigate(`/properties/${prop._id}`)}>
                   <div className="property-image-container">
                     <img 
-                      src={prop.images && prop.images.length > 0 ? `http://localhost:5000${prop.images[0]}` : 'https://via.placeholder.com/400x300'} 
+                      src={prop.images && prop.images.length > 0 ? `http://localhost:5001${prop.images[0]}` : 'https://via.placeholder.com/400x300'} 
                       alt={prop.address} 
                       className="property-image" 
                     />

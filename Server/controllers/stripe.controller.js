@@ -89,37 +89,39 @@ const createPaymentSession = async (req, res) => {
         requestType: 'advance_payment'
       },
       mode: 'payment',
-      success_url: `${process.env.FRONTEND_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.FRONTEND_URL}/payment-cancel`,
+      success_url: `${process.env.FRONTEND_URL}/tenant/request-info?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.FRONTEND_URL}/tenant/request-info?payment=cancelled`,
     });
 
     // Update request with payment session info
     request.advancePayment = {
       sessionId: session.id,
       amount: paymentAmount,
-      status: 'Pending',
-      createdAt: new Date()
+      status: 'pending',
+      createdAt: new Date(),
+      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // Set due date to 7 days from now
     };
     await request.save();
 
     // Create payment record
     await Payment.create({
       requestId: requestId,
-      tenantId: userId,
+      payerId: userId,
       propertyId: request.propertyId._id,
-      ownerId: request.ownerId,
-      sessionId: session.id,
+      payeeId: request.ownerId,
+      stripeDetails: { sessionId: session.id },
       amount: paymentAmount,
-      type: 'Advance',
-      status: 'Pending',
-      paymentMethod: 'Card',
+      type: 'advance_payment',
+      status: 'pending',
+      method: 'stripe',
+      description: `Advance Payment for ${request.propertyId.title}`,
       createdAt: new Date()
     });
 
     res.status(200).json({
       success: true,
       sessionId: session.id,
-      sessionUrl: session.url
+      url: session.url
     });
   } catch (error) {
     console.error('Error creating payment session:', error);
@@ -205,8 +207,8 @@ const createFullPaymentSession = async (req, res) => {
         requestType: 'full_payment'
       },
       mode: 'payment',
-      success_url: `${process.env.FRONTEND_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.FRONTEND_URL}/payment-cancel`,
+      success_url: `${process.env.FRONTEND_URL}/tenant/request-info?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.FRONTEND_URL}/tenant/request-info?payment=cancelled`,
     });
 
     // Update request with payment session info
@@ -235,7 +237,7 @@ const createFullPaymentSession = async (req, res) => {
     res.status(200).json({
       success: true,
       sessionId: session.id,
-      sessionUrl: session.url
+      url: session.url
     });
   } catch (error) {
     console.error('Error creating full payment session:', error);
@@ -298,13 +300,41 @@ const handlePaymentSuccess = async (session) => {
     request.status = 'AdvancePaid';
     await request.save();
     
-    // Update payment record
+    // Get payment details from Stripe
+    const paymentIntent = await stripe.paymentIntents.retrieve(session.payment_intent);
+    const charge = paymentIntent.charges.data[0];
+    
+    // Generate receipt data with more detailed information
+    const receiptData = {
+      paymentId: `PAY-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+      propertyTitle: request.propertyId ? request.propertyId.title : 'Property',
+      propertyAddress: request.propertyId ? request.propertyId.address : 'Address not available',
+      amount: request.advancePayment.amount,
+      currency: 'BDT',
+      paymentDate: new Date(),
+      paymentMethod: 'Credit/Debit Card',
+      paymentStatus: 'Completed',
+      transactionId: session.payment_intent,
+      receiptUrl: charge.receipt_url,
+      paymentType: 'Advance Payment',
+      payerName: await User.findById(tenantId).then(user => user.name),
+      payeeName: await User.findById(request.ownerId).then(user => user.name),
+      paymentDescription: `Advance Payment for property purchase request`,
+      generatedAt: new Date()
+    };
+    
+    // Update payment record with receipt information
     await Payment.findOneAndUpdate(
-      { sessionId: session.id },
+      { 'stripeDetails.sessionId': session.id },
       { 
-        status: 'Completed',
+        status: 'completed',
         paidAt: new Date(),
-        transactionId: session.payment_intent
+        'stripeDetails.paymentIntentId': session.payment_intent,
+        'stripeDetails.chargeId': charge.id,
+        'stripeDetails.receiptUrl': charge.receipt_url,
+        receiptData: receiptData,
+        receiptGenerated: true,
+        receiptGeneratedAt: new Date()
       }
     );
     
@@ -324,7 +354,7 @@ const handlePaymentSuccess = async (session) => {
       recipientId: tenantId,
       type: 'payment',
       title: 'Advance Payment Successful',
-      message: `Your advance payment of BDT ${request.advancePayment.amount} has been processed successfully.`,
+      message: `Your advance payment of BDT ${request.advancePayment.amount} has been processed successfully. You can download the receipt from your request details.`,
       relatedId: requestId,
       relatedType: 'request'
     });
@@ -504,10 +534,159 @@ const getPaymentStatus = async (req, res) => {
   }
 };
 
+// Generate and download payment receipt
+const generateReceipt = async (req, res) => {
+  try {
+    const { paymentId } = req.params;
+    
+    // Find the payment record
+    const payment = await Payment.findOne({ paymentId }).populate('propertyId').populate('payerId').populate('payeeId');
+    
+    if (!payment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Payment not found'
+      });
+    }
+    
+    // If Stripe receipt URL is available, redirect to it
+    if (payment.stripeDetails && payment.stripeDetails.receiptUrl) {
+      return res.status(200).json({
+        success: true,
+        receiptUrl: payment.stripeDetails.receiptUrl,
+        payment: payment
+      });
+    }
+    
+    // If receipt data is available, return it
+    if (payment.receiptData) {
+      return res.status(200).json({
+        success: true,
+        receiptData: payment.receiptData,
+        payment: payment
+      });
+    }
+    
+    // If no receipt data is available, generate basic receipt data
+    const receiptData = {
+      paymentId: payment.paymentId,
+      propertyTitle: payment.propertyId ? payment.propertyId.title : 'Property',
+      propertyAddress: payment.propertyId ? payment.propertyId.address : 'Address not available',
+      amount: payment.amount,
+      currency: payment.currency,
+      paymentDate: payment.paidAt || payment.createdAt,
+      paymentMethod: payment.method,
+      paymentStatus: payment.status,
+      transactionId: payment.stripeDetails ? payment.stripeDetails.paymentIntentId : ''
+    };
+    
+    return res.status(200).json({
+      success: true,
+      receiptData: receiptData,
+      payment: payment
+    });
+    
+  } catch (error) {
+    console.error('Error generating receipt:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to generate receipt'
+    });
+  }
+};
+
+// Upload payment proof
+const uploadPaymentProof = async (req, res) => {
+  try {
+    const { paymentId } = req.params;
+    const { proofUrl, note } = req.body;
+    const userId = req.user.userId || req.user._id || req.user.id;
+    
+    // Validate input
+    if (!proofUrl) {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment proof URL is required'
+      });
+    }
+    
+    // Find the payment record
+    const payment = await Payment.findOne({ paymentId });
+    if (!payment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Payment not found'
+      });
+    }
+    
+    // Verify the user is the payer
+    if (payment.payerId.toString() !== userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not authorized to upload proof for this payment'
+      });
+    }
+    
+    // Update payment with proof
+    payment.proofUrls.push(proofUrl);
+    if (note) {
+      payment.notes = note;
+    }
+    
+    // Add to payment history
+    payment.history.push({
+      status: payment.status,
+      timestamp: new Date(),
+      note: 'Payment proof uploaded by tenant',
+      updatedBy: userId
+    });
+    
+    await payment.save();
+    
+    // Find the related request
+    if (payment.requestId) {
+      const request = await Request.findById(payment.requestId);
+      if (request) {
+        // Update request with payment proof
+        if (payment.type === 'advance_payment' && request.advancePayment) {
+          request.advancePayment.proofUrl = proofUrl;
+          request.status = 'Payment Submitted';
+          await request.save();
+        }
+      }
+    }
+    
+    // Send notification to owner
+    await NotificationService.createNotification({
+      recipientId: payment.payeeId,
+      senderId: userId,
+      type: 'payment_proof',
+      title: 'Payment Proof Uploaded',
+      message: `A payment proof has been uploaded for ${payment.description}. Please review and verify the payment.`,
+      relatedId: payment.requestId || payment._id,
+      relatedType: payment.requestId ? 'request' : 'payment'
+    });
+    
+    res.status(200).json({
+      success: true,
+      message: 'Payment proof uploaded successfully'
+    });
+    
+  } catch (error) {
+    console.error('Error uploading payment proof:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to upload payment proof'
+    });
+  }
+};
+
 module.exports = {
   getPublishableKey,
   createPaymentSession,
   createFullPaymentSession,
   handleWebhook,
-  getPaymentStatus
+  getPaymentStatus,
+  generateReceipt,
+  uploadPaymentProof
 };

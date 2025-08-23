@@ -340,7 +340,7 @@ const UnifiedInquiryForm = ({ property, requestType, onClose, onSubmit }) => {
         throw new Error('Please log in to submit a request');
       }
       
-      const response = await fetch('http://localhost:5000/api/requests', {
+      const response = await fetch('http://localhost:5001/api/requests', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

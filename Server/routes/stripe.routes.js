@@ -5,7 +5,9 @@ const {
   createPaymentSession, 
   createFullPaymentSession,
   handleWebhook, 
-  getPaymentStatus 
+  getPaymentStatus,
+  generateReceipt,
+  uploadPaymentProof
 } = require('../controllers/stripe.controller');
 const authMiddleware = require('../middleware/authMiddleware');
 
@@ -23,5 +25,11 @@ router.post('/webhook', express.json({type: 'application/json'}), handleWebhook)
 
 // Get payment status
 router.get('/payment-status/:sessionId', authMiddleware, getPaymentStatus);
+
+// Generate and download payment receipt
+router.get('/receipt/:paymentId', authMiddleware, generateReceipt);
+
+// Upload payment proof
+router.post('/payment-proof/:paymentId', authMiddleware, uploadPaymentProof);
 
 module.exports = router;

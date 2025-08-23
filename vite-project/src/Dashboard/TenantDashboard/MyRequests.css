@@ -551,6 +551,9 @@
   font-weight: 500;
   width: auto;
   height: auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .modal-actions .close-btn:hover {
@@ -575,6 +578,9 @@
   transition: all 0.3s ease;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .modal-actions .pay-btn:hover {
@@ -609,6 +615,9 @@
   transition: all 0.3s ease;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .modal-actions .upload-proof-btn:hover {
@@ -629,6 +638,9 @@
   transition: all 0.3s ease;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .modal-actions .submit-proof-btn:hover:not(:disabled) {
@@ -642,6 +654,75 @@
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+}
+
+.modal-actions .download-receipt-btn {
+  background: #673ab7;
+  color: white;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.modal-actions .download-receipt-btn:hover {
+  background: #5e35b1;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(103, 58, 183, 0.3);
+}
+
+.modal-actions .download-btn {
+  background: #009688;
+  color: white;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.modal-actions .download-btn:hover {
+  background: #00897b;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 150, 136, 0.3);
+}
+
+.modal-actions .print-btn {
+  background: #795548;
+  color: white;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.modal-actions .print-btn:hover {
+  background: #6d4c41;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(121, 85, 72, 0.3);
 }
 
 /* Payment Proof Modal Styles */
@@ -722,6 +803,101 @@
   color: #155724;
   font-size: 0.9rem;
   font-weight: 500;
+}
+
+/* Receipt Modal Styles */
+.receipt-modal {
+  max-width: 600px;
+}
+
+.receipt-body {
+  padding: 0;
+}
+
+.receipt-container {
+  background-color: white;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.receipt-header {
+  text-align: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.receipt-header h2 {
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.receipt-id {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.receipt-details {
+  margin-bottom: 25px;
+}
+
+.receipt-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.receipt-label {
+  font-weight: 600;
+  color: #555;
+}
+
+.receipt-value {
+  text-align: right;
+  color: #333;
+}
+
+.receipt-status {
+  font-weight: 600;
+  color: #4caf50;
+}
+
+.receipt-footer {
+  text-align: center;
+  margin-top: 25px;
+  padding-top: 15px;
+  border-top: 2px solid #f0f0f0;
+  color: #666;
+}
+
+.receipt-timestamp {
+  font-size: 0.8rem;
+  margin-top: 10px;
+  color: #999;
+}
+
+@media print {
+  .modal-overlay {
+    position: absolute;
+    background-color: white;
+  }
+  
+  .modal {
+    box-shadow: none;
+    max-height: none;
+    overflow: visible;
+  }
+  
+  .modal-header, .modal-actions {
+    display: none;
+  }
+  
+  .receipt-container {
+    box-shadow: none;
+  }
 }
 
 /* Responsive Design */
