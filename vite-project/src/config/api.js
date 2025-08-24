@@ -190,6 +190,12 @@ export default {
     requestStatusUpdate: (id) => `/api/request-management/owner-requests/${id}/status`,
     advancePayment: (id) => `/api/request-management/owner-requests/${id}/advance-payment`,
     
+    // Payment endpoints
+    getStripeKey: '/api/stripe/publishable-key',
+    createPayment: (requestId) => `/api/stripe/payment-session/${requestId}`,
+    paymentHistory: '/api/payments/history',
+    paymentDetails: (paymentId) => `/api/payments/${paymentId}`,
+    
     // Admin endpoints
     adminStats: '/api/admin/dashboard/stats',
     adminUsers: '/api/admin/users',

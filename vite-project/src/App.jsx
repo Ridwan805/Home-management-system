@@ -17,6 +17,7 @@ import PropertyFilter from './components/PropertyFilter';
 import ViewDetails from './components/ViewDetails';
 import OwnerRequestsInbox from './Dashboard/OwnerProfile/OwnerRequestsInbox';
 import SidebarNav from './Dashboard/OwnerProfile/SidebarNav';
+import Payment from './Dashboard/OwnerProfile/Payment';
 
 // ✅ ADD THIS IMPORT
 import AdminDashboard from './Dashboard/AdminDashboard/AdminDashboard';
@@ -65,6 +66,7 @@ function AppRoutes() {
             else if (key === 'tenant-info') navigate('/tenant-info');
             else if (key === 'security-guard-info') navigate('/security-guard-info');
             else if (key === 'request-info') navigate('/request-info');
+            else if (key === 'payments') navigate('/payments');
           }}
         />
         <main className="dashboard-main">
@@ -88,6 +90,7 @@ function AppRoutes() {
             else if (key === 'property-details') navigate('/property-details');
             else if (key === 'tenant-info') navigate('/tenant-info');
             else if (key === 'request-info') navigate('/request-info');
+            else if (key === 'payments') navigate('/payments');
           }}
         />
         <main className="dashboard-main">
@@ -112,6 +115,7 @@ function AppRoutes() {
         location.pathname === '/tenant-info' ||
         location.pathname === '/security-guard-info' ||
         location.pathname === '/request-info' ||
+        location.pathname === '/payments' ||
         location.pathname.startsWith('/tenant')
       ) && <Navbar />}
 
@@ -141,6 +145,7 @@ function AppRoutes() {
                   else if (key === 'tenant-info') navigate('/tenant-info');
                   else if (key === 'security-guard-info') navigate('/security-guard-info');
                   else if (key === 'request-info') navigate('/request-info');
+                  else if (key === 'payments') navigate('/payments');
                 }}
               />
               <main className="dashboard-main">
@@ -164,6 +169,7 @@ function AppRoutes() {
                   else if (key === 'tenant-info') navigate('/tenant-info');
                   else if (key === 'security-guard-info') navigate('/security-guard-info');
                   else if (key === 'request-info') navigate('/request-info');
+                  else if (key === 'payments') navigate('/payments');
                 }}
               />
               <main className="dashboard-main">
@@ -187,6 +193,7 @@ function AppRoutes() {
                   else if (key === 'tenant-info') navigate('/tenant-info');
                   else if (key === 'security-guard-info') navigate('/security-guard-info');
                   else if (key === 'request-info') navigate('/request-info');
+                  else if (key === 'payments') navigate('/payments');
                 }}
               />
               <main className="dashboard-main">
@@ -210,11 +217,36 @@ function AppRoutes() {
                   else if (key === 'tenant-info') navigate('/tenant-info');
                   else if (key === 'security-guard-info') navigate('/security-guard-info');
                   else if (key === 'request-info') navigate('/request-info');
+                  else if (key === 'payments') navigate('/payments');
                 }}
               />
               <main className="dashboard-main">
                 <div className="dashboard-content">
                   <OwnerRequestsInbox />
+                </div>
+              </main>
+            </div>
+          }
+        />
+        <Route
+          path="/payments"
+          element={
+            <div className="owner-dashboard">
+              <SidebarNav
+                activeSection="payments"
+                setActiveSection={(key) => {
+                  if (key === 'profile') navigate('/dashboard');
+                  else if (key === 'create-listing') navigate('/create-listing');
+                  else if (key === 'property-details') navigate('/property-details');
+                  else if (key === 'tenant-info') navigate('/tenant-info');
+                  else if (key === 'security-guard-info') navigate('/security-guard-info');
+                  else if (key === 'request-info') navigate('/request-info');
+                  else if (key === 'payments') navigate('/payments');
+                }}
+              />
+              <main className="dashboard-main">
+                <div className="dashboard-content">
+                  <Payment />
                 </div>
               </main>
             </div>
