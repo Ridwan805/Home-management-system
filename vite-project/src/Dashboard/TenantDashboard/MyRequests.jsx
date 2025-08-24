@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import './MyRequests.css';
 import { authenticatedFetch } from '../../config/api.js';
 import API from '../../config/api.js';
-import { FaDownload, FaUpload, FaReceipt } from 'react-icons/fa';
+import { FaDownload, FaUpload, FaReceipt, FaPrint } from 'react-icons/fa';
 
 const MyRequests = () => {
   const [requests, setRequests] = useState([]);
@@ -37,12 +37,44 @@ const MyRequests = () => {
     { key: 'Canceled', label: 'Canceled' }
   ];
 
+  const navigate = useNavigate();
+
   useEffect(() => {
     fetchRequests();
     fetchStats();
   }, [selectedStatus]);
-
-  const navigate = useNavigate();
+  
+  // Add an effect to refresh data when component mounts or when returning from payment
+  useEffect(() => {
+    // This will ensure data is refreshed when returning from payment
+    fetchRequests();
+    fetchStats();
+    
+    // Check if we're returning from a payment
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentStatus = urlParams.get('payment_status');
+    
+    if (paymentStatus === 'success') {
+      // If returning from successful payment, refresh data again after a short delay
+      // to ensure webhook has been processed
+      setTimeout(() => {
+        fetchRequests();
+        fetchStats();
+      }, 2000);
+      
+      // Clean up URL parameters after processing
+      navigate(window.location.pathname, { replace: true });
+    }
+    
+    // Set up an interval to refresh payment status every 5 seconds
+    const intervalId = setInterval(() => {
+      if (selectedRequest) {
+        fetchRequestDetails(selectedRequest._id);
+      }
+    }, 5000);
+    
+    return () => clearInterval(intervalId);
+  }, [navigate, selectedRequest]);
 
 
 
@@ -113,9 +145,33 @@ const MyRequests = () => {
     });
   };
 
+  const fetchRequestDetails = async (requestId) => {
+    try {
+      const data = await authenticatedFetch(
+        `http://localhost:5001/api/request-management/request/${requestId}`,
+        { method: 'GET' },
+        navigate
+      );
+      
+      if (data.request) {
+        // Update the selected request with fresh data
+        setSelectedRequest(data.request);
+        
+        // Also update the request in the requests array
+        setRequests(prev => prev.map(req => 
+          req._id === data.request._id ? data.request : req
+        ));
+      }
+    } catch (err) {
+      console.error('Error fetching request details:', err);
+    }
+  };
+  
   const handleViewDetails = (request) => {
     setSelectedRequest(request);
     setShowModal(true);
+    // Fetch the latest details when viewing
+    fetchRequestDetails(request._id);
   };
 
   const handleCancelRequest = async (requestId) => {
@@ -561,31 +617,33 @@ const MyRequests = () => {
                       Cancel Request
                     </button>
                   )}
-                  {selectedRequest.status === 'Approved – Pay Advance' && selectedRequest.advancePayment && (
-                    <>
-                      <button 
-                        className="pay-btn"
-                        onClick={() => handlePayNow(selectedRequest._id)}
-                        disabled={paymentLoading}
-                      >
-                        {paymentLoading ? 'Processing...' : `Pay Online (৳${selectedRequest.advancePayment.amount})`}
-                      </button>
-                      <button 
-                        className="upload-proof-btn"
-                        onClick={handleUploadPaymentProof}
-                      >
-                        <FaUpload /> Upload Payment Proof
-                      </button>
-                    </>
+                  {/* Show Pay Online button only if payment is required and not yet paid */}
+                  {selectedRequest.status === 'Approved – Pay Advance' && 
+                   selectedRequest.advancePayment && 
+                   !selectedRequest.advancePayment.isPaid && 
+                   !selectedRequest.isPaid && (
+                    <button 
+                      className="pay-btn"
+                      onClick={() => handlePayNow(selectedRequest._id)}
+                      disabled={paymentLoading}
+                    >
+                      {paymentLoading ? 'Processing...' : `Pay Online (৳${selectedRequest.advancePayment.amount})`}
+                    </button>
                   )}
                   
-                  {(selectedRequest.status === 'Advance Payment Received' || selectedRequest.status === 'AdvancePaid') && (
+                  {/* Show Receipt button if payment has been made */}
+                  {(selectedRequest.status === 'Advance Payment Received' || 
+                    selectedRequest.status === 'AdvancePaid' || 
+                    selectedRequest.status === 'Paid/Completed' || 
+                    selectedRequest.status === 'Payment Submitted' ||
+                    selectedRequest.isPaid ||
+                    (selectedRequest.advancePayment && selectedRequest.advancePayment.isPaid)) && (
                     <button 
-                      className="download-receipt-btn"
+                      className="show-receipt-btn"
                       onClick={() => handleGetReceipt(selectedRequest.advancePayment?.paymentId)}
                       disabled={receiptLoading}
                     >
-                      {receiptLoading ? 'Loading...' : <><FaReceipt /> Download Receipt</>}
+                      {receiptLoading ? 'Loading...' : <><FaReceipt /> Show Receipt</>}
                     </button>
                   )}
                 </div>
@@ -745,18 +803,32 @@ const MyRequests = () => {
                 {paymentReceipt.receiptUrl && (
                   <button 
                     type="button" 
-                    className="download-btn" 
+                    className="show-receipt-btn" 
                     onClick={() => window.open(paymentReceipt.receiptUrl, '_blank')}
                   >
-                    <FaDownload /> Download Official Receipt
+                    <FaReceipt /> View Official Receipt
                   </button>
                 )}
+                <button 
+                  type="button" 
+                  className="download-pdf-btn" 
+                  onClick={() => window.open(`http://localhost:5001/api/pdf/download-receipt?session_id=${paymentReceipt.receiptData?.sessionId || paymentReceipt.payment?.stripeDetails?.sessionId}`, '_blank')}
+                >
+                  <FaDownload /> Download PDF Receipt
+                </button>
                 <button 
                   type="button" 
                   className="print-btn" 
                   onClick={() => window.print()}
                 >
-                  Print Receipt
+                  <FaPrint /> Print Receipt
+                </button>
+                <button 
+                  type="button" 
+                  className="view-pdf-btn" 
+                  onClick={() => window.open(`http://localhost:5001/api/pdf/generate-receipt?session_id=${paymentReceipt.receiptData?.sessionId || paymentReceipt.payment?.stripeDetails?.sessionId}`, '_blank')}
+                >
+                  <FaReceipt /> View Online Receipt
                 </button>
               </div>
             </div>

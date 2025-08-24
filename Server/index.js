@@ -34,6 +34,7 @@ const stripeRoutes = require('./routes/stripe.routes');
 const uploadRoutes = require('./routes/upload.routes');
 const notificationRoutes = require('./routes/notifications');
 const pdfRoutes = require('./routes/pdf.routes');
+const debugRoutes = require('./routes/debug.routes');
 let requestManagementRoutes;
 try {
   requestManagementRoutes = require('./routes/requestManagement.routes');
@@ -54,6 +55,9 @@ app.get('/', (req, res) => {
   console.log('🏠 Root route hit!');
   res.json({ message: 'Server is working!', timestamp: new Date().toISOString() });
 });
+
+// Special route for Stripe webhook that needs raw body
+app.post('/api/stripe/webhook', express.raw({type: 'application/json'}), require('./controllers/stripe.controller').handleWebhook);
 
 // Use routes
 app.use('/api/auth', authRoutes);
@@ -96,6 +100,9 @@ app.use('/api/request-management', (req, res, next) => {
   console.log('🔧 Request to /api/request-management:', req.method, req.url);
   next();
 }, requestManagementRoutes);
+
+// Mount debug routes
+app.use('/api/debug', debugRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {

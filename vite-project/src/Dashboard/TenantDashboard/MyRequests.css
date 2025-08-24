@@ -656,7 +656,7 @@
   box-shadow: none;
 }
 
-.modal-actions .download-receipt-btn {
+.modal-actions .download-receipt-btn, .modal-actions .show-receipt-btn {
   background: #673ab7;
   color: white;
   padding: 12px 20px;
@@ -673,10 +673,33 @@
   gap: 5px;
 }
 
-.modal-actions .download-receipt-btn:hover {
+.modal-actions .download-receipt-btn:hover, .modal-actions .show-receipt-btn:hover {
   background: #5e35b1;
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(103, 58, 183, 0.3);
+}
+
+.modal-actions .download-pdf-btn {
+  background: #2196F3;
+  color: white;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.modal-actions .download-pdf-btn:hover {
+  background: #0b7dda;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(33, 150, 243, 0.3);
 }
 
 .modal-actions .download-btn {
@@ -723,6 +746,29 @@
   background: #6d4c41;
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(121, 85, 72, 0.3);
+}
+
+.modal-actions .view-pdf-btn {
+  background: #9c27b0;
+  color: white;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.modal-actions .view-pdf-btn:hover {
+  background: #7b1fa2;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(156, 39, 176, 0.3);
 }
 
 /* Payment Proof Modal Styles */

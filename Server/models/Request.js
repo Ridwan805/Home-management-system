@@ -48,7 +48,9 @@ const AdvancePaymentSchema = new mongoose.Schema({
   paidAt: { type: Date },
   verifiedAt: { type: Date },
   verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  verificationNote: { type: String, default: '' }
+  verificationNote: { type: String, default: '' },
+  isPaid: { type: Boolean, default: false },
+  paymentId: { type: String, default: '' }
 }, { _id: false });
 
 // Full payment schema for handling complete payment details
@@ -159,6 +161,12 @@ const RequestSchema = new mongoose.Schema({
     enum: VALID_STATUSES, 
     default: 'Submitted',
     required: true 
+  },
+  
+  // Payment status at request level
+  isPaid: {
+    type: Boolean,
+    default: false
   },
   
   // Timeline for tracking all events

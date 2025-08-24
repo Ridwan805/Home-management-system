@@ -133,8 +133,8 @@ const createPaymentSession = async (req, res) => {
         requestType: 'advance_payment'
       },
       mode: 'payment',
-      success_url: `${redirectBaseUrl}/pdf-download?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${redirectBaseUrl}/pdf-download?payment=cancelled`,
+      success_url: `${redirectBaseUrl}/tenant/request-info?payment_status=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${redirectBaseUrl}/tenant/request-info?payment_status=cancelled`,
     });
     
     console.log('✅ Stripe session created successfully:', session.id);
@@ -262,8 +262,8 @@ const createFullPaymentSession = async (req, res) => {
         requestType: 'full_payment'
       },
       mode: 'payment',
-      success_url: `${redirectBaseUrl}/pdf-download?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${redirectBaseUrl}/pdf-download?payment=cancelled`,
+      success_url: `${redirectBaseUrl}/tenant/request-info?payment_status=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${redirectBaseUrl}/tenant/request-info?payment_status=cancelled`,
     });
 
     // Update request with payment session info
@@ -352,7 +352,14 @@ const handlePaymentSuccess = async (session) => {
     // Update payment status
     request.advancePayment.status = 'Paid';
     request.advancePayment.paidAt = new Date();
+    request.advancePayment.isPaid = true;
+    request.isPaid = true; // Set top-level isPaid field
     request.status = 'AdvancePaid';
+    
+    // Generate a payment ID
+    const paymentId = `PAY-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+    request.advancePayment.paymentId = paymentId;
+    
     await request.save();
     
     // Get payment details from Stripe
@@ -460,6 +467,7 @@ const handleFullPaymentSuccess = async (session) => {
     // Update payment status
     request.fullPayment.status = 'Paid';
     request.fullPayment.paidAt = new Date();
+    request.isPaid = true; // Set top-level isPaid field
     request.status = 'FullyPaid';
     await request.save();
     
