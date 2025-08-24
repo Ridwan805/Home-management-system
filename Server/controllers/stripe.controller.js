@@ -245,9 +245,10 @@ const createFullPaymentSession = async (req, res) => {
       });
     }
 
-    // Calculate payment amount (90% of property price)
+    // Calculate remaining payment amount (total property price minus advance payment)
     const propertyPrice = request.propertyId.price;
-    const paymentAmount = Math.round(propertyPrice * 0.9);
+    const advancePaymentAmount = request.advancePayment.amount;
+    const paymentAmount = propertyPrice - advancePaymentAmount;
 
     // Debug: Log the originUrl being received
     console.log('🔍 Debug Full Payment - originUrl received:', req.body.originUrl);
