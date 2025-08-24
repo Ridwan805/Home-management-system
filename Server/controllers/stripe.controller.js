@@ -37,12 +37,19 @@ const createPaymentSession = async (req, res) => {
     console.log('🔄 Creating payment session - Request ID:', req.params.requestId);
     console.log('🔄 User ID:', req.user.userId || req.user._id || req.user.id);
     console.log('🔄 Request body:', req.body);
+    console.log('🔍 About to extract requestId and userId...');
     
     const { requestId } = req.params;
     const userId = req.user.userId || req.user._id || req.user.id;
-
-    // Find the request
-    const request = await Request.findById(requestId).populate('propertyId');
+    
+    console.log('🔍 Variables extracted - requestId:', requestId, 'userId:', userId);
+    console.log('🔍 Starting database query for request:', requestId);
+    // Find the request with populated property and tenant data
+    const request = await Request.findById(requestId)
+      .populate('propertyId')
+      .populate('tenantId')
+      .populate('ownerId');
+    console.log('🔍 Database query completed. Request found:', !!request);
     if (!request) {
       return res.status(404).json({
         success: false,
@@ -51,12 +58,18 @@ const createPaymentSession = async (req, res) => {
     }
 
     // Verify the tenant is the one making the payment
-    if (request.tenantId.toString() !== userId.toString()) {
+    const tenantIdToCompare = request.tenantId._id ? request.tenantId._id.toString() : request.tenantId.toString();
+    console.log('🔍 Authorization check - tenantIdToCompare:', tenantIdToCompare);
+    console.log('🔍 Authorization check - userId:', userId);
+    
+    if (tenantIdToCompare !== userId.toString()) {
+      console.log('❌ Authorization failed - tenant mismatch');
       return res.status(403).json({
         success: false,
         message: 'You are not authorized to make this payment'
       });
     }
+    console.log('✅ Authorization passed - tenant matches');
 
     // Check if payment is already made
     if (request.advancePayment && request.advancePayment.status === 'Paid') {
@@ -66,12 +79,12 @@ const createPaymentSession = async (req, res) => {
       });
     }
 
-    // Get tenant details
-    const tenant = await User.findById(userId);
+    // Verify tenant data is populated
+    const tenant = request.tenantId;
     if (!tenant) {
       return res.status(404).json({
         success: false,
-        message: 'Tenant not found'
+        message: 'Tenant data not found in request'
       });
     }
 
@@ -118,8 +131,8 @@ const createPaymentSession = async (req, res) => {
           price_data: {
           currency: 'usd', // Changed from 'bdt' to 'usd' as BDT has limited Stripe support
           product_data: {
-            name: `Advance Payment for ${request.propertyId.title}`,
-            description: `Advance payment for property at ${request.propertyId.location}`
+            name: `Advance Payment for ${request.propertyId?.propertyType || 'Property'} - ${request.propertyId?.address || 'Property'}`,
+            description: `Advance payment for ${request.propertyId?.propertyType || 'property'} at ${request.propertyId?.address || 'Property Location'}`
           },
           unit_amount: usdAmount, // Convert BDT to USD (approximate rate 1 USD = 110 BDT) and to cents
         },
@@ -161,7 +174,7 @@ const createPaymentSession = async (req, res) => {
       type: 'advance_payment',
       status: 'pending',
       method: 'stripe',
-      description: `Advance Payment for ${request.propertyId.title}`,
+      description: `Advance Payment for ${request.propertyId?.propertyType || 'Property'} - ${request.propertyId?.address || 'Property'}`,
       createdAt: new Date()
     });
 
@@ -187,8 +200,11 @@ const createFullPaymentSession = async (req, res) => {
     const { requestId } = req.params;
     const userId = req.user.userId || req.user._id || req.user.id;
 
-    // Find the request
-    const request = await Request.findById(requestId).populate('propertyId');
+    // Find the request with populated property and tenant data
+    const request = await Request.findById(requestId)
+      .populate('propertyId')
+      .populate('tenantId')
+      .populate('ownerId');
     if (!request) {
       return res.status(404).json({
         success: false,
@@ -220,12 +236,12 @@ const createFullPaymentSession = async (req, res) => {
       });
     }
 
-    // Get tenant details
-    const tenant = await User.findById(userId);
+    // Verify tenant data is populated
+    const tenant = request.tenantId;
     if (!tenant) {
       return res.status(404).json({
         success: false,
-        message: 'Tenant not found'
+        message: 'Tenant data not found in request'
       });
     }
 
@@ -247,8 +263,8 @@ const createFullPaymentSession = async (req, res) => {
           price_data: {
           currency: 'usd', // Changed from 'bdt' to 'usd' as BDT has limited Stripe support
           product_data: {
-            name: `Full Payment for ${request.propertyId.title}`,
-            description: `Remaining 90% payment for property at ${request.propertyId.location}`
+            name: `Full Payment for ${request.propertyId?.propertyType || 'Property'} - ${request.propertyId?.address || 'Property'}`,
+            description: `Remaining 90% payment for ${request.propertyId?.propertyType || 'property'} at ${request.propertyId?.address || 'Property Location'}`
           },
           unit_amount: Math.round(paymentAmount * 100 / 110), // Convert BDT to USD (approximate rate 1 USD = 110 BDT) and to cents
         },
@@ -465,10 +481,10 @@ const handleFullPaymentSuccess = async (session) => {
     }
     
     // Update payment status
-    request.fullPayment.status = 'Paid';
+    request.fullPayment.status = 'completed';
     request.fullPayment.paidAt = new Date();
     request.isPaid = true; // Set top-level isPaid field
-    request.status = 'FullyPaid';
+    request.status = 'Paid/Completed';
     await request.save();
     
     // Update payment record

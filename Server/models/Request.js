@@ -36,7 +36,7 @@ const MessageSchema = new mongoose.Schema({
 
 // Advance payment schema for handling payment details
 const AdvancePaymentSchema = new mongoose.Schema({
-  status: { type: String, enum: ['pending', 'Paid', 'failed'], default: 'pending' },
+  status: { type: String, enum: ['pending', 'Paid', 'failed'], default: 'Paid' },
   amount: { type: Number, required: true },
   currency: { type: String, default: 'BDT' },
   dueDate: { type: Date, required: true },
@@ -55,7 +55,7 @@ const AdvancePaymentSchema = new mongoose.Schema({
 
 // Full payment schema for handling complete payment details
 const FullPaymentSchema = new mongoose.Schema({
-  status: { type: String, enum: ['pending', 'completed', 'failed'], default: 'pending' },
+  status: { type: String, enum: ['pending', 'completed', 'failed'], default: 'completed' },
   amount: { type: Number, required: true },
   currency: { type: String, default: 'BDT' },
   stripeSessionId: { type: String, default: '' },
@@ -243,7 +243,8 @@ RequestSchema.statics.getValidStatusTransitions = function() {
     'Under Review': ['Info Requested', 'Approved – Pay Advance', 'Rejected', 'Canceled'],
     'Info Requested': ['Under Review', 'Rejected', 'Canceled', 'Expired'],
     'Approved – Pay Advance': ['Payment Submitted', 'Canceled', 'Expired'],
-    'Payment Submitted': ['Paid/Completed', 'Under Review', 'Canceled'],
+    'Payment Submitted': ['AdvancePaid', 'Under Review', 'Canceled'],
+    'AdvancePaid': ['Paid/Completed', 'Canceled'],
     'Paid/Completed': [], // Terminal state
     'Rejected': [], // Terminal state
     'Canceled': [], // Terminal state
