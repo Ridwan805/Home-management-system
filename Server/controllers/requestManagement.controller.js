@@ -393,7 +393,7 @@ const setupAdvancePayment = async (req, res) => {
       dueDate: new Date(dueDate),
       instructions: instructions || '',
       note: note || '',
-      status: 'Pending',
+      status: 'pending',
       createdAt: new Date(),
       createdBy: userId
     };

@@ -286,7 +286,7 @@ const createFullPaymentSession = async (req, res) => {
     request.fullPayment = {
       sessionId: session.id,
       amount: paymentAmount,
-      status: 'Pending',
+      status: 'pending',
       createdAt: new Date()
     };
     await request.save();
@@ -300,7 +300,7 @@ const createFullPaymentSession = async (req, res) => {
       sessionId: session.id,
       amount: paymentAmount,
       type: 'Full',
-      status: 'Pending',
+      status: 'pending',
       paymentMethod: 'Card',
       createdAt: new Date()
     });
