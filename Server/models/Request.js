@@ -41,11 +41,19 @@ const AdvancePaymentSchema = new mongoose.Schema({
   instructions: { type: String, default: '' },
   note: { type: String, default: '' },
   proofUrl: { type: String, default: '' },
-  stripeSessionId: { type: String, default: '' },
+  sessionId: { type: String, default: '' }, // Stripe session ID for receipt lookup
+  stripeSessionId: { type: String, default: '' }, // Keep for backward compatibility
   paymentIntentId: { type: String, default: '' },
   verifiedAt: { type: Date },
   verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+<<<<<<< Updated upstream
   verificationNote: { type: String, default: '' }
+=======
+  verificationNote: { type: String, default: '' },
+  isPaid: { type: Boolean, default: false },
+  paymentId: { type: String, default: '' },
+  canPayAgain: { type: Boolean, default: true } // Flag to prevent duplicate payments
+>>>>>>> Stashed changes
 }, { _id: false });
 
 // Full payment schema for handling complete payment details

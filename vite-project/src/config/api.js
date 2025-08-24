@@ -44,6 +44,18 @@ export default {
     requestStatusUpdate: (id) => `/api/request-management/owner-requests/${id}/status`,
     advancePayment: (id) => `/api/request-management/owner-requests/${id}/advance-payment`,
     
+<<<<<<< Updated upstream
+=======
+    // Payment endpoints
+  getStripeKey: '/api/stripe/publishable-key',
+  createPayment: (requestId) => `/api/stripe/create-payment-session/${requestId}`,
+  createFullPayment: (requestId) => `/api/stripe/create-full-payment-session/${requestId}`,
+  paymentHistory: '/api/payments/history',
+  paymentDetails: (paymentId) => `/api/payments/${paymentId}`,
+  updatePaymentStatus: (paymentId) => `/api/stripe/payment-status/${paymentId}`,
+  getReceipt: (paymentId) => `/api/stripe/receipt/${paymentId}`,
+    
+>>>>>>> Stashed changes
     // Admin endpoints
     adminStats: '/api/admin/dashboard/stats',
     adminUsers: '/api/admin/users',

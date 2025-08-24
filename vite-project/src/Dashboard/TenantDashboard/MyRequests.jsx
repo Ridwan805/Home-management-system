@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import './MyRequests.css';
+<<<<<<< Updated upstream
 import { authenticatedFetch } from '../../utils/apiUtils.js';
 import { FaDownload, FaUpload, FaReceipt } from 'react-icons/fa';
+=======
+import { authenticatedFetch } from '../../config/api.js';
+import API from '../../config/api.js';
+import { FaReceipt } from 'react-icons/fa';
+>>>>>>> Stashed changes
 
 const MyRequests = () => {
   const [requests, setRequests] = useState([]);
@@ -13,7 +19,6 @@ const MyRequests = () => {
   const [showModal, setShowModal] = useState(false);
   const [stats, setStats] = useState({});
   const [showPaymentProofModal, setShowPaymentProofModal] = useState(false);
-  const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentProofForm, setPaymentProofForm] = useState({
     proofFile: null,
@@ -22,6 +27,8 @@ const MyRequests = () => {
   const [uploadLoading, setUploadLoading] = useState(false);
   const [paymentReceipt, setPaymentReceipt] = useState(null);
   const [receiptLoading, setReceiptLoading] = useState(false);
+  const [showReceiptInline, setShowReceiptInline] = useState(false);
+  const [popupMessage, setPopupMessage] = useState('');
 
   const statusFilters = [
     { key: 'all', label: 'All Requests' },
@@ -36,11 +43,25 @@ const MyRequests = () => {
   ];
 
   useEffect(() => {
+<<<<<<< Updated upstream
+=======
+    const loadData = async () => {
+      await fetchRequests();
+      await fetchStats();
+    };
+    loadData();
+  }, [selectedStatus]);
+  
+  // Add an effect to refresh data when component mounts or when returning from payment
+  useEffect(() => {
+    // This will ensure data is refreshed when returning from payment
+>>>>>>> Stashed changes
     fetchRequests();
     fetchStats();
     
     // Handle payment status from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
+<<<<<<< Updated upstream
     const paymentStatus = urlParams.get('payment');
     const sessionId = urlParams.get('session_id');
     
@@ -54,6 +75,57 @@ const MyRequests = () => {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, [selectedStatus]);
+=======
+    const paymentStatus = urlParams.get('payment_status');
+    const sessionId = urlParams.get('session_id');
+    
+    if (paymentStatus === 'success' && sessionId) {
+      console.log('🔄 Returning from successful payment with session ID:', sessionId);
+      
+      // Show a success message
+      setPopupMessage('Payment successful! Your request has been updated.');
+      setTimeout(() => setPopupMessage(''), 5000); // Clear message after 5 seconds
+      
+      // If returning from successful payment, refresh data multiple times
+      // to ensure webhook has been processed
+      const refreshData = () => {
+        console.log('🔄 Refreshing data after payment...');
+        fetchRequests();
+        fetchStats();
+        // Also refresh the selected request if one is open
+        if (selectedRequest) {
+          fetchRequestDetails(selectedRequest._id);
+        }
+      };
+      
+      // Refresh immediately
+      refreshData();
+      
+      // Single refresh after 3 seconds to allow webhook processing
+      setTimeout(refreshData, 3000);
+      
+      // Clean up URL parameters after processing
+      navigate('/tenant/request-info', { replace: true });
+    }
+    
+    // Set up an interval to refresh payment status every 30 seconds (reduced frequency)
+    let isRefreshing = false;
+    const intervalId = setInterval(async () => {
+      if (selectedRequest && !isRefreshing) {
+        isRefreshing = true;
+        try {
+          // Only check payment status, not full request details
+          await checkPaymentStatus(selectedRequest._id);
+        } finally {
+          isRefreshing = false;
+        }
+      }
+    }, 30000);
+    
+    return () => clearInterval(intervalId);
+  }, [navigate, selectedRequest]);
+
+>>>>>>> Stashed changes
 
   const navigate = useNavigate();
 
@@ -69,6 +141,9 @@ const MyRequests = () => {
       );
       
       setRequests(data.requests || []);
+      
+      // Note: Payment status checking is now handled by the interval timer
+      // to prevent excessive API calls
     } catch (err) {
       console.error('Error fetching requests:', err);
       setError('Failed to load requests');
@@ -79,14 +154,12 @@ const MyRequests = () => {
 
   const fetchStats = async () => {
     try {
-      console.log('Fetching request stats...');
       const data = await authenticatedFetch(
         'http://localhost:5001/api/requests/stats',
         { method: 'GET' },
         navigate
       );
       
-      console.log('Stats received:', data);
       setStats(data.statusBreakdown || {});
     } catch (err) {
       console.error('Error fetching stats:', err);
@@ -123,9 +196,64 @@ const MyRequests = () => {
     });
   };
 
+<<<<<<< Updated upstream
   const handleViewDetails = (request) => {
     setSelectedRequest(request);
     setShowModal(true);
+=======
+  const fetchRequestDetails = async (requestId) => {
+    try {
+      const data = await authenticatedFetch(
+        `http://localhost:5001/api/request-management/request/${requestId}`,
+        { method: 'GET' },
+        navigate
+      );
+      
+      if (data.request) {
+        // Update the selected request with fresh data
+        setSelectedRequest(data.request);
+        
+        // Also update the request in the requests array
+        setRequests(prev => prev.map(req => 
+          req._id === data.request._id ? data.request : req
+        ));
+      }
+    } catch (err) {
+      console.error('Error fetching request details:', err);
+    }
+  };
+  
+  // Function to check and update payment status
+  const checkPaymentStatus = async (requestId) => {
+    try {
+      const data = await authenticatedFetch(
+        `http://localhost:5001/api/stripe/check-payment-status/${requestId}`,
+        { method: 'GET' },
+        navigate
+      );
+      
+      console.log('✅ Payment status check result:', data);
+      
+      // If the payment status was updated on the server, refresh the requests list
+      if (data.success) {
+        fetchRequests();
+        fetchRequestDetails(requestId);
+      }
+    } catch (err) {
+      console.error('Error checking payment status:', err);
+    }
+  };
+  
+  const handleViewDetails = (request) => {
+    setSelectedRequest(request);
+    setShowModal(true);
+    
+    // Only fetch fresh details if the request might have updates
+    // (payment status checking is handled by the interval timer)
+    if (request.status === 'Approved – Pay Advance' || request.status === 'Payment Submitted') {
+      fetchRequestDetails(request._id);
+    }
+>>>>>>> Stashed changes
   };
 
   const handleCancelRequest = async (requestId) => {
@@ -205,8 +333,8 @@ const MyRequests = () => {
     }
   };
 
-  // Handle receipt download
-  const handleGetReceipt = async (paymentId) => {
+  // Handle receipt display
+  const handleGetReceipt = async (request) => {
     try {
       setReceiptLoading(true);
       const userData = JSON.parse(localStorage.getItem('dwellSyncUser'));
@@ -217,7 +345,16 @@ const MyRequests = () => {
         return;
       }
 
-      const response = await fetch(`http://localhost:5001/api/stripe/receipt/${paymentId}`, {
+      // Get the session ID from the request (check both fields for compatibility)
+      const sessionId = request?.advancePayment?.sessionId || request?.advancePayment?.stripeSessionId;
+      
+      if (!sessionId) {
+        alert('Payment session not found. Please try again later.');
+        return;
+      }
+
+      // Fetch receipt data from the server
+      const response = await fetch(`http://localhost:5001/api/pdf/receipt-data?session_id=${sessionId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -232,23 +369,64 @@ const MyRequests = () => {
       const data = await response.json();
       
       if (data.success) {
-        setPaymentReceipt(data);
-        
-        // If there's a direct receipt URL from Stripe, open it in a new tab
-        if (data.receiptUrl) {
-          window.open(data.receiptUrl, '_blank');
-        } else if (data.receiptData) {
-          // Otherwise, display the receipt data in a modal
-          setShowReceiptModal(true);
-        }
+        setPaymentReceipt(data.receiptData);
+        setShowReceiptInline(true);
       } else {
         alert(data.message || 'Failed to retrieve receipt');
       }
+      
     } catch (err) {
       console.error('Error retrieving receipt:', err);
       alert('Failed to retrieve receipt. Please try again.');
     } finally {
       setReceiptLoading(false);
+    }
+  };
+
+  // New: Handle receipt download (opens PDF generator or Stripe receipt URL)
+  const handleDownloadReceipt = async (request) => {
+    try {
+      // Prefer sessionId, fallback to stripeSessionId, then to request-level session fields
+      let sessionId =
+        request?.advancePayment?.sessionId ||
+        request?.advancePayment?.stripeSessionId ||
+        request?.sessionId ||
+        request?.stripeSessionId;
+
+      // If not found, try from currently selectedRequest (same object sometimes has fresher data)
+      if (!sessionId && selectedRequest && request?._id === selectedRequest._id) {
+        sessionId =
+          selectedRequest?.advancePayment?.sessionId ||
+          selectedRequest?.advancePayment?.stripeSessionId ||
+          selectedRequest?.sessionId ||
+          selectedRequest?.stripeSessionId;
+      }
+
+      if (sessionId) {
+        const pdfUrl = `http://localhost:5001/api/pdf/generate-receipt?session_id=${sessionId}&originUrl=${encodeURIComponent(window.location.origin)}`;
+        window.open(pdfUrl, '_blank', 'noopener,noreferrer');
+        return;
+      }
+
+      // Fallback: try using paymentId to get Stripe receipt URL from backend
+      const paymentId = request?.advancePayment?.paymentId || request?.paymentId;
+      if (paymentId) {
+        const data = await authenticatedFetch(
+          `http://localhost:5001/api/stripe/receipt/${paymentId}`,
+          { method: 'GET' },
+          navigate
+        );
+        const receiptUrl = data?.receiptUrl || data?.payment?.receiptUrl;
+        if (receiptUrl) {
+          window.open(receiptUrl, '_blank', 'noopener,noreferrer');
+          return;
+        }
+      }
+
+      alert('Receipt is not yet available. Please try again in a moment.');
+    } catch (err) {
+      console.error('Error downloading receipt:', err);
+      alert('Failed to download receipt. Please try again.');
     }
   };
 
@@ -363,6 +541,11 @@ const MyRequests = () => {
 
   return (
     <div className="my-requests">
+      {popupMessage && (
+        <div className="popup-message success-message">
+          {popupMessage}
+        </div>
+      )}
       <h2 className="section-title">My Requests</h2>
       
       {/* Stats Summary */}
@@ -467,6 +650,43 @@ const MyRequests = () => {
                       Cancel Request
                     </button>
                   )}
+                  {/* Show Pay Online button if payment is required and not yet paid */}
+                  {request.status === 'Approved – Pay Advance' && 
+                   request.advancePayment && 
+                   !request.advancePayment.isPaid && 
+                   !request.isPaid && 
+                   request.advancePayment.canPayAgain !== false && (
+                    <button 
+                      className="pay-btn"
+                      onClick={() => handlePayNow(request._id)}
+                      disabled={paymentLoading}
+                    >
+                      {paymentLoading ? 'Processing...' : `Pay Online (৳${request.advancePayment.amount})`}
+                    </button>
+                  )}
+                  
+                  {/* Show PAID button and View Receipt button if payment has been made */}
+                  {(request.status === 'AdvancePaid' || 
+                    request.status === 'Paid/Completed' || 
+                    request.status === 'FullyPaid' ||
+                    request.isPaid ||
+                    (request.advancePayment && request.advancePayment.isPaid)) && (
+                    <div className="payment-completed-actions">
+                      <button 
+                        className="paid-btn"
+                        disabled
+                      >
+                        ✅ PAID
+                      </button>
+                      <button 
+                        className="download-receipt-btn"
+                        onClick={() => handleDownloadReceipt(request)}
+                        disabled={receiptLoading}
+                      >
+                        {receiptLoading ? 'Loading...' : <><FaReceipt /> Download Receipt</>}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -562,6 +782,7 @@ const MyRequests = () => {
                       Cancel Request
                     </button>
                   )}
+<<<<<<< Updated upstream
                   {selectedRequest.status === 'Approved – Pay Advance' && selectedRequest.advancePayment && (
                     <>
                       <button 
@@ -588,9 +809,121 @@ const MyRequests = () => {
                     >
                       {receiptLoading ? 'Loading...' : <><FaReceipt /> Download Receipt</>}
                     </button>
+=======
+                  {/* Show Pay Online button only if payment is required and not yet paid */}
+                  {selectedRequest.status === 'Approved – Pay Advance' && 
+                   selectedRequest.advancePayment && 
+                   !selectedRequest.advancePayment.isPaid && 
+                   !selectedRequest.isPaid && 
+                   selectedRequest.advancePayment.canPayAgain !== false && (
+                    <button 
+                      className="pay-btn"
+                      onClick={() => handlePayNow(selectedRequest._id)}
+                      disabled={paymentLoading}
+                    >
+                      {paymentLoading ? 'Processing...' : `Pay Online (৳${selectedRequest.advancePayment.amount})`}
+                    </button>
+                  )}
+                  
+                  {/* Show PAID button and View Receipt button if payment has been made */}
+                  {(selectedRequest.status === 'AdvancePaid' || 
+                    selectedRequest.status === 'Paid/Completed' || 
+                    selectedRequest.status === 'FullyPaid' ||
+                    selectedRequest.isPaid ||
+                    (selectedRequest.advancePayment && selectedRequest.advancePayment.isPaid)) && (
+                    <div className="payment-completed-actions">
+                      <button 
+                        className="paid-btn"
+                        disabled
+                      >
+                        ✅ PAID
+                      </button>
+                      <button 
+                        className="download-receipt-btn"
+                        onClick={() => handleDownloadReceipt(selectedRequest)}
+                        disabled={receiptLoading}
+                      >
+                        {receiptLoading ? 'Loading...' : <><FaReceipt /> Download Receipt</>}
+                      </button>
+                    </div>
+>>>>>>> Stashed changes
                   )}
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Inline Receipt Display */}
+      {showReceiptInline && paymentReceipt && (
+        <div className="receipt-overlay" onClick={() => setShowReceiptInline(false)}>
+          <div className="receipt-modal" onClick={e => e.stopPropagation()}>
+            <div className="receipt-header">
+              <h3>Payment Receipt</h3>
+              <button className="close-btn" onClick={() => setShowReceiptInline(false)}>×</button>
+            </div>
+            
+            <div className="receipt-content">
+              <div className="receipt-status">
+                <span className="status-badge status-paid">✅ {paymentReceipt.paymentStatus}</span>
+              </div>
+              
+              <div className="receipt-amount">
+                <div className="amount-label">Total Amount Paid</div>
+                <div className="amount-value">
+                  {paymentReceipt.amount?.toLocaleString()} {paymentReceipt.currency}
+                </div>
+              </div>
+              
+              <div className="receipt-details">
+                <div className="receipt-row">
+                  <span className="receipt-label">Receipt ID:</span>
+                  <span className="receipt-value">{paymentReceipt.paymentId}</span>
+                </div>
+                <div className="receipt-row">
+                  <span className="receipt-label">Property:</span>
+                  <span className="receipt-value">{paymentReceipt.propertyTitle}</span>
+                </div>
+                <div className="receipt-row">
+                  <span className="receipt-label">Payment Type:</span>
+                  <span className="receipt-value">{paymentReceipt.paymentType}</span>
+                </div>
+                <div className="receipt-row">
+                  <span className="receipt-label">Payment Method:</span>
+                  <span className="receipt-value">{paymentReceipt.paymentMethod}</span>
+                </div>
+                <div className="receipt-row">
+                  <span className="receipt-label">Transaction ID:</span>
+                  <span className="receipt-value">{paymentReceipt.transactionId}</span>
+                </div>
+                <div className="receipt-row">
+                  <span className="receipt-label">Payer:</span>
+                  <span className="receipt-value">{paymentReceipt.payerName}</span>
+                </div>
+                <div className="receipt-row">
+                  <span className="receipt-label">Payment Date:</span>
+                  <span className="receipt-value">{new Date(paymentReceipt.paymentDate).toLocaleDateString()}</span>
+                </div>
+                <div className="receipt-row">
+                  <span className="receipt-label">Property Address:</span>
+                  <span className="receipt-value">{paymentReceipt.propertyAddress}</span>
+                </div>
+              </div>
+              
+              <div className="receipt-footer">
+                <p>This is an official receipt from Home Management System</p>
+                <p>Generated on: {new Date(paymentReceipt.generatedAt).toLocaleString()}</p>
+              </div>
+            </div>
+            
+            <div className="receipt-actions">
+              <button 
+                className="close-btn" 
+                onClick={() => setShowReceiptInline(false)}
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
@@ -675,6 +1008,7 @@ const MyRequests = () => {
         </div>
       )}
       
+<<<<<<< Updated upstream
       {/* Receipt Modal */}
       {showReceiptModal && paymentReceipt && (
         <div className="modal-overlay">
@@ -764,6 +1098,9 @@ const MyRequests = () => {
           </div>
         </div>
       )}
+=======
+
+>>>>>>> Stashed changes
     </div>
   );
 };

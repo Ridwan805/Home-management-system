@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const PAYMENT_TYPES = ['advance_payment', 'full_payment', 'monthly_rent', 'security_deposit', 'utility_bill', 'maintenance_fee', 'other'];
 
 // Define valid payment statuses
-const PAYMENT_STATUSES = ['pending', 'processing', 'completed', 'failed', 'cancelled', 'refunded', 'disputed'];
+const PAYMENT_STATUSES = ['pending', 'processing', 'completed', 'paid', 'failed', 'cancelled', 'refunded', 'disputed'];
 
 // Define valid payment methods
 const PAYMENT_METHODS = ['stripe', 'bank_transfer', 'cash', 'check', 'mobile_banking', 'other'];
@@ -61,6 +61,8 @@ const ReceiptDataSchema = new mongoose.Schema({
 
 // Main Payment schema
 const PaymentSchema = new mongoose.Schema({
+  // Payment history tracking
+  history: [PaymentHistorySchema],
   // Unique payment identifier
   paymentId: {
     type: String,
@@ -269,4 +271,9 @@ PaymentSchema.statics.getPaymentStats = function(filters = {}) {
   ]);
 };
 
-module.exports = mongoose.model('Payment', PaymentSchema);
+const Payment = mongoose.model('Payment', PaymentSchema);
+
+module.exports = Payment;
+module.exports.PAYMENT_STATUSES = PAYMENT_STATUSES;
+module.exports.PAYMENT_TYPES = PAYMENT_TYPES;
+module.exports.PAYMENT_METHODS = PAYMENT_METHODS;

@@ -4,6 +4,92 @@ const Property = require('../models/Property');
 const User = require('../models/User');
 
 class GuardrailsService {
+  /**
+   * Validate and ensure payment status consistency
+   * @param {Object} request - The request object to validate
+   */
+  static async validatePaymentStatus(request) {
+    if (!request) return;
+    
+    try {
+      // Find all payments for this request
+      const Payment = require('../models/Payment');
+      const payments = await Payment.find({ requestId: request._id });
+      
+      // Check if any payments are marked as paid
+      const hasPaidPayment = payments.some(payment => 
+        payment.status === 'paid' || payment.status === 'completed');
+      
+      // If there's a paid payment but request is not marked as paid, update it
+      if (hasPaidPayment) {
+        // Ensure isPaid flag is set
+        if (!request.isPaid) {
+          request.isPaid = true;
+          console.log(`✅ Setting isPaid flag for request ${request._id}`);
+        }
+        
+        // Determine if it's advance or full payment
+        const isFullPayment = payments.some(p => 
+          p.type === 'full_payment' && (p.status === 'paid' || p.status === 'completed'));
+        
+        // Update request status based on payment type
+        if (isFullPayment) {
+          if (request.status !== 'FullyPaid') {
+            request.status = 'FullyPaid';
+            console.log(`✅ Setting status to FullyPaid for request ${request._id}`);
+          }
+          
+          // Update fullPayment object
+          if (request.fullPayment) {
+            if (request.fullPayment.status !== 'Paid') {
+              request.fullPayment.status = 'Paid';
+              console.log(`✅ Setting fullPayment.status to Paid for request ${request._id}`);
+            }
+            
+            if (!request.fullPayment.isPaid) {
+              request.fullPayment.isPaid = true;
+              console.log(`✅ Setting fullPayment.isPaid to true for request ${request._id}`);
+            }
+            
+            if (request.fullPayment.canPayAgain !== false) {
+              request.fullPayment.canPayAgain = false;
+              console.log(`✅ Setting fullPayment.canPayAgain to false for request ${request._id}`);
+            }
+          }
+        } else {
+          // It's an advance payment
+          if (request.status !== 'AdvancePaid' && request.status !== 'FullyPaid') {
+            request.status = 'AdvancePaid';
+            console.log(`✅ Setting status to AdvancePaid for request ${request._id}`);
+          }
+          
+          // Update advancePayment object
+          if (request.advancePayment) {
+            if (request.advancePayment.status !== 'Paid') {
+              request.advancePayment.status = 'Paid';
+              console.log(`✅ Setting advancePayment.status to Paid for request ${request._id}`);
+            }
+            
+            if (!request.advancePayment.isPaid) {
+              request.advancePayment.isPaid = true;
+              console.log(`✅ Setting advancePayment.isPaid to true for request ${request._id}`);
+            }
+            
+            if (request.advancePayment.canPayAgain !== false) {
+              request.advancePayment.canPayAgain = false;
+              console.log(`✅ Setting advancePayment.canPayAgain to false for request ${request._id}`);
+            }
+          }
+        }
+      }
+      
+      return request;
+    } catch (error) {
+      console.error('Error in validatePaymentStatus:', error);
+      return request;
+    }
+  }
+  
   // Rate limiting for requests per user
   static async checkRequestRateLimit(userId, timeWindow = 24 * 60 * 60 * 1000) { // 24 hours
     try {

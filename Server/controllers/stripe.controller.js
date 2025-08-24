@@ -3,8 +3,9 @@ const Request = require('../models/Request');
 const User = require('../models/User');
 const Property = require('../models/Property');
 const Payment = require('../models/Payment');
+const { PAYMENT_STATUSES } = require('../models/Payment');
 const NotificationService = require('../services/notificationService');
-const GuardrailsService = require('../services/guardrailsService');
+const GuardrailsService = require('../services/GuardrailsService');
 
 // Get Stripe publishable key
 const getPublishableKey = async (req, res) => {
@@ -45,8 +46,8 @@ const createPaymentSession = async (req, res) => {
       });
     }
 
-    // Check if payment is already made
-    if (request.advancePayment && request.advancePayment.status === 'Paid') {
+    // Check if payment is already made or cannot pay again
+    if (request.advancePayment && (request.advancePayment.status === 'Paid' || !request.advancePayment.canPayAgain)) {
       return res.status(400).json({
         success: false,
         message: 'Advance payment has already been made for this request'
@@ -72,21 +73,35 @@ const createPaymentSession = async (req, res) => {
       line_items: [
         {
           price_data: {
+<<<<<<< Updated upstream
             currency: 'bdt',
             product_data: {
               name: `Advance Payment for ${request.propertyId.title}`,
               description: `10% advance payment for property at ${request.propertyId.location}`
             },
             unit_amount: paymentAmount * 100, // Convert to cents
+=======
+          currency: 'usd', // Changed from 'bdt' to 'usd' as BDT has limited Stripe support
+          product_data: {
+            name: `Advance Payment - ${request.propertyId.propertyType} at ${request.propertyId.address}`,
+            description: `Tenant: ${tenant.firstName} ${tenant.lastName} (${tenant.email})\nProperty: ${request.propertyId.address}\nType: ${request.propertyId.propertyType}\nBedrooms: ${request.propertyId.bedrooms}, Bathrooms: ${request.propertyId.bathrooms}\nSize: ${request.propertyId.squareFootage} sq ft\nListing: ${request.propertyId.listingType}\nRequest ID: ${request.requestId}`
+>>>>>>> Stashed changes
           },
           quantity: 1,
         },
       ],
       metadata: {
         requestId: requestId,
+        requestNumber: request.requestId,
         tenantId: userId,
+        tenantName: `${tenant.firstName} ${tenant.lastName}`,
+        tenantEmail: tenant.email,
         propertyId: request.propertyId._id.toString(),
-        requestType: 'advance_payment'
+        propertyAddress: request.propertyId.address,
+        propertyType: request.propertyId.propertyType,
+        requestType: 'advance_payment',
+        paymentAmount: paymentAmount.toString(),
+        currency: 'BDT'
       },
       mode: 'payment',
       success_url: `${process.env.FRONTEND_URL}/tenant/request-info?payment=success&session_id={CHECKOUT_SESSION_ID}`,
@@ -94,13 +109,18 @@ const createPaymentSession = async (req, res) => {
     });
 
     // Update request with payment session info
-    request.advancePayment = {
-      sessionId: session.id,
-      amount: paymentAmount,
-      status: 'pending',
-      createdAt: new Date(),
-      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // Set due date to 7 days from now
-    };
+    if (!request.advancePayment) {
+      request.advancePayment = {};
+    }
+    
+    request.advancePayment.sessionId = session.id;
+    request.advancePayment.stripeSessionId = session.id; // Keep for backward compatibility
+    request.advancePayment.amount = paymentAmount;
+    request.advancePayment.status = 'pending';
+    request.advancePayment.createdAt = new Date();
+    request.advancePayment.dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // Set due date to 7 days from now
+    request.advancePayment.canPayAgain = true; // Initially allow payment
+    
     await request.save();
 
     // Create payment record
@@ -190,21 +210,35 @@ const createFullPaymentSession = async (req, res) => {
       line_items: [
         {
           price_data: {
+<<<<<<< Updated upstream
             currency: 'bdt',
             product_data: {
               name: `Full Payment for ${request.propertyId.title}`,
               description: `Remaining 90% payment for property at ${request.propertyId.location}`
             },
             unit_amount: paymentAmount * 100, // Convert to cents
+=======
+          currency: 'usd', // Changed from 'bdt' to 'usd' as BDT has limited Stripe support
+          product_data: {
+            name: `Full Payment - ${request.propertyId.propertyType} at ${request.propertyId.address}`,
+            description: `Tenant: ${tenant.firstName} ${tenant.lastName} (${tenant.email})\nProperty: ${request.propertyId.address}\nType: ${request.propertyId.propertyType}\nBedrooms: ${request.propertyId.bedrooms}, Bathrooms: ${request.propertyId.bathrooms}\nSize: ${request.propertyId.squareFootage} sq ft\nListing: ${request.propertyId.listingType}\nRemaining 90% payment\nRequest ID: ${request.requestId}`
+>>>>>>> Stashed changes
           },
           quantity: 1,
         },
       ],
       metadata: {
         requestId: requestId,
+        requestNumber: request.requestId,
         tenantId: userId,
+        tenantName: `${tenant.firstName} ${tenant.lastName}`,
+        tenantEmail: tenant.email,
         propertyId: request.propertyId._id.toString(),
-        requestType: 'full_payment'
+        propertyAddress: request.propertyId.address,
+        propertyType: request.propertyId.propertyType,
+        requestType: 'full_payment',
+        paymentAmount: paymentAmount.toString(),
+        currency: 'BDT'
       },
       mode: 'payment',
       success_url: `${process.env.FRONTEND_URL}/tenant/request-info?payment=success&session_id={CHECKOUT_SESSION_ID}`,
@@ -262,19 +296,421 @@ const handleWebhook = async (req, res) => {
   
   // Handle the event
   switch (event.type) {
+    case 'billing_portal.configuration.created':
+      // Handle billing_portal.configuration.created event
+      break;
+    case 'billing_portal.configuration.updated':
+      // Handle billing_portal.configuration.updated event
+      break;
+    case 'billing_portal.session.created':
+      // Handle billing_portal.session.created event
+      break;
+    case 'billing.alert.triggered':
+      // Handle billing.alert.triggered event
+      break;
+    case 'billing.credit_balance_transaction.created':
+      // Handle billing.credit_balance_transaction.created event
+      break;
+    case 'billing.credit_grant.created':
+      // Handle billing.credit_grant.created event
+      break;
+    case 'billing.credit_grant.updated':
+      // Handle billing.credit_grant.updated event
+      break;
+    case 'billing.meter.created':
+      // Handle billing.meter.created event
+      break;
+    case 'billing.meter.deactivated':
+      // Handle billing.meter.deactivated event
+      break;
+    case 'billing.meter.reactivated':
+      // Handle billing.meter.reactivated event
+      break;
+    case 'billing.meter.updated':
+      // Handle billing.meter.updated event
+      break;
+    case 'checkout.session.async_payment_failed':
+      // Handle checkout.session.async_payment_failed event
+      break;
+    case 'checkout.session.async_payment_succeeded':
+      // Handle checkout.session.async_payment_succeeded event
+      break;
     case 'checkout.session.completed':
       const requestType = event.data.object.metadata.requestType || 'advance_payment';
+      
+      // Process the payment first
       if (requestType === 'full_payment') {
         await handleFullPaymentSuccess(event.data.object);
       } else {
         await handlePaymentSuccess(event.data.object);
       }
+      
+      // Update the request status in the database to ensure UI reflects payment
+      try {
+        const { requestId } = event.data.object.metadata;
+        if (requestId) {
+          const request = await Request.findById(requestId);
+          if (request) {
+            // Update isPaid flag and payment status
+            request.isPaid = true;
+            
+            if (requestType === 'full_payment') {
+              request.status = 'FullyPaid';
+              if (request.fullPayment) {
+                request.fullPayment.status = 'Paid';
+                request.fullPayment.isPaid = true;
+                request.fullPayment.canPayAgain = false;
+              }
+            } else {
+              request.status = 'AdvancePaid';
+              if (request.advancePayment) {
+                request.advancePayment.status = 'Paid';
+                request.advancePayment.isPaid = true;
+                request.advancePayment.canPayAgain = false;
+              }
+            }
+            
+            // Apply guardrails to prevent payment status inconsistencies
+            await GuardrailsService.validatePaymentStatus(request);
+            
+            await request.save();
+            console.log(`✅ Request ${requestId} payment status updated successfully`);
+          }
+        }
+      } catch (error) {
+        console.error('Error updating request payment status:', error);
+      }
       break;
     case 'checkout.session.expired':
       await handlePaymentExpired(event.data.object);
       break;
+    case 'invoice.created':
+      // Handle invoice.created event
+      break;
+    case 'invoice.deleted':
+      // Handle invoice.deleted event
+      break;
+    case 'invoice.finalization_failed':
+      // Handle invoice.finalization_failed event
+      break;
+    case 'invoice.finalized':
+      // Handle invoice.finalized event
+      break;
+    case 'invoice.marked_uncollectible':
+      // Handle invoice.marked_uncollectible event
+      break;
+    case 'invoice.paid':
+      // Handle invoice.paid event
+      const invoice = event.data.object;
+      const chargeId = invoice.charge;
+
+      if (chargeId) {
+        try {
+          const charge = await stripe.charges.retrieve(chargeId);
+          const paymentIntentId = charge.payment_intent;
+
+          if (paymentIntentId) {
+            const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+            const { requestId } = paymentIntent.metadata;
+
+            if (requestId) {
+              const request = await Request.findById(requestId);
+              if (request) {
+                request.isPaid = true;
+                request.status = 'Paid/Completed';
+                if (request.advancePayment) {
+                  request.advancePayment.status = 'Paid';
+                  request.advancePayment.isPaid = true;
+                  request.advancePayment.canPayAgain = false;
+                }
+                if (request.fullPayment) {
+                  request.fullPayment.status = 'completed';
+                }
+                await request.save();
+                console.log(`✅ Request ${requestId} updated to Paid/Completed based on invoice.paid event`);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error handling invoice.paid event:', error);
+        }
+      }
+      break;
+    case 'invoice.payment_action_required':
+      // Handle invoice.payment_action_required event
+      break;
+    case 'invoice.payment_failed':
+      // Handle invoice.payment_failed event
+      const failedInvoice = event.data.object;
+      const failedChargeId = failedInvoice.charge;
+
+      if (failedChargeId) {
+        try {
+          const failedCharge = await stripe.charges.retrieve(failedChargeId);
+          const failedPaymentIntentId = failedCharge.payment_intent;
+
+          if (failedPaymentIntentId) {
+            const failedPaymentIntent = await stripe.paymentIntents.retrieve(failedPaymentIntentId);
+            const { requestId } = failedPaymentIntent.metadata;
+
+            if (requestId) {
+              const request = await Request.findById(requestId);
+              if (request) {
+                if (request.advancePayment) {
+                  request.advancePayment.status = 'failed';
+                }
+                if (request.fullPayment) {
+                  request.fullPayment.status = 'failed';
+                }
+                await request.save();
+                console.log(`✅ Request ${requestId} payment status updated to failed based on invoice.payment_failed event`);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error handling invoice.payment_failed event:', error);
+        }
+      }
+      break;
+    case 'invoice.payment_succeeded':
+      // Handle invoice.payment_succeeded event
+      break;
+    case 'invoice.sent':
+      // Handle invoice.sent event
+      break;
+    case 'invoice.upcoming':
+      // Handle invoice.upcoming event
+      break;
+    case 'invoice.updated':
+      // Handle invoice.updated event
+      break;
+    case 'invoice.voided':
+      // Handle invoice.voided event
+      break;
+    case 'invoiceitem.created':
+      // Handle invoiceitem.created event
+      break;
+    case 'invoiceitem.deleted':
+      // Handle invoiceitem.deleted event
+      break;
+    case 'payment_intent.amount_capturable_updated':
+      // Handle payment_intent.amount_capturable_updated event
+      break;
+    case 'payment_intent.canceled':
+      // Handle payment_intent.canceled event
+      break;
+    case 'payment_intent.created':
+      // Handle payment_intent.created event
+      break;
     case 'payment_intent.payment_failed':
       await handlePaymentFailed(event.data.object);
+      break;
+    case 'payment_intent.partially_funded':
+      // Handle payment_intent.partially_funded event
+      break;
+    case 'payment_intent.processing':
+      // Handle payment_intent.processing event
+      break;
+    case 'payment_intent.requires_action':
+      // Handle payment_intent.requires_action event
+      break;
+    case 'payment_intent.succeeded':
+      // Handle payment_intent.succeeded event
+      const paymentIntent = event.data.object;
+      const { requestId } = paymentIntent.metadata;
+
+      if (requestId) {
+        try {
+          const request = await Request.findById(requestId);
+          if (request) {
+            request.isPaid = true;
+            request.status = 'Paid/Completed';
+            if (request.advancePayment) {
+              request.advancePayment.status = 'Paid';
+              request.advancePayment.isPaid = true;
+              request.advancePayment.canPayAgain = false;
+            }
+            if (request.fullPayment) {
+              request.fullPayment.status = 'completed';
+            }
+            await request.save();
+            console.log(`✅ Request ${requestId} updated to Paid/Completed based on payment_intent.succeeded event`);
+          }
+        } catch (error) {
+          console.error('Error handling payment_intent.succeeded event:', error);
+        }
+      }
+      break;
+    case 'payment_link.created':
+      // Handle payment_link.created event
+      break;
+    case 'payment_link.updated':
+      // Handle payment_link.updated event
+      break;
+    case 'payment_method.attached':
+      // Handle payment_method.attached event
+      break;
+    case 'payment_method.automatically_updated':
+      // Handle payment_method.automatically_updated event
+      break;
+    case 'payment_method.detached':
+      // Handle payment_method.detached event
+      break;
+    case 'payment_method.updated':
+      // Handle payment_method.updated event
+      break;
+    case 'payout.canceled':
+      // Handle payout.canceled event
+      break;
+    case 'payout.created':
+      // Handle payout.created event
+      break;
+    case 'payout.failed':
+      // Handle payout.failed event
+      break;
+    case 'payout.paid':
+      // Handle payout.paid event
+      break;
+    case 'payout.reconciliation_completed':
+      // Handle payout.reconciliation_completed event
+      break;
+    case 'payout.updated':
+      // Handle payout.updated event
+      break;
+    case 'refund.created':
+      // Handle refund.created event
+      break;
+    case 'refund.failed':
+      // Handle refund.failed event
+      break;
+    case 'refund.updated':
+      // Handle refund.updated event
+      break;
+    case 'subscription_schedule.aborted':
+      // Handle subscription_schedule.aborted event
+      break;
+    case 'subscription_schedule.canceled':
+      // Handle subscription_schedule.canceled event
+      break;
+    case 'subscription_schedule.completed':
+      // Handle subscription_schedule.completed event
+      break;
+    case 'subscription_schedule.created':
+      // Handle subscription_schedule.created event
+      break;
+    case 'subscription_schedule.expiring':
+      // Handle subscription_schedule.expiring event
+      break;
+    case 'subscription_schedule.released':
+      // Handle subscription_schedule.released event
+      break;
+    case 'subscription_schedule.updated':
+      // Handle subscription_schedule.updated event
+      break;
+    case 'transfer.created':
+      // Handle transfer.created event
+      break;
+    case 'transfer.reversed':
+      // Handle transfer.reversed event
+      break;
+    case 'transfer.updated':
+      // Handle transfer.updated event
+      break;
+    case 'charge.captured':
+      // Handle charge.captured event
+      break;
+    case 'charge.expired':
+      // Handle charge.expired event
+      break;
+    case 'charge.failed':
+      // Handle charge.failed event
+      break;
+    case 'charge.pending':
+      // Handle charge.pending event
+      break;
+    case 'charge.refunded':
+      // Handle charge.refunded event
+      break;
+    case 'charge.succeeded':
+      // Handle charge.succeeded event
+      const charge = event.data.object;
+      const paymentIntentId = charge.payment_intent;
+
+      if (paymentIntentId) {
+        try {
+          const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+          const { requestId } = paymentIntent.metadata;
+
+          if (requestId) {
+            const request = await Request.findById(requestId);
+            if (request) {
+              request.isPaid = true;
+              request.status = 'Paid/Completed';
+              if (request.advancePayment) {
+                request.advancePayment.status = 'Paid';
+                request.advancePayment.isPaid = true;
+                request.advancePayment.canPayAgain = false;
+              }
+              if (request.fullPayment) {
+                request.fullPayment.status = 'completed';
+              }
+              await request.save();
+              console.log(`✅ Request ${requestId} updated to Paid/Completed based on charge.succeeded event`);
+            }
+          }
+        } catch (error) {
+          console.error('Error handling charge.succeeded event:', error);
+        }
+      }
+      break;
+    case 'charge.failed':
+      // Handle charge.failed event
+      const failedCharge = event.data.object;
+      const failedPaymentIntentId = failedCharge.payment_intent;
+
+      if (failedPaymentIntentId) {
+        try {
+          const failedPaymentIntent = await stripe.paymentIntents.retrieve(failedPaymentIntentId);
+          const { requestId } = failedPaymentIntent.metadata;
+
+          if (requestId) {
+            const request = await Request.findById(requestId);
+            if (request) {
+              if (request.advancePayment) {
+                request.advancePayment.status = 'failed';
+              }
+              if (request.fullPayment) {
+                request.fullPayment.status = 'failed';
+              }
+              await request.save();
+              console.log(`✅ Request ${requestId} payment status updated to failed based on charge.failed event`);
+            }
+          }
+        } catch (error) {
+          console.error('Error handling charge.failed event:', error);
+        }
+      }
+      break;
+    case 'charge.updated':
+      // Handle charge.updated event
+      break;
+    case 'charge.dispute.closed':
+      // Handle charge.dispute.closed event
+      break;
+    case 'charge.dispute.created':
+      // Handle charge.dispute.created event
+      break;
+    case 'charge.dispute.funds_reinstated':
+      // Handle charge.dispute.funds_reinstated event
+      break;
+    case 'charge.dispute.funds_withdrawn':
+      // Handle charge.dispute.funds_withdrawn event
+      break;
+    case 'charge.dispute.updated':
+      // Handle charge.dispute.updated event
+      break;
+    case 'charge.refund.updated':
+      // Handle charge.refund.updated event
       break;
     default:
       console.log(`Unhandled event type ${event.type}`);
@@ -297,7 +733,22 @@ const handlePaymentSuccess = async (session) => {
     // Update payment status
     request.advancePayment.status = 'Paid';
     request.advancePayment.paidAt = new Date();
+<<<<<<< Updated upstream
     request.status = 'AdvancePaid';
+=======
+    request.advancePayment.isPaid = true;
+    request.advancePayment.canPayAgain = false; // Prevent duplicate payments
+    request.isPaid = true; // Set top-level isPaid field
+    request.status = 'AdvancePaid';
+    
+    // Ensure the payment status is properly set for UI display
+    console.log('✅ Setting payment status to Paid for request:', requestId);
+    
+    // Generate a payment ID
+    const paymentId = `PAY-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+    request.advancePayment.paymentId = paymentId;
+    
+>>>>>>> Stashed changes
     await request.save();
     
     // Get payment details from Stripe
@@ -323,11 +774,58 @@ const handlePaymentSuccess = async (session) => {
       generatedAt: new Date()
     };
     
+<<<<<<< Updated upstream
     // Update payment record with receipt information
     await Payment.findOneAndUpdate(
       { 'stripeDetails.sessionId': session.id },
       { 
         status: 'completed',
+=======
+    // Find and update the payment record, or create if not found
+    let payment = await Payment.findOne({ 'stripeDetails.sessionId': session.id });
+    
+    if (payment) {
+      // Update existing payment record
+      payment.status = 'paid';
+      payment.paidAt = new Date();
+      payment.stripeDetails.paymentIntentId = session.payment_intent;
+      payment.stripeDetails.chargeId = charge.id;
+      payment.stripeDetails.receiptUrl = charge.receipt_url;
+      payment.receiptData = receiptData;
+      
+      // Add to payment history
+      if (!payment.history) payment.history = [];
+      payment.history.push({
+        status: 'paid',
+        timestamp: new Date(),
+        note: 'Payment completed successfully via Stripe',
+        metadata: { 
+          paymentIntentId: session.payment_intent,
+          receiptUrl: charge.receipt_url 
+        }
+      });
+      
+      await payment.save();
+      console.log('✅ Payment record updated successfully:', payment._id);
+    } else {
+      // Create new payment record if not found
+      payment = await Payment.create({
+        requestId: requestId,
+        payerId: tenantId,
+        propertyId: request.propertyId._id,
+        payeeId: request.ownerId,
+        stripeDetails: { 
+          sessionId: session.id,
+          paymentIntentId: session.payment_intent,
+          chargeId: charge.id,
+          receiptUrl: charge.receipt_url
+        },
+        amount: request.advancePayment.amount,
+        type: 'advance_payment',
+        status: 'paid',
+        method: 'stripe',
+        description: `Advance Payment for ${request.propertyId.title}`,
+>>>>>>> Stashed changes
         paidAt: new Date(),
         'stripeDetails.paymentIntentId': session.payment_intent,
         'stripeDetails.chargeId': charge.id,
@@ -380,13 +878,25 @@ const handleFullPaymentSuccess = async (session) => {
     request.fullPayment.status = 'Paid';
     request.fullPayment.paidAt = new Date();
     request.status = 'FullyPaid';
+    
+    // Add isPaid flag to fullPayment object for UI consistency
+    if (!request.fullPayment.isPaid) {
+      request.fullPayment.isPaid = true;
+    }
+    
+    // Prevent duplicate payments
+    if (request.fullPayment.canPayAgain !== false) {
+      request.fullPayment.canPayAgain = false;
+    }
+    
+    console.log('✅ Setting full payment status to Paid for request:', requestId);
     await request.save();
     
     // Update payment record
     await Payment.findOneAndUpdate(
       { sessionId: session.id },
       { 
-        status: 'Completed',
+        status: 'paid',
         paidAt: new Date(),
         transactionId: session.payment_intent
       }
@@ -681,6 +1191,134 @@ const uploadPaymentProof = async (req, res) => {
   }
 };
 
+/**
+ * Update payment status
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const updatePaymentStatus = async (req, res) => {
+  try {
+    const { paymentId } = req.params;
+    const { status, note } = req.body;
+    
+    if (!paymentId) {
+      return res.status(400).json({ success: false, message: 'Payment ID is required' });
+    }
+    
+    if (!status || !PAYMENT_STATUSES.includes(status.toLowerCase())) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Invalid status. Must be one of: ${PAYMENT_STATUSES.join(', ')}` 
+      });
+    }
+    
+    // Find payment by paymentId
+    const payment = await Payment.findOne({ paymentId });
+    
+    if (!payment) {
+      return res.status(404).json({ success: false, message: 'Payment not found' });
+    }
+    
+    // Update payment status
+    payment.status = status.toLowerCase();
+    
+    // Add to payment history
+    payment.history.push({
+      status: status.toLowerCase(),
+      timestamp: new Date(),
+      note: note || `Payment status updated to ${status}`,
+      updatedBy: req.user._id,
+      metadata: {}
+    });
+    
+    await payment.save();
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Payment status updated successfully',
+      payment: {
+        paymentId: payment.paymentId,
+        status: payment.status,
+        amount: payment.amount,
+        currency: payment.currency,
+        receiptUrl: payment.stripeDetails?.receiptUrl || null
+      }
+    });
+  } catch (error) {
+    console.error('Error updating payment status:', error);
+    return res.status(500).json({ success: false, message: 'Failed to update payment status' });
+  }
+};
+
+/**
+ * Check and update payment status for a request
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const checkPaymentStatus = async (req, res) => {
+  try {
+    const { requestId } = req.params;
+    
+    if (!requestId) {
+      return res.status(400).json({ success: false, message: 'Request ID is required' });
+    }
+    
+    // Find the request
+    const request = await Request.findById(requestId);
+    if (!request) {
+      return res.status(404).json({ success: false, message: 'Request not found' });
+    }
+    
+    // Find payment records for this request
+    const payments = await Payment.find({ requestId: request._id });
+    
+    // Check if any payments are marked as paid
+    const hasPaidPayment = payments.some(payment => payment.status === 'paid');
+    
+    // Update request if there's a paid payment but request is not marked as paid
+    if (hasPaidPayment && (!request.isPaid || 
+        (request.advancePayment && !request.advancePayment.isPaid) || 
+        (request.status !== 'AdvancePaid' && request.status !== 'FullyPaid'))) {
+      
+      // Determine if it's advance or full payment
+      const isFullPayment = payments.some(p => p.type === 'full_payment' && p.status === 'paid');
+      
+      // Update request status
+      request.isPaid = true;
+      
+      if (isFullPayment) {
+        request.status = 'FullyPaid';
+        if (request.fullPayment) {
+          request.fullPayment.status = 'Paid';
+          request.fullPayment.isPaid = true;
+          request.fullPayment.canPayAgain = false;
+        }
+      } else {
+        request.status = 'AdvancePaid';
+        if (request.advancePayment) {
+          request.advancePayment.status = 'Paid';
+          request.advancePayment.isPaid = true;
+          request.advancePayment.canPayAgain = false;
+        }
+      }
+      
+      await request.save();
+      console.log(`✅ Request ${requestId} payment status synchronized successfully`);
+    }
+    
+    return res.status(200).json({
+      success: true,
+      isPaid: request.isPaid,
+      status: request.status,
+      advancePayment: request.advancePayment,
+      fullPayment: request.fullPayment
+    });
+  } catch (error) {
+    console.error('Error checking payment status:', error);
+    return res.status(500).json({ success: false, message: 'Failed to check payment status' });
+  }
+};
+
 module.exports = {
   getPublishableKey,
   createPaymentSession,
@@ -688,5 +1326,7 @@ module.exports = {
   handleWebhook,
   getPaymentStatus,
   generateReceipt,
-  uploadPaymentProof
+  uploadPaymentProof,
+  updatePaymentStatus,
+  checkPaymentStatus
 };

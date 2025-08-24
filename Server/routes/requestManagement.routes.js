@@ -20,7 +20,7 @@ const {
   setupAdvancePayment,
   rejectRequest
 } = require('../controllers/requestManagement.controller');
-const authMiddleware = require('../middleware/auth');
+const authMiddleware = require('../middleware/authMiddleware');
 
 // Tenant routes
 router.get('/my-requests', (req, res, next) => {

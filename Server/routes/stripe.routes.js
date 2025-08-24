@@ -7,7 +7,9 @@ const {
   handleWebhook, 
   getPaymentStatus,
   generateReceipt,
-  uploadPaymentProof
+  uploadPaymentProof,
+  updatePaymentStatus,
+  checkPaymentStatus
 } = require('../controllers/stripe.controller');
 const authMiddleware = require('../middleware/authMiddleware');
 
@@ -26,10 +28,16 @@ router.post('/webhook', express.json({type: 'application/json'}), handleWebhook)
 // Get payment status
 router.get('/payment-status/:sessionId', authMiddleware, getPaymentStatus);
 
+// Update payment status
+router.put('/payment-status/:paymentId', authMiddleware, updatePaymentStatus);
+
 // Generate and download payment receipt
 router.get('/receipt/:paymentId', authMiddleware, generateReceipt);
 
 // Upload payment proof
 router.post('/payment-proof/:paymentId', authMiddleware, uploadPaymentProof);
+
+// Check and sync payment status
+router.get('/check-payment-status/:requestId', authMiddleware, checkPaymentStatus);
 
 module.exports = router;
