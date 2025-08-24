@@ -283,17 +283,22 @@ const createFullPaymentSession = async (req, res) => {
 };
 
 // Handle Stripe webhook events
+// Store processed webhook events to prevent duplicate processing
+const processedWebhookEvents = new Set();
+
 const handleWebhook = async (req, res) => {
   const sig = req.headers['stripe-signature'];
   let event;
   
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    console.log('✅ Webhook signature verified successfully for event:', event.id);
   } catch (err) {
-    console.error('Webhook signature verification failed:', err.message);
+    console.error('❌ Webhook signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
   
+<<<<<<< Updated upstream
   // Handle the event
   switch (event.type) {
     case 'billing_portal.configuration.created':
@@ -714,30 +719,130 @@ const handleWebhook = async (req, res) => {
       break;
     default:
       console.log(`Unhandled event type ${event.type}`);
+=======
+  // Implement idempotency - check if we've already processed this event
+  if (processedWebhookEvents.has(event.id)) {
+    console.log('⚠️ Webhook event already processed, skipping:', event.id);
+    return res.json({ received: true, status: 'already_processed' });
+>>>>>>> Stashed changes
   }
   
-  res.json({ received: true });
+  try {
+    console.log('🔄 Processing webhook event:', event.type, 'ID:', event.id);
+    
+    // Handle the event
+    switch (event.type) {
+      case 'checkout.session.completed':
+        const requestType = event.data.object.metadata.requestType || 'advance_payment';
+        console.log('💳 Processing checkout.session.completed for:', requestType);
+        if (requestType === 'full_payment') {
+          await handleFullPaymentSuccess(event.data.object);
+        } else {
+          await handlePaymentSuccess(event.data.object);
+        }
+        break;
+      case 'checkout.session.expired':
+        console.log('⏰ Processing checkout.session.expired');
+        await handlePaymentExpired(event.data.object);
+        break;
+      case 'payment_intent.payment_failed':
+        console.log('❌ Processing payment_intent.payment_failed');
+        await handlePaymentFailed(event.data.object);
+        break;
+      default:
+        console.log(`⚠️ Unhandled event type ${event.type}`);
+    }
+    
+    // Mark event as processed
+    processedWebhookEvents.add(event.id);
+    
+    // Clean up old processed events (keep only last 1000 to prevent memory leaks)
+    if (processedWebhookEvents.size > 1000) {
+      const eventsArray = Array.from(processedWebhookEvents);
+      processedWebhookEvents.clear();
+      eventsArray.slice(-500).forEach(id => processedWebhookEvents.add(id));
+    }
+    
+    console.log('✅ Webhook event processed successfully:', event.id);
+    res.json({ received: true, status: 'processed' });
+    
+  } catch (error) {
+    console.error('❌ Error processing webhook event:', event.id, error);
+    console.error('❌ Error details:', error.message);
+    console.error('❌ Stack trace:', error.stack);
+    
+    // Don't mark as processed if there was an error
+    res.status(500).json({ 
+      received: false, 
+      error: 'Internal server error processing webhook',
+      eventId: event.id 
+    });
+  }
 };
 
 // Handle successful payment
 const handlePaymentSuccess = async (session) => {
+  const mongoose = require('mongoose');
+  const sessionDb = await mongoose.startSession();
+  
   try {
-    const { requestId, tenantId } = session.metadata;
+    await sessionDb.startTransaction();
     
+<<<<<<< Updated upstream
     const request = await Request.findById(requestId);
     if (!request) {
       console.error('Request not found for payment success:', requestId);
+=======
+    const { requestId, tenantId } = session.metadata;
+    console.log('🔄 Processing payment success for request:', requestId, 'tenant:', tenantId);
+    
+    // Check if payment already exists to prevent duplicates
+    const existingPayment = await Payment.findOne({ 
+      'stripeDetails.sessionId': session.id 
+    }).session(sessionDb);
+    
+    if (existingPayment) {
+      console.log('⚠️ Payment already exists for session:', session.id, 'Payment ID:', existingPayment._id);
+      await sessionDb.abortTransaction();
       return;
     }
     
-    // Update payment status
+    const request = await Request.findById(requestId)
+      .populate('propertyId')
+      .session(sessionDb);
+      
+    if (!request) {
+      console.error('❌ Request not found for payment success:', requestId);
+      await sessionDb.abortTransaction();
+      return;
+    }
+    
+    // Check if payment is already marked as paid to prevent duplicate processing
+    if (request.advancePayment && request.advancePayment.status === 'Paid') {
+      console.log('⚠️ Request already marked as paid:', requestId);
+      await sessionDb.abortTransaction();
+      return;
+    }
+    
+    // Update payment status with validation
+    if (!request.advancePayment) {
+      console.error('❌ No advance payment configuration found for request:', requestId);
+      await sessionDb.abortTransaction();
+>>>>>>> Stashed changes
+      return;
+    }
+    
     request.advancePayment.status = 'Paid';
     request.advancePayment.paidAt = new Date();
 <<<<<<< Updated upstream
     request.status = 'AdvancePaid';
 =======
     request.advancePayment.isPaid = true;
+<<<<<<< Updated upstream
     request.advancePayment.canPayAgain = false; // Prevent duplicate payments
+=======
+    request.advancePayment.stripeSessionId = session.id;
+>>>>>>> Stashed changes
     request.isPaid = true; // Set top-level isPaid field
     request.status = 'AdvancePaid';
     
@@ -748,8 +853,13 @@ const handlePaymentSuccess = async (session) => {
     const paymentId = `PAY-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
     request.advancePayment.paymentId = paymentId;
     
+<<<<<<< Updated upstream
 >>>>>>> Stashed changes
     await request.save();
+=======
+    await request.save({ session: sessionDb });
+    console.log('✅ Request updated successfully:', requestId);
+>>>>>>> Stashed changes
     
     // Get payment details from Stripe
     const paymentIntent = await stripe.paymentIntents.retrieve(session.payment_intent);
@@ -774,6 +884,7 @@ const handlePaymentSuccess = async (session) => {
       generatedAt: new Date()
     };
     
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
     // Update payment record with receipt information
     await Payment.findOneAndUpdate(
@@ -835,6 +946,30 @@ const handlePaymentSuccess = async (session) => {
         receiptGeneratedAt: new Date()
       }
     );
+=======
+    // Create new payment record within the transaction
+    const payment = await Payment.create([{
+      requestId: requestId,
+      payerId: tenantId,
+      propertyId: request.propertyId._id,
+      payeeId: request.ownerId,
+      stripeDetails: { 
+        sessionId: session.id,
+        paymentIntentId: session.payment_intent,
+        chargeId: charge.id,
+        receiptUrl: charge.receipt_url
+      },
+      amount: request.advancePayment.amount,
+      type: 'advance_payment',
+      status: 'completed',
+      method: 'stripe',
+      description: `Advance Payment for ${request.propertyId.title}`,
+      paidAt: new Date(),
+      receiptData: receiptData
+    }], { session: sessionDb });
+    
+    console.log('✅ New payment record created successfully:', payment[0]._id);
+>>>>>>> Stashed changes
     
     // Send notification to owner
     await NotificationService.createNotification({
@@ -857,23 +992,72 @@ const handlePaymentSuccess = async (session) => {
       relatedType: 'request'
     });
     
-    console.log('Advance payment processed successfully for request:', requestId);
+    // Commit the transaction
+    await sessionDb.commitTransaction();
+    console.log('✅ Advance payment processed successfully for request:', requestId);
+    
   } catch (error) {
-    console.error('Error processing payment success:', error);
+    // Rollback the transaction on error
+    await sessionDb.abortTransaction();
+    console.error('❌ Error processing payment success:', error);
+    console.error('❌ Error details:', error.message);
+    console.error('❌ Stack trace:', error.stack);
+    
+    // Re-throw the error so webhook handler can catch it
+    throw error;
+  } finally {
+    // End the session
+    await sessionDb.endSession();
   }
 };
 
 // Handle successful full payment
 const handleFullPaymentSuccess = async (session) => {
+  const mongoose = require('mongoose');
+  const sessionDb = await mongoose.startSession();
+  
   try {
-    const { requestId, tenantId } = session.metadata;
+    await sessionDb.startTransaction();
     
-    const request = await Request.findById(requestId);
-    if (!request) {
-      console.error('Request not found for full payment success:', requestId);
+    const { requestId, tenantId } = session.metadata;
+    console.log('🔄 Processing full payment success for request:', requestId, 'tenant:', tenantId);
+    
+    // Check if payment already exists to prevent duplicates
+    const existingPayment = await Payment.findOne({ 
+      'stripeDetails.sessionId': session.id 
+    }).session(sessionDb);
+    
+    if (existingPayment) {
+      console.log('⚠️ Full payment already exists for session:', session.id, 'Payment ID:', existingPayment._id);
+      await sessionDb.abortTransaction();
       return;
     }
     
+    const request = await Request.findById(requestId)
+      .populate('propertyId')
+      .session(sessionDb);
+      
+    if (!request) {
+      console.error('❌ Request not found for full payment success:', requestId);
+      await sessionDb.abortTransaction();
+      return;
+    }
+    
+    // Check if full payment is already completed
+    if (request.fullPayment && request.fullPayment.status === 'completed') {
+      console.log('⚠️ Request full payment already completed:', requestId);
+      await sessionDb.abortTransaction();
+      return;
+    }
+    
+    // Update full payment status with validation
+    if (!request.fullPayment) {
+      console.error('❌ No full payment configuration found for request:', requestId);
+      await sessionDb.abortTransaction();
+      return;
+    }
+    
+<<<<<<< Updated upstream
     // Update payment status
     request.fullPayment.status = 'Paid';
     request.fullPayment.paidAt = new Date();
@@ -901,11 +1085,72 @@ const handleFullPaymentSuccess = async (session) => {
         transactionId: session.payment_intent
       }
     );
+=======
+    request.fullPayment.status = 'completed';
+    request.fullPayment.paidAt = new Date();
+    request.fullPayment.stripeSessionId = session.id;
+    request.isPaid = true; // Set top-level isPaid field
+    request.status = 'Paid/Completed';
+    
+    await request.save({ session: sessionDb });
+    console.log('✅ Request full payment updated successfully:', requestId);
+    
+    // Get payment details from Stripe
+    const paymentIntent = await stripe.paymentIntents.retrieve(session.payment_intent);
+    const charge = paymentIntent.charges.data[0];
+    
+    // Get user details for receipt
+    const tenant = await User.findById(tenantId);
+    const owner = await User.findById(request.ownerId);
+    
+    // Generate receipt data
+    const receiptData = {
+      paymentId: `PAY-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+      propertyTitle: request.propertyId ? request.propertyId.title : 'Property',
+      propertyAddress: request.propertyId ? (request.propertyId.address || request.propertyId.location) : 'Address not available',
+      amount: request.fullPayment.amount,
+      currency: 'BDT',
+      paymentDate: new Date(),
+      paymentMethod: 'Credit/Debit Card',
+      paymentStatus: 'Completed',
+      transactionId: session.payment_intent,
+      receiptUrl: charge.receipt_url,
+      paymentType: 'Full Payment',
+      payerName: tenant ? `${tenant.firstName || ''} ${tenant.lastName || ''}`.trim() : 'N/A',
+      payeeName: owner ? `${owner.firstName || ''} ${owner.lastName || ''}`.trim() : 'N/A',
+      paymentDescription: `Full Payment for property purchase request`,
+      generatedAt: new Date()
+    };
+    
+    // Create new payment record within the transaction
+    const payment = await Payment.create([{
+      requestId: requestId,
+      payerId: tenantId,
+      propertyId: request.propertyId._id,
+      payeeId: request.ownerId,
+      stripeDetails: { 
+        sessionId: session.id,
+        paymentIntentId: session.payment_intent,
+        chargeId: charge.id,
+        receiptUrl: charge.receipt_url
+      },
+      amount: request.fullPayment.amount,
+      type: 'full_payment',
+      status: 'completed',
+      method: 'stripe',
+      description: `Full Payment for ${request.propertyId.title}`,
+      paidAt: new Date(),
+      receiptData: receiptData
+    }], { session: sessionDb });
+    
+    console.log('✅ New full payment record created successfully:', payment[0]._id);
+>>>>>>> Stashed changes
     
     // Update property status
     await Property.findByIdAndUpdate(
-      request.propertyId,
-      { status: 'Sold', soldTo: tenantId, soldAt: new Date() }
+      request.propertyId._id,
+      { status: 'Sold', soldTo: tenantId, soldAt: new Date() },
+      { session: sessionDb }
     );
     
     // Send notification to owner
@@ -929,9 +1174,22 @@ const handleFullPaymentSuccess = async (session) => {
       relatedType: 'request'
     });
     
-    console.log('Full payment processed successfully for request:', requestId);
+    // Commit the transaction
+    await sessionDb.commitTransaction();
+    console.log('✅ Full payment processed successfully for request:', requestId);
+    
   } catch (error) {
-    console.error('Error processing full payment success:', error);
+    // Rollback the transaction on error
+    await sessionDb.abortTransaction();
+    console.error('❌ Error processing full payment success:', error);
+    console.error('❌ Error details:', error.message);
+    console.error('❌ Stack trace:', error.stack);
+    
+    // Re-throw the error so webhook handler can catch it
+    throw error;
+  } finally {
+    // End the session
+    await sessionDb.endSession();
   }
 };
 
