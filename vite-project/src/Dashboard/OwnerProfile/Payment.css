@@ -112,42 +112,6 @@
   background-color: #1d4ed8;
 }
 
-/* Payment buttons */
-.paid-button {
-  padding: 6px 12px;
-  background-color: #16a34a;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.paid-button:hover {
-  background-color: #15803d;
-}
-
-.view-receipt-button {
-  padding: 6px 12px;
-  margin-left: 10px;
-  background-color: #f8fafc;
-  color: #475569;
-  border: 1px solid #cbd5e1;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: inline-block;
-}
-
-.view-receipt-button:hover {
-  background-color: #f1f5f9;
-  color: #1e40af;
-}
-
 /* Payment History Section */
 .payment-history-table {
   width: 100%;

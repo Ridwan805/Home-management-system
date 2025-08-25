@@ -2,8 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { FaCheck, FaTimes, FaHourglass, FaMapMarkerAlt, FaHome, FaMoneyBillWave, FaUser } from 'react-icons/fa';
-import { authenticatedAxios } from '../../utils/apiUtils.js';
-import API from '../../config/api';
+import { authenticatedAxios } from '../../config/api.js';
 
 const PendingProperties = () => {
   const [properties, setProperties] = useState([]);

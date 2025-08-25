@@ -18,17 +18,27 @@ const OwnerRequestsInbox = () => {
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
 
+  const [debugInfo, setDebugInfo] = useState('Component loading...');
+
   useEffect(() => {
+    console.log('=== OwnerRequestsInbox component mounted ===');
+    setDebugInfo('Component mounted, fetching requests...');
     fetchOwnerRequests();
   }, []);
 
+
+
   const fetchOwnerRequests = async () => {
     try {
+      console.log('=== Starting fetchOwnerRequests ===');
       setLoading(true);
+      setError(''); // Clear any previous errors
+      setDebugInfo('🔄 Fetching requests from API...');
       const userData = localStorage.getItem('dwellSyncUser');
       
       if (!userData) {
         setError('Please log in to view requests');
+        setDebugInfo('❌ No user data found');
         setLoading(false);
         return;
       }
@@ -38,6 +48,7 @@ const OwnerRequestsInbox = () => {
       
       if (!token) {
         setError('Please log in to view requests');
+        setDebugInfo('❌ No auth token found');
         setLoading(false);
         return;
       }
@@ -57,14 +68,21 @@ const OwnerRequestsInbox = () => {
       const data = await response.json();
       
       if (data.success) {
-        setRequests(data.requests);
-        setFilteredRequests(data.requests);
+        console.log('Loaded requests:', data.requests?.length || 0);
+        setDebugInfo(`✅ Loaded ${data.requests?.length || 0} requests`);
+        if (data.requests && data.requests.length > 0) {
+          console.log('Request statuses:', data.requests.map(r => ({ id: r.requestId, status: r.status })));
+        }
+        setRequests(data.requests || []);
+        setFilteredRequests(data.requests || []);
       } else {
         setError(data.message || 'Failed to fetch requests');
+        setDebugInfo('❌ API returned error');
       }
     } catch (err) {
       console.error('Error fetching requests:', err);
       setError('Failed to fetch requests. Please try again.');
+      setDebugInfo('❌ Network error');
     } finally {
       setLoading(false);
     }
@@ -344,7 +362,7 @@ const OwnerRequestsInbox = () => {
       if (response.ok) {
         alert('Payment verified successfully! Request marked as completed.');
         setShowDetailModal(false);
-        fetchRequests(); // Refresh the list
+        fetchOwnerRequests(); // Refresh the list
       } else {
         const errorData = await response.json();
         alert(errorData.message || 'Failed to verify payment');
@@ -402,23 +420,72 @@ const OwnerRequestsInbox = () => {
     currency: 'BDT',
     dueDate: '',
     instructions: '',
-    note: ''
+    additionalNote: ''
   });
+  const [amountError, setAmountError] = useState('');
 
   const handleApprove = (requestId) => {
+    setDebugInfo(`🔄 Approve button clicked for request ${requestId}`);
+    console.log('🔄 handleApprove called for:', requestId);
     setSelectedRequestForPayment(requestId);
+    setAmountError(''); // Clear any previous errors
+    setAdvancePaymentForm({
+      amount: '',
+      currency: 'BDT',
+      dueDate: '',
+      instructions: '',
+      additionalNote: ''
+    }); // Reset form
     setShowAdvancePaymentModal(true);
+    setDebugInfo('✅ Advance payment modal should be open');
   };
 
   const handleAdvancePaymentSubmit = async (e) => {
     e.preventDefault();
     try {
       setActionLoading(true);
+      
+      // Check if there are any validation errors
+      if (amountError) {
+        alert('Please fix the validation errors before submitting');
+        setActionLoading(false);
+        return;
+      }
+      
       const userData = localStorage.getItem('dwellSyncUser');
       
       if (!userData) {
         alert('Please log in to set up advance payment');
+        setActionLoading(false);
         return;
+      }
+      
+      // Client-side validation for advance payment amount
+      const selectedRequest = requests.find(req => req._id === selectedRequestForPayment);
+      if (selectedRequest && selectedRequest.propertyId && selectedRequest.propertyId.price) {
+        const propertyPrice = selectedRequest.propertyId.price;
+        const maxAdvanceAmount = propertyPrice * 0.5;
+        const requestedAmount = parseFloat(advancePaymentForm.amount);
+        
+        if (isNaN(requestedAmount) || requestedAmount <= 0) {
+          setAmountError('Please enter a valid amount greater than 0');
+          setActionLoading(false);
+          return;
+        }
+        
+        if (requestedAmount > maxAdvanceAmount) {
+          setAmountError(`Amount cannot exceed BDT ${maxAdvanceAmount.toLocaleString()} (50% of property price)`);
+          setActionLoading(false);
+          return;
+        }
+      } else {
+        // If we can't find property price, still validate basic amount
+        const requestedAmount = parseFloat(advancePaymentForm.amount);
+        if (isNaN(requestedAmount) || requestedAmount <= 0) {
+          setAmountError('Please enter a valid amount greater than 0');
+          setActionLoading(false);
+          return;
+        }
       }
       
       const user = JSON.parse(userData);
@@ -440,7 +507,6 @@ const OwnerRequestsInbox = () => {
       const data = await response.json();
       
       if (data.success) {
-        fetchOwnerRequests();
         setShowAdvancePaymentModal(false);
         setAdvancePaymentForm({
           amount: '',
@@ -450,6 +516,8 @@ const OwnerRequestsInbox = () => {
           note: ''
         });
         alert('Advance payment setup successfully! Tenant has been notified.');
+        // Refresh requests after modal is closed and alert is dismissed
+        await fetchOwnerRequests();
       } else {
         alert(data.message || 'Failed to set up advance payment');
       }
@@ -479,6 +547,7 @@ const OwnerRequestsInbox = () => {
       'Approved – Pay Advance': '#28a745',
       'Payment Pending (Stripe)': '#fd7e14',
       'Payment Submitted': '#6f42c1',
+      'AdvancePaid': '#28a745',
       'Paid/Completed': '#28a745',
       'Rejected': '#dc3545',
       'Canceled': '#6c757d',
@@ -495,6 +564,7 @@ const OwnerRequestsInbox = () => {
     'Approved – Pay Advance',
     'Payment Pending (Stripe)',
     'Payment Submitted',
+    'AdvancePaid',
     'Paid/Completed',
     'Rejected',
     'Canceled',
@@ -525,11 +595,15 @@ const OwnerRequestsInbox = () => {
     );
   }
 
-  return (
+  try {
+    return (
     <div className="owner-requests-container">
       <div className="owner-requests-header">
         <h1>Property Requests Inbox</h1>
         <p>Manage requests for your properties</p>
+        <div className="debug-info" style={{fontSize: '12px', color: '#666', marginTop: '10px'}}>
+          Debug: {debugInfo}
+        </div>
       </div>
 
       <div className="requests-filters">
@@ -859,67 +933,67 @@ const OwnerRequestsInbox = () => {
               </div>
               
               {/* Messaging Section */}
-              <div className="detail-section">
-                <h3>Messages with Tenant</h3>
-                <div className="messaging-container">
-                  <div className="messages-list">
-                    {messagesLoading ? (
-                      <div className="loading-messages">Loading messages...</div>
-                    ) : messages.length > 0 ? (
-                      messages.map((message, index) => {
-                        const isOwner = message.senderId === getCurrentUserId();
-                        return (
-                          <div key={message._id || index} className={`message-item ${isOwner ? 'owner-message' : 'tenant-message'}`}>
-                            <div className="message-header">
-                              <span className="message-sender">
-                                {isOwner ? 'You' : `${selectedRequest.tenantId?.firstName} ${selectedRequest.tenantId?.lastName}`}
-                              </span>
-                              <span className="message-time">{formatMessageTime(message.timestamp)}</span>
-                            </div>
-                            <div className="message-content">{message.message}</div>
-                            {message.attachments && message.attachments.length > 0 && (
-                              <div className="message-attachments">
-                                {message.attachments.map((attachment, idx) => (
-                                  <a key={idx} href={attachment} target="_blank" rel="noopener noreferrer" className="attachment-link">
-                                    📎 Attachment {idx + 1}
-                                  </a>
-                                ))}
+                <div className="detail-section">
+                  <h3>Messages with Tenant</h3>
+                  <div className="messaging-container">
+                    <div className="messages-list">
+                      {messagesLoading ? (
+                        <div className="loading-messages">Loading messages...</div>
+                      ) : messages.length > 0 ? (
+                        messages.map((message, index) => {
+                          const isOwner = message.senderId === getCurrentUserId();
+                          return (
+                            <div key={message._id || index} className={`message-item ${isOwner ? 'owner-message' : 'tenant-message'}`}>
+                              <div className="message-header">
+                                <span className="message-sender">
+                                  {isOwner ? 'You' : `${selectedRequest.tenantId?.firstName} ${selectedRequest.tenantId?.lastName}`}
+                                </span>
+                                <span className="message-time">{formatMessageTime(message.timestamp)}</span>
                               </div>
-                            )}
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <div className="no-messages">No messages yet. Start a conversation with the tenant.</div>
-                    )}
-                  </div>
-                  
-                  <div className="message-input-container">
-                    <div className="message-input-wrapper">
-                      <textarea
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        placeholder="Type your message to the tenant..."
-                        rows="3"
-                        className="message-input"
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            sendMessage(selectedRequest._id);
-                          }
-                        }}
-                      />
-                      <button
-                        onClick={() => sendMessage(selectedRequest._id)}
-                        disabled={!newMessage.trim() || sendingMessage}
-                        className="send-message-btn"
-                      >
-                        {sendingMessage ? 'Sending...' : 'Send'}
-                      </button>
+                              <div className="message-content">{message.message}</div>
+                              {message.attachments && message.attachments.length > 0 && (
+                                <div className="message-attachments">
+                                  {message.attachments.map((attachment, idx) => (
+                                    <a key={idx} href={attachment} target="_blank" rel="noopener noreferrer" className="attachment-link">
+                                      📎 Attachment {idx + 1}
+                                    </a>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="no-messages">No messages yet. Start a conversation with the tenant.</div>
+                      )}
+                    </div>
+                    
+                    <div className="message-input-container">
+                      <div className="message-input-wrapper">
+                        <textarea
+                          value={newMessage}
+                          onChange={(e) => setNewMessage(e.target.value)}
+                          placeholder="Type your message to the tenant..."
+                          rows="3"
+                          className="message-input"
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              sendMessage(selectedRequest._id);
+                            }
+                          }}
+                        />
+                        <button
+                          onClick={() => sendMessage(selectedRequest._id)}
+                          disabled={!newMessage.trim() || sendingMessage}
+                          className="send-message-btn"
+                        >
+                          {sendingMessage ? 'Sending...' : 'Send'}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
               
               {/* Payment Verification Actions */}
               {selectedRequest.status === 'Payment Submitted' && selectedRequest.advancePayment?.proofUrl && (
@@ -963,17 +1037,155 @@ const OwnerRequestsInbox = () => {
             </div>
             
             <form onSubmit={handleAdvancePaymentSubmit} className="modal-body">
+
+              {/* Property Price Information */}
+              {(() => {
+                const selectedRequest = requests.find(req => req._id === selectedRequestForPayment);
+                if (selectedRequest && selectedRequest.propertyId && selectedRequest.propertyId.price) {
+                  const propertyPrice = selectedRequest.propertyId.price;
+                  const maxAdvanceAmount = propertyPrice * 0.5;
+                  return (
+                    <div className="property-info" style={{marginBottom: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef'}}>
+                      <h4 style={{margin: '0 0 10px 0', color: '#495057'}}>Property Information</h4>
+                      <p style={{margin: '5px 0', color: '#6c757d'}}><strong>Property Price:</strong> BDT {propertyPrice.toLocaleString()}</p>
+                      <p style={{margin: '5px 0', color: '#28a745'}}><strong>Maximum Advance Payment (50%):</strong> BDT {maxAdvanceAmount.toLocaleString()}</p>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+              
               <div className="form-group">
-                <label htmlFor="amount">Amount *</label>
+                <label htmlFor="amount">
+                  Amount * {(() => {
+                    const selectedRequest = requests.find(req => req._id === selectedRequestForPayment);
+                    if (selectedRequest && selectedRequest.propertyId && selectedRequest.propertyId.price) {
+                      const maxAmount = selectedRequest.propertyId.price * 0.5;
+                      return `(Max: BDT ${maxAmount.toLocaleString()})`;
+                    }
+                    return '';
+                  })()}
+                </label>
                 <input
                   type="number"
                   id="amount"
                   value={advancePaymentForm.amount}
-                  onChange={(e) => setAdvancePaymentForm({...advancePaymentForm, amount: e.target.value})}
-                  required
                   min="1"
+                  max={(() => {
+                    const selectedRequest = requests.find(req => req._id === selectedRequestForPayment);
+                    if (selectedRequest && selectedRequest.propertyId && selectedRequest.propertyId.price) {
+                      return selectedRequest.propertyId.price * 0.5;
+                    }
+                    return undefined;
+                  })()}
+                  onChange={(e) => {
+                    const inputValue = e.target.value;
+                    const selectedRequest = requests.find(req => req._id === selectedRequestForPayment);
+                    
+                    if (selectedRequest && selectedRequest.propertyId && selectedRequest.propertyId.price) {
+                      const maxAmount = selectedRequest.propertyId.price * 0.5;
+                      const numericValue = parseFloat(inputValue);
+                      
+                      // Prevent input that exceeds maximum limit
+                      if (inputValue !== '' && !isNaN(numericValue) && numericValue > maxAmount) {
+                        // Don't update the form value if it exceeds the limit
+                        setAmountError(`Maximum allowed amount is BDT ${maxAmount.toLocaleString()} (50% of property price)`);
+                        return;
+                      }
+                      
+                      // Update the form value
+                      setAdvancePaymentForm({...advancePaymentForm, amount: inputValue});
+                      
+                      // Validate the input
+                      if (inputValue === '') {
+                        setAmountError('');
+                      } else if (isNaN(numericValue)) {
+                        setAmountError('Please enter a valid number');
+                      } else if (numericValue <= 0) {
+                        setAmountError('Amount must be greater than 0');
+                      } else {
+                        setAmountError('');
+                      }
+                    } else {
+                      setAdvancePaymentForm({...advancePaymentForm, amount: inputValue});
+                      setAmountError('');
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    // Prevent certain keys that could lead to exceeding the limit
+                    const selectedRequest = requests.find(req => req._id === selectedRequestForPayment);
+                    if (selectedRequest && selectedRequest.propertyId && selectedRequest.propertyId.price) {
+                      const maxAmount = selectedRequest.propertyId.price * 0.5;
+                      const currentValue = parseFloat(e.target.value) || 0;
+                      
+                      // Allow backspace, delete, tab, escape, enter, and arrow keys
+                      if ([8, 9, 27, 13, 46, 37, 38, 39, 40].indexOf(e.keyCode) !== -1 ||
+                          // Allow Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+                          (e.keyCode === 65 && e.ctrlKey === true) ||
+                          (e.keyCode === 67 && e.ctrlKey === true) ||
+                          (e.keyCode === 86 && e.ctrlKey === true) ||
+                          (e.keyCode === 88 && e.ctrlKey === true)) {
+                        return;
+                      }
+                      
+                      // For number keys, check if the resulting value would exceed the limit
+                      if ((e.keyCode >= 48 && e.keyCode <= 57) || (e.keyCode >= 96 && e.keyCode <= 105) || e.keyCode === 190 || e.keyCode === 110) {
+                        const newChar = e.key;
+                        const currentInput = e.target.value;
+                        const selectionStart = e.target.selectionStart;
+                        const selectionEnd = e.target.selectionEnd;
+                        
+                        // Simulate the new value after the key press
+                        const newValue = currentInput.substring(0, selectionStart) + newChar + currentInput.substring(selectionEnd);
+                        const newNumericValue = parseFloat(newValue);
+                        
+                        if (!isNaN(newNumericValue) && newNumericValue > maxAmount) {
+                          e.preventDefault();
+                          setAmountError(`Maximum allowed amount is BDT ${maxAmount.toLocaleString()} (50% of property price)`);
+                          return;
+                        }
+                      }
+                    }
+                  }}
+                  onPaste={(e) => {
+                    // Handle paste events to prevent exceeding the limit
+                    const selectedRequest = requests.find(req => req._id === selectedRequestForPayment);
+                    if (selectedRequest && selectedRequest.propertyId && selectedRequest.propertyId.price) {
+                      const maxAmount = selectedRequest.propertyId.price * 0.5;
+                      const pastedData = e.clipboardData.getData('text');
+                      const pastedValue = parseFloat(pastedData);
+                      
+                      if (!isNaN(pastedValue) && pastedValue > maxAmount) {
+                        e.preventDefault();
+                        setAmountError(`Maximum allowed amount is BDT ${maxAmount.toLocaleString()} (50% of property price)`);
+                        return;
+                      }
+                    }
+                  }}
+                  required
                   step="0.01"
+                  style={{
+                    borderColor: amountError ? '#dc3545' : '#ced4da',
+                    boxShadow: amountError ? '0 0 0 0.2rem rgba(220, 53, 69, 0.25)' : 'none'
+                  }}
                 />
+                {amountError && (
+                  <div style={{color: '#dc3545', fontSize: '12px', marginTop: '5px', fontWeight: 'bold'}}>
+                    {amountError}
+                  </div>
+                )}
+                {(() => {
+                  const selectedRequest = requests.find(req => req._id === selectedRequestForPayment);
+                  if (selectedRequest && selectedRequest.propertyId && selectedRequest.propertyId.price) {
+                    const maxAmount = selectedRequest.propertyId.price * 0.5;
+                    return (
+                      <small style={{color: '#28a745', fontSize: '12px', fontWeight: '500'}}>
+                        Maximum allowed: BDT {maxAmount.toLocaleString()} (50% of property price)
+                      </small>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
               
               <div className="form-group">
@@ -1092,7 +1304,21 @@ const OwnerRequestsInbox = () => {
         </div>
       )}
     </div>
-  );
+    );
+  } catch (renderError) {
+    console.error('🔍 Render error in OwnerRequestsInbox:', renderError);
+    return (
+      <div className="owner-requests-container">
+        <div className="error-message">
+          <p>Something went wrong while rendering the page.</p>
+          <p>Error: {renderError.message}</p>
+          <button onClick={() => window.location.reload()} className="retry-btn">
+            Reload Page
+          </button>
+        </div>
+      </div>
+    );
+  }
 };
 
 export default OwnerRequestsInbox;

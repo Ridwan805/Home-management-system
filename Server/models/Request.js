@@ -7,6 +7,7 @@ const VALID_STATUSES = [
   'Info Requested',
   'Approved – Pay Advance',
   'Payment Submitted',
+  'AdvancePaid',
   'Paid/Completed',
   'Rejected',
   'Canceled',
@@ -35,30 +36,26 @@ const MessageSchema = new mongoose.Schema({
 
 // Advance payment schema for handling payment details
 const AdvancePaymentSchema = new mongoose.Schema({
+  status: { type: String, enum: ['pending', 'Paid', 'failed'], default: 'Paid' },
   amount: { type: Number, required: true },
   currency: { type: String, default: 'BDT' },
   dueDate: { type: Date, required: true },
   instructions: { type: String, default: '' },
   note: { type: String, default: '' },
   proofUrl: { type: String, default: '' },
-  sessionId: { type: String, default: '' }, // Stripe session ID for receipt lookup
-  stripeSessionId: { type: String, default: '' }, // Keep for backward compatibility
+  stripeSessionId: { type: String, default: '' },
   paymentIntentId: { type: String, default: '' },
+  paidAt: { type: Date },
   verifiedAt: { type: Date },
   verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-<<<<<<< Updated upstream
-  verificationNote: { type: String, default: '' }
-=======
   verificationNote: { type: String, default: '' },
   isPaid: { type: Boolean, default: false },
-  paymentId: { type: String, default: '' },
-  canPayAgain: { type: Boolean, default: true } // Flag to prevent duplicate payments
->>>>>>> Stashed changes
+  paymentId: { type: String, default: '' }
 }, { _id: false });
 
 // Full payment schema for handling complete payment details
 const FullPaymentSchema = new mongoose.Schema({
-  status: { type: String, enum: ['pending', 'completed', 'failed'], default: 'pending' },
+  status: { type: String, enum: ['pending', 'completed', 'failed'], default: 'completed' },
   amount: { type: Number, required: true },
   currency: { type: String, default: 'BDT' },
   stripeSessionId: { type: String, default: '' },
@@ -166,6 +163,12 @@ const RequestSchema = new mongoose.Schema({
     required: true 
   },
   
+  // Payment status at request level
+  isPaid: {
+    type: Boolean,
+    default: false
+  },
+  
   // Timeline for tracking all events
   timeline: [TimelineEventSchema],
   
@@ -240,7 +243,8 @@ RequestSchema.statics.getValidStatusTransitions = function() {
     'Under Review': ['Info Requested', 'Approved – Pay Advance', 'Rejected', 'Canceled'],
     'Info Requested': ['Under Review', 'Rejected', 'Canceled', 'Expired'],
     'Approved – Pay Advance': ['Payment Submitted', 'Canceled', 'Expired'],
-    'Payment Submitted': ['Paid/Completed', 'Under Review', 'Canceled'],
+    'Payment Submitted': ['AdvancePaid', 'Under Review', 'Canceled'],
+    'AdvancePaid': ['Paid/Completed', 'Canceled'],
     'Paid/Completed': [], // Terminal state
     'Rejected': [], // Terminal state
     'Canceled': [], // Terminal state

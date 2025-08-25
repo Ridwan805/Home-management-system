@@ -9,11 +9,11 @@ const Payment = () => {
   const [loading, setLoading] = useState(false);
 
   const [paymentHistory, setPaymentHistory] = useState([
-    { id: 1, date: '2023-06-15', description: 'Monthly Rent', amount: '$1,200.00', status: 'Paid', receiptUrl: '/receipts/123456' },
-    { id: 2, date: '2023-05-15', description: 'Monthly Rent', amount: '$1,200.00', status: 'Paid', receiptUrl: '/receipts/123455' },
-    { id: 3, date: '2023-04-15', description: 'Monthly Rent', amount: '$1,200.00', status: 'Paid', receiptUrl: '/receipts/123454' },
-    { id: 4, date: '2023-03-15', description: 'Monthly Rent', amount: '$1,200.00', status: 'Paid', receiptUrl: '/receipts/123453' },
-    { id: 5, date: '2023-02-15', description: 'Monthly Rent', amount: '$1,200.00', status: 'Paid', receiptUrl: '/receipts/123452' },
+    { id: 1, date: '2023-06-15', description: 'Monthly Rent', amount: '$1,200.00', status: 'Paid' },
+    { id: 2, date: '2023-05-15', description: 'Monthly Rent', amount: '$1,200.00', status: 'Paid' },
+    { id: 3, date: '2023-04-15', description: 'Monthly Rent', amount: '$1,200.00', status: 'Paid' },
+    { id: 4, date: '2023-03-15', description: 'Monthly Rent', amount: '$1,200.00', status: 'Paid' },
+    { id: 5, date: '2023-02-15', description: 'Monthly Rent', amount: '$1,200.00', status: 'Paid' },
   ]);
 
   const [currentPayment, setCurrentPayment] = useState({
@@ -21,10 +21,9 @@ const Payment = () => {
     description: 'Monthly Rent - July 2023',
     amount: '$1,200.00',
     dueDate: '2023-07-15',
-    status: 'Pending', // Add status field to track payment status
   });
   
-  // Fetch payment history and current payment status from API
+  // Fetch payment history from API
   useEffect(() => {
     const fetchPaymentHistory = async () => {
       try {
@@ -42,27 +41,7 @@ const Payment = () => {
       }
     };
     
-    const fetchCurrentPaymentStatus = async () => {
-      try {
-        // In a real implementation, this would fetch the current payment status
-        // const response = await fetch(API.getUrl(API.endpoints.paymentDetails(currentPayment.id)));
-        // const data = await response.json();
-        // if (data.success) {
-        //   setCurrentPayment(prev => ({
-        //     ...prev,
-        //     status: data.payment.status
-        //   }));
-        // }
-        
-        // Using sample data for now
-        console.log('Current payment status would be fetched from API');
-      } catch (error) {
-        console.error('Error fetching current payment status:', error);
-      }
-    };
-    
     fetchPaymentHistory();
-    fetchCurrentPaymentStatus();
   }, []);
   
   // Handle payment process
@@ -102,78 +81,25 @@ const Payment = () => {
       // window.location.href = sessionUrl;
       
       // For demo purposes, simulate success
-      setTimeout(async () => {
-        // Update payment status in database
-        const paymentResult = await updatePaymentStatus(currentPayment.id, 'Paid');
-        
-        if (paymentResult && paymentResult.success) {
-          alert('Payment processed successfully!');
-          
-          // Update current payment status
-          setCurrentPayment(prev => ({
-            ...prev,
-            status: 'Paid',
-            receiptUrl: paymentResult.payment.receiptUrl || `/receipts/${currentPayment.id}`
-          }));
-          
-          // Refresh payment history after successful payment
-          setPaymentHistory(prev => [
-            {
-              id: Date.now(),
-              date: new Date().toISOString().split('T')[0],
-              description: currentPayment.description,
-              amount: currentPayment.amount,
-              status: 'Paid',
-              receiptUrl: paymentResult.payment.receiptUrl || `/receipts/${Date.now()}`
-            },
-            ...prev
-          ]);
-        } else {
-          alert('Payment status update failed. Please contact support.');
-        }
-        
+      setTimeout(() => {
+        alert('Payment processed successfully!');
         setLoading(false);
+        // Refresh payment history after successful payment
+        setPaymentHistory(prev => [
+          {
+            id: Date.now(),
+            date: new Date().toISOString().split('T')[0],
+            description: currentPayment.description,
+            amount: currentPayment.amount,
+            status: 'Paid'
+          },
+          ...prev
+        ]);
       }, 1500);
     } catch (error) {
       console.error('Payment error:', error);
       alert(`Payment processing failed: ${error.message}`);
       setLoading(false);
-    }
-  };
-  
-  // Update payment status in database
-  const updatePaymentStatus = async (paymentId, status) => {
-    try {
-      // In a real implementation, this would update the payment status in your database
-      const response = await fetch(API.getUrl(API.endpoints.updatePaymentStatus(paymentId)), {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({ status }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to update payment status');
-      }
-      
-      const data = await response.json();
-      console.log(`Payment status updated to ${status} for payment ID: ${paymentId}`);
-      
-      // Update current payment with receipt URL if available
-      if (data.success && data.payment.receiptUrl) {
-        setCurrentPayment(prev => ({
-          ...prev,
-          status: 'Paid',
-          receiptUrl: data.payment.receiptUrl
-        }));
-      }
-      
-      return data;
-    } catch (error) {
-      console.error('Error updating payment status:', error);
-      return null;
     }
   };
 
@@ -217,20 +143,12 @@ const Payment = () => {
                 </div>
               </div>
               <button 
-                  className={`pay-now-button ${currentPayment.status === 'Paid' ? 'paid-button' : ''}`} 
-                  onClick={handlePayNow}
-                  disabled={loading || currentPayment.status === 'Paid'}
-                >
-                  {loading ? 'Processing...' : currentPayment.status === 'Paid' ? 'Paid' : 'Pay Now'}
-                </button>
-                {currentPayment.status === 'Paid' && (
-                  <button 
-                    className="view-receipt-button"
-                    onClick={() => window.open(`/receipts/${currentPayment.id}`, '_blank', 'noopener,noreferrer')}
-                  >
-                    Download Receipt
-                  </button>
-                )}
+                className="pay-now-button" 
+                onClick={handlePayNow} 
+                disabled={loading}
+              >
+                {loading ? 'Processing...' : 'Pay Now'}
+              </button>
             </div>
           </div>
         ) : (
@@ -254,16 +172,6 @@ const Payment = () => {
                       <span className={`payment-status ${payment.status.toLowerCase()}`}>
                         {payment.status}
                       </span>
-                    </td>
-                    <td>
-                      {payment.status === 'Paid' && payment.receiptUrl && (
-                        <button 
-                          className="view-receipt-button"
-                          onClick={() => window.open(payment.receiptUrl, '_blank', 'noopener,noreferrer')}
-                        >
-                          Download Receipt
-                        </button>
-                      )}
                     </td>
                   </tr>
                 ))}

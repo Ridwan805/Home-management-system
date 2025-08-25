@@ -1,11 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const { generatePDFAndRedirect, getReceiptData } = require('../controllers/pdf.controller');
+const { generatePDFAndRedirect, generatePDFServerSide, createTestPayment } = require('../controllers/pdf.controller');
 
-// Redirect after payment completion
+// Generate PDF receipt and redirect (client-side)
 router.get('/generate-receipt', generatePDFAndRedirect);
 
-// Get receipt data for display
-router.get('/receipt-data', getReceiptData);
+// Generate PDF receipt server-side and force download
+router.get('/download-receipt', generatePDFServerSide);
+
+
+
+// Route for creating test payment record
+router.post('/create-test-payment', createTestPayment);
 
 module.exports = router;

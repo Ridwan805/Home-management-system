@@ -157,6 +157,7 @@ const OwnerDashboard = () => {
         else if (key === 'tenant-info') navigate('/tenant-info');
         else if (key === 'security-guard-info') navigate('/security-guard-info');
         else if (key === 'request-info') navigate('/request-info');
+        else if (key === 'payments') navigate('/payments');
       }} />
       <main className="dashboard-main">
         <div className="dashboard-content">

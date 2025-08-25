@@ -74,7 +74,7 @@ const PaymentSchema = new mongoose.Schema({
   
   // Payment basic information
   type: { type: String, enum: PAYMENT_TYPES, required: true },
-  status: { type: String, enum: PAYMENT_STATUSES, default: 'pending', required: true },
+  status: { type: String, enum: PAYMENT_STATUSES, default: 'completed', required: true },
   method: { type: String, enum: PAYMENT_METHODS, required: true },
   
   // Amount and currency

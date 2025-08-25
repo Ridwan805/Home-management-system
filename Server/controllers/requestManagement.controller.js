@@ -107,7 +107,7 @@ const cancelRequest = async (req, res) => {
     const { requestId } = req.params;
     const userId = req.user.userId;
     
-    const request = await Request.findById(requestId);
+    const request = await Request.findById(requestId).populate('propertyId');
     
     if (!request) {
       return res.status(404).json({
@@ -367,6 +367,25 @@ const setupAdvancePayment = async (req, res) => {
       });
     }
     
+    // Validate advance payment amount doesn't exceed 50% of property price
+    const propertyPrice = request.propertyId.price;
+    const maxAdvanceAmount = propertyPrice * 0.5;
+    const requestedAmount = parseFloat(amount);
+    
+    if (requestedAmount > maxAdvanceAmount) {
+      return res.status(400).json({
+        success: false,
+        message: `Advance payment cannot exceed 50% of property price. Maximum allowed: BDT ${maxAdvanceAmount.toLocaleString()}`
+      });
+    }
+    
+    if (requestedAmount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Advance payment amount must be greater than 0'
+      });
+    }
+    
     // Set up advance payment
     request.advancePayment = {
       amount: parseFloat(amount),
@@ -374,7 +393,7 @@ const setupAdvancePayment = async (req, res) => {
       dueDate: new Date(dueDate),
       instructions: instructions || '',
       note: note || '',
-      status: 'Pending',
+      status: 'pending',
       createdAt: new Date(),
       createdBy: userId
     };
