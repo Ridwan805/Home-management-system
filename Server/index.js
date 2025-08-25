@@ -5,10 +5,15 @@ const multer = require('multer');
 require('dotenv').config();
 const path = require('path');
 const fs = require('fs');
+const PaymentScheduler = require('./services/paymentScheduler');
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+// Use conditional JSON parser to avoid interfering with Stripe webhook raw body
+app.use((req, res, next) => {
+  if (req.originalUrl === '/api/stripe/webhook') return next();
+  return express.json()(req, res, next);
+});
 
 // MongoDB connection with fallback
 const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/dwellsync';
@@ -33,12 +38,12 @@ const requestRoutes = require('./routes/request.routes');
 const stripeRoutes = require('./routes/stripe.routes');
 const uploadRoutes = require('./routes/upload.routes');
 const notificationRoutes = require('./routes/notifications');
-const pdfRoutes = require('./routes/pdf.routes');
-const debugRoutes = require('./routes/debug.routes');
+
+
 let requestManagementRoutes;
 try {
   requestManagementRoutes = require('./routes/requestManagement.routes');
-  console.log('🔧 RequestManagement routes module loaded successfully');
+
 } catch (error) {
   console.error('🚨 Error loading RequestManagement routes:', error);
   throw error;
@@ -67,10 +72,8 @@ app.use('/api/requests', requestRoutes);
 app.use('/api/stripe', stripeRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/notifications', notificationRoutes);
-app.use('/api/pdf', pdfRoutes);
-console.log('🔧 Mounting request-management routes at /api/request-management');
-console.log('🔧 requestManagementRoutes value:', requestManagementRoutes);
-console.log('🔧 requestManagementRoutes type:', typeof requestManagementRoutes);
+
+
 // Request-management routes will be mounted after admin routes to avoid conflicts
 // Ensure uploads directory exists and serve it statically
 const uploadsDir = path.resolve(__dirname, 'uploads');
@@ -86,23 +89,14 @@ if (!fs.existsSync(tenantPicsDir)) {
 }
 app.use('/tenant_pics', express.static(tenantPicsDir));
 
-// Test endpoint to verify server is working (BEFORE admin routes)
-app.get('/api/request-management/test-direct', (req, res) => {
-  console.log('🔧 Direct test route hit!');
-  res.json({ message: 'Direct test route working!', timestamp: new Date().toISOString() });
-});
+
 
 app.use('/api/admin', adminRoutes);
 
 // Mount request-management routes after admin routes to avoid conflicts
-console.log('🔧 Re-mounting request-management routes at /api/request-management');
-app.use('/api/request-management', (req, res, next) => {
-  console.log('🔧 Request to /api/request-management:', req.method, req.url);
-  next();
-}, requestManagementRoutes);
+app.use('/api/request-management', requestManagementRoutes);
 
-// Mount debug routes
-app.use('/api/debug', debugRoutes);
+
 
 // Global error handler
 app.use((err, req, res, next) => {
@@ -130,5 +124,8 @@ app.use((req, res) => {
 
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
+  
+  // Start payment status checker scheduler
+  PaymentScheduler.start();
 });

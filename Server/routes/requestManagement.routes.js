@@ -1,13 +1,9 @@
 const express = require('express');
 const router = express.Router();
 
-console.log('🔧 RequestManagement routes loaded');
 
-// Test route to verify mounting
-router.get('/test', (req, res) => {
-  console.log('🔧 Test route hit!');
-  res.json({ message: 'RequestManagement routes are working!' });
-});
+
+
 
 const {
   getMyRequests,
@@ -24,7 +20,7 @@ const authMiddleware = require('../middleware/authMiddleware');
 
 // Tenant routes
 router.get('/my-requests', (req, res, next) => {
-  console.log('🔧 /my-requests route hit');
+
   next();
 }, authMiddleware, getMyRequests);
 router.patch('/my-requests/:requestId/cancel', authMiddleware, cancelRequest);

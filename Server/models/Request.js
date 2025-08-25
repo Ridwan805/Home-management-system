@@ -36,7 +36,7 @@ const MessageSchema = new mongoose.Schema({
 
 // Advance payment schema for handling payment details
 const AdvancePaymentSchema = new mongoose.Schema({
-  status: { type: String, enum: ['pending', 'Paid', 'failed'], default: 'Paid' },
+  status: { type: String, enum: ['pending', 'Paid', 'failed'], default: 'pending' },
   amount: { type: Number, required: true },
   currency: { type: String, default: 'BDT' },
   dueDate: { type: Date, required: true },
@@ -50,6 +50,7 @@ const AdvancePaymentSchema = new mongoose.Schema({
   verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   verificationNote: { type: String, default: '' },
   isPaid: { type: Boolean, default: false },
+  canPayAgain: { type: Boolean, default: false },
   paymentId: { type: String, default: '' }
 }, { _id: false });
 
@@ -64,7 +65,8 @@ const FullPaymentSchema = new mongoose.Schema({
   proofUrl: { type: String, default: '' },
   verifiedAt: { type: Date },
   verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  verificationNote: { type: String, default: '' }
+  verificationNote: { type: String, default: '' },
+  canPayAgain: { type: Boolean, default: false }
 }, { _id: false });
 
 // Main Request schema

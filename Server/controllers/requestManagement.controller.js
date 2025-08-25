@@ -1,6 +1,7 @@
 const Request = require('../models/Request');
 const Property = require('../models/Property');
 const User = require('../models/User');
+const Payment = require('../models/Payment');
 
 // Get all requests for the authenticated tenant
 const getMyRequests = async (req, res) => {
@@ -386,7 +387,7 @@ const setupAdvancePayment = async (req, res) => {
       });
     }
     
-    // Set up advance payment
+    // Set up advance payment on Request
     request.advancePayment = {
       amount: parseFloat(amount),
       currency: currency || 'BDT',
@@ -409,6 +410,29 @@ const setupAdvancePayment = async (req, res) => {
       timestamp: new Date(),
       note: `Due date: ${dueDate}. ${note ? 'Note: ' + note : ''}`
     });
+
+    // Create a pending Payment record linked to this Request
+    try {
+      const payment = await Payment.create({
+        type: 'advance_payment',
+        status: 'pending',
+        method: 'stripe',
+        amount: parseFloat(amount),
+        currency: (currency || 'BDT').toUpperCase(),
+        requestId: request._id,
+        propertyId: request.propertyId,
+        payerId: request.tenantId,
+        payeeId: request.ownerId,
+        description: `Advance payment for Request ${request.requestId}`,
+        dueDate: new Date(dueDate)
+      });
+
+      // Link paymentId to the Request's advancePayment for easy lookup later
+      request.advancePayment.paymentId = payment.paymentId;
+    } catch (paymentErr) {
+      console.error('Error creating pending Payment record:', paymentErr);
+      // Do not fail the whole operation due to Payment creation issues
+    }
     
     await request.save();
     

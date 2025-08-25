@@ -34,53 +34,54 @@ class GuardrailsService {
         
         // Update request status based on payment type
         if (isFullPayment) {
-          if (request.status !== 'FullyPaid') {
-            request.status = 'FullyPaid';
-            console.log(`✅ Setting status to FullyPaid for request ${request._id}`);
-          }
-          
-          // Update fullPayment object
-          if (request.fullPayment) {
-            if (request.fullPayment.status !== 'Paid') {
-              request.fullPayment.status = 'Paid';
-              console.log(`✅ Setting fullPayment.status to Paid for request ${request._id}`);
-            }
-            
-            if (!request.fullPayment.isPaid) {
-              request.fullPayment.isPaid = true;
-              console.log(`✅ Setting fullPayment.isPaid to true for request ${request._id}`);
-            }
-            
-            if (request.fullPayment.canPayAgain !== false) {
-              request.fullPayment.canPayAgain = false;
-              console.log(`✅ Setting fullPayment.canPayAgain to false for request ${request._id}`);
-            }
-          }
-        } else {
-          // It's an advance payment
-          if (request.status !== 'AdvancePaid' && request.status !== 'FullyPaid') {
-            request.status = 'AdvancePaid';
-            console.log(`✅ Setting status to AdvancePaid for request ${request._id}`);
-          }
-          
-          // Update advancePayment object
-          if (request.advancePayment) {
-            if (request.advancePayment.status !== 'Paid') {
-              request.advancePayment.status = 'Paid';
-              console.log(`✅ Setting advancePayment.status to Paid for request ${request._id}`);
-            }
-            
-            if (!request.advancePayment.isPaid) {
-              request.advancePayment.isPaid = true;
-              console.log(`✅ Setting advancePayment.isPaid to true for request ${request._id}`);
-            }
-            
-            if (request.advancePayment.canPayAgain !== false) {
-              request.advancePayment.canPayAgain = false;
-              console.log(`✅ Setting advancePayment.canPayAgain to false for request ${request._id}`);
-            }
-          }
-        }
+          if (request.status !== 'Paid/Completed') {
+            request.status = 'Paid/Completed';
+        
+                    console.log(`✅ Setting status to FullyPaid for request ${request._id}`);
+                  }
+                  
+                  // Update fullPayment object
+                  if (request.fullPayment) {
+                    if (request.fullPayment.status !== 'completed') {
+                      request.fullPayment.status = 'completed';
+                       console.log(`✅ Setting fullPayment.status to Paid for request ${request._id}`);
+                     }
+                     
+                     if (!request.fullPayment.isPaid) {
+                       request.fullPayment.isPaid = true;
+                       console.log(`✅ Setting fullPayment.isPaid to true for request ${request._id}`);
+                     }
+                     
+                     if (request.fullPayment.canPayAgain !== false) {
+                       request.fullPayment.canPayAgain = false;
+                       console.log(`✅ Setting fullPayment.canPayAgain to false for request ${request._id}`);
+                     }
+                   }
+                 } else {
+                   // It's an advance payment
+                   if (request.status !== 'AdvancePaid' && request.status !== 'Paid/Completed') {
+                     request.status = 'AdvancePaid';
+                     console.log(`✅ Setting status to AdvancePaid for request ${request._id}`);
+                   }
+                   
+                   // Update advancePayment object
+                   if (request.advancePayment) {
+                     if (request.advancePayment.status !== 'Paid') {
+                       request.advancePayment.status = 'Paid';
+                       console.log(`✅ Setting advancePayment.status to Paid for request ${request._id}`);
+                     }
+                     
+                     if (!request.advancePayment.isPaid) {
+                       request.advancePayment.isPaid = true;
+                       console.log(`✅ Setting advancePayment.isPaid to true for request ${request._id}`);
+                     }
+                     
+                     if (request.advancePayment.canPayAgain !== false) {
+                       request.advancePayment.canPayAgain = false;
+                       console.log(`✅ Setting advancePayment.canPayAgain to false for request ${request._id}`);
+                     }
+                   }
+                 }
       }
       
       return request;
@@ -206,13 +207,9 @@ class GuardrailsService {
       }
 
       // Check if property is available
-      // Temporarily commenting out this check for testing purposes
-      // if (property.status !== 'Available') {
-      //   return { allowed: false, reason: 'Property is not available' };
-      // }
-      console.log('Property status check bypassed for testing');
-      // Force property status to Available for testing
-      property.status = 'Available';
+      if (property.status !== 'Available') {
+          return { allowed: false, reason: 'Property is not available' };
+        }
       await property.save();
 
       // Check if user is the owner of the property

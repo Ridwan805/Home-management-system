@@ -6,7 +6,6 @@ const {
   createFullPaymentSession,
   handleWebhook, 
   getPaymentStatus,
-  generateReceipt,
   uploadPaymentProof,
   updatePaymentStatus,
   checkPaymentStatus
@@ -31,13 +30,15 @@ router.get('/payment-status/:sessionId', authMiddleware, getPaymentStatus);
 // Update payment status
 router.put('/payment-status/:paymentId', authMiddleware, updatePaymentStatus);
 
-// Generate and download payment receipt
-router.get('/receipt/:paymentId', authMiddleware, generateReceipt);
+
 
 // Upload payment proof
 router.post('/payment-proof/:paymentId', authMiddleware, uploadPaymentProof);
 
 // Check and sync payment status
 router.get('/check-payment-status/:requestId', authMiddleware, checkPaymentStatus);
+
+// Check all pending payments (fallback for webhook failures)
+router.post('/check-pending-payments', authMiddleware, require('../controllers/stripe.controller').checkPendingPayments);
 
 module.exports = router;

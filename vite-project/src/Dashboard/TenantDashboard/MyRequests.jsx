@@ -809,13 +809,7 @@ const MyRequests = () => {
                     <FaReceipt /> View Official Receipt
                   </button>
                 )}
-                <button 
-                  type="button" 
-                  className="download-pdf-btn" 
-                  onClick={() => window.open(`http://localhost:5001/api/pdf/download-receipt?session_id=${paymentReceipt.receiptData?.sessionId || paymentReceipt.payment?.stripeDetails?.sessionId}`, '_blank')}
-                >
-                  <FaDownload /> Download PDF Receipt
-                </button>
+
                 <button 
                   type="button" 
                   className="print-btn" 
@@ -823,13 +817,7 @@ const MyRequests = () => {
                 >
                   <FaPrint /> Print Receipt
                 </button>
-                <button 
-                  type="button" 
-                  className="view-pdf-btn" 
-                  onClick={() => window.open(`http://localhost:5001/api/pdf/generate-receipt?session_id=${paymentReceipt.receiptData?.sessionId || paymentReceipt.payment?.stripeDetails?.sessionId}`, '_blank')}
-                >
-                  <FaReceipt /> View Online Receipt
-                </button>
+
               </div>
             </div>
           </div>

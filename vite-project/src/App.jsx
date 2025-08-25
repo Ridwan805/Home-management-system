@@ -21,7 +21,7 @@ import Payment from './Dashboard/OwnerProfile/Payment';
 
 // ✅ ADD THIS IMPORT
 import AdminDashboard from './Dashboard/AdminDashboard/AdminDashboard';
-import PdfDownload from './components/PdfDownload'; 
+ 
 
 // Session context for login state
 export const AuthContext = React.createContext();
@@ -257,8 +257,7 @@ function AppRoutes() {
         <Route path="/tenant/:section" element={<TenantDashboard />} />
         <Route path="/tenant" element={<Navigate to="/tenant/profile" />} />
         
-        {/* PDF Download Route */}
-        <Route path="/pdf-download" element={<PdfDownload />} />
+        
 
         {/* ✅ Admin Dashboard Route */}
         <Route path="/admin/*" element={<AdminDashboard />} />
