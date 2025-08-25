@@ -8,7 +8,8 @@ const {
   getPaymentStatus,
   uploadPaymentProof,
   updatePaymentStatus,
-  checkPaymentStatus
+  checkPaymentStatus,
+  getReceipt
 } = require('../controllers/stripe.controller');
 const authMiddleware = require('../middleware/authMiddleware');
 
@@ -40,5 +41,8 @@ router.get('/check-payment-status/:requestId', authMiddleware, checkPaymentStatu
 
 // Check all pending payments (fallback for webhook failures)
 router.post('/check-pending-payments', authMiddleware, require('../controllers/stripe.controller').checkPendingPayments);
+
+// Get payment receipt
+router.get('/receipt/:paymentId', authMiddleware, getReceipt);
 
 module.exports = router;

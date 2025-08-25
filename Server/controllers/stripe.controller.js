@@ -793,6 +793,116 @@ const checkPendingPayments = async (req, res) => {
   }
 };
 
+// Get receipt data for a payment
+const getReceipt = async (req, res) => {
+  try {
+    const { paymentId } = req.params;
+    const userId = req.user.userId || req.user._id || req.user.id;
+    
+    console.log('🧾 Receipt request received:');
+    console.log('- Payment ID:', paymentId);
+    console.log('- User ID:', userId);
+    
+    // Find the payment record
+    const payment = await Payment.findOne({ paymentId }).populate({
+      path: 'requestId',
+      populate: [
+        { path: 'tenantId', select: 'name email phone' },
+        { path: 'ownerId', select: 'name email phone' },
+        { path: 'propertyId', select: 'address price description images' }
+      ]
+    });
+    
+    console.log('💳 Payment found:', payment ? 'Yes' : 'No');
+    if (payment) {
+      console.log('- Payment details:', {
+        paymentId: payment.paymentId,
+        status: payment.status,
+        amount: payment.amount,
+        requestId: payment.requestId?._id
+      });
+    } else {
+      // Try to find payment by different criteria
+      console.log('🔍 Searching for payment with alternative methods...');
+      const allPayments = await Payment.find({}).limit(5);
+      console.log('- Sample payments in DB:', allPayments.map(p => ({ paymentId: p.paymentId, status: p.status })));
+    }
+    
+    if (!payment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Payment receipt not found'
+      });
+    }
+    
+    // Check authorization - user must be tenant or owner of the request
+    const request = payment.requestId;
+    if (!request || 
+        (request.tenantId._id.toString() !== userId.toString() && 
+         request.ownerId._id.toString() !== userId.toString())) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not authorized to view this receipt'
+      });
+    }
+    
+    // Prepare receipt data
+    const receiptData = {
+      receiptId: payment.paymentId,
+      paymentId: payment.paymentId,
+      transactionId: payment.stripeDetails?.paymentIntentId || payment.stripeDetails?.sessionId || 'N/A',
+      paymentStatus: payment.status,
+      paymentMethod: payment.method,
+      amount: payment.amount,
+      currency: payment.currency,
+      paidAt: payment.paidAt,
+      createdAt: payment.createdAt,
+      
+      // Request details
+      request: {
+        requestId: request.requestId,
+        requestType: request.requestType,
+        status: request.status,
+        submittedAt: request.createdAt
+      },
+      
+      // Property details
+      property: {
+        address: request.propertyId?.address || 'N/A',
+        price: request.propertyId?.price || 0,
+        description: request.propertyId?.description || 'N/A'
+      },
+      
+      // Tenant details
+      tenant: {
+        name: request.tenantId?.name || 'N/A',
+        email: request.tenantId?.email || 'N/A',
+        phone: request.tenantId?.phone || 'N/A'
+      },
+      
+      // Owner details
+      owner: {
+        name: request.ownerId?.name || 'N/A',
+        email: request.ownerId?.email || 'N/A',
+        phone: request.ownerId?.phone || 'N/A'
+      }
+    };
+    
+    res.status(200).json({
+      success: true,
+      receiptData,
+      message: 'Receipt retrieved successfully'
+    });
+    
+  } catch (error) {
+    console.error('Error retrieving receipt:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve receipt'
+    });
+  }
+};
+
 module.exports = {
   getPublishableKey,
   createPaymentSession,
@@ -802,5 +912,6 @@ module.exports = {
   uploadPaymentProof,
   updatePaymentStatus,
   checkPaymentStatus,
-  checkPendingPayments
+  checkPendingPayments,
+  getReceipt
 };

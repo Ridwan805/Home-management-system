@@ -264,6 +264,17 @@ const MyRequests = () => {
   const handleGetReceipt = async (paymentId) => {
     try {
       setReceiptLoading(true);
+      
+      // Debug logging
+      console.log('Payment ID received:', paymentId);
+      console.log('Selected request:', selectedRequest);
+      console.log('Advance payment data:', selectedRequest?.advancePayment);
+      
+      if (!paymentId) {
+        alert('Payment ID not found. Cannot retrieve receipt.');
+        return;
+      }
+      
       const userData = JSON.parse(localStorage.getItem('dwellSyncUser'));
       const token = userData?.token;
 
@@ -272,6 +283,8 @@ const MyRequests = () => {
         return;
       }
 
+      console.log('Making API call to:', `http://localhost:5001/api/stripe/receipt/${paymentId}`);
+      
       const response = await fetch(`http://localhost:5001/api/stripe/receipt/${paymentId}`, {
         method: 'GET',
         headers: {
@@ -280,11 +293,16 @@ const MyRequests = () => {
         }
       });
 
+      console.log('Response status:', response.status);
+      
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error Response:', errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
+      console.log('API Response data:', data);
       
       if (data.success) {
         setPaymentReceipt(data);
@@ -297,6 +315,7 @@ const MyRequests = () => {
           setShowReceiptModal(true);
         }
       } else {
+        console.error('API returned error:', data.message);
         alert(data.message || 'Failed to retrieve receipt');
       }
     } catch (err) {
@@ -751,43 +770,120 @@ const MyRequests = () => {
                 <div className="receipt-container">
                   <div className="receipt-header">
                     <h2>Payment Receipt</h2>
-                    <p className="receipt-id">Receipt ID: {paymentReceipt.receiptData?.paymentId || 'N/A'}</p>
+                    <p className="receipt-id">Receipt ID: {paymentReceipt.receiptData?.receiptId || 'N/A'}</p>
+                    <p className="receipt-date">Generated on: {new Date().toLocaleString()}</p>
                   </div>
                   
-                  <div className="receipt-details">
-                    <div className="receipt-row">
-                      <span className="receipt-label">Property:</span>
-                      <span className="receipt-value">{paymentReceipt.receiptData?.propertyTitle || 'N/A'}</span>
+                  {/* Payment Information */}
+                  <div className="receipt-section">
+                    <h3 className="section-title">Payment Details</h3>
+                    <div className="receipt-details">
+                      <div className="receipt-row">
+                        <span className="receipt-label">Amount:</span>
+                        <span className="receipt-value amount">{paymentReceipt.receiptData?.currency || '৳'} {paymentReceipt.receiptData?.amount?.toLocaleString() || 'N/A'}</span>
+                      </div>
+                      <div className="receipt-row">
+                        <span className="receipt-label">Payment Status:</span>
+                        <span className="receipt-value receipt-status">{paymentReceipt.receiptData?.paymentStatus || 'N/A'}</span>
+                      </div>
+                      <div className="receipt-row">
+                        <span className="receipt-label">Payment Method:</span>
+                        <span className="receipt-value">{paymentReceipt.receiptData?.paymentMethod || 'N/A'}</span>
+                      </div>
+                      <div className="receipt-row">
+                        <span className="receipt-label">Payment Date:</span>
+                        <span className="receipt-value">{paymentReceipt.receiptData?.paidAt ? formatDate(paymentReceipt.receiptData.paidAt) : 'N/A'}</span>
+                      </div>
+                      <div className="receipt-row">
+                        <span className="receipt-label">Transaction ID:</span>
+                        <span className="receipt-value">{paymentReceipt.receiptData?.transactionId || 'N/A'}</span>
+                      </div>
                     </div>
-                    <div className="receipt-row">
-                      <span className="receipt-label">Address:</span>
-                      <span className="receipt-value">{paymentReceipt.receiptData?.propertyAddress || 'N/A'}</span>
+                  </div>
+
+                  {/* Request Information */}
+                  <div className="receipt-section">
+                    <h3 className="section-title">Request Details</h3>
+                    <div className="receipt-details">
+                      <div className="receipt-row">
+                        <span className="receipt-label">Request ID:</span>
+                        <span className="receipt-value">{paymentReceipt.receiptData?.request?.requestId || 'N/A'}</span>
+                      </div>
+                      <div className="receipt-row">
+                        <span className="receipt-label">Request Type:</span>
+                        <span className="receipt-value">{paymentReceipt.receiptData?.request?.requestType || 'N/A'}</span>
+                      </div>
+                      <div className="receipt-row">
+                        <span className="receipt-label">Request Status:</span>
+                        <span className="receipt-value">{paymentReceipt.receiptData?.request?.status || 'N/A'}</span>
+                      </div>
+                      <div className="receipt-row">
+                        <span className="receipt-label">Submitted Date:</span>
+                        <span className="receipt-value">{paymentReceipt.receiptData?.request?.submittedAt ? formatDate(paymentReceipt.receiptData.request.submittedAt) : 'N/A'}</span>
+                      </div>
                     </div>
-                    <div className="receipt-row">
-                      <span className="receipt-label">Amount:</span>
-                      <span className="receipt-value">{paymentReceipt.receiptData?.currency || '৳'} {paymentReceipt.receiptData?.amount?.toLocaleString() || 'N/A'}</span>
+                  </div>
+
+                  {/* Property Information */}
+                  <div className="receipt-section">
+                    <h3 className="section-title">Property Details</h3>
+                    <div className="receipt-details">
+                      <div className="receipt-row">
+                        <span className="receipt-label">Address:</span>
+                        <span className="receipt-value">{paymentReceipt.receiptData?.property?.address || 'N/A'}</span>
+                      </div>
+                      <div className="receipt-row">
+                        <span className="receipt-label">Property Price:</span>
+                        <span className="receipt-value">৳ {paymentReceipt.receiptData?.property?.price?.toLocaleString() || 'N/A'}</span>
+                      </div>
+                      <div className="receipt-row">
+                        <span className="receipt-label">Description:</span>
+                        <span className="receipt-value">{paymentReceipt.receiptData?.property?.description || 'N/A'}</span>
+                      </div>
                     </div>
-                    <div className="receipt-row">
-                      <span className="receipt-label">Payment Date:</span>
-                      <span className="receipt-value">{paymentReceipt.receiptData?.paymentDate ? formatDate(paymentReceipt.receiptData.paymentDate) : 'N/A'}</span>
+                  </div>
+
+                  {/* Tenant Information */}
+                  <div className="receipt-section">
+                    <h3 className="section-title">Tenant Information</h3>
+                    <div className="receipt-details">
+                      <div className="receipt-row">
+                        <span className="receipt-label">Name:</span>
+                        <span className="receipt-value">{paymentReceipt.receiptData?.tenant?.name || 'N/A'}</span>
+                      </div>
+                      <div className="receipt-row">
+                        <span className="receipt-label">Email:</span>
+                        <span className="receipt-value">{paymentReceipt.receiptData?.tenant?.email || 'N/A'}</span>
+                      </div>
+                      <div className="receipt-row">
+                        <span className="receipt-label">Phone:</span>
+                        <span className="receipt-value">{paymentReceipt.receiptData?.tenant?.phone || 'N/A'}</span>
+                      </div>
                     </div>
-                    <div className="receipt-row">
-                      <span className="receipt-label">Payment Method:</span>
-                      <span className="receipt-value">{paymentReceipt.receiptData?.paymentMethod || 'N/A'}</span>
-                    </div>
-                    <div className="receipt-row">
-                      <span className="receipt-label">Status:</span>
-                      <span className="receipt-value receipt-status">{paymentReceipt.receiptData?.paymentStatus || 'N/A'}</span>
-                    </div>
-                    <div className="receipt-row">
-                      <span className="receipt-label">Transaction ID:</span>
-                      <span className="receipt-value">{paymentReceipt.receiptData?.transactionId || 'N/A'}</span>
+                  </div>
+
+                  {/* Owner Information */}
+                  <div className="receipt-section">
+                    <h3 className="section-title">Owner Information</h3>
+                    <div className="receipt-details">
+                      <div className="receipt-row">
+                        <span className="receipt-label">Name:</span>
+                        <span className="receipt-value">{paymentReceipt.receiptData?.owner?.name || 'N/A'}</span>
+                      </div>
+                      <div className="receipt-row">
+                        <span className="receipt-label">Email:</span>
+                        <span className="receipt-value">{paymentReceipt.receiptData?.owner?.email || 'N/A'}</span>
+                      </div>
+                      <div className="receipt-row">
+                        <span className="receipt-label">Phone:</span>
+                        <span className="receipt-value">{paymentReceipt.receiptData?.owner?.phone || 'N/A'}</span>
+                      </div>
                     </div>
                   </div>
                   
                   <div className="receipt-footer">
                     <p>Thank you for your payment!</p>
-                    <p className="receipt-timestamp">Generated on: {new Date().toLocaleString()}</p>
+                    <p className="receipt-note">This is an official receipt for your advance payment.</p>
                   </div>
                 </div>
               </div>
@@ -816,6 +912,50 @@ const MyRequests = () => {
                   onClick={() => window.print()}
                 >
                   <FaPrint /> Print Receipt
+                </button>
+                
+                <button 
+                  type="button" 
+                  className="download-btn" 
+                  onClick={() => {
+                    const receiptElement = document.querySelector('.receipt-container');
+                    const printWindow = window.open('', '_blank');
+                    printWindow.document.write(`
+                      <html>
+                        <head>
+                          <title>Payment Receipt - ${paymentReceipt.receiptData?.receiptId || 'N/A'}</title>
+                          <style>
+                            body { font-family: Arial, sans-serif; margin: 20px; }
+                            .receipt-container { max-width: 800px; margin: 0 auto; }
+                            .receipt-header { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #3498db; }
+                            .receipt-header h2 { color: #2c3e50; margin-bottom: 10px; font-size: 1.8rem; }
+                            .receipt-id, .receipt-date { color: #7f8c8d; font-size: 0.9rem; margin-bottom: 5px; }
+                            .receipt-section { margin-bottom: 25px; padding: 20px; background-color: #f8f9fa; border-radius: 8px; border-left: 4px solid #3498db; }
+                            .section-title { font-size: 1.2rem; font-weight: 600; color: #2c3e50; margin-bottom: 15px; border-bottom: 1px solid #dee2e6; padding-bottom: 8px; }
+                            .receipt-row { display: flex; justify-content: space-between; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #e9ecef; }
+                            .receipt-row:last-child { border-bottom: none; margin-bottom: 0; }
+                            .receipt-label { font-weight: 600; color: #495057; flex: 1; }
+                            .receipt-value { text-align: right; color: #212529; flex: 1; word-break: break-word; }
+                            .receipt-value.amount { font-weight: 700; color: #28a745; font-size: 1.1rem; }
+                            .receipt-status { font-weight: 600; color: #28a745; text-transform: uppercase; font-size: 0.9rem; }
+                            .receipt-footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 3px solid #3498db; color: #6c757d; }
+                            .receipt-note { font-size: 0.9rem; font-style: italic; color: #6c757d; }
+                          </style>
+                        </head>
+                        <body>
+                          ${receiptElement.outerHTML}
+                        </body>
+                      </html>
+                    `);
+                    printWindow.document.close();
+                    printWindow.focus();
+                    setTimeout(() => {
+                      printWindow.print();
+                      printWindow.close();
+                    }, 250);
+                  }}
+                >
+                  <FaDownload /> Download Receipt
                 </button>
 
               </div>
