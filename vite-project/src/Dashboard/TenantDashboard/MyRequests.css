@@ -4,6 +4,29 @@
   min-height: 100vh;
 }
 
+/* Popup Message Styling */
+.popup-message {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #4CAF50;
+  color: white;
+  padding: 15px 25px;
+  border-radius: 5px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  animation: fadeInOut 5s ease-in-out;
+  font-weight: 500;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
 .section-title {
   font-size: 2rem;
   font-weight: 600;
@@ -1135,5 +1158,316 @@
     width: 35px;
     height: 35px;
     font-size: 1.5rem;
+  }
+}
+
+/* Receipt Display Styles */
+.receipt-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.receipt-modal {
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+  padding: 0;
+  max-width: 600px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.receipt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 30px;
+  border-bottom: 2px solid #e9ecef;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 15px 15px 0 0;
+}
+
+.receipt-header h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.receipt-header .close-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: none;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.receipt-header .close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.receipt-content {
+  padding: 30px;
+}
+
+.receipt-status {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 10px 20px;
+  border-radius: 25px;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.status-paid {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.receipt-amount {
+  text-align: center;
+  background: #f8f9fa;
+  padding: 25px;
+  border-radius: 10px;
+  margin-bottom: 25px;
+}
+
+.amount-label {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.amount-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #28a745;
+}
+
+.receipt-details {
+  margin-bottom: 25px;
+}
+
+.receipt-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 12px 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.receipt-row:last-child {
+  border-bottom: none;
+}
+
+.receipt-label {
+  font-weight: 600;
+  color: #495057;
+  min-width: 140px;
+  flex-shrink: 0;
+}
+
+.receipt-value {
+  color: #212529;
+  text-align: right;
+  flex: 1;
+  word-break: break-word;
+}
+
+.receipt-footer {
+  text-align: center;
+  padding: 20px 0;
+  border-top: 1px solid #e9ecef;
+  color: #6c757d;
+  font-size: 0.85rem;
+}
+
+.receipt-footer p {
+  margin: 5px 0;
+}
+
+.receipt-actions {
+  padding: 20px 30px;
+  border-top: 1px solid #e9ecef;
+  text-align: center;
+  background: #f8f9fa;
+  border-radius: 0 0 15px 15px;
+}
+
+.receipt-actions .close-btn {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.receipt-actions .close-btn:hover {
+  background: #5a6268;
+}
+
+/* Responsive styles for receipt */
+@media (max-width: 768px) {
+  .receipt-modal {
+    width: 95%;
+    margin: 10px;
+  }
+  
+  .receipt-header {
+    padding: 15px 20px;
+  }
+  
+  .receipt-header h3 {
+    font-size: 1.2rem;
+  }
+  
+  .receipt-content {
+    padding: 20px;
+  }
+  
+  .amount-value {
+    font-size: 1.5rem;
+  }
+  
+  .receipt-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  
+  .receipt-label {
+    min-width: auto;
+  }
+  
+  .receipt-value {
+    text-align: left;
+  }
+  
+  .receipt-actions {
+    padding: 15px 20px;
+  }
+}
+
+/* Payment Completed Actions Styles */
+.payment-completed-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.paid-btn {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: not-allowed;
+  opacity: 0.9;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: none;
+}
+
+.paid-btn:hover {
+  background: #28a745;
+  transform: none;
+}
+
+/* Update show-receipt-btn to work better alongside paid button */
+.payment-completed-actions .show-receipt-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.payment-completed-actions .show-receipt-btn:hover {
+  background: #0056b3;
+  transform: translateY(-1px);
+}
+
+.payment-completed-actions .show-receipt-btn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* New: Styles for Download Receipt button alongside paid button */
+.payment-completed-actions .download-receipt-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.payment-completed-actions .download-receipt-btn:hover {
+  background: #0056b3;
+  transform: translateY(-1px);
+}
+
+.payment-completed-actions .download-receipt-btn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Responsive styles for payment actions */
+@media (max-width: 768px) {
+  .payment-completed-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  
+  .paid-btn,
+  .payment-completed-actions .show-receipt-btn,
+  .payment-completed-actions .download-receipt-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 12px;
   }
 }
