@@ -61,8 +61,6 @@ const ReceiptDataSchema = new mongoose.Schema({
 
 // Main Payment schema
 const PaymentSchema = new mongoose.Schema({
-  // Payment history tracking
-  history: [PaymentHistorySchema],
   // Unique payment identifier
   paymentId: {
     type: String,

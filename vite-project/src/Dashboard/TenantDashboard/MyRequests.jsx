@@ -4,8 +4,13 @@ import './MyRequests.css';
 import { authenticatedFetch } from '../../config/api.js';
 import API from '../../config/api.js';
 import { FaDownload, FaUpload, FaReceipt, FaPrint } from 'react-icons/fa';
+// TEMPORARILY DISABLED FOR WEBHOOK TESTING
+import LoadingSpinner from '../../components/LoadingSpinner';
+import PaymentStatusIndicator from '../../components/PaymentStatusIndicator';
 
 const MyRequests = () => {
+  console.log('🏠 MyRequests component is rendering! User is on the correct page.');
+  
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -44,6 +49,34 @@ const MyRequests = () => {
     fetchStats();
   }, [selectedStatus]);
   
+  // Initial load effect to handle payment redirects
+  useEffect(() => {
+    console.log('🏠 MyRequests component rendered');
+    
+    // Check for payment success/cancel parameters in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentStatus = urlParams.get('payment');
+    const sessionId = urlParams.get('session_id');
+    
+    if (paymentStatus === 'success' && sessionId) {
+      console.log('✅ Payment successful! Session ID:', sessionId);
+      // Show success message or handle payment success
+      alert('Payment completed successfully!');
+      // Clean up URL parameters
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (paymentStatus === 'cancelled') {
+      console.log('❌ Payment cancelled');
+      alert('Payment was cancelled.');
+      // Clean up URL parameters
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    
+    fetchRequests();
+  }, []);
+  
+  // REMOVED: Long polling functionality has been removed
+  // Webhooks now handle real-time payment status updates automatically
+
   // Add an effect to refresh data when component mounts or when returning from payment
   useEffect(() => {
     // This will ensure data is refreshed when returning from payment
@@ -57,24 +90,15 @@ const MyRequests = () => {
     if (paymentStatus === 'success') {
       // If returning from successful payment, refresh data again after a short delay
       // to ensure webhook has been processed
-      setTimeout(() => {
-        fetchRequests();
-        fetchStats();
-      }, 2000);
+      fetchRequests();
+      fetchStats();
       
       // Clean up URL parameters after processing
       navigate(window.location.pathname, { replace: true });
     }
-    
-    // Set up an interval to refresh payment status every 5 seconds
-    const intervalId = setInterval(() => {
-      if (selectedRequest) {
-        fetchRequestDetails(selectedRequest._id);
-      }
-    }, 5000);
-    
-    return () => clearInterval(intervalId);
-  }, [navigate, selectedRequest]);
+  }, [navigate]);
+
+  // Note: Removed resetPolling useEffect as it was causing polling to restart constantly
 
 
 
@@ -417,11 +441,13 @@ const MyRequests = () => {
     }
   };
 
+
+
   if (loading) {
     return (
       <div className="my-requests">
         <h2 className="section-title">My Requests</h2>
-        <div className="loading-message">Loading your requests...</div>
+        <LoadingSpinner message="Loading your requests..." />
       </div>
     );
   }
@@ -501,9 +527,10 @@ const MyRequests = () => {
                       {request.requestType === 'Rent' && <span className="rent-period">/month</span>}
                     </h3>
                   </div>
-                  <span className={`request-status ${getStatusClass(request.status)}`}>
-                    {request.status}
-                  </span>
+                  <PaymentStatusIndicator 
+                    status={request.status}
+                    onRetry={() => fetchRequestDetails(request._id)}
+                  />
                 </div>
                 
                 <p className="property-address">{request.propertyId?.address}</p>
@@ -570,9 +597,11 @@ const MyRequests = () => {
               <div className="modal-property-details">
                 <div className="modal-status-header">
                   <h4>{selectedRequest.propertyId?.address}</h4>
-                  <span className={`request-status ${getStatusClass(selectedRequest.status)}`}>
-                    {selectedRequest.status}
-                  </span>
+                  <PaymentStatusIndicator 
+                    status={selectedRequest.status}
+                    onRetry={() => fetchRequestDetails(selectedRequest._id)}
+                    showTimestamp={true}
+                  />
                 </div>
                 
                 <div className="property-info-grid">
@@ -642,13 +671,22 @@ const MyRequests = () => {
                    !selectedRequest.advancePayment.isPaid && 
                    !selectedRequest.isPaid && (
                     <button 
-                      className="pay-btn"
-                      onClick={() => handlePayNow(selectedRequest._id)}
-                      disabled={paymentLoading}
-                    >
-                      {paymentLoading ? 'Processing...' : `Pay Online (৳${selectedRequest.advancePayment.amount})`}
-                    </button>
+                    className="pay-btn"
+                    onClick={() => handlePayNow(selectedRequest._id)}
+                    disabled={paymentLoading}
+                  >
+                    {paymentLoading ? (
+                      <>
+                        <LoadingSpinner size="small" />
+                        Processing...
+                      </>
+                    ) : (
+                      `Pay Online (৳${selectedRequest.advancePayment.amount})`
+                    )}
+                  </button>
                   )}
+                  
+
                   
                   {/* Show Receipt button if payment has been made */}
                   {(selectedRequest.status === 'Advance Payment Received' || 
@@ -658,12 +696,21 @@ const MyRequests = () => {
                     selectedRequest.isPaid ||
                     (selectedRequest.advancePayment && selectedRequest.advancePayment.isPaid)) && (
                     <button 
-                      className="show-receipt-btn"
-                      onClick={() => handleGetReceipt(selectedRequest.advancePayment?.paymentId)}
-                      disabled={receiptLoading}
-                    >
-                      {receiptLoading ? 'Loading...' : <><FaReceipt /> Show Receipt</>}
-                    </button>
+                    className="show-receipt-btn"
+                    onClick={() => handleGetReceipt(selectedRequest.advancePayment?.paymentId)}
+                    disabled={receiptLoading}
+                  >
+                    {receiptLoading ? (
+                      <>
+                        <LoadingSpinner size="small" />
+                        Loading...
+                      </>
+                    ) : (
+                      <>
+                        <FaReceipt /> Show Receipt
+                      </>
+                    )}
+                  </button>
                   )}
                 </div>
               </div>
@@ -742,7 +789,14 @@ const MyRequests = () => {
                     className="submit-proof-btn"
                     disabled={uploadLoading || !paymentProofForm.proofFile}
                   >
-                    {uploadLoading ? 'Uploading...' : 'Submit Payment Proof'}
+                    {uploadLoading ? (
+                      <>
+                        <LoadingSpinner size="small" />
+                        Uploading...
+                      </>
+                    ) : (
+                      'Submit Payment Proof'
+                    )}
                   </button>
                 </div>
               </form>

@@ -5,6 +5,7 @@ const multer = require('multer');
 require('dotenv').config();
 const path = require('path');
 const fs = require('fs');
+// PaymentScheduler service reactivated as guard layer for webhook failures
 const PaymentScheduler = require('./services/paymentScheduler');
 
 const app = express();
@@ -126,6 +127,7 @@ const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   
-  // Start payment status checker scheduler
+  // Start PaymentScheduler as guard layer (runs every 5 minutes)
   PaymentScheduler.start();
+  console.log('🛡️ PaymentScheduler guard layer activated');
 });

@@ -12,15 +12,14 @@ class GuardrailsService {
     if (!request) return;
     
     try {
-      // Find all payments for this request
-      const Payment = require('../models/Payment');
-      const payments = await Payment.find({ requestId: request._id });
-      
-      // Check if any payments are marked as paid
-      const hasPaidPayment = payments.some(payment => 
-        payment.status === 'paid' || payment.status === 'completed');
-      
-      // If there's a paid payment but request is not marked as paid, update it
+      // Assume request object already has the most up-to-date payment status
+      // as updated by the webhook handler.
+      // This service now primarily ensures consistency within the request object.
+
+      // Check if the request is marked as paid (either advance or full)
+      const hasPaidPayment = request.advancePayment?.isPaid || request.fullPayment?.isPaid;
+
+      // If there's a paid payment, ensure consistency
       if (hasPaidPayment) {
         // Ensure isPaid flag is set
         if (!request.isPaid) {
@@ -28,9 +27,8 @@ class GuardrailsService {
           console.log(`✅ Setting isPaid flag for request ${request._id}`);
         }
         
-        // Determine if it's advance or full payment
-        const isFullPayment = payments.some(p => 
-          p.type === 'full_payment' && (p.status === 'paid' || p.status === 'completed'));
+        // Determine if it's advance or full payment based on the request object
+        const isFullPayment = request.fullPayment?.isPaid;
         
         // Update request status based on payment type
         if (isFullPayment) {

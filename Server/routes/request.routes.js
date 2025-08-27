@@ -128,4 +128,7 @@ router.post('/:requestId/notes', addInternalNote);
 // @access  Private (Tenant only)
 router.post('/:requestId/payment-proof', submitPaymentProof);
 
+// Polling endpoint removed - payment status updates now handled by webhooks
+// Real-time updates are processed via Stripe webhooks in stripe.controller.js
+
 module.exports = router;

@@ -62,13 +62,8 @@ export const handleApiResponse = async (response, navigate = null) => {
 export const authenticatedFetch = async (url, options = {}, navigate = null) => {
   try {
     // Get user data from localStorage
-    const userData = localStorage.getItem('dwellSyncUser');
-    if (!userData) {
-      throw new Error('Authentication required');
-    }
-    
-    const user = JSON.parse(userData);
-    const token = user.token;
+    const user = JSON.parse(localStorage.getItem('dwellSyncUser'));
+    const token = user ? user.token : null;
     
     if (!token) {
       throw new Error('Authentication required');
@@ -105,13 +100,8 @@ export const authenticatedFetch = async (url, options = {}, navigate = null) => 
 export const authenticatedAxios = async (axiosInstance, config, navigate = null) => {
   try {
     // Get user data from localStorage
-    const userData = localStorage.getItem('dwellSyncUser');
-    if (!userData) {
-      throw new Error('Authentication required');
-    }
-    
-    const user = JSON.parse(userData);
-    const token = user.token;
+    const user = JSON.parse(localStorage.getItem('dwellSyncUser'));
+    const token = user ? user.token : null;
     
     if (!token) {
       throw new Error('Authentication required');

@@ -6,6 +6,7 @@ const Payment = require('../models/Payment');
 const NotificationService = require('../services/notificationService');
 const GuardrailsService = require('../services/guardrailsService');
 const PaymentStatusChecker = require('../services/paymentStatusChecker');
+// Long polling functionality removed
 
 // Get Stripe publishable key
 const getPublishableKey = async (req, res) => {
@@ -129,8 +130,8 @@ const createPaymentSession = async (req, res) => {
         },
       ],
       mode: 'payment',
-      success_url: `${process.env.FRONTEND_URL}/tenant/my-requests?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.FRONTEND_URL}/tenant/my-requests?payment=cancelled`,
+      success_url: `${process.env.FRONTEND_URL}/tenant/request-info?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.FRONTEND_URL}/tenant/request-info?payment=cancelled`,
       metadata: {
         requestId: request._id.toString(),
         tenantId: userId.toString(),
@@ -251,8 +252,8 @@ const createFullPaymentSession = async (req, res) => {
         },
       ],
       mode: 'payment',
-      success_url: `${process.env.FRONTEND_URL}/tenant/my-requests?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.FRONTEND_URL}/tenant/my-requests?payment=cancelled`,
+      success_url: `${process.env.FRONTEND_URL}/tenant/request-info?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.FRONTEND_URL}/tenant/request-info?payment=cancelled`,
       metadata: {
         requestId: request._id.toString(),
         tenantId: userId.toString(),
@@ -291,75 +292,175 @@ const handleWebhook = async (req, res) => {
   const sig = req.headers['stripe-signature'];
   let event;
   
-  // Added: High-level webhook reception diagnostics
+  // Enhanced webhook reception diagnostics
   try {
     const isBuffer = Buffer.isBuffer(req.body);
     const bodyPreview = isBuffer ? `<buffer:${req.body.length} bytes>` : typeof req.body;
-    console.log('🔔 Stripe webhook received', {
+    console.log('🔔 [WEBHOOK] Stripe webhook received at', new Date().toISOString(), {
       hasSignatureHeader: !!sig,
       hasWebhookSecret: !!process.env.STRIPE_WEBHOOK_SECRET,
-      bodyType: bodyPreview
+      bodyType: bodyPreview,
+      url: req.originalUrl,
+      method: req.method
     });
   } catch (e) {
-    // non-fatal
+    console.error('🔔 [WEBHOOK] Error in webhook diagnostics:', e.message);
   }
   
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
-    console.log('✅ Webhook verified', { eventType: event?.type });
+    console.log('✅ [WEBHOOK] Webhook signature verified successfully', { 
+      eventType: event?.type,
+      eventId: event?.id,
+      timestamp: new Date().toISOString()
+    });
   } catch (err) {
-    console.error('Webhook signature verification failed:', err.message);
+    console.error('❌ [WEBHOOK] Webhook signature verification failed:', err.message);
+    console.error('❌ [WEBHOOK] Signature header:', sig ? 'Present' : 'Missing');
+    console.error('❌ [WEBHOOK] Webhook secret:', process.env.STRIPE_WEBHOOK_SECRET ? 'Present' : 'Missing');
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
   
-  // Handle the event
-  switch (event.type) {
-    case 'checkout.session.completed':
-      const requestType = event.data.object.metadata.requestType || 'advance_payment';
-      console.log('➡️ Processing checkout.session.completed', {
-        requestType,
-        sessionId: event.data.object.id,
-        paymentIntent: event.data.object.payment_intent
-      });
-      if (requestType === 'full_payment') {
-        await handleFullPaymentSuccess(event.data.object);
-      } else {
-        await handlePaymentSuccess(event.data.object);
-      }
-      break;
-    case 'checkout.session.expired':
-      console.log('⚠️ Processing checkout.session.expired', { sessionId: event.data.object.id });
-      await handlePaymentExpired(event.data.object);
-      break;
-    case 'payment_intent.payment_failed':
-      console.log('❌ Processing payment_intent.payment_failed', { paymentIntent: event.data.object?.id });
-      await handlePaymentFailed(event.data.object);
-      break;
-    default:
-      console.log(`Unhandled event type ${event.type}`);
+  console.log('🔄 [WEBHOOK] Processing event:', {
+    type: event.type,
+    id: event.id,
+    created: event.created,
+    livemode: event.livemode
+  });
+  
+  // Handle the event with enhanced error handling - using only Stripe API
+  try {
+    switch (event.type) {
+      case 'checkout.session.completed':
+        const sessionId = event.data.object.id;
+        console.log('➡️ [WEBHOOK] Processing checkout.session.completed', {
+          sessionId: sessionId
+        });
+        
+        // Fetch complete session data from Stripe API
+        let sessionData;
+        try {
+          sessionData = await stripe.checkout.sessions.retrieve(sessionId);
+          console.log('✅ [WEBHOOK] Retrieved session data from Stripe API:', {
+            sessionId: sessionData.id,
+            paymentStatus: sessionData.payment_status,
+            status: sessionData.status,
+            metadata: sessionData.metadata
+          });
+        } catch (stripeError) {
+          console.error('❌ [WEBHOOK] Failed to retrieve session from Stripe API:', stripeError.message);
+          return; // Exit if we can't get session data
+        }
+        
+        // Only process if payment is actually completed
+        if (sessionData.payment_status !== 'paid') {
+          console.log('⚠️ [WEBHOOK] Payment not completed, skipping:', {
+            sessionId: sessionData.id,
+            paymentStatus: sessionData.payment_status
+          });
+          return;
+        }
+        
+        const requestType = sessionData.metadata.requestType || 'advance_payment';
+        
+        if (requestType === 'full_payment') {
+          console.log('🔄 [WEBHOOK] Handling full payment...');
+          await handleFullPaymentSuccess(sessionData);
+          console.log('✅ [WEBHOOK] Full payment handled successfully');
+        } else {
+          console.log('🔄 [WEBHOOK] Handling advance payment...');
+          await handlePaymentSuccess(sessionData);
+          console.log('✅ [WEBHOOK] Advance payment handled successfully');
+        }
+        break;
+        
+      case 'checkout.session.expired':
+        const expiredSessionId = event.data.object.id;
+        console.log('⚠️ [WEBHOOK] Processing checkout.session.expired', { sessionId: expiredSessionId });
+        
+        // Fetch session data from Stripe API for expired session
+        let expiredSessionData;
+        try {
+          expiredSessionData = await stripe.checkout.sessions.retrieve(expiredSessionId);
+        } catch (stripeError) {
+          console.error('❌ [WEBHOOK] Failed to retrieve expired session from Stripe API:', stripeError.message);
+          return;
+        }
+        
+        await handlePaymentExpired(expiredSessionData);
+        console.log('✅ [WEBHOOK] Payment expiry handled successfully');
+        break;
+        
+      case 'payment_intent.payment_failed':
+        console.log('❌ [WEBHOOK] Processing payment_intent.payment_failed', { paymentIntent: event.data.object?.id });
+        await handlePaymentFailed(event.data.object);
+        console.log('✅ [WEBHOOK] Payment failure handled successfully');
+        break;
+        
+      default:
+        console.log(`⚠️ [WEBHOOK] Unhandled event type: ${event.type}`);
+    }
+    
+    console.log('✅ [WEBHOOK] Event processing completed successfully at', new Date().toISOString());
+    
+  } catch (eventError) {
+    console.error('❌ [WEBHOOK] Error processing webhook event:', {
+      error: eventError.message,
+      stack: eventError.stack,
+      eventType: event.type,
+      eventId: event.id
+    });
+    // Still return 200 to acknowledge receipt, but log the error
   }
   
-  res.json({ received: true });
+  res.status(200).json({ received: true, eventType: event.type, timestamp: new Date().toISOString() });
 };
 
 // Handle successful payment
 const handlePaymentSuccess = async (session) => {
+  const startTime = Date.now();
   try {
-    console.log('➡️ handlePaymentSuccess invoked', {
+    console.log('➡️ [WEBHOOK] handlePaymentSuccess invoked at', new Date().toISOString(), {
       sessionId: session?.id,
       paymentIntent: session?.payment_intent,
+      paymentStatus: session?.payment_status,
       metadata: session?.metadata
     });
-    const { requestId, tenantId } = session.metadata;
     
-    const request = await Request.findById(requestId);
-    if (!request) {
-      console.error('Request not found for payment success:', requestId);
+    // Payment status is already verified in webhook handler before calling this function
+    
+    const { requestId, tenantId, amount, currency } = session.metadata;
+    
+    if (!requestId || !tenantId) {
+      console.error('❌ [WEBHOOK] Missing required metadata:', { requestId, tenantId });
       return;
     }
-    console.log('✅ Found request for advance payment', { requestId: requestId });
+    
+    console.log('🔍 [WEBHOOK] Looking up request:', requestId);
+    const request = await Request.findById(requestId);
+    if (!request) {
+      console.error('❌ [WEBHOOK] Request not found for payment success:', requestId);
+      return;
+    }
+    console.log('✅ [WEBHOOK] Found request for advance payment', { 
+      requestId: requestId,
+      currentStatus: request.status,
+      currentAdvanceStatus: request.advancePayment?.status
+    });
+    
+    // Check if payment is already processed to avoid duplicate processing
+    if (request.advancePayment?.status === 'Paid') {
+      console.log('⚠️ [WEBHOOK] Payment already processed, skipping update:', {
+        requestId,
+        currentStatus: request.advancePayment.status
+      });
+      return;
+    }
+    
+    console.log('🔄 [WEBHOOK] Updating request payment status...');
     
     // Update payment status on Request
+    request.advancePayment = request.advancePayment || {};
     request.advancePayment.status = 'Paid';
     request.advancePayment.paidAt = new Date();
     request.advancePayment.paymentIntentId = session.payment_intent;
@@ -369,34 +470,48 @@ const handlePaymentSuccess = async (session) => {
     request.advancePayment.canPayAgain = false;
     
     // Stripe completed -> mark request as AdvancePaid (not Payment Submitted)
+    const oldRequestStatus = request.status;
     request.status = 'AdvancePaid';
     
     // Add timeline event
     request.timeline.push({
-      event: 'Advance payment completed via Stripe',
+      event: 'Advance payment completed via Stripe webhook',
       actor: tenantId,
       timestamp: new Date(),
-      note: `Amount: ${request.advancePayment.amount} ${request.advancePayment.currency}`
+      note: `Amount: ${request.advancePayment.amount} ${request.advancePayment.currency} - Processed immediately via webhook`
     });
     
+    console.log('💾 [WEBHOOK] Saving request updates...');
     await request.save();
-    console.log('📝 Request updated post-advance payment', {
+    console.log('✅ [WEBHOOK] Request updated successfully', {
       requestId,
-      status: request.status,
-      advancePaymentStatus: request.advancePayment.status
+      oldStatus: oldRequestStatus,
+      newStatus: request.status,
+      advancePaymentStatus: request.advancePayment.status,
+      processingTime: `${Date.now() - startTime}ms`
     });
 
     // Also update the corresponding Payment record from pending -> completed
+    console.log('🔄 [WEBHOOK] Updating Payment record...');
     try {
       // Prefer lookup by linked paymentId on the request, fallback to requestId/type
       let payment;
       if (request.advancePayment?.paymentId) {
+        console.log('🔍 [WEBHOOK] Looking up payment by paymentId:', request.advancePayment.paymentId);
         payment = await Payment.findOne({ paymentId: request.advancePayment.paymentId });
       }
       if (!payment) {
+        console.log('🔍 [WEBHOOK] Looking up payment by requestId and type...');
         payment = await Payment.findOne({ requestId: request._id, type: 'advance_payment' }).sort({ createdAt: -1 });
       }
+      
       if (payment) {
+        console.log('✅ [WEBHOOK] Found Payment record to update:', {
+          paymentId: payment.paymentId,
+          currentStatus: payment.status
+        });
+        
+        const oldStatus = payment.status;
         payment.status = 'completed';
         payment.paidAt = new Date();
         payment.amount = request.advancePayment.amount;
@@ -406,19 +521,37 @@ const handlePaymentSuccess = async (session) => {
           sessionId: session.id,
           paymentIntentId: session.payment_intent
         };
+        
+        // Manually add to history to ensure it's tracked
+        payment.history.push({
+          status: 'completed',
+          timestamp: new Date(),
+          note: `Advance payment completed via Stripe webhook. Changed from ${oldStatus} to completed - Processed immediately`,
+          updatedBy: tenantId
+        });
+        
+        console.log('💾 [WEBHOOK] Saving Payment record...');
         await payment.save();
-        console.log('💾 Payment record updated', {
+        console.log('✅ [WEBHOOK] Payment record updated successfully', {
           paymentId: payment.paymentId || payment._id?.toString?.(),
-          status: payment.status
+          oldStatus,
+          newStatus: payment.status,
+          historyEntries: payment.history.length
         });
       } else {
-        console.warn('No pending Payment record found to update for request:', request._id.toString());
+        console.warn('⚠️ [WEBHOOK] No Payment record found to update for request:', request._id.toString());
       }
     } catch (paymentUpdateErr) {
-      console.error('Failed updating Payment record on success:', paymentUpdateErr);
+      console.error('❌ [WEBHOOK] Failed updating Payment record:', {
+        error: paymentUpdateErr.message,
+        stack: paymentUpdateErr.stack,
+        requestId
+      });
     }
     
     console.log('Payment processed successfully for request:', requestId);
+    
+    // Long polling notifications removed
     
   } catch (error) {
     console.error('Error handling payment success:', error);
@@ -427,24 +560,53 @@ const handlePaymentSuccess = async (session) => {
 
 // Handle full payment success
 const handleFullPaymentSuccess = async (session) => {
+  const startTime = Date.now();
   try {
-    console.log('➡️ handleFullPaymentSuccess invoked', {
+    console.log('🎉 [WEBHOOK] handleFullPaymentSuccess invoked at', new Date().toISOString(), {
       sessionId: session?.id,
       paymentIntent: session?.payment_intent,
+      paymentStatus: session?.payment_status,
       metadata: session?.metadata
     });
+    
+    // Payment status is already verified in webhook handler before calling this function
+    
     const { requestId, tenantId, amount, currency } = session.metadata;
     
+    if (!requestId || !tenantId) {
+      console.error('❌ [WEBHOOK] Missing required metadata for full payment:', { requestId, tenantId });
+      return;
+    }
+    
+    console.log('🔍 [WEBHOOK] Looking up request for full payment:', requestId);
     const request = await Request.findById(requestId)
       .populate('propertyId', 'address ownerId')
       .populate('ownerId', 'firstName lastName email');
     
     if (!request) {
-      console.error('Request not found for full payment:', requestId);
+      console.error('❌ [WEBHOOK] Request not found for full payment:', requestId);
       return;
     }
     
+    console.log('✅ [WEBHOOK] Found request for full payment', {
+      requestId: requestId,
+      currentStatus: request.status,
+      currentFullPaymentStatus: request.fullPayment?.status
+    });
+    
+    // Check if payment is already processed to avoid duplicate processing
+    if (request.fullPayment?.status === 'completed') {
+      console.log('⚠️ [WEBHOOK] Full payment already processed, skipping update:', {
+        requestId,
+        currentStatus: request.fullPayment.status
+      });
+      return;
+    }
+    
+    console.log('🔄 [WEBHOOK] Updating request full payment status...');
+    
     // Update request with full payment details
+    const oldRequestStatus = request.status;
     request.fullPayment = {
       status: 'completed',
       amount: parseFloat(amount),
@@ -458,20 +620,120 @@ const handleFullPaymentSuccess = async (session) => {
     
     // Add timeline event
     request.timeline.push({
-      event: 'Full payment completed',
+      event: 'Full payment completed via Stripe webhook',
       actor: tenantId,
       timestamp: new Date(),
-      note: `Amount: ${amount} ${currency} via Stripe`
+      note: `Amount: ${amount} ${currency} via Stripe - Processed immediately via webhook`
     });
     
+    console.log('💾 [WEBHOOK] Saving request with full payment updates...');
     await request.save();
-    console.log('📝 Request updated post-full payment', {
+    console.log('✅ [WEBHOOK] Request updated successfully with full payment', {
+      requestId,
+      oldStatus: oldRequestStatus,
+      newStatus: request.status,
+      fullPaymentStatus: request.fullPayment.status,
+      processingTime: `${Date.now() - startTime}ms`
+    });
+    
+    // Also update or create the corresponding Payment record for full payment
+    console.log('🔄 [WEBHOOK] Updating/creating Payment record for full payment...');
+    try {
+      let payment = await Payment.findOne({ requestId: request._id, type: 'full_payment' }).sort({ createdAt: -1 });
+      
+      if (payment) {
+        console.log('✅ [WEBHOOK] Found existing Payment record to update:', {
+          paymentId: payment.paymentId,
+          currentStatus: payment.status
+        });
+        
+        // Update existing payment record
+        const oldStatus = payment.status;
+        payment.status = 'completed';
+        payment.paidAt = new Date();
+        payment.amount = parseFloat(amount);
+        payment.currency = currency.toUpperCase();
+        payment.stripeDetails = {
+          ...(payment.stripeDetails || {}),
+          sessionId: session.id,
+          paymentIntentId: session.payment_intent
+        };
+        
+        // Manually add to history to ensure it's tracked
+        payment.history.push({
+          status: 'completed',
+          timestamp: new Date(),
+          note: `Full payment completed via Stripe webhook. Changed from ${oldStatus} to completed - Processed immediately`,
+          updatedBy: tenantId
+        });
+        
+        console.log('💾 [WEBHOOK] Saving existing Payment record...');
+        await payment.save();
+        console.log('✅ [WEBHOOK] Full payment record updated successfully', {
+          paymentId: payment.paymentId,
+          oldStatus,
+          newStatus: payment.status,
+          historyEntries: payment.history.length
+        });
+      } else {
+        console.log('🆕 [WEBHOOK] Creating new Payment record for full payment...');
+        
+        // Create new payment record for full payment
+        payment = new Payment({
+          type: 'full_payment',
+          status: 'completed',
+          method: 'stripe',
+          amount: parseFloat(amount),
+          currency: currency.toUpperCase(),
+          requestId: request._id,
+          propertyId: request.propertyId,
+          payerId: tenantId,
+          payeeId: request.ownerId,
+          description: `Full payment for ${request.requestType} request`,
+          paidAt: new Date(),
+          stripeDetails: {
+            sessionId: session.id,
+            paymentIntentId: session.payment_intent
+          }
+        });
+        
+        // Add initial history entry
+        payment.history.push({
+          status: 'completed',
+          timestamp: new Date(),
+          note: 'Full payment completed via Stripe webhook - Processed immediately',
+          updatedBy: tenantId
+        });
+        
+        console.log('💾 [WEBHOOK] Saving new Payment record...');
+        await payment.save();
+        console.log('✅ [WEBHOOK] New full payment record created successfully', {
+          paymentId: payment.paymentId,
+          status: payment.status,
+          historyEntries: payment.history.length
+        });
+        
+        // Link paymentId to the Request's fullPayment for easy lookup later
+        request.fullPayment.paymentId = payment.paymentId;
+        console.log('💾 [WEBHOOK] Linking payment to request...');
+        await request.save();
+        console.log('✅ [WEBHOOK] Payment linked to request successfully');
+      }
+    } catch (paymentUpdateErr) {
+      console.error('❌ [WEBHOOK] Failed updating/creating Payment record for full payment:', {
+        error: paymentUpdateErr.message,
+        stack: paymentUpdateErr.stack,
+        requestId
+      });
+    }
+    console.log('✅ [WEBHOOK] Full payment processed successfully for request:', {
       requestId,
       status: request.status,
-      fullPaymentStatus: request.fullPayment.status
+      fullPaymentStatus: request.fullPayment.status,
+      totalProcessingTime: `${Date.now() - startTime}ms`
     });
     
-    console.log('Full payment processed successfully for request:', requestId);
+    // Long polling notifications removed
     
   } catch (error) {
     console.error('Error handling full payment success:', error);
@@ -678,120 +940,17 @@ const updatePaymentStatus = async (req, res) => {
   }
 };
 
-// Check payment status from Stripe
-const checkPaymentStatus = async (req, res) => {
-  try {
-    const { requestId } = req.params;
-    const userId = req.user.userId || req.user._id || req.user.id;
-    
-    // Find the request
-    const request = await Request.findById(requestId);
-    if (!request) {
-      return res.status(404).json({
-        success: false,
-        message: 'Request not found'
-      });
-    }
-    
-    // Check if user is authorized
-    if (request.tenantId.toString() !== userId.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'You are not authorized to check this payment status'
-      });
-    }
-    
-    let paymentStatus = {
-      advancePayment: {
-        status: request.advancePayment?.status || 'not_started',
-        amount: request.advancePayment?.amount || 0,
-        sessionId: request.advancePayment?.stripeSessionId || null, // expose as sessionId for FE
-        stripeSessionId: request.advancePayment?.stripeSessionId || null
-      }
-    };
-    
-    // If there's a Stripe session ID, check with Stripe
-    if (request.advancePayment?.stripeSessionId) {
-      try {
-        const session = await stripe.checkout.sessions.retrieve(request.advancePayment.stripeSessionId);
-        paymentStatus.advancePayment.stripeStatus = session.payment_status;
-        
-        // Update local status if Stripe shows paid
-        if (session.payment_status === 'paid' && request.advancePayment.status !== 'Paid') {
-          request.advancePayment.status = 'Paid';
-          request.advancePayment.paidAt = new Date();
-          request.advancePayment.paymentIntentId = session.payment_intent || request.advancePayment.paymentIntentId;
-          request.advancePayment.isPaid = true;
-          request.advancePayment.canPayAgain = false;
-          request.status = 'AdvancePaid';
+// REMOVED: Manual payment status checking function
+// This function has been removed as webhooks now handle all payment status updates automatically
+// The webhook-based system provides real-time updates without the need for manual polling
 
-          // Update corresponding Payment document if present
-          try {
-            let payment;
-            if (request.advancePayment?.paymentId) {
-              payment = await Payment.findOne({ paymentId: request.advancePayment.paymentId });
-            }
-            if (!payment) {
-              payment = await Payment.findOne({ requestId: request._id, type: 'advance_payment' }).sort({ createdAt: -1 });
-            }
-            if (payment) {
-              payment.status = 'completed';
-              payment.paidAt = new Date();
-              payment.amount = request.advancePayment.amount;
-              payment.currency = (request.advancePayment.currency || 'BDT').toUpperCase();
-              payment.stripeDetails = {
-                ...(payment.stripeDetails || {}),
-                sessionId: request.advancePayment.stripeSessionId,
-                paymentIntentId: session.payment_intent || payment.stripeDetails?.paymentIntentId
-              };
-              await payment.save();
-            }
-          } catch (pe) {
-            console.error('Error syncing Payment record during status check:', pe);
-          }
 
-          await request.save();
-          paymentStatus.advancePayment.status = 'Paid';
-        }
-      } catch (stripeError) {
-        console.error('Error checking Stripe session:', stripeError);
-      }
-    }
-    
-    res.status(200).json({
-      success: true,
-      paymentStatus
-    });
-    
-  } catch (error) {
-    console.error('Error checking payment status:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to check payment status'
-    });
-  }
-};
 
-// Check all pending payments (fallback for webhook failures)
-const checkPendingPayments = async (req, res) => {
-  try {
-    console.log('🔍 Manual payment status check initiated by user:', req.user.userId);
-    
-    const result = await PaymentStatusChecker.checkPendingPayments();
-    
-    res.status(200).json({
-      success: true,
-      message: `Checked ${result.checked} pending payments`,
-      data: result
-    });
-  } catch (error) {
-    console.error('❌ Error checking pending payments:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to check pending payments: ' + error.message
-    });
-  }
-};
+
+
+
+
+
 
 // Get receipt data for a payment
 const getReceipt = async (req, res) => {
@@ -903,6 +1062,8 @@ const getReceipt = async (req, res) => {
   }
 };
 
+// Long polling functionality removed
+
 module.exports = {
   getPublishableKey,
   createPaymentSession,
@@ -911,7 +1072,5 @@ module.exports = {
   getPaymentStatus,
   uploadPaymentProof,
   updatePaymentStatus,
-  checkPaymentStatus,
-  checkPendingPayments,
   getReceipt
 };

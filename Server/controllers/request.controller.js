@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const NotificationService = require('../services/notificationService');
 const GuardrailsService = require('../services/guardrailsService');
+// Long polling functionality removed
 
 // Create a new request
 const createRequest = async (req, res) => {
@@ -674,9 +675,12 @@ const submitPaymentProof = async (req, res) => {
     res.json({ message: 'Payment proof submitted successfully' });
   } catch (error) {
     console.error('Error submitting payment proof:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: 'Failed to submit payment proof', error: error.message });
   }
 };
+
+// REMOVED: getPaymentStatusPolling function has been removed
+// Reason: Long polling functionality replaced by webhook-based payment processing
 
 module.exports = {
   createRequest,

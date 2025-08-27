@@ -1,12 +1,15 @@
+// REACTIVATED: PaymentStatusChecker service reactivated as guard layer
+// Reason: Serves as fallback when webhooks fail or are delayed
+// Date: Reactivated for redundancy and reliability
+
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const Request = require('../models/Request');
 const Payment = require('../models/Payment');
+// Long polling functionality removed
 
 class PaymentStatusChecker {
-  /**
-   * Check payment status directly with Stripe for pending payments
-   * This serves as a fallback when webhooks fail
-   */
+  // Check payment status directly with Stripe for pending payments
+  // This serves as a fallback when webhooks fail
   static async checkPendingPayments() {
     try {
       console.log('🔍 Checking pending payments with Stripe...');
@@ -30,9 +33,7 @@ class PaymentStatusChecker {
     }
   }
   
-  /**
-   * Check a single payment status with Stripe
-   */
+  // Check a single payment status with Stripe
   static async checkSinglePayment(request) {
     try {
       const sessionId = request.advancePayment.stripeSessionId;
@@ -62,9 +63,7 @@ class PaymentStatusChecker {
     }
   }
   
-  /**
-   * Update payment status when Stripe confirms payment
-   */
+  // Update payment status when Stripe confirms payment
   static async updatePaymentStatus(request, session) {
     try {
       // Update request advance payment status
@@ -94,6 +93,7 @@ class PaymentStatusChecker {
       }).sort({ createdAt: -1 });
       
       if (payment) {
+        const oldStatus = payment.status;
         payment.status = 'completed';
         payment.paidAt = new Date();
         payment.stripeDetails = {
@@ -101,11 +101,24 @@ class PaymentStatusChecker {
           sessionId: session.id,
           paymentIntentId: session.payment_intent
         };
+        
+        // Manually add to history to ensure it's tracked
+        payment.history.push({
+          status: 'completed',
+          timestamp: new Date(),
+          note: `Advance payment completed via Stripe status checker. Changed from ${oldStatus} to completed`,
+          updatedBy: request.tenantId
+        });
+        
         await payment.save();
-        console.log(`💾 Payment record updated for ${payment.paymentId}`);
+        console.log(`💾 Payment record updated for ${payment.paymentId}`, {
+          historyEntries: payment.history.length
+        });
       }
       
       console.log(`✅ Successfully updated payment status for request ${request.requestId}`);
+      
+      // Long polling notifications removed
       
     } catch (error) {
       console.error('Error updating payment status:', error);
@@ -113,9 +126,7 @@ class PaymentStatusChecker {
     }
   }
   
-  /**
-   * Check payment status for a specific request
-   */
+  // Check payment status for a specific request
   static async checkRequestPayment(requestId) {
     try {
       const request = await Request.findById(requestId);
@@ -143,5 +154,6 @@ class PaymentStatusChecker {
     }
   }
 }
+
 
 module.exports = PaymentStatusChecker;
