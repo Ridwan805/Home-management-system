@@ -1,6 +1,9 @@
 const Request = require('../models/Request');
 const Property = require('../models/Property');
 const User = require('../models/User');
+const Rent = require('../models/Rent');
+const OwnershipTransfer = require('../models/OwnershipTransfer');
+const Invoice = require('../models/Invoice');
 const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
@@ -119,13 +122,39 @@ const createRequest = async (req, res) => {
     }
 
     // Validate property exists and get owner info
-    const property = await Property.findById(propertyId).populate('owner');
+    const property = await Property.findById(propertyId)
+      .populate('ownerUserId')
+      .populate('owner'); // Keep for backward compatibility
+    
     if (!property) {
       return res.status(404).json({ message: 'Property not found' });
     }
 
+    if (property.isDeleted) {
+      return res.status(400).json({ message: 'Property is no longer available' });
+    }
+
+    // Check if property is available for the request type
+    if (requestType === 'Rent' && !['Available', 'Reserved'].includes(property.status)) {
+      return res.status(400).json({ 
+        message: `Property is not available for rent. Current status: ${property.status}` 
+      });
+    }
+    
+    if (requestType === 'Purchase' && !['Available', 'Reserved'].includes(property.status)) {
+      return res.status(400).json({ 
+        message: `Property is not available for purchase. Current status: ${property.status}` 
+      });
+    }
+
+    // Get the actual owner ID (prioritize new field)
+    const ownerId = property.ownerUserId?._id || property.owner?._id;
+    if (!ownerId) {
+      return res.status(400).json({ message: 'Property owner information is missing' });
+    }
+
     // Check if user is trying to request their own property
-    if (property.owner._id.toString() === tenantId) {
+    if (ownerId.toString() === tenantId) {
       return res.status(400).json({ message: 'Cannot request your own property' });
     }
 
@@ -146,7 +175,7 @@ const createRequest = async (req, res) => {
     // Create new request with unified inquiry form data
     const newRequest = new Request({
       propertyId,
-      ownerId: property.owner._id,
+      ownerId: ownerId,
       tenantId,
       requestType,
       payload: {
@@ -182,7 +211,7 @@ const createRequest = async (req, res) => {
     // Send notification to property owner
     try {
       await NotificationService.createNotification(
-        property.owner._id,
+        ownerId,
         'info',
         'New Property Request',
         `${populatedRequest.tenantId.firstName} ${populatedRequest.tenantId.lastName} has submitted a ${requestType.toLowerCase()} request for ${property.address}`,
@@ -355,7 +384,7 @@ const updateRequestStatus = async (req, res) => {
       };
     }
 
-    // Handle payment verification
+    // Handle payment verification and contract creation
     if (status === 'Paid/Completed' && userRole === 'Owner') {
       if (request.advancePayment) {
         request.advancePayment.verifiedAt = new Date();
@@ -363,54 +392,133 @@ const updateRequestStatus = async (req, res) => {
         request.advancePayment.verificationNote = note;
       }
 
-      // Assign property to tenant when payment is completed
+      // Create rent contract or ownership transfer based on request type
       const property = await Property.findById(request.propertyId);
       if (property) {
-        // Update property status based on request type
-        const newPropertyStatus = request.requestType === 'Rent' ? 'Rented' : 'Sold';
-        property.status = newPropertyStatus;
-        
-        // Add tenant assignment (we'll add this field to Property model)
-        property.assignedTenant = request.tenantId;
-        property.assignedAt = new Date();
-        property.assignmentType = request.requestType;
-        
-        await property.save();
-        
-        // Add timeline event for property assignment
-        request.timeline.push({
-          event: `Property ${newPropertyStatus.toLowerCase()} to tenant`,
-          actor: userId,
-          timestamp: new Date(),
-          note: `Property status changed to ${newPropertyStatus} and assigned to tenant`
-        });
+        try {
+          if (request.requestType === 'Rent') {
+            // Create rent contract
+            const rentData = {
+              propertyId: request.propertyId,
+              tenants: [request.tenantId],
+              rent: {
+                amount: request.payload?.financials?.monthlyRent || property.price,
+                currency: 'BDT',
+                dueDay: 1
+              },
+              term: {
+                startDate: new Date(),
+                endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year default
+                duration: 12,
+                unit: 'months'
+              },
+              deposit: {
+                amount: request.advancePayment?.amount || 0,
+                currency: 'BDT',
+                paidAt: new Date(),
+                refundable: true
+              }
+            };
+            
+            const rent = new Rent(rentData);
+            await rent.save();
+            
+            // Activate the rent contract
+            await rent.activate(userId, 'Rent activated after payment completion');
+            
+            // Link request to rent
+            request.linkedRentId = rent._id;
+            
+            // Add timeline event
+            request.timeline.push({
+              event: 'Rent contract created and activated',
+              actor: userId,
+              timestamp: new Date(),
+              note: `Rent contract ${rent._id} created and property status changed to Rented`
+            });
+            
+          } else if (request.requestType === 'Purchase') {
+            // Create ownership transfer
+            const transferData = {
+              propertyId: request.propertyId,
+              sellerId: request.ownerId,
+              buyerId: request.tenantId,
+              salePrice: {
+                amount: request.payload?.financials?.offerPrice || property.price,
+                currency: 'BDT'
+              },
+              deposit: {
+                amount: request.advancePayment?.amount || 0,
+                currency: 'BDT',
+                paidAt: new Date()
+              }
+            };
+            
+            const transfer = new OwnershipTransfer(transferData);
+            await transfer.save();
+            
+            // Close the ownership transfer (complete the sale)
+            await transfer.close(userId, 'Ownership transfer completed after payment verification');
+            
+            // Link request to ownership transfer
+            request.linkedOwnershipTransferId = transfer._id;
+            
+            // Add timeline event
+            request.timeline.push({
+              event: 'Ownership transfer completed',
+              actor: userId,
+              timestamp: new Date(),
+              note: `Ownership transfer ${transfer._id} completed and property sold to buyer`
+            });
+          }
+        } catch (contractError) {
+          console.error('Error creating contract:', contractError);
+          return res.status(500).json({ 
+            success: false, 
+            message: 'Payment verified but failed to create contract: ' + contractError.message 
+          });
+        }
       }
     }
 
     // Handle property status changes for various transitions
-    if (['Rejected', 'Canceled', 'Expired'].includes(status) || 
-        (request.status === 'Payment Submitted' && status === 'Approved – Pay Advance')) {
-      // Request was rejected, canceled, expired, or payment was rejected
+    if (['Rejected', 'Canceled', 'Expired'].includes(status)) {
+      // Request was rejected, canceled, or expired - make property available again
       const property = await Property.findById(request.propertyId);
-      if (property && property.assignedTenant && property.assignedTenant.toString() === request.tenantId.toString()) {
-        // Clear tenant assignment and reset to available
-        property.assignedTenant = undefined;
-        property.assignedAt = undefined;
-        property.assignmentType = undefined;
-        property.status = 'Available';
-        await property.save();
-        
-        // Add timeline event
-        const eventMessage = status === 'Approved – Pay Advance' ? 
-          'Property assignment reverted due to payment rejection' :
-          `Property assignment reverted due to request ${status.toLowerCase()}`;
-        
-        request.timeline.push({
-          event: eventMessage,
-          actor: userId,
-          timestamp: new Date(),
-          note: 'Property status reset to Available'
-        });
+      if (property && property.status === 'Reserved') {
+        try {
+          await property.makeAvailable(userId, `Request ${status.toLowerCase()} - property made available again`);
+          
+          // Add timeline event
+          request.timeline.push({
+            event: `Property made available due to request ${status.toLowerCase()}`,
+            actor: userId,
+            timestamp: new Date(),
+            note: 'Property status reset to Available'
+          });
+        } catch (error) {
+          console.error('Error making property available:', error);
+        }
+      }
+    }
+    
+    // Handle property reservation for approved requests
+    if (status === 'Approved – Pay Advance' && request.status !== 'Approved – Pay Advance') {
+      const property = await Property.findById(request.propertyId);
+      if (property && property.status === 'Available') {
+        try {
+          await property.reserve(userId, 'Property reserved for approved request');
+          
+          // Add timeline event
+          request.timeline.push({
+            event: 'Property reserved for approved request',
+            actor: userId,
+            timestamp: new Date(),
+            note: 'Property status changed to Reserved'
+          });
+        } catch (error) {
+          console.error('Error reserving property:', error);
+        }
       }
     }
 
@@ -581,60 +689,91 @@ const addInternalNote = async (req, res) => {
 // Get request statistics
 const getRequestStats = async (req, res) => {
   try {
-    console.log('📊 Getting request stats for user');
-    const userId = req.user.userId;
-    const userRole = req.user.role;
+    const { userId, userRole } = req.user;
     
-    console.log('📊 User info:', { userId, userRole });
-
-    let matchFilter = {};
-    try {
-      if (userRole === 'Tenant') {
-        matchFilter.tenantId = new mongoose.Types.ObjectId(userId);
-      } else if (userRole === 'Owner') {
-        matchFilter.ownerId = new mongoose.Types.ObjectId(userId);
-      }
-      console.log('📊 Match filter:', matchFilter);
-    } catch (err) {
-      console.error('📊 Error creating ObjectId:', err);
-      // Fallback to string comparison if ObjectId fails
-      if (userRole === 'Tenant') {
-        matchFilter.tenantId = userId;
-      } else if (userRole === 'Owner') {
-        matchFilter.ownerId = userId;
-      }
-      console.log('📊 Fallback match filter:', matchFilter);
+    let matchCondition = {};
+    
+    // Filter based on user role
+    if (userRole === 'Tenant') {
+      matchCondition.tenantId = new mongoose.Types.ObjectId(userId);
+    } else if (userRole === 'Owner') {
+      // For owners, get stats for properties they own
+      const properties = await Property.find({ ownerUserId: userId }).select('_id');
+      const propertyIds = properties.map(p => p._id);
+      matchCondition.propertyId = { $in: propertyIds };
     }
-
-    console.log('📊 Running aggregate query...');
+    // Admin can see all stats (no additional filter)
+    
     const stats = await Request.aggregate([
-      { $match: matchFilter },
+      { $match: matchCondition },
       {
         $group: {
           _id: '$status',
-          count: { $sum: 1 }
+          count: { $sum: 1 },
+          avgProcessingTime: {
+            $avg: {
+              $subtract: [
+                { $ifNull: ['$updatedAt', new Date()] },
+                '$createdAt'
+              ]
+            }
+          }
+        }
+      },
+      {
+        $project: {
+          status: '$_id',
+          count: 1,
+          avgProcessingTimeHours: {
+            $divide: ['$avgProcessingTime', 1000 * 60 * 60]
+          },
+          _id: 0
         }
       }
     ]);
     
-    console.log('📊 Aggregate results:', stats);
-
-    const totalRequests = await Request.countDocuments(matchFilter);
-    console.log('📊 Total requests:', totalRequests);
-
-    const response = {
-      totalRequests,
-      statusBreakdown: stats.reduce((acc, stat) => {
-        acc[stat._id] = stat.count;
-        return acc;
-      }, {})
-    };
+    // Get total counts
+    const totalRequests = await Request.countDocuments(matchCondition);
+    const activeRequests = await Request.countDocuments({
+      ...matchCondition,
+      status: { $in: ['Pending', 'Under Review', 'Approved – Pay Advance', 'Payment Submitted'] }
+    });
     
-    console.log('📊 Sending response:', response);
-    res.json(response);
+    // Get additional stats for different user roles
+    let additionalStats = {};
+    
+    if (userRole === 'Admin') {
+      // Admin gets comprehensive stats
+      const rentRequests = await Request.countDocuments({ requestType: 'Rent' });
+      const purchaseRequests = await Request.countDocuments({ requestType: 'Purchase' });
+      const completedRequests = await Request.countDocuments({ status: 'Paid/Completed' });
+      
+      additionalStats = {
+        requestTypeBreakdown: {
+          rent: rentRequests,
+          purchase: purchaseRequests
+        },
+        completedRequests,
+        completionRate: totalRequests > 0 ? (completedRequests / totalRequests * 100).toFixed(2) : 0
+      };
+    }
+    
+    res.json({
+      success: true,
+      data: {
+        totalRequests,
+        activeRequests,
+        statusBreakdown: stats,
+        ...additionalStats
+      }
+    });
+    
   } catch (error) {
-    console.error('📊 Error fetching stats:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error('Error getting request stats:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to get request statistics' 
+    });
   }
 };
 

@@ -940,18 +940,7 @@ const updatePaymentStatus = async (req, res) => {
   }
 };
 
-// REMOVED: Manual payment status checking function
-// This function has been removed as webhooks now handle all payment status updates automatically
 // The webhook-based system provides real-time updates without the need for manual polling
-
-
-
-
-
-
-
-
-
 // Get receipt data for a payment
 const getReceipt = async (req, res) => {
   try {

@@ -99,6 +99,18 @@ const RequestSchema = new mongoose.Schema({
     enum: REQUEST_TYPES, 
     required: true 
   },
+  
+  // New fields for linking to contracts
+  rentId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Rent',
+    required: false // Set when rental request is approved and Rent is created
+  },
+  ownershipTransferId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'OwnershipTransfer',
+    required: false // Set when purchase request is approved and OwnershipTransfer is created
+  },
 
   // Payload - Stores all submitted form data from unified inquiry form
   payload: {
@@ -274,11 +286,59 @@ RequestSchema.methods.transitionStatus = function(newStatus, actor, note = '') {
   return this.save();
 };
 
-// Index for efficient queries
+// Instance methods for contract linking
+RequestSchema.methods.linkToRent = function(rentId) {
+  if (this.requestType !== 'Rent') {
+    throw new Error('Cannot link non-rental request to Rent');
+  }
+  if (this.status !== 'Paid/Completed') {
+    throw new Error('Request must be completed before linking to Rent');
+  }
+  
+  this.rentId = rentId;
+  return this.save();
+};
+
+RequestSchema.methods.linkToOwnershipTransfer = function(ownershipTransferId) {
+  if (this.requestType !== 'Buy') {
+    throw new Error('Cannot link non-purchase request to OwnershipTransfer');
+  }
+  if (this.status !== 'Paid/Completed') {
+    throw new Error('Request must be completed before linking to OwnershipTransfer');
+  }
+  
+  this.ownershipTransferId = ownershipTransferId;
+  return this.save();
+};
+
+// Static methods for contract linking queries
+RequestSchema.statics.findByRent = function(rentId) {
+  return this.findOne({ rentId });
+};
+
+RequestSchema.statics.findByOwnershipTransfer = function(ownershipTransferId) {
+  return this.findOne({ ownershipTransferId });
+};
+
+RequestSchema.statics.findCompletedWithoutContract = function() {
+  return this.find({
+    status: 'Paid/Completed',
+    $and: [
+      { rentId: { $exists: false } },
+      { ownershipTransferId: { $exists: false } }
+    ]
+  }).sort({ updatedAt: 1 });
+};
+
+// Indexes for better query performance
 RequestSchema.index({ propertyId: 1, tenantId: 1 });
 RequestSchema.index({ ownerId: 1, status: 1 });
 RequestSchema.index({ status: 1, createdAt: -1 });
 RequestSchema.index({ requestId: 1 }, { unique: true });
 RequestSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+RequestSchema.index({ rentId: 1 });
+RequestSchema.index({ ownershipTransferId: 1 });
+RequestSchema.index({ requestType: 1, status: 1 });
+RequestSchema.index({ tenantId: 1, status: 1 });
 
 module.exports = mongoose.model('Request', RequestSchema);

@@ -7,6 +7,8 @@ const path = require('path');
 const fs = require('fs');
 // PaymentScheduler service reactivated as guard layer for webhook failures
 const PaymentScheduler = require('./services/paymentScheduler');
+// Invoice service for automatic invoice generation
+const InvoiceService = require('./services/invoiceService');
 
 const app = express();
 app.use(cors());
@@ -33,6 +35,7 @@ mongoose.connect(mongoUrl)
 // Import routes
 const authRoutes = require('./routes/auth.routes');
 const propertyRoutes = require('./routes/properties');
+const buildingRoutes = require('./routes/buildings');
 const adminRoutes = require('./routes/admin.routes');
 const wishlistRoutes = require('./routes/wishlist.routes');
 const requestRoutes = require('./routes/request.routes');
@@ -68,6 +71,7 @@ app.post('/api/stripe/webhook', express.raw({type: 'application/json'}), require
 // Use routes
 app.use('/api/auth', authRoutes);
 app.use('/api/properties', propertyRoutes);
+app.use('/api/buildings', buildingRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/requests', requestRoutes);
 app.use('/api/stripe', stripeRoutes);
@@ -130,4 +134,8 @@ app.listen(PORT, () => {
   // Start PaymentScheduler as guard layer (runs every 5 minutes)
   PaymentScheduler.start();
   console.log('🛡️ PaymentScheduler guard layer activated');
+  
+  // Initialize invoice service cron jobs
+  InvoiceService.initializeCronJobs();
+  console.log('🧾 Invoice service cron jobs initialized');
 });
