@@ -29,7 +29,7 @@ const ViewDetails = () => {
         }
         
         const data = await response.json();
-        setProperty(data);
+        setProperty(data.property);
       } catch (err) {
         console.error('Error fetching property details:', err);
         setError(err.message);

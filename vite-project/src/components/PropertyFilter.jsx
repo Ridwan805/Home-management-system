@@ -6,6 +6,9 @@ import { FaFilter } from 'react-icons/fa';
 const API_BASE = 'http://localhost:5001/api/properties';
 
 const PropertyFilter = () => {
+  // Add a visible element to the page to confirm rendering
+  // Remove debug logs
+  
   const location = useLocation();
   const navigate = useNavigate();
   const [filters, setFilters] = useState({
@@ -71,21 +74,28 @@ const PropertyFilter = () => {
           listingType: params.get('listingType') || '',
         };
         const query = buildQueryString(currentFilters);
-        const res = await fetch(`${API_BASE}${query}`);
-        if (!res.ok) throw new Error('Failed to fetch properties');
+        const apiUrl = `${API_BASE}${query}`;
+        
+        const res = await fetch(apiUrl);
+        
+        if (!res.ok) {
+          throw new Error(`Failed to fetch properties: ${res.status} ${res.statusText}`);
+        }
+        
         const data = await res.json();
-        setProperties(data);
-        console.log('Fetched properties:', data);
+        
+        // Handle the new API response structure
+        const propertiesArray = data.properties || [];
+        setProperties(propertiesArray);
       } catch (err) {
         console.error('Error fetching properties:', err);
         setError(err.message);
+        setProperties([]); // Set empty array on error
       } finally {
         setLoading(false);
       }
     };
-    console.log('Current filters:', filters);
-    console.log('Building query string with filters:', filters);
-    console.log('Calling fetchProperties...');
+
     fetchProperties();
     // eslint-disable-next-line
   }, [location.search]); // Depend on location.search to re-fetch on URL changes
@@ -132,9 +142,7 @@ const PropertyFilter = () => {
     setFilters((prev) => ({ ...prev, search: e.target.value }));
   };
 
-    // Filter properties client-side by search bar and listingType
- 
-  console.log('Properties before filtering:', properties);
+  // Filter properties client-side by search bar and listingType
   
   // Ensure only public statuses are shown even if backend misconfigures
   const publicStatuses = ['Available', 'Sold', 'Rented'];
@@ -155,15 +163,11 @@ const PropertyFilter = () => {
     
     return searchMatch;
   });
-  
-  console.log('Properties after filtering:', filteredProperties);
 
-  console.log('Filtered properties for display:', filteredProperties);
-  console.log('Loading state:', loading);
-  console.log('Error state:', error);
 
   return (
     <div className="property-filter-page">
+      
       {/* Top bar with search and filter button */}
       <div className="filter-header">
         <div className="search-filter-container">

@@ -861,7 +861,7 @@ PropertySchema.statics.searchProperties = function(filters = {}) {
 PropertySchema.set('toJSON', { virtuals: true });
 PropertySchema.set('toObject', { virtuals: true });
 
-const Property = mongoose.model('Property', PropertySchema);
+const Property = mongoose.model('Property', PropertySchema, 'Properties');
 
 // Export the model and constants
 module.exports = Property;

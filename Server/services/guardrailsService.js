@@ -206,9 +206,8 @@ class GuardrailsService {
 
       // Check if property is available
       if (property.status !== 'Available') {
-          return { allowed: false, reason: 'Property is not available' };
-        }
-      await property.save();
+        return { allowed: false, reason: 'Property is not available' };
+      }
 
       // Check if user is the owner of the property
       if (property.owner && property.owner.toString() === userId) {

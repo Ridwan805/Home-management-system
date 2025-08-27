@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 const {
   createRequest,
   getRequests,
@@ -28,6 +29,12 @@ const storage = multer.diskStorage({
     }
     
     const destinationPath = path.join(__dirname, '..', 'tenant_pics', subfolder);
+    
+    // Ensure directory exists
+    if (!fs.existsSync(destinationPath)) {
+      fs.mkdirSync(destinationPath, { recursive: true });
+    }
+    
     cb(null, destinationPath);
   },
   filename: function (req, file, cb) {
