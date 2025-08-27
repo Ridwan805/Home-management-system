@@ -8,9 +8,9 @@ const {
   createBuilding,
   updateBuilding,
   deleteBuilding,
-  getBuildingProperties,
+  getBuildingPropertiesByFloor,
   getBuildingSummary,
-  updateBuildingSummary,
+  updateBuildingSummaries,
   searchBuildingsByLocation
 } = require('../controllers/building.controller');
 
@@ -24,7 +24,7 @@ router.get('/search', searchBuildingsByLocation);
 router.get('/:id', getBuildingById);
 
 // GET /api/buildings/:id/properties - Get properties within a building
-router.get('/:id/properties', getBuildingProperties);
+router.get('/:id/properties', getBuildingPropertiesByFloor);
 
 // GET /api/buildings/:id/summary - Get building summary
 router.get('/:id/summary', getBuildingSummary);
@@ -32,13 +32,13 @@ router.get('/:id/summary', getBuildingSummary);
 // POST /api/buildings - Create a new building (admin only)
 router.post('/', auth, authorizeRole(['admin']), createBuilding);
 
-// PATCH /api/buildings/:id - Update a building (admin/manager only)
-router.patch('/:id', auth, authorizeRole(['admin']), updateBuilding);
+// PATCH /api/buildings/:id - Update a building (admin/manager/owner)
+router.patch('/:id', auth, updateBuilding);
 
-// PUT /api/buildings/:id/summary - Update building summary (admin only)
-router.put('/:id/summary', auth, authorizeRole(['admin']), updateBuildingSummary);
+// PUT /api/buildings/:id/summary - Update building summary (admin/owner)
+router.put('/:id/summary', auth, updateBuildingSummaries);
 
-// DELETE /api/buildings/:id - Delete a building (admin only)
-router.delete('/:id', auth, authorizeRole(['admin']), deleteBuilding);
+// DELETE /api/buildings/:id - Delete a building (admin/owner)
+router.delete('/:id', auth, deleteBuilding);
 
 module.exports = router;

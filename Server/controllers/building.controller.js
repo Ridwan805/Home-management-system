@@ -180,11 +180,12 @@ const updateBuilding = async (req, res) => {
       });
     }
 
-    // Check authorization (Admin or building manager)
+    // Check authorization (Admin, building manager, or building owner)
     const isManager = building.managedBy?.toString() === userId;
+    const isOwner = building.createdBy?.toString() === userId;
     const isAdmin = userRole === 'Admin';
 
-    if (!isManager && !isAdmin) {
+    if (!isManager && !isAdmin && !isOwner) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to update this building'
@@ -224,11 +225,14 @@ const deleteBuilding = async (req, res) => {
     const userId = req.user.userId;
     const userRole = req.user.role;
 
-    // Only Admin can delete buildings
-    if (userRole !== 'Admin') {
+    // Check authorization (Admin or building owner)
+    const isOwner = building.createdBy?.toString() === userId;
+    const isAdmin = userRole === 'Admin';
+
+    if (!isAdmin && !isOwner) {
       return res.status(403).json({
         success: false,
-        message: 'Only administrators can delete buildings'
+        message: 'Only administrators or building owners can delete buildings'
       });
     }
 
@@ -361,19 +365,28 @@ const updateBuildingSummaries = async (req, res) => {
   try {
     const userId = req.user.userId;
     const userRole = req.user.role;
-
-    // Only Admin can trigger summary updates
-    if (userRole !== 'Admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Only administrators can update building summaries'
-      });
-    }
-
     const { buildingId } = req.body;
 
     if (buildingId) {
-      // Update specific building
+      // Update specific building - check if user is admin or building owner
+      const building = await Building.findById(buildingId);
+      if (!building) {
+        return res.status(404).json({
+          success: false,
+          message: 'Building not found'
+        });
+      }
+
+      const isOwner = building.createdBy?.toString() === userId;
+      const isAdmin = userRole === 'Admin';
+
+      if (!isAdmin && !isOwner) {
+        return res.status(403).json({
+          success: false,
+          message: 'Only administrators or building owners can update building summaries'
+        });
+      }
+
       const summary = await BuildingSummary.updateForBuilding(buildingId);
       res.json({
         success: true,
@@ -381,7 +394,14 @@ const updateBuildingSummaries = async (req, res) => {
         summary
       });
     } else {
-      // Update all buildings
+      // Update all buildings - only admin can do this
+      if (userRole !== 'Admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Only administrators can update all building summaries'
+        });
+      }
+
       await BuildingSummary.updateAll();
       res.json({
         success: true,
