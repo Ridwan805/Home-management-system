@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import API from '../../config/api';
 import './OwnerRequestsInbox.css';
+import { FaReceipt, FaPrint } from 'react-icons/fa';
 
 const OwnerRequestsInbox = () => {
   const [requests, setRequests] = useState([]);
@@ -19,6 +20,11 @@ const OwnerRequestsInbox = () => {
   const [sendingMessage, setSendingMessage] = useState(false);
 
   const [debugInfo, setDebugInfo] = useState('Component loading...');
+  
+  // Receipt state
+  const [paymentReceipt, setPaymentReceipt] = useState(null);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [receiptLoading, setReceiptLoading] = useState(false);
 
   useEffect(() => {
     console.log('=== OwnerRequestsInbox component mounted ===');
@@ -529,6 +535,120 @@ const OwnerRequestsInbox = () => {
     }
   };
 
+  // Handle receipt download
+  const handleGetReceipt = async (paymentId) => {
+    try {
+      setReceiptLoading(true);
+      
+      // Debug logging
+      console.log('Payment ID received:', paymentId);
+      
+      if (!paymentId) {
+        alert('Payment ID not found. Cannot retrieve receipt.');
+        return;
+      }
+      
+      const userData = JSON.parse(localStorage.getItem('dwellSyncUser'));
+      const token = userData?.token;
+
+      if (!token) {
+        alert('Please log in to view receipt');
+        return;
+      }
+
+      console.log('Making API call to:', `http://localhost:5001/api/stripe/receipt/${paymentId}`);
+      
+      const response = await fetch(`http://localhost:5001/api/stripe/receipt/${paymentId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error Response:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('API Response data:', data);
+      
+      if (data.success) {
+        setPaymentReceipt(data);
+        
+        // If there's a direct receipt URL from Stripe, open it in a new tab
+        if (data.receiptUrl) {
+          window.open(data.receiptUrl, '_blank');
+        } else if (data.receiptData) {
+          // Otherwise, display the receipt data in a modal
+          setShowReceiptModal(true);
+        }
+      } else {
+        console.error('API returned error:', data.message);
+        alert(data.message || 'Failed to retrieve receipt');
+      }
+    } catch (err) {
+      console.error('Error retrieving receipt:', err);
+      alert('Failed to retrieve receipt. Please try again.');
+    } finally {
+      setReceiptLoading(false);
+    }
+  };
+
+  // Handle approve for AdvancePaid requests
+  const handleApproveAdvancePaid = async (requestId) => {
+    if (!window.confirm('Are you sure you want to approve this request and mark it as completed?')) {
+      return;
+    }
+
+    try {
+      setActionLoading(true);
+      const userData = localStorage.getItem('dwellSyncUser');
+      
+      if (!userData) {
+        alert('Please log in to approve request');
+        return;
+      }
+      
+      const user = JSON.parse(userData);
+      const token = user.token;
+      
+      const response = await fetch(API.getUrl(API.endpoints.requestStatus(requestId)), {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          status: 'Paid/Completed',
+          note: 'Request approved by owner after advance payment completion'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        alert('Request approved successfully! Tenant has been notified.');
+        fetchOwnerRequests(); // Refresh the list
+      } else {
+        alert(data.message || 'Failed to approve request');
+      }
+    } catch (err) {
+      console.error('Error approving request:', err);
+      alert('Failed to approve request. Please try again.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -728,6 +848,31 @@ const OwnerRequestsInbox = () => {
                       disabled={actionLoading}
                     >
                       Reject
+                    </button>
+                  </>
+                )}
+                
+                {request.status === 'AdvancePaid' && (
+                  <>
+                    <button 
+                      onClick={() => handleGetReceipt(request.advancePayment?.paymentId)}
+                      className="action-btn view-btn"
+                      disabled={receiptLoading}
+                    >
+                      {receiptLoading ? (
+                        'Loading...'
+                      ) : (
+                        <>
+                          <FaReceipt /> Show Receipt
+                        </>
+                      )}
+                    </button>
+                    <button 
+                      onClick={() => handleApproveAdvancePaid(request._id)}
+                      className="action-btn approve-btn"
+                      disabled={actionLoading}
+                    >
+                      Approve Request
                     </button>
                   </>
                 )}
@@ -1300,6 +1445,162 @@ const OwnerRequestsInbox = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Receipt Modal */}
+      {showReceiptModal && paymentReceipt && (
+        <div className="modal-overlay" onClick={() => setShowReceiptModal(false)}>
+          <div className="receipt-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="receipt-modal-header">
+              <h2>Payment Receipt</h2>
+              <button 
+                onClick={() => setShowReceiptModal(false)}
+                className="close-btn"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="receipt-modal-body">
+              <div className="receipt-content">
+                <div className="receipt-header">
+                   <h3>Official Receipt</h3>
+                   <p className="receipt-id">Receipt ID: {paymentReceipt.receiptData?.receiptId || paymentReceipt.receiptData?.paymentId || 'N/A'}</p>
+                 </div>
+                 
+                 <div className="receipt-details">
+                   <div className="detail-section">
+                     <h4>Payment Information</h4>
+                     <div className="detail-row">
+                       <span>Amount:</span>
+                       <span className="amount">{paymentReceipt.receiptData?.currency || '৳'} {paymentReceipt.receiptData?.amount?.toLocaleString() || 'N/A'}</span>
+                     </div>
+                     <div className="detail-row">
+                       <span>Payment Date:</span>
+                       <span>{paymentReceipt.receiptData?.paidAt ? new Date(paymentReceipt.receiptData.paidAt).toLocaleDateString() : 'N/A'}</span>
+                     </div>
+                     <div className="detail-row">
+                       <span>Payment Method:</span>
+                       <span>{paymentReceipt.receiptData?.paymentMethod || 'N/A'}</span>
+                     </div>
+                     <div className="detail-row">
+                       <span>Transaction ID:</span>
+                       <span>{paymentReceipt.receiptData?.transactionId || 'N/A'}</span>
+                     </div>
+                     <div className="detail-row">
+                       <span>Status:</span>
+                       <span className="status-paid">{paymentReceipt.receiptData?.paymentStatus || 'Paid'}</span>
+                     </div>
+                   </div>
+                   
+                   <div className="detail-section">
+                     <h4>Request Information</h4>
+                     <div className="detail-row">
+                       <span>Request ID:</span>
+                       <span>{paymentReceipt.receiptData?.request?.requestId || 'N/A'}</span>
+                     </div>
+                     <div className="detail-row">
+                       <span>Request Type:</span>
+                       <span>{paymentReceipt.receiptData?.request?.requestType || 'N/A'}</span>
+                     </div>
+                     <div className="detail-row">
+                       <span>Request Status:</span>
+                       <span>{paymentReceipt.receiptData?.request?.status || 'N/A'}</span>
+                     </div>
+                     <div className="detail-row">
+                       <span>Submitted Date:</span>
+                       <span>{paymentReceipt.receiptData?.request?.submittedAt ? new Date(paymentReceipt.receiptData.request.submittedAt).toLocaleDateString() : 'N/A'}</span>
+                     </div>
+                   </div>
+                   
+                   <div className="detail-section">
+                     <h4>Property Information</h4>
+                     <div className="detail-row">
+                       <span>Address:</span>
+                       <span>{paymentReceipt.receiptData?.property?.address || 'N/A'}</span>
+                     </div>
+                     <div className="detail-row">
+                       <span>Property Price:</span>
+                       <span>৳ {paymentReceipt.receiptData?.property?.price?.toLocaleString() || 'N/A'}</span>
+                     </div>
+                     <div className="detail-row">
+                       <span>Description:</span>
+                       <span>{paymentReceipt.receiptData?.property?.description || 'N/A'}</span>
+                     </div>
+                   </div>
+                   
+                   <div className="detail-section">
+                     <h4>Tenant Information</h4>
+                     <div className="detail-row">
+                       <span>Name:</span>
+                       <span>{paymentReceipt.receiptData?.tenant?.name || 'N/A'}</span>
+                     </div>
+                     <div className="detail-row">
+                       <span>Email:</span>
+                       <span>{paymentReceipt.receiptData?.tenant?.email || 'N/A'}</span>
+                     </div>
+                     <div className="detail-row">
+                       <span>Phone:</span>
+                       <span>{paymentReceipt.receiptData?.tenant?.phone || 'N/A'}</span>
+                     </div>
+                   </div>
+                   
+                   <div className="detail-section">
+                     <h4>Owner Information</h4>
+                     <div className="detail-row">
+                       <span>Name:</span>
+                       <span>{paymentReceipt.receiptData?.owner?.name || 'N/A'}</span>
+                     </div>
+                     <div className="detail-row">
+                       <span>Email:</span>
+                       <span>{paymentReceipt.receiptData?.owner?.email || 'N/A'}</span>
+                     </div>
+                     <div className="detail-row">
+                       <span>Phone:</span>
+                       <span>{paymentReceipt.receiptData?.owner?.phone || 'N/A'}</span>
+                     </div>
+                   </div>
+                 </div>
+                
+                <div className="receipt-footer">
+                  <p>This is an official receipt for the advance payment made through our platform.</p>
+                  <p>Generated on: {new Date().toLocaleDateString()}</p>
+                </div>
+              </div>
+              
+              <div className="receipt-actions">
+                {paymentReceipt.receiptUrl && (
+                  <button 
+                    onClick={() => window.open(paymentReceipt.receiptUrl, '_blank')}
+                    className="action-btn view-btn"
+                  >
+                    <FaReceipt /> View Official Receipt
+                  </button>
+                )}
+                <button 
+                  onClick={() => window.print()}
+                  className="action-btn print-btn"
+                >
+                  <FaPrint /> Print Receipt
+                </button>
+                <button 
+                  onClick={() => {
+                    const element = document.createElement('a');
+                    const file = new Blob([document.querySelector('.receipt-content').outerHTML], {type: 'text/html'});
+                    element.href = URL.createObjectURL(file);
+                    element.download = `receipt-${paymentReceipt.receiptId}.html`;
+                    document.body.appendChild(element);
+                    element.click();
+                    document.body.removeChild(element);
+                  }}
+                  className="action-btn download-btn"
+                >
+                  Download Receipt
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
