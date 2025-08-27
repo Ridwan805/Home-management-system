@@ -6,7 +6,7 @@ import './CreateListingForm.css';
 const initialState = {
   // Building relationship
   buildingId: '',
-  isStandalone: true,
+  isStandalone: 'true',
   
   // Property identification
   address: '',
@@ -347,13 +347,15 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
       formData.append('description', form.description);
       
       // Building relationship
+      console.log('Form isStandalone:', form.isStandalone, 'Address:', form.address, 'BuildingId:', form.buildingId);
       if (form.isStandalone === 'false' && form.buildingId) {
         formData.append('buildingId', form.buildingId);
         if (form.floorNumber) formData.append('floorNumber', form.floorNumber);
         if (form.unitNumber) formData.append('unitNumber', form.unitNumber);
-      } else {
-        formData.append('address', form.address);
       }
+      
+      // Always append address field (required by backend validation, even if empty for building properties)
+      formData.append('address', form.address ? form.address.trim() : '');
       
       // Specifications object
       const specifications = {
@@ -470,8 +472,7 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
       formData.append('squareFootage', form.squareFootage);
       formData.append('contactEmail', form.contactEmail);
       formData.append('contactPhone', form.contactPhone);
-      formData.append('city', form.city);
-      formData.append('state', form.state);
+      // Removed city and state fields to prevent conflict with Property model fields
       formData.append('zipCode', form.zipCode);
       
       const res = await fetch(API.getUrl(API.endpoints.properties), {
@@ -538,6 +539,18 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
           <div className="form-row">
             <label>Address*</label>
             <input name="address" value={form.address} onChange={handleChange} required />
+          </div>
+        )}
+
+        {form.isStandalone === 'false' && (
+          <div className="form-row">
+            <label>Unit Address (Optional)</label>
+            <input 
+              name="address" 
+              value={form.address} 
+              onChange={handleChange} 
+              placeholder="e.g., Unit 5A, Apartment 201, etc."
+            />
           </div>
         )}
 

@@ -274,8 +274,108 @@ const UnifiedInquiryForm = ({ property, requestType, onClose, onSubmit }) => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
   
+  const validateAllSteps = () => {
+    const allErrors = {};
+    
+    // Validate all steps
+    for (let step = 1; step <= 7; step++) {
+      const stepErrors = {};
+      
+      switch (step) {
+        case 1: // Family Members
+          formData.familyMembers.forEach((member, index) => {
+            if (!member.name.trim()) {
+              stepErrors[`familyMember_${index}_name`] = 'Name is required';
+            }
+            if (!member.relation.trim()) {
+              stepErrors[`familyMember_${index}_relation`] = 'Relation is required';
+            }
+            if (!member.age || member.age < 0) {
+              stepErrors[`familyMember_${index}_age`] = 'Valid age is required';
+            }
+          });
+          break;
+          
+        case 2: // Belongings
+          if (formData.belongings.hasPets && !formData.belongings.petDetails.trim()) {
+            stepErrors.petDetails = 'Pet details are required when you have pets';
+          }
+          if (formData.belongings.hasVehicle && !formData.belongings.vehicleDetails.trim()) {
+            stepErrors.vehicleDetails = 'Vehicle details are required when you have a vehicle';
+          }
+          break;
+          
+        case 3: // Occupation
+          if (!formData.occupation.employmentType) {
+            stepErrors.employmentType = 'Employment type is required';
+          }
+          if (!formData.occupation.role.trim()) {
+            stepErrors.role = 'Role is required';
+          }
+          if (!formData.occupation.yearsOfExperience || formData.occupation.yearsOfExperience < 0) {
+            stepErrors.yearsOfExperience = 'Years of experience is required';
+          }
+          break;
+          
+        case 4: // Identity & Compliance
+          if (!formData.documents.nidFile) {
+            stepErrors.nidFile = 'NID card is required';
+          }
+          if (!formData.documents.personalPhoto) {
+            stepErrors.personalPhoto = 'Personal photo is required';
+          }
+          break;
+          
+        case 5: // Financials
+          if (!formData.financials.monthlyIncome || formData.financials.monthlyIncome <= 0) {
+            stepErrors.monthlyIncome = 'Monthly income is required';
+          }
+          break;
+          
+        case 6: // Terms & Conditions
+          if (!formData.consent.agreed) {
+            stepErrors.consentAccepted = 'You must accept the terms and conditions';
+          }
+          break;
+          
+        case 7: // Letter to Owner
+          if (!formData.letterToOwner.trim()) {
+            stepErrors.letterToOwner = 'Letter to owner is required';
+          }
+          if (formData.letterToOwner.length < 20) {
+            stepErrors.letterToOwner = 'Letter must be at least 20 characters';
+          }
+          if (formData.letterToOwner.length > 1500) {
+            stepErrors.letterToOwner = 'Letter must not exceed 1500 characters';
+          }
+          break;
+      }
+      
+      Object.assign(allErrors, stepErrors);
+    }
+    
+    setErrors(allErrors);
+    return Object.keys(allErrors).length === 0;
+  };
+
   const handleSubmit = async () => {
-    if (!validateStep(currentStep)) return;
+    console.log('handleSubmit called, current step:', currentStep);
+    console.log('Form data before validation:', {
+      hasNidFile: !!formData.documents.nidFile,
+      hasPersonalPhoto: !!formData.documents.personalPhoto,
+      hasLetterToOwner: !!formData.letterToOwner.trim(),
+      consentAgreed: formData.consent.agreed
+    });
+    
+    // Validate all steps before submission
+    if (!validateAllSteps()) {
+      console.log('Validation failed for one or more steps');
+      console.log('Current errors:', errors);
+      alert('Please complete all required fields before submitting. Check the Identity & Compliance section for required documents.');
+      return;
+    }
+    
+    console.log('All validation passed, proceeding with submission');
     
     // Check if user has already applied to this property
     try {
@@ -313,17 +413,27 @@ const UnifiedInquiryForm = ({ property, requestType, onClose, onSubmit }) => {
       // Prepare form data for submission
       const submissionData = {
         propertyId: property._id,
-        ownerId: property.owner,
         requestType: requestType,
         payload: {
-          familyMembers: formData.familyMembers,
+          familyMembers: formData.familyMembers.map(member => ({
+            name: member.name.trim(),
+            relation: member.relation,
+            age: parseInt(member.age) || 0
+          })),
           belongings: formData.belongings,
-          occupation: formData.occupation,
+          occupation: {
+            ...formData.occupation,
+            yearsOfExperience: parseInt(formData.occupation.yearsOfExperience) || 0
+          },
           identity: {
             // File URLs will be populated by backend after upload
           },
-          financials: formData.financials,
-          letterToOwner: formData.letterToOwner
+          financials: {
+            ...formData.financials,
+            monthlyIncome: parseFloat(formData.financials.monthlyIncome) || 0,
+            additionalIncome: parseFloat(formData.financials.additionalIncome) || 0
+          },
+          letterToOwner: formData.letterToOwner.trim()
         },
         consent: {
           ...formData.consent,
@@ -339,7 +449,6 @@ const UnifiedInquiryForm = ({ property, requestType, onClose, onSubmit }) => {
       // Add the main payload
       formDataToSend.append('payload', JSON.stringify(submissionData.payload));
       formDataToSend.append('propertyId', submissionData.propertyId);
-      formDataToSend.append('ownerId', submissionData.ownerId);
       formDataToSend.append('requestType', submissionData.requestType);
       formDataToSend.append('consent', JSON.stringify(submissionData.consent));
       
@@ -371,6 +480,16 @@ const UnifiedInquiryForm = ({ property, requestType, onClose, onSubmit }) => {
         throw new Error('Please log in to submit a request');
       }
       
+      console.log('Submitting form data:', {
+        propertyId: formDataToSend.get('propertyId'),
+        requestType: formDataToSend.get('requestType'),
+        payload: formDataToSend.get('payload'),
+        consent: formDataToSend.get('consent'),
+        hasNidFile: !!formDataToSend.get('nidFile'),
+        hasTinFile: !!formDataToSend.get('tinFile'),
+        hasPersonalPhoto: !!formDataToSend.get('personalPhoto')
+      });
+      
       const response = await fetch('http://localhost:5001/api/requests', {
         method: 'POST',
         headers: {
@@ -378,6 +497,9 @@ const UnifiedInquiryForm = ({ property, requestType, onClose, onSubmit }) => {
         },
         body: formDataToSend
       });
+      
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
       
       if (response.ok) {
         const result = await response.json();

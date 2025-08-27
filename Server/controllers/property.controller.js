@@ -161,17 +161,74 @@ const getUserProperties = async (req, res) => {
 
 const createProperty = async (req, res) => {
   try {
+    console.log('🌐 Incoming request: POST /api/properties');
+    console.log('Request body buildingId:', req.body.buildingId);
+    console.log('Request body address:', req.body.address);
+    console.log('Request body keys:', Object.keys(req.body));
+    
     const userId = req.user.userId;
+
+    console.log('Raw req.body:', req.body);
+    
+    // Parse JSON fields
+    const specifications = req.body.specifications ? JSON.parse(req.body.specifications) : {};
+    const pricing = req.body.pricing ? JSON.parse(req.body.pricing) : {};
+    const locationData = req.body.location ? JSON.parse(req.body.location) : {};
+    const contactInfo = req.body.contactInfo ? JSON.parse(req.body.contactInfo) : {};
+    const constraints = req.body.constraints ? JSON.parse(req.body.constraints) : {};
+    const amenities = req.body.amenities ? JSON.parse(req.body.amenities) : [];
+    
+    // Exclude 'state' from location to prevent conflict with Property model's state field
+    const { state: locationState, ...location } = locationData;
+    
+    console.log('Parsed location (without state):', location);
+    console.log('Location state:', locationState);
     
     // Combine fields from req.body and set ownership
     const propertyData = {
-      ...req.body,
       ownerUserId: userId,
       owner: userId, // Keep for backward compatibility
       ownerId: userId, // Keep for backward compatibility
-      status: 'Available', // New properties start as Available
-      currentRentId: null
+      currentRentId: null,
+      
+      // Basic property information
+      propertyType: req.body.propertyType,
+      listingType: req.body.listingType,
+      description: req.body.description,
+      
+      // Building relationship
+      buildingId: req.body.buildingId || null,
+      floorNumber: req.body.floorNumber ? parseInt(req.body.floorNumber) : null,
+      unitNumber: req.body.unitNumber || null,
+      
+      // Address - always include field for validation to work properly
+      address: req.body.address && req.body.address.trim() ? req.body.address.trim() : undefined,
+      
+      // Structured data
+      specifications,
+      pricing,
+      location: {
+        ...location,
+        locationState: locationState // Use different field name to avoid Property model conflict
+      },
+      contactInfo,
+      constraints,
+      amenities,
+      
+      // Other fields
+      yearBuilt: req.body.yearBuilt ? parseInt(req.body.yearBuilt) : null,
+      threeDModelUrl: req.body.threeDModelUrl || '',
+      
+      // Set status last to prevent conflicts
+      status: 'Available' // New properties start as Available
     };
+    
+    console.log('Final propertyData before save:', propertyData);
+    console.log('BuildingId in propertyData:', propertyData.buildingId);
+    console.log('Address in propertyData:', propertyData.address);
+    console.log('BuildingId type:', typeof propertyData.buildingId);
+    console.log('BuildingId truthy check:', !!propertyData.buildingId);
+    console.log('BuildingId falsy check (!buildingId):', !propertyData.buildingId);
 
     // Handle image uploads
     let imageUrls = [];
@@ -182,6 +239,18 @@ const createProperty = async (req, res) => {
 
     // Create new Property
     const property = new Property(propertyData);
+    console.log('Property buildingId before save:', property.buildingId);
+    console.log('Property address before save:', property.address);
+    console.log('BuildingId type:', typeof property.buildingId);
+    console.log('BuildingId value check (!property.buildingId):', !property.buildingId);
+    
+    // Manual validation check
+    if (!property.buildingId && !property.address) {
+      console.log('ERROR: Standalone property missing address');
+    } else if (property.buildingId && !property.address) {
+      console.log('OK: Building property without address (should be valid)');
+    }
+    
     await property.save();
 
     const populatedProperty = await Property.findById(property._id)

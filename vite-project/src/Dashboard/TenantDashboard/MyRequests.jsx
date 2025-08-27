@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import './MyRequests.css';
 import { authenticatedFetch } from '../../config/api.js';
 import API from '../../config/api.js';
@@ -11,6 +11,7 @@ import PaymentStatusIndicator from '../../components/PaymentStatusIndicator';
 const MyRequests = () => {
   console.log('🏠 MyRequests component is rendering! User is on the correct page.');
   
+  const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -28,6 +29,7 @@ const MyRequests = () => {
   const [uploadLoading, setUploadLoading] = useState(false);
   const [paymentReceipt, setPaymentReceipt] = useState(null);
   const [receiptLoading, setReceiptLoading] = useState(false);
+  const [debugInfo, setDebugInfo] = useState('');
 
   const statusFilters = [
     { key: 'all', label: 'All Requests' },
@@ -42,16 +44,23 @@ const MyRequests = () => {
     { key: 'Canceled', label: 'Canceled' }
   ];
 
-  const navigate = useNavigate();
-
   useEffect(() => {
     fetchRequests();
     fetchStats();
   }, [selectedStatus]);
   
-  // Initial load effect to handle payment redirects
+  // Initial load effect to handle payment redirects and authentication
   useEffect(() => {
     console.log('🏠 MyRequests component rendered');
+    
+    // Check authentication status first
+    const userData = JSON.parse(localStorage.getItem('dwellSyncUser'));
+    if (!userData || !userData.token) {
+      console.log('❌ No authentication found, redirecting to login');
+      // If user is not authenticated, redirect to login
+      navigate('/login');
+      return;
+    }
     
     // Check for payment success/cancel parameters in URL
     const urlParams = new URLSearchParams(window.location.search);
@@ -64,6 +73,11 @@ const MyRequests = () => {
       alert('Payment completed successfully!');
       // Clean up URL parameters
       window.history.replaceState({}, document.title, window.location.pathname);
+      // Refresh data after successful payment
+      setTimeout(() => {
+        fetchRequests();
+        fetchStats();
+      }, 1000); // Small delay to ensure webhook processing
     } else if (paymentStatus === 'cancelled') {
       console.log('❌ Payment cancelled');
       alert('Payment was cancelled.');
@@ -71,31 +85,25 @@ const MyRequests = () => {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
     
+    // Always fetch requests on initial load
     fetchRequests();
-  }, []);
+  }, [navigate]);
   
   // REMOVED: Long polling functionality has been removed
   // Webhooks now handle real-time payment status updates automatically
 
-  // Add an effect to refresh data when component mounts or when returning from payment
+  // Authentication check effect
   useEffect(() => {
-    // This will ensure data is refreshed when returning from payment
+    const userData = JSON.parse(localStorage.getItem('dwellSyncUser'));
+    if (!userData || !userData.token) {
+      console.log('❌ Authentication lost, redirecting to login');
+      navigate('/login');
+      return;
+    }
+    
+    // Refresh data when authentication is confirmed
     fetchRequests();
     fetchStats();
-    
-    // Check if we're returning from a payment
-    const urlParams = new URLSearchParams(window.location.search);
-    const paymentStatus = urlParams.get('payment_status');
-    
-    if (paymentStatus === 'success') {
-      // If returning from successful payment, refresh data again after a short delay
-      // to ensure webhook has been processed
-      fetchRequests();
-      fetchStats();
-      
-      // Clean up URL parameters after processing
-      navigate(window.location.pathname, { replace: true });
-    }
   }, [navigate]);
 
   // Note: Removed resetPolling useEffect as it was causing polling to restart constantly
@@ -105,18 +113,52 @@ const MyRequests = () => {
   const fetchRequests = async () => {
     try {
       setLoading(true);
+      setError(''); // Clear any previous errors
+      
+      console.log('🔍 MyRequests: Starting to fetch requests...');
+      console.log('🔍 MyRequests: Selected status:', selectedStatus);
+      
+      // Check if user is authenticated
+      const user = JSON.parse(localStorage.getItem('dwellSyncUser'));
+      console.log('🔍 MyRequests: User data from localStorage:', user ? 'Found' : 'Not found');
+      console.log('🔍 MyRequests: User token:', user?.token ? 'Present' : 'Missing');
+      
+      // Add visible debug info
+      setDebugInfo(`User: ${user ? 'Found' : 'Not found'}, Token: ${user?.token ? 'Present' : 'Missing'}, Status: ${selectedStatus}`);
+      
+      if (!user || !user.token) {
+        console.error('❌ MyRequests: No authentication data found');
+        setError('Please log in to view your requests');
+        setDebugInfo('❌ No authentication data found');
+        navigate('/login');
+        return;
+      }
+      
       const statusParam = selectedStatus !== 'all' ? `?status=${encodeURIComponent(selectedStatus)}` : '';
+      const apiUrl = `http://localhost:5001/api/request-management/my-requests${statusParam}`;
+      
+      console.log('🔍 MyRequests: Making API call to:', apiUrl);
+      setDebugInfo(`Making API call to: ${apiUrl}`);
       
       const data = await authenticatedFetch(
-        `http://localhost:5001/api/request-management/my-requests${statusParam}`,
+        apiUrl,
         { method: 'GET' },
         navigate
       );
       
+      console.log('✅ MyRequests: API response received:', data);
+      console.log('✅ MyRequests: Number of requests:', data?.requests?.length || 0);
+      
+      setDebugInfo(`✅ API response received. Requests: ${data?.requests?.length || 0}`);
       setRequests(data.requests || []);
+      
+      if (!data.requests || data.requests.length === 0) {
+        console.log('ℹ️ MyRequests: No requests found');
+      }
+      
     } catch (err) {
-      console.error('Error fetching requests:', err);
-      setError('Failed to load requests');
+      console.error('❌ MyRequests: Error fetching requests:', err);
+      setError('Failed to load requests: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -496,6 +538,13 @@ const MyRequests = () => {
           ))}
         </div>
       </div>
+
+      {/* Debug Info */}
+      {debugInfo && (
+        <div style={{background: '#f0f0f0', padding: '10px', margin: '10px 0', borderRadius: '5px', fontSize: '12px'}}>
+          Debug: {debugInfo}
+        </div>
+      )}
 
       {/* Request List */}
       {requests.length === 0 ? (
