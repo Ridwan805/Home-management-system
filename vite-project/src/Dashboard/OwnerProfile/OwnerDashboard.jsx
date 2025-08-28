@@ -67,11 +67,11 @@ const OwnerDashboard = () => {
           throw new Error(errorData.message || 'Failed to fetch properties');
         }
         const data = await response.json();
-        if (!Array.isArray(data)) {
+        if (!data.success || !Array.isArray(data.properties)) {
           throw new Error('Invalid data received from server');
         }
-        console.log('Properties fetched:', data.length);
-        setProperties(data);
+        console.log('Properties fetched:', data.properties.length);
+        setProperties(data.properties);
         setLoading(false);
       } catch (err) {
         console.error('Error fetching properties:', err);

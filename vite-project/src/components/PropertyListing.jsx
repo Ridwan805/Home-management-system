@@ -44,7 +44,10 @@ const PropertyListing = () => {
         }
         
         const data = await response.json();
-        setProperties(data);
+        if (!data.success || !Array.isArray(data.properties)) {
+          throw new Error('Invalid data received from server');
+        }
+        setProperties(data.properties);
       } catch (err) {
         console.error('Error fetching properties:', err);
         setError(err.message);

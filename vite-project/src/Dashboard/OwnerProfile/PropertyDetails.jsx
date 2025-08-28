@@ -21,7 +21,15 @@ const PropertyDetails = () => {
   useEffect(() => {
     const fetchProperties = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const userData = localStorage.getItem('dwellSyncUser');
+        if (!userData) {
+          setError('No authentication token found');
+          setLoading(false);
+          return;
+        }
+        
+        const user = JSON.parse(userData);
+        const token = user.token;
         if (!token) {
           setError('No authentication token found');
           setLoading(false);
