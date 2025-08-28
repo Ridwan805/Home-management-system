@@ -19,13 +19,24 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch('http://localhost:5001/api/auth/login', {
+      // Check if this is an admin login attempt
+      const isAdminLogin = formData.userName.includes('admin') || 
+                          formData.userName === 'admin1@dwell.com' || 
+                          formData.userName === 'admin2@dwell.com' ||
+                          formData.userName === 'testadmin@dwell.com';
+      
+      const loginEndpoint = isAdminLogin ? 
+        'http://localhost:5001/api/admin/login' : 
+        'http://localhost:5001/api/auth/login';
+      
+      const requestBody = isAdminLogin ? 
+        { email: formData.userName, password: formData.password } :
+        { name: formData.userName, password: formData.password };
+      
+      const res = await fetch(loginEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.userName,
-          password: formData.password
-        })
+        body: JSON.stringify(requestBody)
       });
       const data = await res.json();
       if (res.ok) {

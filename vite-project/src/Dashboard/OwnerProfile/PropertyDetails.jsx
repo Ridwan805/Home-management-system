@@ -14,9 +14,7 @@ const PropertyDetails = () => {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState(null);
-  const [showStatusDropdown, setShowStatusDropdown] = useState(null);
 
-  const statusOptions = ['Available', 'Not Available', 'Sold', 'Rented'];
 
   useEffect(() => {
     const fetchProperties = async () => {
@@ -61,19 +59,7 @@ const PropertyDetails = () => {
     fetchProperties();
   }, []);
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (!event.target.closest('.status-action')) {
-        setShowStatusDropdown(null);
-      }
-    };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
 
   const handleViewDetails = (property) => {
     setSelectedProperty(property);
@@ -95,7 +81,6 @@ const PropertyDetails = () => {
       squareFootage: property.squareFootage || '',
       price: property.price || '',
       listingType: property.listingType || '',
-      status: property.status || '',
       city: property.city || '',
       state: property.state || '',
       zipCode: property.zipCode || '',
@@ -208,33 +193,7 @@ const PropertyDetails = () => {
     }
   };
 
-  const handleStatusUpdate = async (propertyId, newStatus) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(API.getUrl(API.endpoints.propertyStatus(propertyId)), {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ status: newStatus })
-      });
 
-      if (!response.ok) {
-        throw new Error('Failed to update status');
-      }
-
-      const updatedProperty = await response.json();
-      setProperties(prev => prev.map(prop => 
-        prop._id === propertyId ? { ...prop, status: newStatus } : prop
-      ));
-      
-      setShowStatusDropdown(null);
-    } catch (err) {
-      console.error('Error updating status:', err);
-      setError(err.message);
-    }
-  };
 
   return (
     <div className="property-details-container">
@@ -264,9 +223,6 @@ const PropertyDetails = () => {
                 ) : (
                   <div className="property-placeholder">No Image Available</div>
                 )}
-                <span className={`status-badge ${property.status?.toLowerCase().replace(/ /g, '-')}`}>
-                  {property.status}
-                </span>
               </div>
               
               <div className="property-info">
@@ -293,33 +249,6 @@ const PropertyDetails = () => {
                   <button className="view-details-btn" onClick={() => handleViewDetails(property)}>View Details</button>
                   <button className="edit-btn" onClick={() => handleEditClick(property)} disabled={property.status === 'pending'}>Edit</button>
                   
-                  <div className="status-action">
-                    <button
-                      className={`status-btn status-dropdown-btn ${property.status?.toLowerCase().replace(/ /g, '-')}`}
-                      onClick={() => property.status === 'pending' ? null : setShowStatusDropdown(showStatusDropdown === property._id ? null : property._id)}
-                      disabled={property.status === 'pending'}
-                    >
-                      Status: {property.status} <span style={{marginLeft: 6, fontSize: 12}}>▼</span>
-                    </button>
-                    {showStatusDropdown === property._id && property.status !== 'pending' && (
-                      <ul className="status-dropdown-menu">
-                        {statusOptions.map(option => (
-                          <li key={option}>
-                            <button
-                              className="status-dropdown-option"
-                              onClick={() => {
-                                handleStatusUpdate(property._id, option);
-                                setShowStatusDropdown(null);
-                              }}
-                            >
-                              {option}
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-
                   {deleteConfirm === property._id ? (
                     <div className="delete-confirm">
                       <p>Are you sure?</p>
@@ -376,7 +305,7 @@ const PropertyDetails = () => {
               <div className="modal-detail-item"><strong>Bathrooms:</strong> <span>{selectedProperty.bathrooms}</span></div>
               <div className="modal-detail-item"><strong>Square Footage:</strong> <span>{selectedProperty.squareFootage} sqft</span></div>
               <div className="modal-detail-item"><strong>Listing Type:</strong> <span>{selectedProperty.listingType}</span></div>
-              <div className="modal-detail-item"><strong>Status:</strong> <span>{selectedProperty.status}</span></div>
+
               {selectedProperty.yearBuilt && <div className="modal-detail-item"><strong>Year Built:</strong> <span>{selectedProperty.yearBuilt}</span></div>}
               {selectedProperty.city && <div className="modal-detail-item"><strong>Location:</strong> <span>{selectedProperty.city}, {selectedProperty.state} {selectedProperty.zipCode}</span></div>}
               {selectedProperty.contactEmail && <div className="modal-detail-item"><strong>Contact Email:</strong> <span>{selectedProperty.contactEmail}</span></div>}
@@ -500,20 +429,7 @@ const PropertyDetails = () => {
                 </select>
               </div>
               
-              <div className="form-group">
-                <label htmlFor="status">Status</label>
-                <select
-                  id="status"
-                  name="status"
-                  value={formData.status || ''}
-                  onChange={handleInputChange}
-                  required
-                >
-                  {statusOptions.map(option => (
-                    <option key={option} value={option}>{option}</option>
-                  ))}
-                </select>
-              </div>
+
               
               <div className="form-group">
                 <label htmlFor="city">City</label>

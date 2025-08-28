@@ -281,7 +281,7 @@ const createProperty = async (req, res) => {
       threeDModelUrl: req.body.threeDModelUrl || '',
       
       // Set status last to prevent conflicts
-      status: 'Available' // New properties start as Available
+      status: 'pending' // New properties start as pending for admin approval
     };
     
     // For building-related properties, add building fields
@@ -615,16 +615,40 @@ const updatePropertyStatus = async (req, res) => {
       });
     }
 
+    // Restrict owner status changes to only 'NOT AVAILABLE'
+    if (isOwner && !isAdmin) {
+      // Owners can only set status to 'NOT AVAILABLE' (Unavailable)
+      if (status !== 'Unavailable' && status !== 'Not Available') {
+        return res.status(403).json({ 
+          success: false, 
+          message: 'Owners can only change property status to "NOT AVAILABLE". Other status changes are handled automatically by the system.' 
+        });
+      }
+    }
+
     // Use state machine methods for status transitions
     try {
       switch (status) {
         case 'Available':
+          if (isOwner && !isAdmin) {
+            return res.status(403).json({ 
+              success: false, 
+              message: 'Owners cannot manually set property to Available. This is handled automatically by the system.' 
+            });
+          }
           await property.makeAvailable(userId, note);
           break;
         case 'Reserved':
+          if (isOwner && !isAdmin) {
+            return res.status(403).json({ 
+              success: false, 
+              message: 'Owners cannot manually set property to Reserved. This is handled automatically by the system.' 
+            });
+          }
           await property.reserve(userId, note);
           break;
         case 'Unavailable':
+        case 'Not Available':
           await property.makeUnavailable(userId, note);
           break;
         case 'Sold':

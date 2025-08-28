@@ -2,36 +2,48 @@
 const User = require('../models/User');
 const Request = require('../models/Request');
 const Property = require('../models/Property');
-
-// In-memory notification store (in production, use Redis or database)
-const notifications = new Map();
+const Notification = require('../models/Notification');
 
 class NotificationService {
-  // Create a notification
+  /**
+   * Create a notification for a user
+   * @param {Object} notificationData - The notification data object
+   * @returns {Promise<Object>} The created notification
+   */
   static async createNotification(userId, type, title, message, data = {}) {
     try {
-      const notification = {
-        id: Date.now().toString(),
-        userId,
-        type, // 'info', 'success', 'warning', 'error'
-        title,
-        message,
-        data,
-        read: false,
+      // Support both old and new formats for backward compatibility
+      let notificationData;
+      
+      if (arguments.length === 1 && typeof userId === 'object') {
+        // New format: single object parameter
+        notificationData = userId;
+      } else {
+        // Old format: separate parameters
+        notificationData = {
+          userId,
+          type: type || 'general',
+          title,
+          message,
+          relatedId: data.requestId || data.propertyId,
+          relatedModel: data.requestId ? 'Request' : data.propertyId ? 'Property' : undefined
+        };
+      }
+      
+      const notification = new Notification({
+        userId: notificationData.userId,
+        title: notificationData.title,
+        message: notificationData.message,
+        type: notificationData.type || 'general',
+        relatedId: notificationData.relatedId,
+        relatedModel: notificationData.relatedModel,
+        isRead: false,
         createdAt: new Date()
-      };
-
-      if (!notifications.has(userId)) {
-        notifications.set(userId, []);
-      }
+      });
       
-      notifications.get(userId).unshift(notification);
+      await notification.save();
+      console.log(`Notification created for user ${notificationData.userId}: ${notificationData.title}`);
       
-      // Keep only last 50 notifications per user
-      if (notifications.get(userId).length > 50) {
-        notifications.get(userId).splice(50);
-      }
-
       return notification;
     } catch (error) {
       console.error('Error creating notification:', error);
@@ -39,199 +51,67 @@ class NotificationService {
     }
   }
 
-  // Get notifications for a user
-  static getUserNotifications(userId, limit = 20) {
-    const userNotifications = notifications.get(userId) || [];
-    return userNotifications.slice(0, limit);
-  }
-
-  // Mark notification as read
-  static markAsRead(userId, notificationId) {
-    const userNotifications = notifications.get(userId) || [];
-    const notification = userNotifications.find(n => n.id === notificationId);
-    if (notification) {
-      notification.read = true;
-    }
-    return notification;
-  }
-
-  // Mark all notifications as read
-  static markAllAsRead(userId) {
-    const userNotifications = notifications.get(userId) || [];
-    userNotifications.forEach(n => n.read = true);
-    return userNotifications;
-  }
-
-  // Get unread count
-  static getUnreadCount(userId) {
-    const userNotifications = notifications.get(userId) || [];
-    return userNotifications.filter(n => !n.read).length;
-  }
-
-  // Notification templates for different events
-  static async notifyRequestStatusChange(requestId, oldStatus, newStatus, actorId) {
+  /**
+   * Get all notifications for a user
+   * @param {string} userId - The user ID
+   * @param {Object} options - Query options
+   * @returns {Promise<Array>} List of notifications
+   */
+  static async getUserNotifications(userId, options = {}) {
     try {
-      const request = await Request.findById(requestId)
-        .populate('tenantId', 'firstName lastName')
-        .populate('ownerId', 'firstName lastName')
-        .populate('propertyId', 'address');
-
-      if (!request) return;
-
-      const actor = await User.findById(actorId).select('firstName lastName role');
-      const actorName = actor ? `${actor.firstName} ${actor.lastName}` : 'System';
-      const propertyAddress = request.propertyId?.address || 'Property';
-
-      // Notify tenant
-      if (request.tenantId && request.tenantId._id.toString() !== actorId) {
-        await this.createNotification(
-          request.tenantId._id,
-          this.getStatusNotificationType(newStatus),
-          'Request Status Updated',
-          `Your request for ${propertyAddress} has been ${newStatus.toLowerCase()} by ${actorName}`,
-          { requestId, oldStatus, newStatus, propertyAddress }
-        );
-      }
-
-      // Notify owner
-      if (request.ownerId && request.ownerId._id.toString() !== actorId) {
-        await this.createNotification(
-          request.ownerId._id,
-          this.getStatusNotificationType(newStatus),
-          'Request Status Updated',
-          `Request from ${request.tenantId?.firstName} ${request.tenantId?.lastName} for ${propertyAddress} has been ${newStatus.toLowerCase()}`,
-          { requestId, oldStatus, newStatus, propertyAddress }
-        );
-      }
-    } catch (error) {
-      console.error('Error sending request status notification:', error);
-    }
-  }
-
-  static async notifyPaymentReceived(requestId, amount, currency) {
-    try {
-      const request = await Request.findById(requestId)
-        .populate('ownerId', 'firstName lastName')
-        .populate('propertyId', 'address');
-
-      if (!request || !request.ownerId) return;
-
-      await this.createNotification(
-        request.ownerId._id,
-        'success',
-        'Payment Received',
-        `Payment of ${amount} ${currency} received for ${request.propertyId?.address || 'property'}. Please verify the payment.`,
-        { requestId, amount, currency }
-      );
-    } catch (error) {
-      console.error('Error sending payment notification:', error);
-    }
-  }
-
-  static async notifyPropertyAssigned(propertyId, tenantId, assignmentType) {
-    try {
-      const property = await Property.findById(propertyId).populate('owner', 'firstName lastName');
-      const tenant = await User.findById(tenantId).select('firstName lastName');
-
-      if (!property || !tenant) return;
-
-      // Notify tenant
-      await this.createNotification(
-        tenantId,
-        'success',
-        'Property Assigned',
-        `Congratulations! ${property.address} has been ${assignmentType.toLowerCase()} to you.`,
-        { propertyId, assignmentType }
-      );
-
-      // Notify owner
-      if (property.owner) {
-        await this.createNotification(
-          property.owner._id,
-          'success',
-          'Property Assignment Complete',
-          `Your property at ${property.address} has been ${assignmentType.toLowerCase()} to ${tenant.firstName} ${tenant.lastName}.`,
-          { propertyId, tenantId, assignmentType }
-        );
-      }
-    } catch (error) {
-      console.error('Error sending property assignment notification:', error);
-    }
-  }
-
-  static async notifyAdvancePaymentSetup(requestId, amount, currency, dueDate) {
-    try {
-      const request = await Request.findById(requestId)
-        .populate('tenantId', 'firstName lastName')
-        .populate('propertyId', 'address');
-
-      if (!request || !request.tenantId) return;
-
-      await this.createNotification(
-        request.tenantId._id,
-        'info',
-        'Advance Payment Required',
-        `Please pay ${amount} ${currency} for ${request.propertyId?.address || 'property'} by ${new Date(dueDate).toLocaleDateString()}.`,
-        { requestId, amount, currency, dueDate }
-      );
-    } catch (error) {
-      console.error('Error sending advance payment notification:', error);
-    }
-  }
-
-  // Send payment receipt notification
-  static async sendPaymentReceiptNotification(userId, requestId, amount, currency) {
-    try {
-      const request = await Request.findById(requestId)
-        .populate('propertyId', 'address')
-        .populate('tenantId', 'firstName lastName')
-        .populate('ownerId', 'firstName lastName');
+      const { limit = 20, skip = 0, includeRead = false } = options;
       
-      if (!request) {
-        throw new Error('Request not found');
+      const query = { userId };
+      if (!includeRead) {
+        query.isRead = false;
       }
       
-      const user = await User.findById(userId);
-      if (!user) {
-        throw new Error('User not found');
-      }
+      const notifications = await Notification.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
       
-      const isOwner = userId.toString() === request.ownerId._id.toString();
-      const title = isOwner ? 'Payment Received' : 'Payment Confirmed';
-      const message = isOwner 
-        ? `You have received a payment of ${amount} ${currency} from ${request.tenantId.firstName} ${request.tenantId.lastName} for ${request.propertyId.address}`
-        : `Your payment of ${amount} ${currency} for ${request.propertyId.address} has been confirmed`;
-      
-      await this.createNotification(
-        userId,
-        'success',
-        title,
-        message,
-        {
-          requestId,
-          amount,
-          currency,
-          propertyAddress: request.propertyId.address
-        }
-      );
-      
+      return notifications;
     } catch (error) {
-      console.error('Error sending payment receipt notification:', error);
+      console.error('Error fetching user notifications:', error);
       throw error;
     }
   }
 
-  // Helper method to determine notification type based on status
-  static getStatusNotificationType(status) {
-    const statusTypes = {
-      'Approved – Pay Advance': 'success',
-      'Paid/Completed': 'success',
-      'Rejected': 'error',
-      'Info Requested': 'warning',
-      'Under Review': 'info',
-      'Payment Submitted': 'info'
-    };
-    return statusTypes[status] || 'info';
+  /**
+   * Mark a notification as read
+   * @param {string} notificationId - The notification ID
+   * @returns {Promise<Object>} The updated notification
+   */
+  static async markAsRead(userId, notificationId) {
+    try {
+      // Support both old and new formats
+      let query;
+      
+      if (arguments.length === 1) {
+        // New format: just notification ID
+        query = { _id: userId };
+      } else {
+        // Old format: userId and notificationId
+        query = { _id: notificationId, userId };
+      }
+      
+      const notification = await Notification.findOneAndUpdate(
+        query,
+        { isRead: true, readAt: new Date() },
+        { new: true }
+      );
+      
+      if (!notification) {
+        console.warn('Notification not found:', query);
+        return null;
+      }
+      
+      return notification;
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      throw error;
+    }
   }
 }
 

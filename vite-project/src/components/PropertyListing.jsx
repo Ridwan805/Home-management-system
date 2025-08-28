@@ -157,45 +157,7 @@ const PropertyListing = () => {
     }
   };
 
-  // Handle status update
-  const handleStatusUpdate = async (propertyId, newStatus) => {
-    try {
-      const userData = localStorage.getItem('dwellSyncUser');
-      if (!userData) {
-        throw new Error('User not authenticated');
-      }
-      
-      const user = JSON.parse(userData);
-      const response = await fetch(API.baseUrl + API.endpoints.propertyStatus(propertyId), {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${user.token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ status: newStatus })
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update property status');
-      }
-      
-      const updatedProperty = await response.json();
-      
-      // Update the properties list with the updated property
-      setProperties(properties.map(prop => 
-        prop._id === propertyId ? {
-          ...prop,
-          status: newStatus
-        } : prop
-      ));
 
-      console.log('Status updated successfully to:', newStatus);
-    } catch (err) {
-      console.error('Error updating property status:', err);
-      setError(err.message);
-    }
-  };
 
   const isUserView = true; // Always in user view mode since we removed filter page
 
@@ -229,7 +191,6 @@ const PropertyListing = () => {
               key={property._id} 
               property={property} 
               onEdit={isUserView ? handleEditClick : null}
-              onStatusChange={isUserView ? handleStatusUpdate : null}
               onViewDetails={handleViewDetails}
               onDelete={handleDeleteProperty}
             />

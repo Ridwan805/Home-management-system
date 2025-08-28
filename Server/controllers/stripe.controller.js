@@ -549,6 +549,52 @@ const handlePaymentSuccess = async (session) => {
       });
     }
     
+    // Automatically update property status based on listing type
+    try {
+      console.log('🏠 [WEBHOOK] Updating property status after advance payment...');
+      const property = await Property.findById(request.propertyId);
+      
+      if (property) {
+        const listingType = property.listingType;
+        let newStatus;
+        
+        if (listingType === 'For Sale') {
+          newStatus = 'Sold';
+        } else if (listingType === 'For Rent') {
+          newStatus = 'Rented';
+        }
+        
+        if (newStatus) {
+           // Use the property's state machine method to update status
+           if (newStatus === 'Sold') {
+             await property.sell(tenantId, tenantId, `Automatically set to Sold after advance payment completion for request ${requestId}`);
+           } else if (newStatus === 'Rented') {
+             // For rent, we need to create or link to a rent record
+             // For now, we'll use null as rentId since the rent record creation is handled elsewhere
+             await property.rent(tenantId, null, `Automatically set to Rented after advance payment completion for request ${requestId}`);
+           }
+          
+          console.log('✅ [WEBHOOK] Property status updated successfully', {
+            propertyId: property._id,
+            listingType,
+            newStatus,
+            requestId
+          });
+        } else {
+          console.log('⚠️ [WEBHOOK] No status update needed for listing type:', listingType);
+        }
+      } else {
+        console.error('❌ [WEBHOOK] Property not found for status update:', request.propertyId);
+      }
+    } catch (propertyUpdateErr) {
+      console.error('❌ [WEBHOOK] Failed to update property status:', {
+        error: propertyUpdateErr.message,
+        stack: propertyUpdateErr.stack,
+        requestId,
+        propertyId: request.propertyId
+      });
+    }
+    
     console.log('Payment processed successfully for request:', requestId);
     
     // Long polling notifications removed

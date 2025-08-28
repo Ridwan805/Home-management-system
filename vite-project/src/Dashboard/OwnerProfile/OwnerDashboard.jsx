@@ -194,9 +194,7 @@ const OwnerDashboard = () => {
                             ) : (
                               <div className="property-placeholder">No Image Available</div>
                             )}
-                            <span className={`status-badge ${property.status?.toLowerCase()}`}>
-                              {property.status}
-                            </span>
+
                           </div>
                           <div className="property-details">
                             <h3>৳{property.price?.toLocaleString()}</h3>

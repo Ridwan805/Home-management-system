@@ -11,7 +11,39 @@ const PaymentScheduler = require('./services/paymentScheduler');
 const InvoiceService = require('./services/invoiceService');
 
 const app = express();
-app.use(cors());
+
+// Configure CORS with specific options for image serving
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Allow any localhost origin for development
+    if (origin.startsWith('http://localhost:') || origin.startsWith('https://localhost:')) {
+      return callback(null, true);
+    }
+    
+    // Allow specific production origins if needed
+    const allowedOrigins = ['http://localhost:5173', 'http://localhost:3000'];
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      return callback(null, true);
+    }
+    
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Content-Type', 'Content-Length']
+}));
+
+// Add specific headers for static file serving
+app.use('/uploads', (req, res, next) => {
+  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Cross-Origin-Embedder-Policy', 'unsafe-none');
+  next();
+});
 // Use conditional JSON parser to avoid interfering with Stripe webhook raw body
 app.use((req, res, next) => {
   if (req.originalUrl === '/api/stripe/webhook') return next();
@@ -92,6 +124,13 @@ const tenantPicsDir = path.resolve(__dirname, 'tenant_pics');
 if (!fs.existsSync(tenantPicsDir)) {
   fs.mkdirSync(tenantPicsDir, { recursive: true });
 }
+// Add headers for tenant_pics static files
+app.use('/tenant_pics', (req, res, next) => {
+  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Cross-Origin-Embedder-Policy', 'unsafe-none');
+  next();
+});
 app.use('/tenant_pics', express.static(tenantPicsDir));
 
 

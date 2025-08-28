@@ -36,6 +36,7 @@ exports.adminLogin = async (req, res) => {
     );
 
     res.json({
+      message: `Login Successful! Welcome ${admin.email.split('@')[0]}`,
       token,
       user: {
         id: admin._id,
@@ -85,9 +86,23 @@ exports.getDashboardMetrics = async (req, res) => {
 exports.getPendingProperties = async (req, res) => {
   try {
     const properties = await Property.find({ status: 'pending' })
-      .populate('owner', 'name email')
+      .populate('ownerUserId', 'firstName lastName email')
+      .populate('owner', 'firstName lastName email')
       .sort({ createdAt: -1 });
-    res.json(properties);
+    
+    // Ensure owner data is available by using either ownerUserId or owner field
+    const processedProperties = properties.map(property => {
+      const propertyObj = property.toObject();
+      
+      // If ownerUserId is not populated but owner is, use owner data
+      if (!propertyObj.ownerUserId && propertyObj.owner) {
+        propertyObj.ownerUserId = propertyObj.owner;
+      }
+      
+      return propertyObj;
+    });
+    
+    res.json(processedProperties);
   } catch (err) {
     console.error('Error fetching pending properties:', err);
     res.status(500).json({ message: 'Failed to fetch pending properties' });
@@ -98,9 +113,9 @@ exports.getPendingProperties = async (req, res) => {
 exports.approveProperty = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, rejectionReason } = req.body; // 'approved' or 'rejected'
+    const { status, rejectionReason } = req.body; // 'Available' or 'rejected'
 
-    if (status !== 'approved' && status !== 'rejected') {
+    if (status !== 'Available' && status !== 'rejected') {
       return res.status(400).json({ message: 'Invalid status value' });
     }
 
@@ -111,14 +126,41 @@ exports.approveProperty = async (req, res) => {
       updateData.rejectionReason = rejectionReason;
     }
 
-    const property = await Property.findByIdAndUpdate(
-      id,
-      updateData,
-      { new: true }
-    );
+    // Find the property and include owner information
+    const property = await Property.findById(id).populate('owner', 'email name');
 
     if (!property) {
       return res.status(404).json({ message: 'Property not found' });
+    }
+
+    // Update the property status
+    property.status = status;
+    if (status === 'rejected' && rejectionReason) {
+      property.rejectionReason = rejectionReason;
+    }
+    
+    await property.save();
+
+    // Create notification for the owner
+    try {
+      const notificationService = require('../services/notificationService');
+      const notificationTitle = status === 'Available' ? 'Property Approved' : 'Property Rejected';
+      const notificationMessage = status === 'Available' 
+        ? `Your property at ${property.address} has been approved by admin.` 
+        : `Your property at ${property.address} has been rejected. Reason: ${rejectionReason || 'Not specified'}`;
+      
+      await notificationService.createNotification({
+        userId: property.owner._id,
+        title: notificationTitle,
+        message: notificationMessage,
+        type: 'property_status',
+        relatedId: property._id
+      });
+      
+      console.log(`Notification sent to owner about property ${status}`);
+    } catch (notificationErr) {
+      console.error('Error sending notification:', notificationErr);
+      // Continue with the response even if notification fails
     }
 
     res.json(property);

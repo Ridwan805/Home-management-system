@@ -156,6 +156,7 @@ export default {
   endpoints: {
     // Auth endpoints
     login: '/api/auth/login',
+    adminLogin: '/api/admin/login',
     register: '/api/auth/register',
     forgotPassword: '/api/auth/forgot-password',
     resetPassword: '/api/auth/reset-password',

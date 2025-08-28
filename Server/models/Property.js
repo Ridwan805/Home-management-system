@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 // Define valid property statuses
-const PROPERTY_STATUSES = ['Available', 'Reserved', 'Rented', 'Sold', 'Unavailable'];
+const PROPERTY_STATUSES = ['pending', 'Available', 'Reserved', 'Rented', 'Sold', 'Unavailable', 'rejected'];
 
 // Define valid property types
 const PROPERTY_TYPES = [
