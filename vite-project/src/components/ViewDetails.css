@@ -343,6 +343,18 @@
   cursor: not-allowed;
 }
 
+.action-btn.property-rented {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 2px solid #fca5a5;
+  cursor: not-allowed;
+}
+
+.action-btn.property-rented:hover {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+
 /* Loading and Error States */
 .loading-state,
 .error-state {

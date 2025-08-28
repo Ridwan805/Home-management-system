@@ -426,6 +426,9 @@ const updateRequestStatus = async (req, res) => {
             // Activate the rent contract
             await rent.activate(userId, 'Rent activated after payment completion');
             
+            // Update property status to Rented
+            await property.rent(userId, rent._id, 'Property rented after payment completion');
+            
             // Link request to rent
             request.linkedRentId = rent._id;
             

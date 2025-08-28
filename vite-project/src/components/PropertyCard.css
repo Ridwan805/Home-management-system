@@ -327,7 +327,7 @@
 .status-dropdown-btn.available { background-color: #10b981; }
 .status-dropdown-btn.not-available { background-color: #f59e0b; }
 .status-dropdown-btn.sold { background-color: #ef4444; }
-.status-dropdown-btn.rented { background-color: #8b5cf6; }
+.status-dropdown-btn.rented { background-color: #fca5a5; color: #991b1b; }
 
 /* Animations */
 @keyframes fadeIn {

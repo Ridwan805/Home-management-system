@@ -18,7 +18,8 @@ const {
   getPropertiesByBuilding,
   getPropertiesByFloor,
   getStandaloneProperties,
-  searchProperties
+  searchProperties,
+  checkCombination
 } = require('../controllers/property.controller');
 
 // Simple role guard using decoded token placed by auth middleware
@@ -74,6 +75,9 @@ router.get('/user', auth, getUserProperties);
 
 // GET /api/properties/search - Advanced property search
 router.get('/search', searchProperties);
+
+// GET /api/properties/check-combination - Check if building-unit-floor combination exists
+router.get('/check-combination', auth, checkCombination);
 
 // GET /api/properties/standalone - Get standalone properties
 router.get('/standalone', getStandaloneProperties);

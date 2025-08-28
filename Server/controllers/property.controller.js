@@ -82,11 +82,19 @@ const getTopProperties = async (req, res) => {
       .limit(5);
     
     console.log(`📊 Found ${properties.length} Available properties for homepage`);
-    if (properties.length > 0) {
-      console.log('Sample property:', JSON.stringify(properties[0], null, 2));
+    
+    // Convert to JSON to ensure virtual fields are included
+    const propertiesWithVirtuals = properties.map(property => {
+      const propertyObj = property.toObject({ virtuals: true });
+      console.log('Property images:', propertyObj.images);
+      return propertyObj;
+    });
+    
+    if (propertiesWithVirtuals.length > 0) {
+      console.log('Sample property with virtuals:', JSON.stringify(propertiesWithVirtuals[0], null, 2));
     }
     
-    res.json(properties);
+    res.json(propertiesWithVirtuals);
   } catch (err) {
     console.error('❌ Error in getTopProperties:', err);
     res.status(500).json({ message: 'Server error: ' + err.message });
@@ -159,6 +167,61 @@ const getUserProperties = async (req, res) => {
 };
 
 
+// Check if building-unit-floor combination exists
+const checkCombination = async (req, res) => {
+  try {
+    const { buildingId, floorNumber, unitNumber } = req.query;
+    
+    // For standalone properties, no combination check is needed
+    if (!buildingId) {
+      return res.json({
+        success: true,
+        exists: false,
+        message: 'Standalone property - no combination check needed'
+      });
+    }
+    
+    // For building properties, buildingId is required
+    if (!buildingId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Building ID is required for building properties'
+      });
+    }
+    
+    // Build query based on available parameters
+    const query = {
+      buildingId: buildingId,
+      isDeleted: { $ne: true }
+    };
+    
+    // Add floor number if provided (not null/undefined)
+    if (floorNumber !== null && floorNumber !== undefined && floorNumber !== '') {
+      query.floorNumber = parseInt(floorNumber);
+    }
+    
+    // Add unit number if provided (not null/undefined/empty)
+    if (unitNumber !== null && unitNumber !== undefined && unitNumber.trim() !== '') {
+      query.unitNumber = unitNumber.trim();
+    }
+    
+    // Check if a property with this combination already exists
+    const existingProperty = await Property.findOne(query);
+    
+    res.json({
+      success: true,
+      exists: !!existingProperty,
+      message: existingProperty ? 'Combination already exists' : 'Combination is available'
+    });
+  } catch (err) {
+    console.error('Error checking combination:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Server error: ' + err.message
+    });
+  }
+};
+
 const createProperty = async (req, res) => {
   try {
     console.log('🌐 Incoming request: POST /api/properties');
@@ -185,6 +248,9 @@ const createProperty = async (req, res) => {
     console.log('Location state:', locationState);
     
     // Combine fields from req.body and set ownership
+    // Check if this is a standalone property
+    const isStandaloneProperty = req.body.propertyType === 'house' || req.body.propertyType === 'land' || req.body.propertyType === 'commercial' || req.body.propertyType === 'other';
+    
     const propertyData = {
       ownerUserId: userId,
       owner: userId, // Keep for backward compatibility
@@ -195,11 +261,6 @@ const createProperty = async (req, res) => {
       propertyType: req.body.propertyType,
       listingType: req.body.listingType,
       description: req.body.description,
-      
-      // Building relationship
-      buildingId: req.body.buildingId || null,
-      floorNumber: req.body.floorNumber ? parseInt(req.body.floorNumber) : null,
-      unitNumber: req.body.unitNumber || null,
       
       // Address - always include field for validation to work properly
       address: req.body.address && req.body.address.trim() ? req.body.address.trim() : undefined,
@@ -223,6 +284,13 @@ const createProperty = async (req, res) => {
       status: 'Available' // New properties start as Available
     };
     
+    // For building-related properties, add building fields
+    if (!isStandaloneProperty) {
+      propertyData.buildingId = req.body.buildingId;
+      propertyData.floorNumber = req.body.floorNumber ? parseInt(req.body.floorNumber) : null;
+      propertyData.unitNumber = req.body.unitNumber || null;
+    }
+    
     console.log('Final propertyData before save:', propertyData);
     console.log('BuildingId in propertyData:', propertyData.buildingId);
     console.log('Address in propertyData:', propertyData.address);
@@ -230,12 +298,68 @@ const createProperty = async (req, res) => {
     console.log('BuildingId truthy check:', !!propertyData.buildingId);
     console.log('BuildingId falsy check (!buildingId):', !propertyData.buildingId);
 
-    // Handle image uploads
-    let imageUrls = [];
-    if (req.files && req.files.length > 0) {
-      imageUrls = req.files.map(file => `/uploads/${file.filename}`);
+    // Validate building approval status if buildingId is provided
+    if (propertyData.buildingId) {
+      const building = await Building.findById(propertyData.buildingId);
+      if (!building) {
+        return res.status(404).json({
+          success: false,
+          message: 'Building not found'
+        });
+      }
+      
+      if (building.approvalStatus !== 'Approved') {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot create property for a building that is not approved. Please wait for admin approval or contact support.'
+        });
+      }
+      
+      // Check for duplicate building-unit combination (only if unitNumber is provided and not empty)
+      if (propertyData.unitNumber && propertyData.unitNumber.trim() !== '') {
+        const existingProperty = await Property.findOne({
+          buildingId: propertyData.buildingId,
+          unitNumber: propertyData.unitNumber.trim(),
+          isDeleted: { $ne: true }
+        });
+        
+        if (existingProperty) {
+          return res.status(400).json({
+            success: false,
+            message: `Unit ${propertyData.unitNumber} already exists in this building. Please choose a different unit number.`
+          });
+        }
+      }
+      
+      // Check for duplicate building-floor combination (only if floorNumber is not null)
+      if (propertyData.floorNumber !== null && propertyData.floorNumber !== undefined) {
+        const existingFloorProperty = await Property.findOne({
+          buildingId: propertyData.buildingId,
+          floorNumber: propertyData.floorNumber,
+          propertyType: 'floor',
+          isDeleted: { $ne: true }
+        });
+        
+        if (existingFloorProperty) {
+          return res.status(400).json({
+            success: false,
+            message: `Floor ${propertyData.floorNumber} already exists in this building. Please choose a different floor number.`
+          });
+        }
+      }
     }
-    propertyData.images = imageUrls;
+
+    // Handle image uploads
+    if (req.files && req.files.length > 0) {
+      const imageUrls = req.files.map(file => `/uploads/${file.filename}`);
+      propertyData.media = {
+        images: imageUrls.map((url, index) => ({
+          url,
+          order: index,
+          isPrimary: index === 0
+        }))
+      };
+    }
 
     // Create new Property
     const property = new Property(propertyData);
@@ -264,6 +388,24 @@ const createProperty = async (req, res) => {
     });
   } catch (err) {
     console.error('Error creating property:', err);
+    
+    // Handle MongoDB duplicate key error
+    if (err.code === 11000) {
+      const duplicateField = Object.keys(err.keyPattern || {})[0];
+      let message = 'A property with this information already exists.';
+      
+      if (duplicateField === 'unitNumber') {
+        message = 'This unit number already exists in the selected building. Please choose a different unit number.';
+      } else if (err.message.includes('buildingId_1_unitNumber_1')) {
+        message = 'This unit number already exists in the selected building. Please choose a different unit number.';
+      }
+      
+      return res.status(400).json({
+        success: false,
+        message: message
+      });
+    }
+    
     res.status(500).json({ 
       success: false, 
       message: 'Server error: ' + err.message 
@@ -906,5 +1048,6 @@ module.exports = {
   getPropertiesByBuilding,
   getPropertiesByFloor,
   getStandaloneProperties,
-  searchProperties
+  searchProperties,
+  checkCombination
 };

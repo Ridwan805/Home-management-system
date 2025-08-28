@@ -386,11 +386,13 @@ const ViewDetails = () => {
                 
                 {property.listingType === 'For Rent' ? (
                   <button 
-                    onClick={hasApplied ? null : handleApplyToRent} 
-                    className={`action-btn apply-rent-btn ${hasApplied ? 'already-applied' : ''}`}
-                    disabled={hasApplied || applicationLoading}
+                    onClick={hasApplied || property.status === 'Rented' ? null : handleApplyToRent} 
+                    className={`action-btn apply-rent-btn ${hasApplied ? 'already-applied' : ''} ${property.status === 'Rented' ? 'property-rented' : ''}`}
+                    disabled={hasApplied || applicationLoading || property.status === 'Rented'}
                   >
-                    {applicationLoading ? 'Checking...' : hasApplied ? '✓ Already Applied to Rent' : '📝 Apply to Rent'}
+                    {applicationLoading ? 'Checking...' : 
+                     property.status === 'Rented' ? '🚫 Property Already Rented' :
+                     hasApplied ? '✓ Already Applied to Rent' : '📝 Apply to Rent'}
                   </button>
                 ) : (
                   <button 

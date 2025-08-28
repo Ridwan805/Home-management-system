@@ -205,6 +205,30 @@ const buildingSchema = new mongoose.Schema({
     default: 'Active'
   },
   
+  // Approval status for buildings created by owners
+  approvalStatus: {
+    type: String,
+    enum: ['Pending', 'Approved', 'Rejected'],
+    default: function() {
+      // Auto-approve if created by admin, pending if created by owner
+      return this.createdBy && this.createdBy.role === 'Admin' ? 'Approved' : 'Pending';
+    }
+  },
+  
+  approvedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  
+  approvedAt: {
+    type: Date
+  },
+  
+  rejectionReason: {
+    type: String,
+    maxlength: 500
+  },
+  
   isActive: {
     type: Boolean,
     default: true

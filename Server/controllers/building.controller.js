@@ -2,6 +2,157 @@ const Building = require('../models/Building');
 const Property = require('../models/Property');
 const BuildingSummary = require('../models/BuildingSummary');
 
+// Get buildings by owner (including pending ones)
+const getBuildingsByOwner = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    
+    const buildings = await Building.find({ 
+      createdBy: userId,
+      status: 'Active',
+      approvalStatus: { $in: ['Approved', 'Pending'] }
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.json({
+      success: true,
+      count: buildings.length,
+      buildings
+    });
+  } catch (err) {
+    console.error('Error in getBuildingsByOwner:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Server error: ' + err.message
+    });
+  }
+};
+
+// Admin: Approve building
+const approveBuilding = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId;
+    const userRole = req.user.role;
+
+    if (userRole !== 'Admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only administrators can approve buildings'
+      });
+    }
+
+    const building = await Building.findById(id);
+    if (!building) {
+      return res.status(404).json({
+        success: false,
+        message: 'Building not found'
+      });
+    }
+
+    if (building.approvalStatus === 'Approved') {
+      return res.status(400).json({
+        success: false,
+        message: 'Building is already approved'
+      });
+    }
+
+    building.approvalStatus = 'Approved';
+    building.approvedBy = userId;
+    building.approvedAt = new Date();
+    building.updatedBy = userId;
+    await building.save();
+
+    res.json({
+      success: true,
+      message: 'Building approved successfully',
+      building
+    });
+  } catch (err) {
+    console.error('Error approving building:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Server error: ' + err.message
+    });
+  }
+};
+
+// Admin: Reject building
+const rejectBuilding = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    const userId = req.user.userId;
+    const userRole = req.user.role;
+
+    if (userRole !== 'Admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only administrators can reject buildings'
+      });
+    }
+
+    const building = await Building.findById(id);
+    if (!building) {
+      return res.status(404).json({
+        success: false,
+        message: 'Building not found'
+      });
+    }
+
+    building.approvalStatus = 'Rejected';
+    building.rejectionReason = reason || 'No reason provided';
+    building.updatedBy = userId;
+    await building.save();
+
+    res.json({
+      success: true,
+      message: 'Building rejected successfully',
+      building
+    });
+  } catch (err) {
+    console.error('Error rejecting building:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Server error: ' + err.message
+    });
+  }
+};
+
+// Admin: Get pending buildings for approval
+const getPendingBuildings = async (req, res) => {
+  try {
+    const userRole = req.user.role;
+
+    if (userRole !== 'Admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only administrators can view pending buildings'
+      });
+    }
+
+    const buildings = await Building.find({ 
+      approvalStatus: 'Pending'
+    })
+      .populate('createdBy', 'firstName lastName email')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.json({
+      success: true,
+      count: buildings.length,
+      buildings
+    });
+  } catch (err) {
+    console.error('Error getting pending buildings:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Server error: ' + err.message
+    });
+  }
+};
+
 // Get all buildings with optional filters
 const getAllBuildings = async (req, res) => {
   try {
@@ -130,11 +281,11 @@ const createBuilding = async (req, res) => {
     const userId = req.user.userId;
     const userRole = req.user.role;
 
-    // Only Admin can create buildings
-    if (userRole !== 'Admin') {
+    // Allow Admin and Property Owner to create buildings
+    if (userRole !== 'Admin' && userRole !== 'Property Owner') {
       return res.status(403).json({
         success: false,
-        message: 'Only administrators can create buildings'
+        message: 'Only administrators and property owners can create buildings'
       });
     }
 
@@ -142,7 +293,10 @@ const createBuilding = async (req, res) => {
       ...req.body,
       managedBy: userId,
       createdBy: userId,
-      updatedBy: userId
+      updatedBy: userId,
+      approvalStatus: userRole === 'Admin' ? 'Approved' : 'Pending',
+      approvedBy: userRole === 'Admin' ? userId : undefined,
+      approvedAt: userRole === 'Admin' ? new Date() : undefined
     };
 
     const building = new Building(buildingData);
@@ -452,6 +606,7 @@ const searchBuildingsByLocation = async (req, res) => {
 
 module.exports = {
   getAllBuildings,
+  getBuildingsByOwner,
   getBuildingById,
   createBuilding,
   updateBuilding,
@@ -459,5 +614,8 @@ module.exports = {
   getBuildingPropertiesByFloor,
   getBuildingSummary,
   updateBuildingSummaries,
-  searchBuildingsByLocation
+  searchBuildingsByLocation,
+  approveBuilding,
+  rejectBuilding,
+  getPendingBuildings
 };

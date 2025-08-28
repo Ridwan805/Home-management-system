@@ -5,8 +5,7 @@ import './CreateListingForm.css';
 
 const initialState = {
   // Building relationship
-  buildingId: '',
-  isStandalone: 'true',
+  buildingId: null,
   
   // Property identification
   address: '',
@@ -96,51 +95,116 @@ const FACING_DIRECTIONS = ['North', 'South', 'East', 'West', 'Northeast', 'North
 const FURNISHING_OPTIONS = ['Unfurnished', 'Semi-Furnished', 'Fully Furnished'];
 
 export default function CreateListingForm({ onSuccess, onCancel }) {
-  const [form, setForm] = useState({ ...initialState, amenities: [] });
+  const [form, setForm] = useState({ 
+    ...initialState, 
+    amenities: []
+  });
   const [imageFiles, setImageFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [buildings, setBuildings] = useState([]);
-  const [loadingBuildings, setLoadingBuildings] = useState(false);
+  
+  // Property location state
+  const [propertyLocation, setPropertyLocation] = useState('standalone'); // 'standalone' or 'building'
+  const [selectedBuilding, setSelectedBuilding] = useState('');
   const [showCreateBuilding, setShowCreateBuilding] = useState(false);
-  const [newBuilding, setNewBuilding] = useState({
+  const [ownerBuildings, setOwnerBuildings] = useState([]);
+  const [buildingForm, setBuildingForm] = useState({
     name: '',
-    street: '',
-    city: '',
-    state: '',
-    zipCode: '',
+    address: {
+      street: '',
+      city: '',
+      state: '',
+      zipCode: ''
+    },
     yearBuilt: '',
     totalFloors: '',
     description: ''
   });
-
-  // Fetch available buildings
+  
+  // Fetch owner's buildings on component mount and clear any errors
   useEffect(() => {
-    const fetchBuildings = async () => {
-      setLoadingBuildings(true);
-      try {
-        const token = JSON.parse(localStorage.getItem('dwellSyncUser'))?.token;
-        const response = await fetch(API.getUrl('/api/buildings'), {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setBuildings(data.buildings || []);
-        }
-      } catch (err) {
-        console.error('Error fetching buildings:', err);
-      } finally {
-        setLoadingBuildings(false);
-      }
-    };
-
-    fetchBuildings();
+    fetchOwnerBuildings();
+    setError(''); // Clear any persisting error messages on component mount
   }, []);
+  
+  const fetchOwnerBuildings = async () => {
+    try {
+      const token = JSON.parse(localStorage.getItem('dwellSyncUser'))?.token;
+      if (!token) {
+        console.error('No authentication token found');
+        return;
+      }
+      const response = await fetch(API.getUrl(API.endpoints.ownerBuildings), {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        // Handle the response structure from the backend
+        setOwnerBuildings(data.buildings || data || []);
+      } else {
+        console.error('Failed to fetch owner buildings:', response.status);
+        setOwnerBuildings([]);
+      }
+    } catch (error) {
+      console.error('Error fetching owner buildings:', error);
+      setOwnerBuildings([]);
+    }
+  };
+  
+  const handlePropertyLocationChange = (e) => {
+    const value = e.target.value;
+    setPropertyLocation(value);
+    setError(''); // Clear any existing error messages
+    if (value === 'standalone') {
+      setForm(prev => ({ ...prev, buildingId: null }));
+      setSelectedBuilding('');
+      setShowCreateBuilding(false);
+    } else {
+      // Reset buildingId when switching to building mode
+      setForm(prev => ({ ...prev, buildingId: null }));
+    }
+  };
+  
+  const handleBuildingSelection = (e) => {
+    const value = e.target.value;
+    setSelectedBuilding(value);
+    setError(''); // Clear any existing error messages
+    
+    if (value === 'create_new') {
+      setShowCreateBuilding(true);
+      setForm(prev => ({ ...prev, buildingId: null }));
+    } else if (value) {
+      setShowCreateBuilding(false);
+      setForm(prev => ({ ...prev, buildingId: value }));
+    } else {
+      setShowCreateBuilding(false);
+      setForm(prev => ({ ...prev, buildingId: null }));
+    }
+  };
+  
+  const handleBuildingFormChange = (e) => {
+    const { name, value } = e.target;
+    if (name.includes('.')) {
+      const [parent, child] = name.split('.');
+      setBuildingForm(prev => ({
+        ...prev,
+        [parent]: {
+          ...prev[parent],
+          [child]: value
+        }
+      }));
+    } else {
+      setBuildingForm(prev => ({ ...prev, [name]: value }));
+    }
+  };
+  
+
 
   const handleChange = e => {
     const { name, value, type, checked } = e.target;
+    setError(''); // Clear any existing error messages when user makes changes
     if (type === 'checkbox') {
       if (name === 'amenities') {
         setForm(prev => ({
@@ -153,92 +217,11 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
         setForm(prev => ({ ...prev, [name]: checked }));
       }
     } else {
-      setForm(prev => {
-        const newForm = { ...prev, [name]: value };
-        
-        // Handle building selection logic
-        if (name === 'isStandalone') {
-          if (value === 'true') {
-            newForm.buildingId = '';
-            newForm.floorNumber = '';
-            newForm.unitNumber = '';
-            setShowCreateBuilding(false);
-          } else {
-            newForm.address = '';
-          }
-        }
-        
-        // Clear building-specific fields when switching to standalone
-        if (name === 'buildingId' && value === '') {
-          newForm.floorNumber = '';
-          newForm.unitNumber = '';
-        }
-        
-        return newForm;
-      });
+      setForm(prev => ({ ...prev, [name]: value }));
     }
   };
 
-  const handleNewBuildingChange = e => {
-    const { name, value } = e.target;
-    setNewBuilding(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
 
-  const handleCreateBuilding = async () => {
-    try {
-      const token = JSON.parse(localStorage.getItem('dwellSyncUser'))?.token;
-      if (!token) throw new Error('No authentication token found');
-      
-      const buildingData = {
-        name: newBuilding.name,
-        address: {
-          street: newBuilding.street,
-          city: newBuilding.city,
-          state: newBuilding.state,
-          zipCode: newBuilding.zipCode,
-          country: 'Bangladesh'
-        },
-        yearBuilt: newBuilding.yearBuilt ? parseInt(newBuilding.yearBuilt) : undefined,
-        totalFloors: newBuilding.totalFloors ? parseInt(newBuilding.totalFloors) : undefined,
-        description: newBuilding.description
-      };
-      
-      const res = await fetch(API.getUrl('/api/buildings'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(buildingData)
-      });
-      
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to create building');
-      
-      // Add new building to the list and select it
-      setBuildings(prev => [...prev, data.building]);
-      setForm(prev => ({ ...prev, buildingId: data.building._id }));
-      
-      // Reset form and hide create building section
-      setNewBuilding({
-        name: '',
-        street: '',
-        city: '',
-        state: '',
-        zipCode: '',
-        yearBuilt: '',
-        totalFloors: '',
-        description: ''
-      });
-      setShowCreateBuilding(false);
-      
-    } catch (err) {
-      setError(err.message);
-    }
-  };
 
   const handleFileChange = e => {
     setImageFiles([...e.target.files]);
@@ -264,15 +247,19 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
     if (!form.squareFootage || form.squareFootage <= 0) errors.push('Valid square footage is required');
     if (!form.description.trim()) errors.push('Description is required');
     
-    // Address validation based on property location
-    if (form.isStandalone === 'true') {
-      if (!form.address.trim()) errors.push('Address is required for standalone properties');
-      if (!form.city.trim()) errors.push('City is required');
-      if (!form.state.trim()) errors.push('State is required');
-      if (!form.zipCode.trim()) errors.push('Zip code is required');
-    } else if (form.isStandalone === 'false') {
-      if (!form.buildingId && !showCreateBuilding) {
-        errors.push('Please select a building or create a new one');
+    // Address validation
+    if (!form.address.trim()) errors.push('Address is required');
+    if (!form.city.trim()) errors.push('City is required');
+    if (!form.state.trim()) errors.push('State is required');
+    if (!form.zipCode.trim()) errors.push('Zip code is required');
+    
+    // Floor and unit validation (only required for building properties)
+    if (propertyLocation === 'building') {
+      if (!form.floorNumber || form.floorNumber < 0) {
+        errors.push('Floor number is required for building properties');
+      }
+      if (!form.unitNumber || !form.unitNumber.trim()) {
+        errors.push('Unit number is required for building properties');
       }
     }
     
@@ -323,6 +310,8 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
     return errors;
   };
 
+
+
   const handleSubmit = async e => {
     e.preventDefault();
     setLoading(true);
@@ -335,9 +324,64 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
       setLoading(false);
       return;
     }
+    
+    // Additional validation for building selection
+    if (propertyLocation === 'building' && !selectedBuilding && !showCreateBuilding) {
+      setError('Please select a building or choose to create a new one.');
+      setLoading(false);
+      return;
+    }
+    
+    if (showCreateBuilding) {
+      if (!buildingForm.name.trim() || !buildingForm.address.street.trim() || 
+          !buildingForm.address.city.trim() || !buildingForm.address.state.trim()) {
+        setError('Please fill in all required building information.');
+        setLoading(false);
+        return;
+      }
+    }
+
     try {
       const token = JSON.parse(localStorage.getItem('dwellSyncUser'))?.token;
       if (!token) throw new Error('No authentication token found');
+      
+      let buildingId = null;
+      
+      // For building properties, use selectedBuilding if available
+      if (propertyLocation === 'building' && selectedBuilding && selectedBuilding !== 'create_new') {
+        buildingId = selectedBuilding;
+      }
+      // For standalone properties, buildingId remains null
+      
+      // Create new building if needed
+      if (showCreateBuilding) {
+        const newBuildingData = {
+          ...buildingForm,
+          address: {
+            ...buildingForm.address,
+            fullAddress: `${buildingForm.address.street}, ${buildingForm.address.city}, ${buildingForm.address.state} ${buildingForm.address.zipCode}`.trim()
+          },
+          status: 'Active',
+          approvalStatus: 'Pending' // Requires admin approval
+        };
+        
+        const buildingResponse = await fetch(API.getUrl(API.endpoints.buildings), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(newBuildingData)
+        });
+        
+        if (!buildingResponse.ok) {
+          const buildingError = await buildingResponse.json();
+          throw new Error(buildingError.message || 'Failed to create building');
+        }
+        
+        const createdBuilding = await buildingResponse.json();
+        buildingId = createdBuilding._id;
+      }
       
       const formData = new FormData();
       
@@ -346,10 +390,13 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
       formData.append('listingType', form.listingType);
       formData.append('description', form.description);
       
-      // Building relationship
-      console.log('Form isStandalone:', form.isStandalone, 'Address:', form.address, 'BuildingId:', form.buildingId);
-      if (form.isStandalone === 'false' && form.buildingId) {
-        formData.append('buildingId', form.buildingId);
+      // Building relationship - only append buildingId if it exists (for building properties)
+      if (buildingId) {
+        formData.append('buildingId', buildingId);
+      }
+      
+      // Floor and unit information - only for building properties
+      if (buildingId) {
         if (form.floorNumber) formData.append('floorNumber', form.floorNumber);
         if (form.unitNumber) formData.append('unitNumber', form.unitNumber);
       }
@@ -418,16 +465,14 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
       
       formData.append('pricing', JSON.stringify(pricing));
       
-      // Location (for standalone properties)
-      if (form.isStandalone === 'true') {
-        const location = {
-          city: form.city,
-          state: form.state,
-          zipCode: form.zipCode,
-          country: 'Bangladesh'
-        };
-        formData.append('location', JSON.stringify(location));
-      }
+      // Location
+      const location = {
+        city: form.city,
+        state: form.state,
+        zipCode: form.zipCode,
+        country: 'Bangladesh'
+      };
+      formData.append('location', JSON.stringify(location));
       
       // Contact information
       const contactInfo = {
@@ -483,10 +528,33 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
         body: formData,
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to create property');
+      if (!res.ok) {
+        // Handle specific error messages from backend
+        let errorMessage = data.message || 'Failed to create property';
+        
+        // Check for duplicate key errors and provide user-friendly messages
+        if (errorMessage.includes('duplicate key') || errorMessage.includes('E11000')) {
+          if (errorMessage.includes('unitNumber') || errorMessage.includes('buildingId_1_unitNumber_1')) {
+            errorMessage = 'A property with this unit number already exists in the selected building. Please choose a different unit number.';
+          } else {
+            errorMessage = 'This property information already exists. Please check your input and try again.';
+          }
+        }
+        
+        throw new Error(errorMessage);
+      }
       onSuccess();
     } catch (err) {
-      setError(err.message);
+      // Enhanced error handling for network and other errors
+      let displayError = err.message;
+      
+      if (err.name === 'TypeError' && err.message.includes('fetch')) {
+        displayError = 'Network error. Please check your connection and try again.';
+      } else if (err.message.includes('JSON')) {
+        displayError = 'Server response error. Please try again.';
+      }
+      
+      setError(displayError);
     } finally {
       setLoading(false);
     }
@@ -496,6 +564,153 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
     <form className="create-listing-form" onSubmit={handleSubmit}>
       <h2>Create New Property Listing</h2>
         {error && <div className="form-error">{error}</div>}
+        
+        {/* Property Location Section */}
+        <div className="form-row">
+          <label>Property Location*</label>
+          <div className="radio-group">
+            <label>
+              <input
+                type="radio"
+                name="propertyLocation"
+                value="standalone"
+                checked={propertyLocation === 'standalone'}
+                onChange={handlePropertyLocationChange}
+              />
+              Standalone Property (Individual Address)
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="propertyLocation"
+                value="building"
+                checked={propertyLocation === 'building'}
+                onChange={handlePropertyLocationChange}
+              />
+              Part of Building/Complex
+            </label>
+          </div>
+        </div>
+        
+        {/* Building Selection */}
+        {propertyLocation === 'building' && (
+          <div className="form-row">
+            <label>Select Building*</label>
+            <select value={selectedBuilding} onChange={handleBuildingSelection} required>
+              <option value="">Select Building</option>
+              {ownerBuildings && ownerBuildings.length > 0 ? (
+                ownerBuildings.map(building => (
+                  <option key={building._id} value={building._id}>
+                    {building.name} - {building.address?.fullAddress || building.address?.street}
+                  </option>
+                ))
+              ) : (
+                <option disabled>No buildings found</option>
+              )}
+              <option value="create_new">Create New Building</option>
+            </select>
+          </div>
+        )}
+        
+        {/* Create New Building Form */}
+        {showCreateBuilding && (
+          <div className="create-building-section">
+            <h4>Create New Building</h4>
+            <div className="form-row">
+              <label>Building Name*</label>
+              <input
+                type="text"
+                name="name"
+                value={buildingForm.name}
+                onChange={handleBuildingFormChange}
+                placeholder="e.g., Sunrise Apartments"
+                required
+              />
+            </div>
+            <div className="form-row">
+              <label>Street Address*</label>
+              <input
+                type="text"
+                name="address.street"
+                value={buildingForm.address.street}
+                onChange={handleBuildingFormChange}
+                placeholder="e.g., 123 Main Street"
+                required
+              />
+            </div>
+            <div className="form-row">
+              <label>City*</label>
+              <input
+                type="text"
+                name="address.city"
+                value={buildingForm.address.city}
+                onChange={handleBuildingFormChange}
+                required
+              />
+            </div>
+            <div className="form-row">
+              <label>State*</label>
+              <input
+                type="text"
+                name="address.state"
+                value={buildingForm.address.state}
+                onChange={handleBuildingFormChange}
+                required
+              />
+            </div>
+            <div className="form-row">
+              <label>Zip Code*</label>
+              <input
+                type="text"
+                name="address.zipCode"
+                value={buildingForm.address.zipCode}
+                onChange={handleBuildingFormChange}
+                required
+              />
+            </div>
+            <div className="form-row">
+              <label>Year Built</label>
+              <input
+                type="number"
+                name="yearBuilt"
+                value={buildingForm.yearBuilt}
+                onChange={handleBuildingFormChange}
+              />
+            </div>
+            <div className="form-row">
+              <label>Total Floors</label>
+              <input
+                type="number"
+                name="totalFloors"
+                value={buildingForm.totalFloors}
+                onChange={handleBuildingFormChange}
+                min="1"
+              />
+            </div>
+            <div className="form-row">
+              <label>Building Description</label>
+              <textarea
+                name="description"
+                value={buildingForm.description}
+                onChange={handleBuildingFormChange}
+                placeholder="Brief description of the building..."
+                rows="3"
+              />
+            </div>
+            <div className="form-row">
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => {
+                  setShowCreateBuilding(false);
+                  setSelectedBuilding('');
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
         
         <div className="form-row">
           <label>Property Type*</label>
@@ -510,201 +725,43 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
         </div>
  
         <div className="form-row">
-          <label>Property Location</label>
-          <div className="radio-group">
-            <label>
-              <input
-                type="radio"
-                name="isStandalone"
-                value="true"
-                checked={form.isStandalone === 'true'}
-                onChange={handleChange}
-              />
-              Standalone Property (Individual Address)
-            </label>
-            <label>
-              <input
-                type="radio"
-                name="isStandalone"
-                value="false"
-                checked={form.isStandalone === 'false'}
-                onChange={handleChange}
-              />
-              Part of Building/Complex
-            </label>
-          </div>
+          <label>Address*</label>
+          <input 
+            name="address" 
+            value={form.address} 
+            onChange={handleChange} 
+            placeholder="e.g., 1234 Elm Street Apt 5B Springfield, IL 62704 United States"
+            required
+          />
         </div>
-        
-        {form.isStandalone === 'true' && (
-          <div className="form-row">
-            <label>Address*</label>
-            <input name="address" value={form.address} onChange={handleChange} required />
-          </div>
-        )}
 
-        {form.isStandalone === 'false' && (
-          <div className="form-row">
-            <label>Unit Address (Optional)</label>
-            <input 
-              name="address" 
-              value={form.address} 
-              onChange={handleChange} 
-              placeholder="e.g., Unit 5A, Apartment 201, etc."
-            />
-          </div>
-        )}
-
-      {form.isStandalone === 'false' && (
+        {propertyLocation === 'building' && (
           <>
             <div className="form-row">
-              <label>Select Building</label>
-              <select
-                name="buildingId"
-                value={form.buildingId}
+              <label>Floor Number*</label>
+              <input
+                type="number"
+                name="floorNumber"
+                value={form.floorNumber}
                 onChange={handleChange}
-                required={form.isStandalone === 'false' && !showCreateBuilding}
-              >
-                <option value="">Select Building</option>
-                {buildings.map(building => (
-                  <option key={building._id} value={building._id}>
-                    {building.name} - {building.address.street}, {building.address.city}
-                  </option>
-                ))}
-              </select>
-              {loadingBuildings && <small>Loading buildings...</small>}
+                min="0"
+                placeholder="e.g., 5"
+                required
+              />
             </div>
-            
             <div className="form-row">
-              <button
-                type="button"
-                onClick={() => setShowCreateBuilding(!showCreateBuilding)}
-                className="btn-secondary"
-              >
-                {showCreateBuilding ? 'Cancel' : 'Create New Building'}
-              </button>
+              <label>Unit Number*</label>
+              <input
+                type="text"
+                name="unitNumber"
+                value={form.unitNumber}
+                onChange={handleChange}
+                placeholder="e.g., 5A, 501, etc."
+                required
+              />
             </div>
-            
-            {showCreateBuilding && (
-              <div className="create-building-section">
-                <h4>Create New Building</h4>
-                <div className="form-row">
-                  <label>Building Name*</label>
-                  <input
-                    name="name"
-                    value={newBuilding.name}
-                    onChange={handleNewBuildingChange}
-                    required
-                    placeholder="e.g., Sunrise Apartments"
-                  />
-                </div>
-                <div className="form-row">
-                  <label>Street Address*</label>
-                  <input
-                    name="street"
-                    value={newBuilding.street}
-                    onChange={handleNewBuildingChange}
-                    required
-                    placeholder="e.g., 123 Main Street"
-                  />
-                </div>
-                <div className="form-row">
-                  <label>City*</label>
-                  <input
-                    name="city"
-                    value={newBuilding.city}
-                    onChange={handleNewBuildingChange}
-                    required
-                  />
-                </div>
-                <div className="form-row">
-                  <label>State*</label>
-                  <input
-                    name="state"
-                    value={newBuilding.state}
-                    onChange={handleNewBuildingChange}
-                    required
-                  />
-                </div>
-                <div className="form-row">
-                  <label>Zip Code*</label>
-                  <input
-                    name="zipCode"
-                    value={newBuilding.zipCode}
-                    onChange={handleNewBuildingChange}
-                    required
-                  />
-                </div>
-                <div className="form-row">
-                  <label>Year Built</label>
-                  <input
-                    name="yearBuilt"
-                    type="number"
-                    value={newBuilding.yearBuilt}
-                    onChange={handleNewBuildingChange}
-                    min="1800"
-                    max={new Date().getFullYear()}
-                  />
-                </div>
-                <div className="form-row">
-                  <label>Total Floors</label>
-                  <input
-                    name="totalFloors"
-                    type="number"
-                    value={newBuilding.totalFloors}
-                    onChange={handleNewBuildingChange}
-                    min="1"
-                  />
-                </div>
-                <div className="form-row">
-                  <label>Building Description</label>
-                  <textarea
-                    name="description"
-                    value={newBuilding.description}
-                    onChange={handleNewBuildingChange}
-                    rows="3"
-                    placeholder="Brief description of the building..."
-                  />
-                </div>
-                <div className="form-row">
-                  <button
-                    type="button"
-                    onClick={handleCreateBuilding}
-                    className="btn-primary"
-                    disabled={!newBuilding.name || !newBuilding.street || !newBuilding.city || !newBuilding.state || !newBuilding.zipCode}
-                  >
-                    Create Building
-                  </button>
-                </div>
-              </div>
-            )}
           </>
         )}
-
-      {form.isStandalone === 'false' && form.buildingId && (
-        <>
-          <div className="form-row">
-            <label>Floor Number</label>
-            <input
-              type="number"
-              name="floorNumber"
-              value={form.floorNumber}
-              onChange={handleChange}
-              min="0"
-              placeholder="e.g., 5"
-            />
-          </div>
-          <div className="form-row">
-            <label>Unit Number</label>
-            <input
-              type="text"
-              name="unitNumber"
-              value={form.unitNumber}
-              onChange={handleChange}
-              placeholder="e.g., 5A, 501, etc."
-            />
-          </div>
-        </>
-      )}
       <div className="form-row">
         <label>Bedrooms*</label>
         <input name="bedrooms" type="number" value={form.bedrooms} onChange={handleChange} required />

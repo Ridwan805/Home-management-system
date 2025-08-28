@@ -90,7 +90,7 @@ const HomePage = () => {
                 <div className="property-card" key={prop._id} onClick={() => navigate(`/properties/${prop._id}`)}>
                   <div className="property-image-container">
                     <img 
-                      src={prop.images && prop.images.length > 0 ? `http://localhost:5001${prop.images[0]}` : 'https://via.placeholder.com/400x300'} 
+                      src={prop.images && prop.images.length > 0 ? `http://localhost:5001${prop.images[0]}` : 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='} 
                       alt={prop.address} 
                       className="property-image" 
                     />
@@ -101,11 +101,11 @@ const HomePage = () => {
                     <div className="property-type-badge">{prop.listingType}</div>
                   </div>
                   <div className="property-details">
-                    <h3 className="property-price">৳{prop.price.toLocaleString()}</h3>
+                    <h3 className="property-price">৳{prop.price ? prop.price.toLocaleString() : 'Price not available'}</h3>
                     <p className="property-specs">
-                      <span className="spec"><strong>{prop.bedrooms}</strong> beds</span>
-                      <span className="spec"><strong>{prop.bathrooms}</strong> baths</span>
-                      <span className="spec"><strong>{prop.squareFootage}</strong> sqft</span>
+                      <span className="spec"><strong>{prop.specifications?.bedrooms || 'N/A'}</strong> beds</span>
+                      <span className="spec"><strong>{prop.specifications?.bathrooms || 'N/A'}</strong> baths</span>
+                      <span className="spec"><strong>{prop.specifications?.squareFootage || 'N/A'}</strong> sqft</span>
                     </p>
                     <p className="property-address">{prop.address}</p>
                     <p className="property-type">{prop.propertyType}</p>

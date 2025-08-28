@@ -186,6 +186,11 @@ export default {
     paymentHistory: '/api/payments/history',
     paymentDetails: (paymentId) => `/api/payments/${paymentId}`,
     
+    // Building endpoints
+    buildings: '/api/buildings',
+    buildingById: (id) => `/api/buildings/${id}`,
+    ownerBuildings: '/api/buildings/owner',
+    
     // Admin endpoints
     adminStats: '/api/admin/dashboard/stats',
     adminUsers: '/api/admin/users',

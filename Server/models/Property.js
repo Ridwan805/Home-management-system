@@ -178,21 +178,7 @@ const PropertySchema = new mongoose.Schema({
     }
   },
   
-  // Legacy price field (kept for backward compatibility)
-  price: { 
-    type: Number,
-    get: function() { 
-      return this.listingType === 'For Rent' ? this.pricing?.rent : this.pricing?.sale;
-    },
-    set: function(value) {
-      if (!this.pricing) this.pricing = {};
-      if (this.listingType === 'For Rent') {
-        this.pricing.rent = value;
-      } else {
-        this.pricing.sale = value;
-      }
-    }
-  },
+  // Note: price field is now a virtual field, defined after schema
   
   // Property description and features
   description: { type: String, maxlength: 2000 },
@@ -216,22 +202,7 @@ const PropertySchema = new mongoose.Schema({
     }
   },
   
-  // Legacy images field (kept for backward compatibility)
-  images: { 
-    type: [String], 
-    default: [],
-    get: function() {
-      return this.media?.images?.map(img => img.url) || [];
-    },
-    set: function(urls) {
-      if (!this.media) this.media = {};
-      this.media.images = urls.map((url, index) => ({
-        url,
-        order: index,
-        isPrimary: index === 0
-      }));
-    }
-  },
+
   
   // Enhanced status with proper enum
   status: { 
@@ -407,7 +378,17 @@ PropertySchema.index({ 'specifications.bedrooms': 1, 'specifications.bathrooms':
 PropertySchema.index({ propertyType: 1, status: 1 });
 PropertySchema.index({ state: 1 });
 PropertySchema.index({ buildingId: 1, floorNumber: 1 });
-PropertySchema.index({ buildingId: 1, unitNumber: 1 }, { unique: true, sparse: true });
+// Compound index for building-unit uniqueness, but only when both fields are not null
+PropertySchema.index(
+  { buildingId: 1, unitNumber: 1 }, 
+  { 
+    unique: true, 
+    partialFilterExpression: { 
+      buildingId: { $ne: null }, 
+      unitNumber: { $ne: null, $ne: "" } 
+    } 
+  }
+);
 PropertySchema.index({ 'location.coordinates': '2dsphere' });
 
 // Legacy indexes (kept for backward compatibility)
@@ -460,19 +441,7 @@ PropertySchema.pre('save', function(next) {
     if (this.contactInfo.phone) this.contactPhone = this.contactInfo.phone;
   }
   
-  // Sync legacy media fields
-  if (this.media && this.media.images) {
-    this.images = this.media.images.map(img => img.url);
-  }
-  
-  // Sync legacy price field
-  if (this.pricing) {
-    if (this.listingType === 'For Rent' && this.pricing.rent) {
-      this.price = this.pricing.rent;
-    } else if (this.listingType === 'For Sale' && this.pricing.sale) {
-      this.price = this.pricing.sale;
-    }
-  }
+  // Note: images and price fields are now virtual fields, no sync needed
   
   // Validate building-unit constraints
   if (this.buildingId && this.propertyType === 'apartment_unit' && !this.unitNumber) {
@@ -526,6 +495,34 @@ PropertySchema.virtual('displayName').get(function() {
   
   return this.address || `${this.propertyType} Property`;
 });
+
+// Virtual for legacy images field (kept for backward compatibility)
+PropertySchema.virtual('images')
+  .get(function() {
+    return this.media?.images?.map(img => img.url) || [];
+  })
+  .set(function(urls) {
+    if (!this.media) this.media = {};
+    this.media.images = urls.map((url, index) => ({
+      url,
+      order: index,
+      isPrimary: index === 0
+    }));
+  });
+
+// Virtual for legacy price field (kept for backward compatibility)
+PropertySchema.virtual('price')
+  .get(function() {
+    return this.listingType === 'For Rent' ? this.pricing?.rent : this.pricing?.sale;
+  })
+  .set(function(value) {
+    if (!this.pricing) this.pricing = {};
+    if (this.listingType === 'For Rent') {
+      this.pricing.rent = value;
+    } else {
+      this.pricing.sale = value;
+    }
+  });
 
 // Instance methods for state transitions
 PropertySchema.methods.reserve = function(userId, reason = 'Property reserved', metadata = {}) {
