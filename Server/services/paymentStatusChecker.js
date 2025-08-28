@@ -5,6 +5,7 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const Request = require('../models/Request');
 const Payment = require('../models/Payment');
+const Property = require('../models/Property');
 // Long polling functionality removed
 
 class PaymentStatusChecker {
@@ -113,6 +114,52 @@ class PaymentStatusChecker {
         await payment.save();
         console.log(`💾 Payment record updated for ${payment.paymentId}`, {
           historyEntries: payment.history.length
+        });
+      }
+      
+      // Automatically update property status based on listing type
+      try {
+        console.log('🏠 [STATUS_CHECKER] Updating property status after advance payment...');
+        const property = await Property.findById(request.propertyId);
+        
+        if (property) {
+          const listingType = property.listingType;
+          let newStatus;
+          
+          if (listingType === 'For Sale') {
+            newStatus = 'Sold';
+          } else if (listingType === 'For Rent') {
+            newStatus = 'Rented';
+          }
+          
+          if (newStatus) {
+             // Use the property's state machine method to update status
+             if (newStatus === 'Sold') {
+               await property.sell(request.tenantId, request.tenantId, `Automatically set to Sold after advance payment completion for request ${request._id} (via status checker)`);
+             } else if (newStatus === 'Rented') {
+               // For rent, we need to create or link to a rent record
+               // For now, we'll use null as rentId since the rent record creation is handled elsewhere
+               await property.rent(request.tenantId, null, `Automatically set to Rented after advance payment completion for request ${request._id} (via status checker)`);
+             }
+            
+            console.log('✅ [STATUS_CHECKER] Property status updated successfully', {
+              propertyId: property._id,
+              listingType,
+              newStatus,
+              requestId: request._id
+            });
+          } else {
+            console.log('⚠️ [STATUS_CHECKER] No status update needed for listing type:', listingType);
+          }
+        } else {
+          console.error('❌ [STATUS_CHECKER] Property not found for status update:', request.propertyId);
+        }
+      } catch (propertyUpdateErr) {
+        console.error('❌ [STATUS_CHECKER] Failed to update property status:', {
+          error: propertyUpdateErr.message,
+          stack: propertyUpdateErr.stack,
+          requestId: request._id,
+          propertyId: request.propertyId
         });
       }
       

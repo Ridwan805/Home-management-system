@@ -110,6 +110,9 @@ app.use('/api/stripe', stripeRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/notifications', notificationRoutes);
 
+// Test endpoint for property status updates
+const testPropertyUpdateEndpoint = require('./test-property-update-endpoint');
+app.use('/api/test', testPropertyUpdateEndpoint);
 
 // Request-management routes will be mounted after admin routes to avoid conflicts
 // Ensure uploads directory exists and serve it statically
