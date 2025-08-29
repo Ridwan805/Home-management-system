@@ -431,7 +431,7 @@ PropertySchema.pre('save', function(next) {
   // Sync legacy location fields
   if (this.location) {
     if (this.location.city) this.city = this.location.city;
-    if (this.location.state) this.state = this.location.state;
+    // Skip syncing location.state to avoid conflict with property status state
     if (this.location.zipCode) this.zipCode = this.location.zipCode;
   }
   

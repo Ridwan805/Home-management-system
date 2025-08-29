@@ -2,6 +2,7 @@ const Request = require('../models/Request');
 const Property = require('../models/Property');
 const User = require('../models/User');
 const Payment = require('../models/Payment');
+const Rent = require('../models/Rent');
 
 // Get all requests for the authenticated tenant
 const getMyRequests = async (req, res) => {
@@ -233,6 +234,64 @@ const updateRequestStatus = async (req, res) => {
       timestamp: new Date(),
       note: eventNote
     });
+    
+    // Create Rent object when transitioning from 'AdvancePaid' to 'Paid/Completed'
+    if (oldStatus === 'AdvancePaid' && status === 'Paid/Completed' && request.requestType === 'Rent') {
+      try {
+        const property = await Property.findById(request.propertyId);
+        if (property) {
+          const rentData = {
+            propertyId: request.propertyId,
+            ownerId: request.ownerId,
+            tenants: [request.tenantId],
+            requestId: request._id,
+            term: {
+              type: 'fixed',
+              startDate: new Date(),
+              endDate: null,
+              noticeDays: 30
+            },
+            rent: {
+              amount: property.pricing?.rent || property.rent || 0,
+              currency: 'BDT',
+              dueDay: 1,
+              graceDays: 5,
+              lateFee: null
+            },
+            securityDeposit: {
+              amount: request.advancePayment?.amount || 0, // Use advance payment as security deposit
+              held: 0,
+              releasedAt: null,
+              deductions: []
+            },
+            billing: {
+              frequency: 'monthly',
+              nextInvoiceDate: new Date(),
+              autoGenerate: true
+            },
+            status: 'Active'
+          };
+          
+          const newRent = new Rent(rentData);
+          await newRent.save();
+          
+          // Link rent to request
+          request.rentId = newRent._id;
+          
+          // Update property status to 'Rented' and link to rent
+          property.status = 'Rented';
+          property.currentRentId = newRent._id;
+          property.rentedAt = new Date();
+          await property.save();
+          
+          console.log('✅ Rent object created successfully:', newRent._id);
+          console.log('✅ Property status updated to Rented');
+        }
+      } catch (rentError) {
+        console.error('❌ Error creating Rent object:', rentError);
+        // Don't fail the whole operation if rent creation fails
+      }
+    }
     
     await request.save();
     
