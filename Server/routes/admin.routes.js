@@ -25,4 +25,11 @@ router.get('/reports', isAdmin, adminController.getAllReports);
 router.delete('/reports/:id', isAdmin, adminController.deleteReport);
 router.put('/reports/:id/escalate', isAdmin, adminController.escalateReport);
 
+// Request management routes
+router.get('/requests', isAdmin, adminController.getAllRequests);
+router.delete('/requests/:id', isAdmin, adminController.deleteRequest);
+
+// Property cleanup route
+router.post('/cleanup-properties', isAdmin, adminController.cleanupOrphanedProperties);
+
 module.exports = router;

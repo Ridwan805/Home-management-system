@@ -155,7 +155,21 @@ const createRequest = async (req, res) => {
 
     // Check if user is trying to request their own property
     if (ownerId.toString() === tenantId) {
-      return res.status(400).json({ message: 'Cannot request your own property' });
+      console.log('🚫 OWNERSHIP CONFLICT DETECTED:');
+      console.log('   Property ID:', propertyId);
+      console.log('   Property Description:', property.description);
+      console.log('   Property Owner ID:', ownerId.toString());
+      console.log('   Requesting User ID:', tenantId);
+      console.log('   Request Type:', requestType);
+      return res.status(400).json({ 
+        message: 'Cannot request your own property',
+        debug: {
+          propertyId,
+          propertyDescription: property.description,
+          ownerId: ownerId.toString(),
+          requestingUserId: tenantId
+        }
+      });
     }
 
     // Check if there's already an active request for this property by this tenant
@@ -400,6 +414,7 @@ const updateRequestStatus = async (req, res) => {
             // Create rent contract
             const rentData = {
               propertyId: request.propertyId,
+              ownerId: request.ownerId,
               tenants: [request.tenantId],
               rent: {
                 amount: request.payload?.financials?.monthlyRent || property.price,
@@ -440,21 +455,19 @@ const updateRequestStatus = async (req, res) => {
               note: `Rent contract ${rent._id} created and property status changed to Rented`
             });
             
-          } else if (request.requestType === 'Purchase') {
+          } else if (request.requestType === 'Purchase' || request.requestType === 'Buy') {
             // Create ownership transfer
             const transferData = {
               propertyId: request.propertyId,
               sellerId: request.ownerId,
               buyerId: request.tenantId,
-              salePrice: {
-                amount: request.payload?.financials?.offerPrice || property.price,
-                currency: 'BDT'
-              },
-              deposit: {
+              agreedPrice: request.payload?.financials?.offerPrice || property.price,
+              currency: 'BDT',
+              downPayment: {
                 amount: request.advancePayment?.amount || 0,
-                currency: 'BDT',
                 paidAt: new Date()
-              }
+              },
+              requestId: request._id
             };
             
             const transfer = new OwnershipTransfer(transferData);
@@ -464,7 +477,7 @@ const updateRequestStatus = async (req, res) => {
             await transfer.close(userId, 'Ownership transfer completed after payment verification');
             
             // Link request to ownership transfer
-            request.linkedOwnershipTransferId = transfer._id;
+            request.ownershipTransferId = transfer._id;
             
             // Add timeline event
             request.timeline.push({

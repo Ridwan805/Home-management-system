@@ -569,9 +569,79 @@ const handlePaymentSuccess = async (session) => {
            if (newStatus === 'Sold') {
              await property.sell(tenantId, tenantId, `Automatically set to Sold after advance payment completion for request ${requestId}`);
            } else if (newStatus === 'Rented') {
-             // For rent, we need to create or link to a rent record
-             // For now, we'll use null as rentId since the rent record creation is handled elsewhere
-             await property.rent(tenantId, null, `Automatically set to Rented after advance payment completion for request ${requestId}`);
+             // Create rent record for rental properties
+             try {
+               const Rent = require('../models/Rent');
+               
+               // Check if rent record already exists for this request
+               let existingRent = await Rent.findOne({ 
+                 propertyId: request.propertyId,
+                 requestId: request._id,
+                 status: { $in: ['Pending', 'Active'] }
+               });
+               
+               if (!existingRent) {
+                 console.log('🏠 [WEBHOOK] Creating rent record for rental property...');
+                 
+                 const rentData = {
+                   propertyId: request.propertyId,
+                   ownerId: request.ownerId,
+                   tenants: [tenantId],
+                   requestId: request._id,
+                   rent: {
+                     amount: request.payload?.financials?.monthlyRent || property.price,
+                     currency: 'BDT',
+                     dueDay: 1,
+                     graceDays: 5
+                   },
+                   term: {
+                     type: 'fixed',
+                     startDate: new Date(),
+                     endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year default
+                     noticeDays: 30
+                   },
+                   securityDeposit: {
+                     amount: request.advancePayment?.amount || 0,
+                     held: request.advancePayment?.amount || 0
+                   },
+                   billing: {
+                     frequency: 'monthly',
+                     nextInvoiceDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Next month
+                     autoGenerate: true
+                   },
+                   status: 'Active'
+                 };
+                 
+                 const rent = new Rent(rentData);
+                 await rent.save();
+                 
+                 console.log('✅ [WEBHOOK] Rent record created successfully', {
+                   rentId: rent._id,
+                   propertyId: property._id,
+                   tenantId,
+                   requestId
+                 });
+                 
+                 // Update property with rent record
+                 await property.rent(tenantId, rent._id, `Automatically set to Rented after advance payment completion for request ${requestId}`);
+                 
+                 // Link rent to request
+                 request.linkedRentId = rent._id;
+                 await request.save();
+               } else {
+                 console.log('✅ [WEBHOOK] Rent record already exists, updating property status only');
+                 await property.rent(tenantId, existingRent._id, `Automatically set to Rented after advance payment completion for request ${requestId}`);
+               }
+             } catch (rentCreationErr) {
+               console.error('❌ [WEBHOOK] Failed to create rent record:', {
+                 error: rentCreationErr.message,
+                 stack: rentCreationErr.stack,
+                 requestId,
+                 propertyId: request.propertyId
+               });
+               // Still update property status even if rent creation fails
+               await property.rent(tenantId, null, `Automatically set to Rented after advance payment completion for request ${requestId}`);
+             }
            }
           
           console.log('✅ [WEBHOOK] Property status updated successfully', {
@@ -772,6 +842,90 @@ const handleFullPaymentSuccess = async (session) => {
         requestId
       });
     }
+    
+    // Create rent record for rental properties after full payment
+    try {
+      console.log('🏠 [WEBHOOK] Checking if rent record needs to be created for full payment...');
+      const property = await Property.findById(request.propertyId);
+      
+      if (property && property.listingType === 'For Rent') {
+        const Rent = require('../models/Rent');
+        
+        // Check if rent record already exists for this request
+        let existingRent = await Rent.findOne({ 
+          propertyId: request.propertyId,
+          requestId: request._id,
+          status: { $in: ['Pending', 'Active'] }
+        });
+        
+        if (!existingRent) {
+          console.log('🏠 [WEBHOOK] Creating rent record for full payment on rental property...');
+          
+          const rentData = {
+            propertyId: request.propertyId,
+            ownerId: request.ownerId,
+            tenants: [tenantId],
+            requestId: request._id,
+            rent: {
+              amount: request.payload?.financials?.monthlyRent || property.price,
+              currency: 'BDT',
+              dueDay: 1,
+              graceDays: 5
+            },
+            term: {
+              type: 'fixed',
+              startDate: new Date(),
+              endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year default
+              noticeDays: 30
+            },
+            securityDeposit: {
+              amount: request.fullPayment?.amount || 0,
+              held: request.fullPayment?.amount || 0
+            },
+            billing: {
+              frequency: 'monthly',
+              nextInvoiceDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Next month
+              autoGenerate: true
+            },
+            status: 'Active'
+          };
+          
+          const rent = new Rent(rentData);
+          await rent.save();
+          
+          console.log('✅ [WEBHOOK] Rent record created successfully for full payment', {
+            rentId: rent._id,
+            propertyId: property._id,
+            tenantId,
+            requestId
+          });
+          
+          // Update property status to Rented with rent record
+          await property.rent(tenantId, rent._id, `Automatically set to Rented after full payment completion for request ${requestId}`);
+          
+          // Link rent to request
+          request.linkedRentId = rent._id;
+          await request.save();
+          
+          console.log('✅ [WEBHOOK] Property status updated to Rented with rent record linked');
+        } else {
+          console.log('✅ [WEBHOOK] Rent record already exists for full payment, updating property status only');
+          await property.rent(tenantId, existingRent._id, `Automatically set to Rented after full payment completion for request ${requestId}`);
+        }
+      } else if (property && property.listingType === 'For Sale') {
+        // Update property status to Sold for sale properties
+        await property.sell(tenantId, tenantId, `Automatically set to Sold after full payment completion for request ${requestId}`);
+        console.log('✅ [WEBHOOK] Property status updated to Sold for sale property');
+      }
+    } catch (rentCreationErr) {
+      console.error('❌ [WEBHOOK] Failed to create rent record for full payment:', {
+        error: rentCreationErr.message,
+        stack: rentCreationErr.stack,
+        requestId,
+        propertyId: request.propertyId
+      });
+    }
+    
     console.log('✅ [WEBHOOK] Full payment processed successfully for request:', {
       requestId,
       status: request.status,

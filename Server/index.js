@@ -9,6 +9,10 @@ const fs = require('fs');
 const PaymentScheduler = require('./services/paymentScheduler');
 // Invoice service for automatic invoice generation
 const InvoiceService = require('./services/invoiceService');
+// Scheduled jobs service for automated tasks
+const ScheduledJobsService = require('./services/scheduledJobs');
+// Periodic property cleanup service for orphaned properties
+const PeriodicPropertyCleanup = require('./utils/periodicPropertyCleanup');
 
 const app = express();
 
@@ -58,6 +62,9 @@ mongoose.connect(mongoUrl)
     console.log('✅ MongoDB connected successfully');
     console.log('Database:', mongoose.connection.db.databaseName);
     console.log('Connection URL:', mongoUrl);
+    PaymentScheduler.start();
+    InvoiceService.initializeCronJobs();
+    ScheduledJobsService.init();
   })
   .catch(err => {
     console.error('❌ MongoDB connection error:', err);
@@ -74,6 +81,7 @@ const requestRoutes = require('./routes/request.routes');
 const stripeRoutes = require('./routes/stripe.routes');
 const uploadRoutes = require('./routes/upload.routes');
 const notificationRoutes = require('./routes/notifications');
+const debugRoutes = require('./routes/debug');
 
 
 let requestManagementRoutes;
@@ -109,10 +117,9 @@ app.use('/api/requests', requestRoutes);
 app.use('/api/stripe', stripeRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/debug', debugRoutes);
 
-// Test endpoint for property status updates
-const testPropertyUpdateEndpoint = require('./test-property-update-endpoint');
-app.use('/api/test', testPropertyUpdateEndpoint);
+
 
 // Request-management routes will be mounted after admin routes to avoid conflicts
 // Ensure uploads directory exists and serve it statically
@@ -180,4 +187,8 @@ app.listen(PORT, () => {
   // Initialize invoice service cron jobs
   InvoiceService.initializeCronJobs();
   console.log('🧾 Invoice service cron jobs initialized');
+  
+  // Start periodic property cleanup (runs every 15 seconds)
+  PeriodicPropertyCleanup.start('*/15 * * * * *');
+  console.log('🧹 Periodic property cleanup service started');
 });

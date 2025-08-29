@@ -3,6 +3,7 @@ const Admin = require('../models/Admin');
 const Property = require('../models/Property');
 const User = require('../models/User');
 const Report = require('../models/Report');
+const Request = require('../models/Request');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
@@ -334,4 +335,138 @@ exports.escalateReport = async (req, res) => {
     console.error('Error escalating report:', err);
     res.status(500).json({ message: 'Failed to escalate report' });
   }
+};
+
+// Delete request (Admin only)
+exports.deleteRequest = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Find the request with property information
+    const request = await Request.findById(id).populate('propertyId');
+
+    if (!request) {
+      return res.status(404).json({ message: 'Request not found' });
+    }
+
+    // Store property reference before deletion
+    const property = request.propertyId;
+    const requestStatus = request.status;
+    const adminId = req.user?.userId || req.admin?.id;
+
+    // Delete the request from database
+    await Request.findByIdAndDelete(id);
+
+    // Reset property status to 'Available' if it was reserved for this request
+    if (property && property.status === 'Reserved') {
+      try {
+        // Check if there are any other active requests for this property
+        const otherActiveRequests = await Request.find({
+          propertyId: property._id,
+          status: { $nin: ['Rejected', 'Canceled', 'Expired', 'Paid/Completed'] }
+        });
+
+        // If no other active requests, make property available
+        if (otherActiveRequests.length === 0) {
+          await property.makeAvailable(adminId, 'Request deleted by admin - property made available again');
+          console.log(`Property ${property._id} status reset to Available after request deletion`);
+        }
+      } catch (error) {
+        console.error('Error resetting property status after request deletion:', error);
+        // Continue with deletion even if property status update fails
+      }
+    }
+
+    res.json({ 
+      message: 'Request deleted successfully',
+      propertyStatusReset: property?.status === 'Reserved'
+    });
+  } catch (err) {
+    console.error('Error deleting request:', err);
+    res.status(500).json({ message: 'Failed to delete request' });
+  }
+};
+
+// Get all requests (Admin only)
+exports.getAllRequests = async (req, res) => {
+  try {
+    const { status, requestType, page = 1, limit = 20 } = req.query;
+    
+    // Build filter
+    let filter = {};
+    if (status) filter.status = status;
+    if (requestType) filter.requestType = requestType;
+
+    const skip = (page - 1) * limit;
+
+    const requests = await Request.find(filter)
+      .populate('propertyId', 'address city state rent buyPrice images status')
+      .populate('tenantId', 'firstName lastName email phoneNumber')
+      .populate('ownerId', 'firstName lastName email phoneNumber')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const total = await Request.countDocuments(filter);
+
+    res.json({
+      requests,
+      pagination: {
+        current: parseInt(page),
+        total: Math.ceil(total / limit),
+        count: total
+      }
+    });
+  } catch (err) {
+    console.error('Error fetching requests:', err);
+    res.status(500).json({ message: 'Failed to fetch requests' });
+  }
+};
+
+// Manual property cleanup endpoint for admins
+exports.cleanupOrphanedProperties = async (req, res) => {
+  try {
+    const PropertyCleanupService = require('../services/propertyCleanupService');
+    
+    console.log('🧹 Admin triggered property cleanup...');
+    const result = await PropertyCleanupService.cleanupOrphanedProperties({
+      triggeredBy: req.user?.id || 'admin-manual',
+      source: 'admin-endpoint'
+    });
+    
+    res.status(200).json({
+      success: true,
+      message: 'Property cleanup completed successfully',
+      data: {
+        propertiesChecked: result.propertiesChecked,
+        propertiesReset: result.propertiesReset,
+        resetProperties: result.resetProperties
+      }
+    });
+  } catch (error) {
+    console.error('Error during property cleanup:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to cleanup orphaned properties',
+      error: error.message
+    });
+  }
+};
+
+module.exports = {
+  adminLogin: exports.adminLogin,
+  getDashboardMetrics: exports.getDashboardMetrics,
+  getPendingProperties: exports.getPendingProperties,
+  approveProperty: exports.approveProperty,
+  getAllUsers: exports.getAllUsers,
+  banUser: exports.banUser,
+  unbanUser: exports.unbanUser,
+  deleteProperty: exports.deleteProperty,
+  deleteUser: exports.deleteUser,
+  getAllReports: exports.getAllReports,
+  deleteReport: exports.deleteReport,
+  escalateReport: exports.escalateReport,
+  deleteRequest: exports.deleteRequest,
+  getAllRequests: exports.getAllRequests,
+  cleanupOrphanedProperties: exports.cleanupOrphanedProperties
 };

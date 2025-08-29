@@ -144,25 +144,25 @@ class InvoiceService {
         dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
         lineItems: [{
           description: `Property purchase: ${transfer.propertyId.title}`,
-          amount: transfer.salePrice.amount,
-          currency: transfer.salePrice.currency,
+          amount: transfer.agreedPrice,
+          currency: transfer.currency,
           category: 'Purchase'
         }],
-        totalAmount: transfer.salePrice.amount,
-        currency: transfer.salePrice.currency,
+        totalAmount: transfer.agreedPrice,
+        currency: transfer.currency,
         status: 'Pending',
         createdBy: userId
       };
       
       // Subtract any deposit already paid
-      if (transfer.deposit && transfer.deposit.amount > 0) {
+      if (transfer.downPayment && transfer.downPayment.amount > 0) {
         invoiceData.lineItems.push({
           description: 'Deposit credit',
-          amount: -transfer.deposit.amount,
-          currency: transfer.deposit.currency,
+          amount: -transfer.downPayment.amount,
+          currency: transfer.currency,
           category: 'Credit'
         });
-        invoiceData.totalAmount -= transfer.deposit.amount;
+        invoiceData.totalAmount -= transfer.downPayment.amount;
       }
       
       const invoice = new Invoice(invoiceData);

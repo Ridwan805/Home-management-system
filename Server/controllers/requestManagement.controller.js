@@ -165,7 +165,7 @@ const updateRequestStatus = async (req, res) => {
     const { status, note = '', reason = '' } = req.body;
     const userId = req.user.userId;
     
-    const request = await Request.findById(requestId);
+    const request = await Request.findById(requestId).populate('propertyId', 'price');
     
     if (!request) {
       return res.status(404).json({

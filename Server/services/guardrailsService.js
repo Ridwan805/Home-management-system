@@ -193,7 +193,9 @@ class GuardrailsService {
   static async canUserRequestProperty(userId, propertyId) {
     try {
       const user = await User.findById(userId);
-      const property = await Property.findById(propertyId);
+      const property = await Property.findById(propertyId)
+        .populate('ownerUserId')
+        .populate('owner'); // Keep for backward compatibility
 
       if (!user || !property) {
         return { allowed: false, reason: 'User or property not found' };
@@ -209,8 +211,9 @@ class GuardrailsService {
         return { allowed: false, reason: 'Property is not available' };
       }
 
-      // Check if user is the owner of the property
-      if (property.owner && property.owner.toString() === userId) {
+      // Check if user is the owner of the property (use same logic as request controller)
+      const ownerId = property.ownerUserId?._id || property.owner?._id;
+      if (ownerId && ownerId.toString() === userId) {
         return { allowed: false, reason: 'Cannot request your own property' };
       }
 

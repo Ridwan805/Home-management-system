@@ -21,6 +21,7 @@ import Payment from './Dashboard/OwnerProfile/Payment';
 
 // ✅ ADD THIS IMPORT
 import AdminDashboard from './Dashboard/AdminDashboard/AdminDashboard';
+import TestPropertyListing from './components/TestPropertyListing';
  
 
 // Session context for login state
@@ -261,6 +262,9 @@ function AppRoutes() {
 
         {/* ✅ Admin Dashboard Route */}
         <Route path="/admin/*" element={<AdminDashboard />} />
+        
+        {/* Test Route for PropertyListing Debug */}
+        <Route path="/test-property-listing" element={<TestPropertyListing />} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" />} />

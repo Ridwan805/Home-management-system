@@ -17,7 +17,7 @@ const createRent = async (req, res) => {
       securityDeposit,
       billing
     } = req.body;
-    const ownerId = req.user.userId;
+    const currentUserId = req.user.userId;
 
     // Validate property exists and is owned by user
     const property = await Property.findById(propertyId);
@@ -25,7 +25,14 @@ const createRent = async (req, res) => {
       return res.status(404).json({ message: 'Property not found' });
     }
 
-    if (property.ownerUserId?.toString() !== ownerId) {
+    // Get the actual property owner ID
+    const propertyOwnerId = property.ownerUserId?._id || property.ownerUserId || property.owner;
+    if (!propertyOwnerId) {
+      return res.status(400).json({ message: 'Property owner information is missing' });
+    }
+
+    // Only the property owner can create rent contracts
+    if (propertyOwnerId.toString() !== currentUserId) {
       return res.status(403).json({ message: 'Not authorized to create rent for this property' });
     }
 
@@ -59,7 +66,7 @@ const createRent = async (req, res) => {
     // Create rent contract
     const newRent = new Rent({
       propertyId,
-      ownerId,
+      ownerId: propertyOwnerId,
       tenants: Array.isArray(tenants) ? tenants : [tenants],
       requestId,
       term: {

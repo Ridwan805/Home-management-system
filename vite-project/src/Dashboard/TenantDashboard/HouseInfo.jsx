@@ -35,7 +35,36 @@ const HouseInfo = () => {
       }
 
       const data = await response.json();
-      setAssignedProperties(data.assignments || []);
+      // Handle the correct response structure from backend
+      const allAssignments = [];
+      
+      // Add rented properties
+      if (data.assignments?.rentedProperties) {
+        data.assignments.rentedProperties.forEach(item => {
+          allAssignments.push({
+            ...item.property,
+            assignmentType: 'Rent',
+            assignedAt: item.rent.startDate,
+            status: item.rent.status,
+            owner: item.property.ownerUserId
+          });
+        });
+      }
+      
+      // Add owned properties
+      if (data.assignments?.ownedProperties) {
+        data.assignments.ownedProperties.forEach(item => {
+          allAssignments.push({
+            ...item.property,
+            assignmentType: 'Ownership',
+            assignedAt: item.property.updatedAt,
+            status: 'Owned',
+            owner: item.property.ownerUserId
+          });
+        });
+      }
+      
+      setAssignedProperties(allAssignments);
     } catch (err) {
       console.error('Error fetching assigned properties:', err);
       setError('Failed to load assigned properties');

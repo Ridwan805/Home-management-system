@@ -330,6 +330,62 @@ RequestSchema.statics.findCompletedWithoutContract = function() {
   }).sort({ updatedAt: 1 });
 };
 
+// Middleware to handle property status cleanup when requests are deleted
+RequestSchema.post('findOneAndDelete', async function(doc) {
+  if (doc && doc.propertyId) {
+    try {
+      // Import PropertyCleanupService here to avoid circular dependency
+      const PropertyCleanupService = require('../services/propertyCleanupService');
+      
+      // Check if the property is now orphaned and reset if needed
+      const wasReset = await PropertyCleanupService.resetOrphanedProperty(
+        doc.propertyId.toString(),
+        'auto-cleanup-on-delete'
+      );
+      
+      if (wasReset) {
+        console.log(`🔄 Property ${doc.propertyId} automatically reset to Available after request ${doc._id} deletion`);
+      }
+    } catch (error) {
+      console.error('Error in post-delete property cleanup:', error);
+    }
+  }
+});
+
+RequestSchema.post('deleteOne', async function() {
+  const doc = await this.model.findOne(this.getQuery());
+  if (doc && doc.propertyId) {
+    try {
+      const PropertyCleanupService = require('../services/propertyCleanupService');
+      
+      const wasReset = await PropertyCleanupService.resetOrphanedProperty(
+        doc.propertyId.toString(),
+        'auto-cleanup-on-delete'
+      );
+      
+      if (wasReset) {
+        console.log(`🔄 Property ${doc.propertyId} automatically reset to Available after request ${doc._id} deletion`);
+      }
+    } catch (error) {
+      console.error('Error in post-delete property cleanup:', error);
+    }
+  }
+});
+
+RequestSchema.post('deleteMany', async function() {
+  try {
+    // For bulk deletes, run a full cleanup check
+    const PropertyCleanupService = require('../services/propertyCleanupService');
+    
+    console.log('🧹 Running property cleanup after bulk request deletion...');
+    await PropertyCleanupService.cleanupOrphanedProperties({
+      triggeredBy: 'auto-cleanup-bulk-delete'
+    });
+  } catch (error) {
+    console.error('Error in post-bulk-delete property cleanup:', error);
+  }
+});
+
 // Indexes for better query performance
 RequestSchema.index({ propertyId: 1, tenantId: 1 });
 RequestSchema.index({ ownerId: 1, status: 1 });

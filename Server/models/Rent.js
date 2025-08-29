@@ -202,6 +202,63 @@ RentSchema.pre('save', function(next) {
   next();
 });
 
+// Post-delete middleware to handle property status updates
+RentSchema.post('deleteOne', { document: true, query: false }, async function(doc) {
+  if (doc && doc.propertyId) {
+    try {
+      const PropertyCleanupService = require('../services/propertyCleanupService');
+      
+      console.log(`🧹 Checking property ${doc.propertyId} after rent ${doc._id} deletion...`);
+      
+      const wasReset = await PropertyCleanupService.resetOrphanedProperty(
+        doc.propertyId.toString(),
+        'auto-cleanup-on-rent-delete'
+      );
+      
+      if (wasReset) {
+        console.log(`🔄 Property ${doc.propertyId} automatically reset to Available after rent ${doc._id} deletion`);
+      }
+    } catch (error) {
+      console.error('Error in post-delete property cleanup for rent:', error);
+    }
+  }
+});
+
+RentSchema.post('findOneAndDelete', async function(doc) {
+  if (doc && doc.propertyId) {
+    try {
+      const PropertyCleanupService = require('../services/propertyCleanupService');
+      
+      console.log(`🧹 Checking property ${doc.propertyId} after rent ${doc._id} deletion...`);
+      
+      const wasReset = await PropertyCleanupService.resetOrphanedProperty(
+        doc.propertyId.toString(),
+        'auto-cleanup-on-rent-delete'
+      );
+      
+      if (wasReset) {
+        console.log(`🔄 Property ${doc.propertyId} automatically reset to Available after rent ${doc._id} deletion`);
+      }
+    } catch (error) {
+      console.error('Error in post-delete property cleanup for rent:', error);
+    }
+  }
+});
+
+RentSchema.post('deleteMany', async function() {
+  try {
+    // For bulk deletes, run a full cleanup check
+    const PropertyCleanupService = require('../services/propertyCleanupService');
+    
+    console.log('🧹 Running property cleanup after bulk rent deletion...');
+    await PropertyCleanupService.cleanupOrphanedProperties({
+      triggeredBy: 'auto-cleanup-bulk-rent-delete'
+    });
+  } catch (error) {
+    console.error('Error in post-bulk-delete property cleanup for rents:', error);
+  }
+});
+
 // Instance methods
 RentSchema.methods.activate = function(activatedBy, note = '') {
   this.status = 'Active';

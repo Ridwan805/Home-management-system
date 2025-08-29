@@ -270,6 +270,63 @@ PaymentSchema.index({ createdAt: -1 });
 PaymentSchema.index({ dueDate: 1 });
 PaymentSchema.index({ paidAt: -1 });
 
+// Post-delete middleware to handle property status updates
+PaymentSchema.post('deleteOne', { document: true, query: false }, async function(doc) {
+  if (doc && doc.propertyId) {
+    try {
+      const PropertyCleanupService = require('../services/propertyCleanupService');
+      
+      console.log(`🧹 Checking property ${doc.propertyId} after payment ${doc._id} deletion...`);
+      
+      const wasReset = await PropertyCleanupService.resetOrphanedProperty(
+        doc.propertyId.toString(),
+        'auto-cleanup-on-payment-delete'
+      );
+      
+      if (wasReset) {
+        console.log(`🔄 Property ${doc.propertyId} automatically reset to Available after payment ${doc._id} deletion`);
+      }
+    } catch (error) {
+      console.error('Error in post-delete property cleanup for payment:', error);
+    }
+  }
+});
+
+PaymentSchema.post('findOneAndDelete', async function(doc) {
+  if (doc && doc.propertyId) {
+    try {
+      const PropertyCleanupService = require('../services/propertyCleanupService');
+      
+      console.log(`🧹 Checking property ${doc.propertyId} after payment ${doc._id} deletion...`);
+      
+      const wasReset = await PropertyCleanupService.resetOrphanedProperty(
+        doc.propertyId.toString(),
+        'auto-cleanup-on-payment-delete'
+      );
+      
+      if (wasReset) {
+        console.log(`🔄 Property ${doc.propertyId} automatically reset to Available after payment ${doc._id} deletion`);
+      }
+    } catch (error) {
+      console.error('Error in post-delete property cleanup for payment:', error);
+    }
+  }
+});
+
+PaymentSchema.post('deleteMany', async function() {
+  try {
+    // For bulk deletes, run a full cleanup check
+    const PropertyCleanupService = require('../services/propertyCleanupService');
+    
+    console.log('🧹 Running property cleanup after bulk payment deletion...');
+    await PropertyCleanupService.cleanupOrphanedProperties({
+      triggeredBy: 'auto-cleanup-bulk-payment-delete'
+    });
+  } catch (error) {
+    console.error('Error in post-bulk-delete property cleanup for payments:', error);
+  }
+});
+
 // Pre-save middleware to sync legacy and new fields
 PaymentSchema.pre('save', function(next) {
   // Sync receiverId with payeeId if not set
