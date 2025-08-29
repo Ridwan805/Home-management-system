@@ -16,18 +16,34 @@ class PaymentStatusChecker {
       console.log('🔍 Checking pending payments with Stripe...');
       
       // Find all requests with pending advance payments that have Stripe session IDs
-      const pendingRequests = await Request.find({
+      const pendingAdvanceRequests = await Request.find({
         'advancePayment.status': 'pending',
         'advancePayment.stripeSessionId': { $exists: true, $ne: '' }
       });
       
-      console.log(`Found ${pendingRequests.length} pending payments to check`);
+      // Find all requests with pending full payments that have Stripe session IDs
+      const pendingFullRequests = await Request.find({
+        'fullPayment.status': 'pending',
+        'fullPayment.stripeSessionId': { $exists: true, $ne: '' }
+      });
       
-      for (const request of pendingRequests) {
-        await this.checkSinglePayment(request);
+      console.log(`Found ${pendingAdvanceRequests.length} pending advance payments and ${pendingFullRequests.length} pending full payments to check`);
+      
+      // Check advance payments
+      for (const request of pendingAdvanceRequests) {
+        await this.checkSinglePayment(request, 'advance');
       }
       
-      return { checked: pendingRequests.length };
+      // Check full payments
+      for (const request of pendingFullRequests) {
+        await this.checkSinglePayment(request, 'full');
+      }
+      
+      return { 
+        checkedAdvance: pendingAdvanceRequests.length,
+        checkedFull: pendingFullRequests.length,
+        total: pendingAdvanceRequests.length + pendingFullRequests.length
+      };
     } catch (error) {
       console.error('Error checking pending payments:', error);
       throw error;
@@ -35,62 +51,85 @@ class PaymentStatusChecker {
   }
   
   // Check a single payment status with Stripe
-  static async checkSinglePayment(request) {
+  static async checkSinglePayment(request, paymentType = 'advance') {
     try {
-      const sessionId = request.advancePayment.stripeSessionId;
+      const paymentData = paymentType === 'advance' ? request.advancePayment : request.fullPayment;
+      const sessionId = paymentData?.stripeSessionId;
+      
       if (!sessionId) {
-        console.log(`No session ID for request ${request.requestId}`);
+        console.log(`No ${paymentType} session ID for request ${request.requestId}`);
         return;
       }
       
-      console.log(`Checking payment status for session: ${sessionId}`);
+      console.log(`Checking ${paymentType} payment status for session: ${sessionId}`);
       
       // Retrieve the session from Stripe
       const session = await stripe.checkout.sessions.retrieve(sessionId);
       
-      console.log(`Session status: ${session.payment_status} for request ${request.requestId}`);
+      console.log(`Session status: ${session.payment_status} for ${paymentType} payment of request ${request.requestId}`);
       
       // If payment is completed, update the status
       if (session.payment_status === 'paid') {
-        console.log(`✅ Payment completed for request ${request.requestId}, updating status...`);
-        await this.updatePaymentStatus(request, session);
+        console.log(`✅ ${paymentType} payment completed for request ${request.requestId}, updating status...`);
+        await this.updatePaymentStatus(request, session, paymentType);
       } else if (session.status === 'expired') {
-        console.log(`⏰ Session expired for request ${request.requestId}`);
+        console.log(`⏰ ${paymentType} session expired for request ${request.requestId}`);
         // Optionally handle expired sessions
       }
       
     } catch (error) {
-      console.error(`Error checking payment for request ${request.requestId}:`, error.message);
+      console.error(`Error checking ${paymentType} payment for request ${request.requestId}:`, error.message);
     }
   }
   
   // Update payment status when Stripe confirms payment
-  static async updatePaymentStatus(request, session) {
+  static async updatePaymentStatus(request, session, paymentType = 'advance') {
     try {
-      // Update request advance payment status
-      request.advancePayment.status = 'Paid';
-      request.advancePayment.paidAt = new Date();
-      request.advancePayment.paymentIntentId = session.payment_intent;
-      request.advancePayment.isPaid = true;
-      request.advancePayment.canPayAgain = false;
-      
-      // Update request status
-      request.status = 'AdvancePaid';
-      
-      // Add timeline event
-      request.timeline.push({
-        event: 'Advance payment completed via Stripe (Status Check)',
-        actor: request.tenantId,
-        timestamp: new Date(),
-        note: `Amount: ${request.advancePayment.amount} ${request.advancePayment.currency} - Verified by status checker`
-      });
+      if (paymentType === 'advance') {
+        // Update request advance payment status
+        request.advancePayment.status = 'Paid';
+        request.advancePayment.paidAt = new Date();
+        request.advancePayment.paymentIntentId = session.payment_intent;
+        request.advancePayment.isPaid = true;
+        request.advancePayment.canPayAgain = false;
+        
+        // Update request status
+        request.status = 'AdvancePaid';
+        
+        // Add timeline event
+        request.timeline.push({
+          event: 'Advance payment completed via Stripe (Status Check)',
+          actor: request.tenantId,
+          timestamp: new Date(),
+          note: `Amount: ${request.advancePayment.amount} ${request.advancePayment.currency} - Verified by status checker`
+        });
+      } else if (paymentType === 'full') {
+        // Update request full payment status
+        request.fullPayment.status = 'Paid';
+        request.fullPayment.paidAt = new Date();
+        request.fullPayment.paymentIntentId = session.payment_intent;
+        request.fullPayment.isPaid = true;
+        request.fullPayment.canPayAgain = false;
+        
+        // Update request status
+        request.status = 'FullyPaid';
+        
+        // Add timeline event
+        request.timeline.push({
+          event: 'Full payment completed via Stripe (Status Check)',
+          actor: request.tenantId,
+          timestamp: new Date(),
+          note: `Amount: ${request.fullPayment.amount} ${request.fullPayment.currency} - Verified by status checker`
+        });
+      }
       
       await request.save();
       
       // Update payment record
+      const paymentTypeForRecord = paymentType === 'advance' ? 'advance_payment' : 'full_payment';
       const payment = await Payment.findOne({ 
         requestId: request._id, 
-        type: 'advance_payment' 
+        type: paymentTypeForRecord 
       }).sort({ createdAt: -1 });
       
       if (payment) {
@@ -107,19 +146,19 @@ class PaymentStatusChecker {
         payment.history.push({
           status: 'completed',
           timestamp: new Date(),
-          note: `Advance payment completed via Stripe status checker. Changed from ${oldStatus} to completed`,
+          note: `${paymentType === 'advance' ? 'Advance' : 'Full'} payment completed via Stripe status checker. Changed from ${oldStatus} to completed`,
           updatedBy: request.tenantId
         });
         
         await payment.save();
-        console.log(`💾 Payment record updated for ${payment.paymentId}`, {
+        console.log(`💾 ${paymentType === 'advance' ? 'Advance' : 'Full'} payment record updated for ${payment.paymentId}`, {
           historyEntries: payment.history.length
         });
       }
       
-      // Automatically update property status based on listing type
+      // Automatically update property status based on listing type and payment type
       try {
-        console.log('🏠 [STATUS_CHECKER] Updating property status after advance payment...');
+        console.log(`🏠 [STATUS_CHECKER] Updating property status after ${paymentType} payment...`);
         const property = await Property.findById(request.propertyId);
         
         if (property) {
@@ -133,19 +172,41 @@ class PaymentStatusChecker {
           }
           
           if (newStatus) {
-             // Use the property's state machine method to update status
-             if (newStatus === 'Sold') {
-               await property.sell(request.tenantId, request.tenantId, `Automatically set to Sold after advance payment completion for request ${request._id} (via status checker)`);
-             } else if (newStatus === 'Rented') {
-               // For rent, we need to create or link to a rent record
-               // For now, we'll use null as rentId since the rent record creation is handled elsewhere
-               await property.rent(request.tenantId, null, `Automatically set to Rented after advance payment completion for request ${request._id} (via status checker)`);
-             }
+            if (paymentType === 'advance') {
+              // Update property status to indicate advance payment received, but don't transfer ownership yet
+              if (newStatus === 'Sold') {
+                // For sale properties, mark as reserved/under contract after advance payment
+                property.status = 'Reserved';
+                property.stateHistory.push({
+                  status: 'Reserved',
+                  timestamp: new Date(),
+                  note: `Property reserved after advance payment completion for request ${request._id} (via status checker)`,
+                  updatedBy: request.tenantId
+                });
+                await property.save();
+              } else if (newStatus === 'Rented') {
+                // For rent, we need to create or link to a rent record
+                // For now, we'll use null as rentId since the rent record creation is handled elsewhere
+                await property.rent(request.tenantId, null, `Automatically set to Rented after advance payment completion for request ${request._id} (via status checker)`);
+              }
+            } else if (paymentType === 'full') {
+              // Full payment completed - finalize the property transfer
+              if (newStatus === 'Sold') {
+                // Transfer ownership for sale properties
+                await property.sell(request.tenantId, `Property sold after full payment completion for request ${request._id} (via status checker)`);
+              } else if (newStatus === 'Rented') {
+                // Ensure rental status is properly set (should already be set from advance payment)
+                if (property.status !== 'Rented') {
+                  await property.rent(request.tenantId, null, `Property rented after full payment completion for request ${request._id} (via status checker)`);
+                }
+              }
+            }
             
             console.log('✅ [STATUS_CHECKER] Property status updated successfully', {
               propertyId: property._id,
               listingType,
               newStatus,
+              paymentType,
               requestId: request._id
             });
           } else {
@@ -159,7 +220,8 @@ class PaymentStatusChecker {
           error: propertyUpdateErr.message,
           stack: propertyUpdateErr.stack,
           requestId: request._id,
-          propertyId: request.propertyId
+          propertyId: request.propertyId,
+          paymentType
         });
       }
       
@@ -174,31 +236,50 @@ class PaymentStatusChecker {
   }
   
   // Check payment status for a specific request
-  static async checkRequestPayment(requestId) {
+  static async checkRequestPayment(requestId, paymentType = 'advance') {
     try {
       const request = await Request.findById(requestId);
       if (!request) {
         throw new Error('Request not found');
       }
       
-      if (request.advancePayment?.status !== 'pending') {
-        return { status: 'already_processed', currentStatus: request.advancePayment?.status };
+      const paymentData = paymentType === 'advance' ? request.advancePayment : request.fullPayment;
+      
+      if (paymentData?.status !== 'pending') {
+        return { 
+          status: 'already_processed', 
+          currentStatus: paymentData?.status,
+          paymentType 
+        };
       }
       
-      await this.checkSinglePayment(request);
+      await this.checkSinglePayment(request, paymentType);
       
       // Reload request to get updated status
       const updatedRequest = await Request.findById(requestId);
+      const updatedPaymentData = paymentType === 'advance' ? updatedRequest.advancePayment : updatedRequest.fullPayment;
+      
       return { 
         status: 'checked', 
-        paymentStatus: updatedRequest.advancePayment?.status,
-        requestStatus: updatedRequest.status
+        paymentStatus: updatedPaymentData?.status,
+        requestStatus: updatedRequest.status,
+        paymentType
       };
       
     } catch (error) {
-      console.error('Error checking request payment:', error);
+      console.error(`Error checking ${paymentType} payment for request:`, error);
       throw error;
     }
+  }
+  
+  // Convenience method to check full payment specifically
+  static async checkFullPayment(requestId) {
+    return this.checkRequestPayment(requestId, 'full');
+  }
+  
+  // Convenience method to check advance payment specifically
+  static async checkAdvancePayment(requestId) {
+    return this.checkRequestPayment(requestId, 'advance');
   }
 }
 

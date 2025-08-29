@@ -326,6 +326,132 @@ const MyRequests = () => {
     }
   };
 
+  const handleFullPayNow = async (requestId) => {
+    if (paymentLoading) return; // Prevent double clicks
+    
+    try {
+      setPaymentLoading(true);
+      
+      // Enhanced validation checks with specific error messages
+      console.log('🔄 Starting full payment validation for request:', requestId);
+      console.log('🔍 Current request data:', selectedRequest);
+      
+      // Check if selectedRequest exists
+      if (!selectedRequest) {
+        console.error('❌ No request selected');
+        alert('Please select a request to make payment.');
+        return;
+      }
+      
+      // Check if the request status is 'Confirmed for Sale'
+      if (selectedRequest.status !== 'Confirmed for Sale') {
+        console.error('❌ Owner has not confirmed the sale yet. Current status:', selectedRequest.status);
+        alert(`Cannot proceed with full payment. Current status: ${selectedRequest.status}. The owner must confirm the sale first.`);
+        return;
+      }
+      
+      // Check if advance payment is completed
+      if (!selectedRequest.advancePayment?.isPaid) {
+        console.error('❌ Advance payment not completed');
+        alert('Advance payment must be completed before making full payment.');
+        return;
+      }
+      
+      // Check if full payment is already completed
+      if (selectedRequest.fullPayment?.isPaid) {
+        console.error('❌ Full payment already completed');
+        alert('Full payment has already been completed for this request.');
+        return;
+      }
+      
+      // Check if this is a sale property
+      if (selectedRequest.propertyId?.listingType !== 'For Sale' || selectedRequest.requestType !== 'Buy') {
+        console.error('❌ Invalid property type for full payment');
+        alert('Full payment is only available for property purchases.');
+        return;
+      }
+      
+      // Check authentication status
+      const userData = JSON.parse(localStorage.getItem('dwellSyncUser'));
+      if (!userData || !userData.token) {
+        console.error('❌ No authentication data found');
+        alert('Please log in to make payment');
+        navigate('/login');
+        return;
+      }
+      
+      // Validate token format
+      if (!userData.token.startsWith('eyJ')) {
+        console.error('❌ Invalid token format');
+        alert('Authentication token is invalid. Please log in again.');
+        navigate('/login');
+        return;
+      }
+
+      console.log('✅ All validations passed. Creating full payment session...');
+      console.log('🔍 Request status:', selectedRequest?.status);
+      console.log('🔍 Request type:', selectedRequest?.requestType);
+      console.log('🔍 Property listing type:', selectedRequest?.propertyId?.listingType);
+      console.log('🔍 Advance payment status:', selectedRequest?.advancePayment);
+      console.log('🔍 Full payment status:', selectedRequest?.fullPayment);
+      console.log('🔍 User token length:', userData.token.length);
+
+      // Use authenticatedFetch instead of direct fetch
+      console.log('🔄 Sending full payment request with origin:', window.location.origin);
+      
+      const data = await authenticatedFetch(
+        `http://localhost:5001/api/stripe/create-full-payment-session/${requestId}`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            originUrl: window.location.origin
+          })
+        },
+        navigate
+      );
+      
+      console.log('💳 Full payment session response:', data);
+      
+      if (data && data.success && data.url) {
+        console.log('✅ Redirecting to Stripe checkout for full payment:', data.url);
+        // Redirect to Stripe checkout
+        window.location.href = data.url;
+      } else {
+        console.error('❌ Full payment session creation failed:', data);
+        const errorMessage = data?.message || 'Failed to create full payment session. Please try again later.';
+        console.error('❌ Error message:', errorMessage);
+        alert(errorMessage);
+      }
+    } catch (err) {
+      console.error('❌ Error creating full payment session:', err);
+      console.error('❌ Error details:', err.message);
+      console.error('❌ Error stack:', err.stack);
+      
+      // Enhanced error handling with specific messages
+      let errorMessage = 'Failed to initiate full payment. Please try again later.';
+      
+      if (err.message === 'Authentication required' || err.message === 'Session expired') {
+        errorMessage = 'Your session has expired. Please log in again.';
+        alert(errorMessage);
+        navigate('/login');
+        return;
+      } else if (err.message === 'Failed to fetch' || err.message.includes('fetch')) {
+        errorMessage = 'Unable to connect to payment service. Please check your internet connection and try again.';
+      } else if (err.message.includes('JSON')) {
+        errorMessage = 'Invalid response from server. Please try again later.';
+      } else if (err.message.includes('Network')) {
+        errorMessage = 'Network error occurred. Please check your connection and try again.';
+      } else if (err.message) {
+        errorMessage = `Payment error: ${err.message}`;
+      }
+      
+      console.error('❌ Final error message to user:', errorMessage);
+      alert(errorMessage);
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
   // Handle receipt download
   const handleGetReceipt = async (paymentId) => {
     try {
@@ -572,7 +698,11 @@ const MyRequests = () => {
                 <div className="request-header">
                   <div>
                     <h3 className="property-price">
-                      ৳{request.propertyId?.price?.toLocaleString()}
+                      ৳{(
+                        request.propertyId?.listingType === 'For Rent' 
+                          ? Number(request.propertyId?.pricing?.rent) || 0
+                          : Number(request.propertyId?.pricing?.sale) || 0
+                      ).toLocaleString()}
                       {request.requestType === 'Rent' && <span className="rent-period">/month</span>}
                     </h3>
                   </div>
@@ -657,7 +787,11 @@ const MyRequests = () => {
                   <div className="info-item">
                     <span className="info-label">Price</span>
                     <span className="info-value">
-                      ৳{selectedRequest.propertyId?.price?.toLocaleString()}
+                      ৳{(
+                        selectedRequest.propertyId?.listingType === 'For Rent' 
+                          ? Number(selectedRequest.propertyId?.pricing?.rent) || 0
+                          : Number(selectedRequest.propertyId?.pricing?.sale) || 0
+                      ).toLocaleString()}
                       {selectedRequest.requestType === 'Rent' && '/month'}
                     </span>
                   </div>
@@ -685,14 +819,70 @@ const MyRequests = () => {
                 {selectedRequest.advancePayment && (
                   <div className="advance-payment-info">
                     <h4>Advance Payment Details</h4>
+                    
+                    {/* Payment Success Confirmation */}
+                    {selectedRequest.advancePayment.isPaid && (
+                      <div className="payment-success-banner">
+                        <div className="success-icon">✅</div>
+                        <div className="success-content">
+                          <h5>Payment Successful!</h5>
+                          <p>Your advance payment of ৳{selectedRequest.advancePayment.amount?.toLocaleString()} has been successfully processed.</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Status Message for Buy Requests */}
+                    {selectedRequest.requestType === 'Buy' && selectedRequest.status === 'AdvancePaid' && (
+                      <div className="status-message-banner">
+                        <div className="status-icon">⏳</div>
+                        <div className="status-content">
+                          <h5>Waiting for Owner Confirmation</h5>
+                          <p>Your advance payment has been received. The property owner will review and confirm the sale to enable your full payment.</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Payment Workflow Indicator for Sale Properties */}
+                    {selectedRequest.requestType === 'Buy' && selectedRequest.propertyId?.listingType === 'For Sale' && (
+                      <div className="payment-workflow">
+                        <div className="workflow-steps">
+                          <div className={`workflow-step ${selectedRequest.advancePayment.isPaid ? 'completed' : 'current'}`}>
+                            <div className="step-number">1</div>
+                            <div className="step-label">Advance Payment</div>
+                            <div className="step-status">{selectedRequest.advancePayment.isPaid ? 'Completed' : 'In Progress'}</div>
+                          </div>
+                          <div className="workflow-arrow">→</div>
+                          <div className={`workflow-step ${selectedRequest.status === 'Confirmed for Sale' ? 'current' : selectedRequest.status === 'AdvancePaid' ? 'pending' : 'inactive'}`}>
+                            <div className="step-number">2</div>
+                            <div className="step-label">Owner Confirmation</div>
+                            <div className="step-status">
+                              {selectedRequest.status === 'Confirmed for Sale' ? 'Confirmed' : 
+                               selectedRequest.status === 'AdvancePaid' ? 'Pending' : 'Waiting'}
+                            </div>
+                          </div>
+                          <div className="workflow-arrow">→</div>
+                          <div className={`workflow-step ${selectedRequest.fullPayment?.isPaid ? 'completed' : selectedRequest.status === 'Confirmed for Sale' ? 'current' : 'inactive'}`}>
+                            <div className="step-number">3</div>
+                            <div className="step-label">Full Payment</div>
+                            <div className="step-status">
+                              {selectedRequest.fullPayment?.isPaid ? 'Completed' : 
+                               selectedRequest.status === 'Confirmed for Sale' ? 'Available' : 'Locked'}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
                     <div className="property-info-grid">
                       <div className="info-item">
                         <span className="info-label">Amount</span>
-                        <span className="info-value">{selectedRequest.advancePayment.amount?.toLocaleString()} {selectedRequest.advancePayment.currency || 'BDT'}</span>
+                        <span className="info-value">৳{selectedRequest.advancePayment.amount?.toLocaleString()} {selectedRequest.advancePayment.currency || 'BDT'}</span>
                       </div>
                       <div className="info-item">
                         <span className="info-label">Status</span>
-                        <span className="info-value">{selectedRequest.advancePayment.status || 'pending'}</span>
+                        <span className={`info-value payment-status ${selectedRequest.advancePayment.isPaid ? 'paid' : 'pending'}`}>
+                          {selectedRequest.advancePayment.isPaid ? 'Paid' : selectedRequest.advancePayment.status || 'Pending'}
+                        </span>
                       </div>
                       <div className="info-item">
                         <span className="info-label">Due Date</span>
@@ -778,6 +968,35 @@ const MyRequests = () => {
                     ) : (
                       `Pay Online (৳${selectedRequest.advancePayment.amount})`
                     )}
+                  </button>
+                  )}
+                  
+                  {/* Show Full Payment button for Buy requests after owner confirms sale */}
+                  {selectedRequest.status === 'Confirmed for Sale' && 
+                   selectedRequest.requestType === 'Buy' && 
+                   selectedRequest.propertyId?.listingType === 'For Sale' && 
+                   selectedRequest.advancePayment && 
+                   selectedRequest.advancePayment.isPaid && 
+                   (!selectedRequest.fullPayment || !selectedRequest.fullPayment.isPaid) && (
+                    <button 
+                    className="pay-btn full-payment-btn"
+                    onClick={() => handleFullPayNow(selectedRequest._id)}
+                    disabled={paymentLoading}
+                  >
+                    {paymentLoading ? (
+                      <>
+                        <LoadingSpinner size="small" />
+                        Processing...
+                      </>
+                    ) : (
+                       (() => {
+                         // Calculate remaining amount for sale properties only
+                         const salePrice = Number(selectedRequest.propertyId?.pricing?.sale) || 0;
+                         const advanceAmount = Number(selectedRequest.advancePayment?.amount) || 0;
+                         const fullPaymentAmount = salePrice - advanceAmount;
+                         return fullPaymentAmount > 0 ? `Pay Full Amount (৳${fullPaymentAmount.toLocaleString()})` : 'Pay Full Amount (৳0)';
+                       })()
+                     )}
                   </button>
                   )}
                   

@@ -341,6 +341,13 @@ const updateRequestStatus = async (req, res) => {
     const { status, note = '', advancePayment } = req.body;
     const userId = req.user.userId;
     const userRole = req.user.role;
+    
+    console.log('🔄 updateRequestStatus called:', {
+      requestId,
+      status,
+      userId,
+      userRole
+    });
 
     const request = await Request.findOne({ requestId });
     if (!request) {
@@ -400,6 +407,12 @@ const updateRequestStatus = async (req, res) => {
 
     // Handle payment verification and contract creation
     if (status === 'Paid/Completed' && userRole === 'Owner') {
+      console.log('🔄 Payment verification block entered:', {
+        status,
+        userRole,
+        oldStatus,
+        requestType: request.requestType
+      });
       if (request.advancePayment) {
         request.advancePayment.verifiedAt = new Date();
         request.advancePayment.verifiedBy = userId;
@@ -455,8 +468,13 @@ const updateRequestStatus = async (req, res) => {
               note: `Rent contract ${rent._id} created and property status changed to Rented`
             });
             
-          } else if (request.requestType === 'Purchase' || request.requestType === 'Buy') {
-            // Create ownership transfer
+          } else if ((request.requestType === 'Purchase' || request.requestType === 'Buy') && oldStatus === 'Confirmed for Sale') {
+            console.log('🔄 Creating OwnershipTransfer - conditions met:', {
+              requestType: request.requestType,
+              oldStatus,
+              newStatus: status
+            });
+            // Create ownership transfer only after owner has confirmed the sale and tenant pays full amount
             const transferData = {
               propertyId: request.propertyId,
               sellerId: request.ownerId,
@@ -475,6 +493,7 @@ const updateRequestStatus = async (req, res) => {
             
             // Close the ownership transfer (complete the sale)
             await transfer.close(userId, 'Ownership transfer completed after payment verification');
+            
             
             // Link request to ownership transfer
             request.ownershipTransferId = transfer._id;

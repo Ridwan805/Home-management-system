@@ -21,16 +21,40 @@ const API_BASE_URL = `http://localhost:${getApiPort()}`;
  * @returns {Promise<any>} - The parsed response data
  */
 export const handleApiResponse = async (response, navigate = null) => {
+  console.log('🔍 Processing API response:', {
+    status: response.status,
+    statusText: response.statusText,
+    ok: response.ok,
+    url: response.url
+  });
+
   // First check if the response is ok
   if (response.ok) {
-    return await response.json();
+    try {
+      const data = await response.json();
+      console.log('✅ API response parsed successfully');
+      return data;
+    } catch (parseError) {
+      console.error('❌ Failed to parse successful response:', parseError);
+      throw new Error('Invalid response format');
+    }
   }
 
+  console.error('❌ API response not ok:', response.status, response.statusText);
+  
   // If not ok, parse the error response
-  const errorData = await response.json();
+  let errorData;
+  try {
+    errorData = await response.json();
+    console.error('❌ Error response data:', errorData);
+  } catch (parseError) {
+    console.error('❌ Failed to parse error response:', parseError);
+    errorData = { message: 'Unknown error' };
+  }
   
   // Check if token has expired
   if (response.status === 401 && errorData.expired) {
+    console.warn('⚠️ 401 Unauthorized - Token expired');
     // Clear user data from localStorage
     localStorage.removeItem('dwellSyncUser');
     
@@ -39,6 +63,7 @@ export const handleApiResponse = async (response, navigate = null) => {
     
     // Redirect to login page if navigate function is provided
     if (navigate) {
+      console.log('🔄 Redirecting to login page');
       navigate('/login');
     } else {
       // Fallback if navigate is not provided
@@ -49,7 +74,9 @@ export const handleApiResponse = async (response, navigate = null) => {
   }
   
   // For other errors, throw with the error message
-  throw new Error(errorData.message || 'An error occurred');
+  const errorMessage = errorData.message || `HTTP ${response.status}: ${response.statusText}`;
+  console.error('❌ Throwing error:', errorMessage);
+  throw new Error(errorMessage);
 };
 
 /**
@@ -60,14 +87,23 @@ export const handleApiResponse = async (response, navigate = null) => {
  * @returns {Promise<any>} - The parsed response data
  */
 export const authenticatedFetch = async (url, options = {}, navigate = null) => {
+  console.log('🔄 authenticatedFetch called:', { url, method: options.method || 'GET' });
+  
   try {
     // Get user data from localStorage
     const user = JSON.parse(localStorage.getItem('dwellSyncUser'));
     const token = user ? user.token : null;
     
     if (!token) {
+      console.error('❌ No authentication data found in localStorage');
       throw new Error('Authentication required');
     }
+    
+    console.log('🔍 User data found:', { 
+      userId: user.userId, 
+      tokenLength: token?.length,
+      tokenPrefix: token?.substring(0, 20) + '...' 
+    });
     
     // Set up headers with authentication token
     const headers = {
@@ -76,16 +112,35 @@ export const authenticatedFetch = async (url, options = {}, navigate = null) => 
       ...options.headers
     };
     
+    console.log('🔄 Making fetch request with headers:', {
+      url,
+      method: options.method || 'GET',
+      hasAuth: !!headers.Authorization,
+      contentType: headers['Content-Type']
+    });
+    
     // Make the API request
     const response = await fetch(url, {
       ...options,
       headers
     });
     
+    console.log('📡 Fetch response received:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok,
+      url: response.url
+    });
+    
     // Handle the response with token expiration check
     return await handleApiResponse(response, navigate);
   } catch (error) {
-    console.error('API request error:', error);
+    console.error('❌ Fetch error occurred:', error);
+    console.error('❌ Fetch error details:', {
+      message: error.message,
+      name: error.name,
+      stack: error.stack
+    });
     throw error;
   }
 };

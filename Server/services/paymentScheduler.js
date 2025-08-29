@@ -25,8 +25,10 @@ class PaymentScheduler {
         console.log('⏰ Running scheduled payment status check...');
         const result = await PaymentStatusChecker.checkPendingPayments();
         
-        if (result.checked > 0) {
-          console.log(`✅ Scheduled check completed: ${result.checked} payments checked`);
+        if (result.total > 0) {
+          console.log(`✅ Scheduled check completed: ${result.total} payments checked (${result.checkedAdvance} advance, ${result.checkedFull} full)`);
+        } else {
+          console.log('✅ Scheduled check completed: No pending payments found');
         }
       } catch (error) {
         console.error('❌ Error in scheduled payment check:', error.message);
@@ -68,10 +70,37 @@ class PaymentScheduler {
     try {
       console.log('🔍 Running manual payment status check...');
       const result = await PaymentStatusChecker.checkPendingPayments();
-      console.log(`✅ Manual check completed: ${result.checked} payments checked`);
+      console.log(`✅ Manual check completed: ${result.total} payments checked (${result.checkedAdvance} advance, ${result.checkedFull} full)`);
       return result;
     } catch (error) {
       console.error('❌ Error in manual payment check:', error.message);
+      throw error;
+    }
+  }
+  
+  // Run a manual check for a specific payment type
+  static async runManualCheckByType(paymentType = 'both') {
+    try {
+      console.log(`🔍 Running manual ${paymentType} payment status check...`);
+      
+      if (paymentType === 'both') {
+        const result = await PaymentStatusChecker.checkPendingPayments();
+        console.log(`✅ Manual check completed: ${result.total} payments checked (${result.checkedAdvance} advance, ${result.checkedFull} full)`);
+        return result;
+      } else {
+        // For specific payment types, we would need to implement separate methods
+        // For now, just run the full check and filter the results
+        const result = await PaymentStatusChecker.checkPendingPayments();
+        const filteredResult = {
+          total: paymentType === 'advance' ? result.checkedAdvance : result.checkedFull,
+          checkedAdvance: paymentType === 'advance' ? result.checkedAdvance : 0,
+          checkedFull: paymentType === 'full' ? result.checkedFull : 0
+        };
+        console.log(`✅ Manual ${paymentType} check completed: ${filteredResult.total} payments checked`);
+        return filteredResult;
+      }
+    } catch (error) {
+      console.error(`❌ Error in manual ${paymentType} payment check:`, error.message);
       throw error;
     }
   }

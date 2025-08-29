@@ -616,7 +616,7 @@ const OwnerRequestsInbox = () => {
     }
   };
 
-  // Handle approve for AdvancePaid requests
+  // Handle approve for AdvancePaid requests (for Rent requests)
   const handleApproveAdvancePaid = async (requestId) => {
     console.log('🔄 handleApproveAdvancePaid called with requestId:', requestId);
     
@@ -678,6 +678,120 @@ const OwnerRequestsInbox = () => {
       console.error('❌ Error approving request:', err);
       console.error('❌ Error stack:', err.stack);
       alert(`Failed to approve request: ${err.message}`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Handle confirm sale for Buy requests
+  const handleConfirmSale = async (requestId) => {
+    console.log('🔄 handleConfirmSale called with requestId:', requestId);
+    
+    if (!window.confirm('Are you sure you want to confirm this sale? The tenant will be required to pay the full amount.')) {
+      return;
+    }
+
+    try {
+      setActionLoading(true);
+      const userData = localStorage.getItem('dwellSyncUser');
+      
+      if (!userData) {
+        alert('Please log in to confirm sale');
+        return;
+      }
+      
+      const user = JSON.parse(userData);
+      const token = user.token;
+      
+      const url = API.getUrl(API.endpoints.requestStatusUpdate(requestId));
+      
+      const requestBody = {
+        status: 'Confirmed for Sale',
+        note: 'Sale confirmed by owner - tenant must pay full amount'
+      };
+      
+      const response = await fetch(url, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        alert('Sale confirmed successfully! Tenant has been notified to pay the full amount.');
+        fetchOwnerRequests(); // Refresh the list
+      } else {
+        alert(data.message || 'Failed to confirm sale');
+      }
+    } catch (err) {
+      console.error('❌ Error confirming sale:', err);
+      alert(`Failed to confirm sale: ${err.message}`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Handle refund for Buy requests
+  const handleRefundAdvance = async (requestId) => {
+    console.log('🔄 handleRefundAdvance called with requestId:', requestId);
+    
+    if (!window.confirm('Are you sure you want to cancel this sale and refund the advance payment?')) {
+      return;
+    }
+
+    try {
+      setActionLoading(true);
+      const userData = localStorage.getItem('dwellSyncUser');
+      
+      if (!userData) {
+        alert('Please log in to process refund');
+        return;
+      }
+      
+      const user = JSON.parse(userData);
+      const token = user.token;
+      
+      const url = API.getUrl(API.endpoints.requestStatusUpdate(requestId));
+      
+      const requestBody = {
+        status: 'Refunded',
+        note: 'Sale canceled by owner - advance payment refunded'
+      };
+      
+      const response = await fetch(url, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        alert('Refund processed successfully! Advance payment has been refunded to the tenant.');
+        fetchOwnerRequests(); // Refresh the list
+      } else {
+        alert(data.message || 'Failed to process refund');
+      }
+    } catch (err) {
+      console.error('❌ Error processing refund:', err);
+      alert(`Failed to process refund: ${err.message}`);
     } finally {
       setActionLoading(false);
     }
@@ -901,13 +1015,32 @@ const OwnerRequestsInbox = () => {
                         </>
                       )}
                     </button>
-                    <button 
-                      onClick={() => handleApproveAdvancePaid(request._id)}
-                      className="action-btn approve-btn"
-                      disabled={actionLoading}
-                    >
-                      Approve Request
-                    </button>
+                    {request.requestType === 'Buy' ? (
+                      <>
+                        <button 
+                          onClick={() => handleConfirmSale(request._id)}
+                          className="action-btn approve-btn"
+                          disabled={actionLoading}
+                        >
+                          Confirm Sale
+                        </button>
+                        <button 
+                          onClick={() => handleRefundAdvance(request._id)}
+                          className="action-btn reject-btn"
+                          disabled={actionLoading}
+                        >
+                          Refund & Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <button 
+                        onClick={() => handleApproveAdvancePaid(request._id)}
+                        className="action-btn approve-btn"
+                        disabled={actionLoading}
+                      >
+                        Approve Request
+                      </button>
+                    )}
                   </>
                 )}
                 

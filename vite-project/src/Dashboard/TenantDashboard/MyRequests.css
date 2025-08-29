@@ -557,6 +557,185 @@
   color: #155724;
 }
 
+/* Payment Success Banner */
+.payment-success-banner {
+  background: linear-gradient(135deg, #d4edda 0%, #e8f5e8 100%);
+  border: 1px solid #c3e6cb;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.payment-success-banner .success-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.payment-success-banner .success-content h5 {
+  margin: 0 0 5px 0;
+  color: #155724;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.payment-success-banner .success-content p {
+  margin: 0;
+  color: #155724;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+/* Status Message Banner */
+.status-message-banner {
+  background: linear-gradient(135deg, #fff3cd 0%, #fefefe 100%);
+  border: 1px solid #ffeaa7;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.status-message-banner .status-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.status-message-banner .status-content h5 {
+  margin: 0 0 5px 0;
+  color: #856404;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.status-message-banner .status-content p {
+  margin: 0;
+  color: #856404;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+/* Payment Workflow */
+.payment-workflow {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.workflow-steps {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.workflow-step {
+  flex: 1;
+  text-align: center;
+  padding: 15px 10px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.workflow-step.completed {
+  background: linear-gradient(135deg, #d4edda 0%, #e8f5e8 100%);
+  border: 2px solid #28a745;
+  color: #155724;
+}
+
+.workflow-step.current {
+  background: linear-gradient(135deg, #cce5ff 0%, #e6f3ff 100%);
+  border: 2px solid #007bff;
+  color: #004085;
+}
+
+.workflow-step.pending {
+  background: linear-gradient(135deg, #fff3cd 0%, #fefefe 100%);
+  border: 2px solid #ffc107;
+  color: #856404;
+}
+
+.workflow-step.inactive {
+  background: #f8f9fa;
+  border: 2px solid #e9ecef;
+  color: #6c757d;
+}
+
+.workflow-step .step-number {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: currentColor;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin: 0 auto 8px;
+}
+
+.workflow-step.inactive .step-number {
+  background: #6c757d;
+}
+
+.workflow-step .step-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+}
+
+.workflow-step .step-status {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.workflow-arrow {
+  font-size: 1.2rem;
+  color: #6c757d;
+  flex-shrink: 0;
+}
+
+/* Payment Status Styling */
+.payment-status.paid {
+  color: #28a745;
+  font-weight: 600;
+}
+
+.payment-status.pending {
+  color: #ffc107;
+  font-weight: 600;
+}
+
+/* Responsive Design for Workflow */
+@media (max-width: 768px) {
+  .workflow-steps {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .workflow-arrow {
+    transform: rotate(90deg);
+  }
+  
+  .workflow-step {
+    width: 100%;
+  }
+  
+  .payment-success-banner,
+  .status-message-banner {
+    flex-direction: column;
+    text-align: center;
+    gap: 8px;
+  }
+}
+
 .full-payment-info {
   background: linear-gradient(135deg, #e3f2fd 0%, #f0f8ff 100%);
   padding: 20px;

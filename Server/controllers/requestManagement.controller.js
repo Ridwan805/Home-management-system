@@ -21,7 +21,7 @@ const getMyRequests = async (req, res) => {
     console.log('🔍 Fetching tenant requests with query:', query);
     
     const requests = await Request.find(query)
-      .populate('propertyId', 'address city state rent buyPrice images')
+      .populate('propertyId', 'address city state pricing.rent pricing.sale listingType images')
       .populate('ownerId', 'firstName lastName email')
       .populate('advancePayment.verifiedBy', 'firstName lastName')
       .populate('fullPayment.verifiedBy', 'firstName lastName')
@@ -64,7 +64,8 @@ const getOwnerRequests = async (req, res) => {
     const ownerId = req.user.userId;
     
     const requests = await Request.find({ ownerId })
-      .populate('propertyId', 'address city state rent buyPrice images')
+      .populate('propertyId', 'address city state pricing.rent pricing.sale listingType images')
+      .populate('ownerId', 'firstName lastName email')
       .populate('tenantId', 'firstName lastName email')
       .sort({ createdAt: -1 });
     
@@ -208,7 +209,9 @@ const updateRequestStatus = async (req, res) => {
       'Under Review': ['Info Requested', 'Approved – Pay Advance', 'Rejected'],
       'Info Requested': ['Under Review', 'Rejected'],
       'Payment Submitted': ['Paid/Completed', 'Approved – Pay Advance', 'AdvancePaid'],
-      'AdvancePaid': ['Paid/Completed', 'Canceled']
+      'AdvancePaid': ['Paid/Completed', 'Canceled', 'Confirmed for Sale', 'Refunded'],
+      'Confirmed for Sale': ['Paid/Completed', 'Canceled'],
+      'Refunded': []
     };
     
     if (!validTransitions[request.status] || !validTransitions[request.status].includes(status)) {
@@ -235,8 +238,9 @@ const updateRequestStatus = async (req, res) => {
       note: eventNote
     });
     
-    // Create Rent object when transitioning from 'AdvancePaid' to 'Paid/Completed'
+    // Handle status-specific logic
     if (oldStatus === 'AdvancePaid' && status === 'Paid/Completed' && request.requestType === 'Rent') {
+      // Create Rent object when transitioning from 'AdvancePaid' to 'Paid/Completed' for Rent requests
       try {
         const property = await Property.findById(request.propertyId);
         if (property) {
@@ -290,6 +294,25 @@ const updateRequestStatus = async (req, res) => {
       } catch (rentError) {
         console.error('❌ Error creating Rent object:', rentError);
         // Don't fail the whole operation if rent creation fails
+      }
+    }
+    
+    // Handle refund for Buy requests when status changes to 'Refunded'
+    if (status === 'Refunded' && request.requestType === 'Buy' && request.advancePayment) {
+      try {
+        // Find the advance payment record
+        const advancePayment = await Payment.findById(request.advancePayment.paymentId);
+        if (advancePayment) {
+          // Mark payment as refunded
+          advancePayment.status = 'Refunded';
+          advancePayment.refundedAt = new Date();
+          await advancePayment.save();
+          
+          console.log('✅ Advance payment marked as refunded:', advancePayment._id);
+        }
+      } catch (refundError) {
+        console.error('❌ Error processing refund:', refundError);
+        // Don't fail the whole operation if refund processing fails
       }
     }
     

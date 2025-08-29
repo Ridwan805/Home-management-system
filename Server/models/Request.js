@@ -8,6 +8,8 @@ const VALID_STATUSES = [
   'Approved – Pay Advance',
   'Payment Submitted',
   'AdvancePaid',
+  'Confirmed for Sale',
+  'Refunded',
   'Paid/Completed',
   'Rejected',
   'Canceled',
@@ -198,8 +200,18 @@ const RequestSchema = new mongoose.Schema({
   // Advance Payment Details
   advancePayment: AdvancePaymentSchema,
   
-  // Full payment details (for complete payment processing)
-  fullPayment: FullPaymentSchema,
+  // Full payment details (only for Buy requests)
+  fullPayment: {
+    type: FullPaymentSchema,
+    required: false,
+    validate: {
+      validator: function(value) {
+        // Only allow fullPayment for Buy requests
+        return this.requestType === 'Buy' || !value;
+      },
+      message: 'Full payment is not allowed for Rent requests'
+    }
+  },
   
   // Messaging thread between tenant and owner
   messages: [MessageSchema],
@@ -258,7 +270,9 @@ RequestSchema.statics.getValidStatusTransitions = function() {
     'Info Requested': ['Under Review', 'Rejected', 'Canceled', 'Expired'],
     'Approved – Pay Advance': ['Payment Submitted', 'Canceled', 'Expired'],
     'Payment Submitted': ['AdvancePaid', 'Under Review', 'Canceled'],
-    'AdvancePaid': ['Paid/Completed', 'Canceled'],
+    'AdvancePaid': ['Paid/Completed', 'Confirmed for Sale', 'Refunded', 'Canceled'],
+    'Confirmed for Sale': ['Paid/Completed', 'Canceled'],
+    'Refunded': [], // Terminal state
     'Paid/Completed': [], // Terminal state
     'Rejected': [], // Terminal state
     'Canceled': [], // Terminal state

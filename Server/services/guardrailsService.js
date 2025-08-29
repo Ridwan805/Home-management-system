@@ -16,8 +16,10 @@ class GuardrailsService {
       // as updated by the webhook handler.
       // This service now primarily ensures consistency within the request object.
 
-      // Check if the request is marked as paid (either advance or full)
-      const hasPaidPayment = request.advancePayment?.isPaid || request.fullPayment?.isPaid;
+      // Check if the request is marked as paid (advance payment for all, full payment only for Buy requests)
+      const hasAdvancePayment = request.advancePayment?.isPaid;
+      const hasFullPayment = request.requestType === 'Buy' && request.fullPayment?.isPaid;
+      const hasPaidPayment = hasAdvancePayment || hasFullPayment;
 
       // If there's a paid payment, ensure consistency
       if (hasPaidPayment) {
@@ -28,7 +30,7 @@ class GuardrailsService {
         }
         
         // Determine if it's advance or full payment based on the request object
-        const isFullPayment = request.fullPayment?.isPaid;
+        const isFullPayment = request.requestType === 'Buy' && request.fullPayment?.isPaid;
         
         // Update request status based on payment type
         if (isFullPayment) {
@@ -257,8 +259,21 @@ class GuardrailsService {
         'admin': ['Payment Submitted', 'Rejected']
       },
       'Payment Submitted': {
-        'owner': ['Paid/Completed', 'Approved – Pay Advance'],
-        'admin': ['Paid/Completed', 'Approved – Pay Advance']
+        'owner': ['Paid/Completed', 'Approved – Pay Advance', 'AdvancePaid'],
+        'admin': ['Paid/Completed', 'Approved – Pay Advance', 'AdvancePaid']
+      },
+      'AdvancePaid': {
+        'owner': ['Paid/Completed', 'Canceled', 'Confirmed for Sale', 'Refunded'],
+        'admin': ['Paid/Completed', 'Canceled', 'Confirmed for Sale', 'Refunded'],
+        'tenant': ['Canceled']
+      },
+      'Confirmed for Sale': {
+        'owner': ['Paid/Completed', 'Canceled'],
+        'admin': ['Paid/Completed', 'Canceled'],
+        'tenant': ['Canceled']
+      },
+      'Refunded': {
+        // Terminal state - no transitions allowed
       },
       'Paid/Completed': {
         // Terminal state - no transitions allowed
@@ -274,7 +289,7 @@ class GuardrailsService {
       }
     };
 
-    const allowedTransitions = validTransitions[currentStatus]?.[userRole] || [];
+    const allowedTransitions = validTransitions[currentStatus]?.[userRole.toLowerCase()] || [];
     return {
       allowed: allowedTransitions.includes(newStatus),
       allowedTransitions
@@ -302,6 +317,204 @@ class GuardrailsService {
       isValid: errors.length === 0,
       errors
     };
+  }
+
+  // Validate full payment eligibility
+  static async validateFullPaymentEligibility(request) {
+    const errors = [];
+
+    if (!request) {
+      errors.push('Request not found');
+      return { isValid: false, errors };
+    }
+
+    // Check if request type is 'Buy'
+    if (request.requestType !== 'Buy') {
+      errors.push('Full payment is only available for Buy requests');
+    }
+
+    // Check if advance payment is completed
+    if (!request.advancePayment?.isPaid) {
+      errors.push('Advance payment must be completed before full payment');
+    }
+
+    // Check if request is confirmed for sale
+    if (request.status !== 'Confirmed for Sale') {
+      errors.push('Request must be confirmed for sale before full payment');
+    }
+
+    // Check if full payment is already completed
+    if (request.fullPayment?.isPaid) {
+      errors.push('Full payment has already been completed');
+    }
+
+    // Check if full payment is already in progress
+    if (request.fullPayment?.status === 'pending') {
+      errors.push('Full payment is already in progress');
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  }
+
+  // Validate full payment amount calculation
+  static validateFullPaymentAmount(request, property) {
+    const errors = [];
+
+    if (!request || !property) {
+      errors.push('Request or property not found');
+      return { isValid: false, errors };
+    }
+
+    // Get property price based on listing type
+    let propertyPrice;
+    if (property.listingType === 'For Sale') {
+      propertyPrice = property.pricing?.sale || property.buyPrice || property.price;
+    } else {
+      propertyPrice = property.pricing?.rent || property.rent || property.price;
+    }
+    
+    console.log('🔍 AMOUNT VALIDATION DEBUG:', {
+      propertyListingType: property.listingType,
+      pricingObject: property.pricing,
+      buyPrice: property.buyPrice,
+      price: property.price,
+      calculatedPropertyPrice: propertyPrice
+    });
+    
+    const advanceAmount = request.advancePayment?.amount || 0;
+    const expectedRemainingAmount = propertyPrice - advanceAmount;
+
+    // Validate property price
+    if (!propertyPrice || propertyPrice <= 0) {
+      console.log('❌ AMOUNT VALIDATION: Property price validation failed:', { propertyPrice });
+      errors.push('Invalid property price');
+    }
+
+    // Validate advance amount
+    if (!advanceAmount || advanceAmount <= 0) {
+      errors.push('Invalid advance payment amount');
+    }
+
+    // Check if advance amount is not greater than property price
+    if (advanceAmount >= propertyPrice) {
+      errors.push('Advance payment amount cannot be greater than or equal to property price');
+    }
+
+    // Validate remaining amount
+    if (expectedRemainingAmount <= 0) {
+      errors.push('No remaining amount to pay');
+    }
+
+    // Check minimum payment amount for Stripe (50 cents)
+    if (expectedRemainingAmount < 0.5) {
+      errors.push('Remaining payment amount is too small for processing');
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      remainingAmount: expectedRemainingAmount,
+      propertyPrice,
+      advanceAmount
+    };
+  }
+
+  // Validate user authorization for full payment
+  static async validateFullPaymentAuthorization(userId, request) {
+    const errors = [];
+
+    console.log('🔍 GUARDRAILS DEBUG: validateFullPaymentAuthorization called');
+    console.log('🔍 GUARDRAILS DEBUG: userId type:', typeof userId, 'value:', userId);
+    console.log('🔍 GUARDRAILS DEBUG: request type:', typeof request, 'exists:', !!request);
+    
+    if (!userId || !request) {
+      console.log('❌ GUARDRAILS DEBUG: Missing userId or request');
+      errors.push('User ID or request not provided');
+      return { isValid: false, errors };
+    }
+
+    // Check if user is the tenant who made the request
+    console.log('🔍 GUARDRAILS DEBUG: Comparing tenant authorization');
+    console.log('🔍 GUARDRAILS DEBUG: request.tenantId type:', typeof request.tenantId, 'value:', request.tenantId);
+    
+    // Extract the actual ID from the tenantId (could be ObjectId or populated User object)
+    const tenantIdString = request.tenantId._id ? request.tenantId._id.toString() : request.tenantId.toString();
+    const userIdString = userId.toString();
+    
+    console.log('🔍 GUARDRAILS DEBUG: tenantIdString:', tenantIdString);
+    console.log('🔍 GUARDRAILS DEBUG: userIdString:', userIdString);
+    console.log('🔍 GUARDRAILS DEBUG: Are they equal?:', tenantIdString === userIdString);
+    
+    if (tenantIdString !== userIdString) {
+      console.log('❌ User is not the tenant of this request');
+      console.log('❌ Request tenant ID:', tenantIdString);
+      console.log('❌ User ID:', userIdString);
+      errors.push('User is not authorized to make full payment for this request');
+    } else {
+      console.log('✅ User is authorized - tenant IDs match');
+    }
+
+    // Check if user account is active
+    try {
+      const user = await User.findById(userId);
+      if (!user) {
+        errors.push('User not found');
+      } else if (user.isBanned) {
+        errors.push('User account is banned');
+      }
+    } catch (error) {
+      errors.push('Error validating user account');
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  }
+
+  // Comprehensive full payment validation
+  static async validateFullPayment(userId, requestId, propertyId, existingRequest = null, existingProperty = null) {
+    try {
+      console.log('🔍 COMPREHENSIVE VALIDATION: Starting validation with:', { userId, requestId, propertyId, hasExistingRequest: !!existingRequest, hasExistingProperty: !!existingProperty });
+      
+      const request = existingRequest || await Request.findById(requestId);
+      const property = existingProperty || await Property.findById(propertyId);
+      
+      console.log('🔍 COMPREHENSIVE VALIDATION: Objects loaded:', { hasRequest: !!request, hasProperty: !!property });
+      
+      const eligibilityValidation = await this.validateFullPaymentEligibility(request);
+      console.log('🔍 COMPREHENSIVE VALIDATION: Eligibility result:', eligibilityValidation);
+      
+      const authorizationValidation = await this.validateFullPaymentAuthorization(userId, request);
+      console.log('🔍 COMPREHENSIVE VALIDATION: Authorization result:', authorizationValidation);
+      
+      const amountValidation = this.validateFullPaymentAmount(request, property);
+      console.log('🔍 COMPREHENSIVE VALIDATION: Amount result:', amountValidation);
+      
+      const allErrors = [
+        ...eligibilityValidation.errors,
+        ...authorizationValidation.errors,
+        ...amountValidation.errors
+      ];
+      
+      return {
+        isValid: allErrors.length === 0,
+        errors: allErrors,
+        remainingAmount: amountValidation.remainingAmount,
+        propertyPrice: amountValidation.propertyPrice,
+        advanceAmount: amountValidation.advanceAmount
+      };
+    } catch (error) {
+      console.error('Error in comprehensive full payment validation:', error);
+      return {
+        isValid: false,
+        errors: ['System error during validation'],
+        remainingAmount: 0
+      };
+    }
   }
 
   // Check for suspicious activity

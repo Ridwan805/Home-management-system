@@ -175,39 +175,195 @@ const createPaymentSession = async (req, res) => {
 
 // Create Stripe checkout session for full payment
 const createFullPaymentSession = async (req, res) => {
+  let userId, amount, currency; // Declare variables outside try block for catch block access
+  
   try {
     const { requestId } = req.params;
-    const { amount: providedAmount, currency: providedCurrency = 'BDT' } = req.body;
-    const userId = req.user.userId;
+    const { amount: providedAmount, currency: providedCurrency = 'BDT', originUrl } = req.body;
+    userId = req.user.userId;
+    
+    console.log('🔄 Creating full payment session...');
+    console.log('📋 Request params:', req.params);
+    console.log('👤 User from token:', req.user);
+    console.log('📦 Request body:', req.body);
+    console.log('🔍 Headers:', req.headers);
     console.log('🧭 createFullPaymentSession called', { requestId, userId, providedAmount, providedCurrency });
+    console.log('🔍 DEBUG: Request type:', req.body.debugRequestType || 'UNKNOWN');
     
     console.log('🔄 STRIPE CONTROLLER: Creating FULL payment session for:', { requestId, userId });
     console.log('🔑 Stripe keys check:', {
       secretKeyExists: !!process.env.STRIPE_SECRET_KEY,
+      secretKeyLength: process.env.STRIPE_SECRET_KEY ? process.env.STRIPE_SECRET_KEY.length : 0,
       publishableKeyExists: !!process.env.STRIPE_PUBLISHABLE_KEY,
       frontendUrlExists: !!process.env.FRONTEND_URL
     });
+    
+    // Validate Stripe API key
+    if (!process.env.STRIPE_SECRET_KEY) {
+      console.error('❌ STRIPE_SECRET_KEY is missing');
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Payment service configuration error',
+        error: 'STRIPE_NOT_CONFIGURED'
+      });
+    }
 
+    // Validate input parameters
+    if (!requestId) {
+      console.error('❌ Request ID is missing');
+      return res.status(400).json({
+        success: false,
+        message: 'Request ID is required',
+        error: 'MISSING_REQUEST_ID'
+      });
+    }
+
+    if (!userId) {
+      console.error('❌ User ID is missing from token');
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication failed - user ID not found',
+        error: 'MISSING_USER_ID'
+      });
+    }
+
+    console.log('🔍 Looking for request with ID:', requestId);
+    console.log('🔍 User ID from token:', userId);
+
+    // Find the request and populate necessary fields
     const request = await Request.findById(requestId)
-      .populate('propertyId', 'address price listingType ownerId')
+      .populate('propertyId', 'address price listingType ownerId pricing buyPrice rent')
+      .populate('tenantId')
       .populate('ownerId', 'firstName lastName email');
 
     if (!request) {
-      return res.status(404).json({ success: false, message: 'Request not found' });
+      console.error('❌ Request not found:', requestId);
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Request not found',
+        error: 'REQUEST_NOT_FOUND'
+      });
     }
 
-    // Check if user is the tenant
-    if (request.tenantId.toString() !== String(userId)) {
-      return res.status(403).json({ success: false, message: 'Not authorized to pay for this request' });
+    console.log('📋 Found request:', {
+      id: request._id,
+      status: request.status,
+      requestType: request.requestType,
+      tenantId: request.tenantId?._id,
+      propertyListingType: request.propertyId?.listingType,
+      advancePayment: request.advancePayment,
+      fullPayment: request.fullPayment
+    });
+
+    // Verify the user is the tenant of this request
+    if (request.tenantId._id.toString() !== userId) {
+      console.error('❌ User is not the tenant of this request');
+      console.error('❌ Request tenant ID:', request.tenantId._id.toString());
+      console.error('❌ User ID:', userId);
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Unauthorized: You are not the tenant of this request',
+        error: 'UNAUTHORIZED_USER'
+      });
     }
 
-    // Determine amount and currency for full payment (ignore body to prevent tampering)
-    let amount = request.fullPayment?.amount;
+    // Check if the property is for sale
+    if (request.propertyId.listingType !== 'For Sale') {
+      console.error('❌ Property is not for sale:', request.propertyId.listingType);
+      return res.status(400).json({
+        success: false,
+        message: 'Full payment is only available for properties listed for sale',
+        error: 'INVALID_PROPERTY_TYPE'
+      });
+    }
+
+    // Check if the request status is 'Confirmed for Sale'
+    if (request.status !== 'Confirmed for Sale') {
+      console.error('❌ Request status is not "Confirmed for Sale":', request.status);
+      return res.status(400).json({
+        success: false,
+        message: `Full payment can only be made after the owner confirms the sale. Current status: ${request.status}`,
+        error: 'INVALID_REQUEST_STATUS'
+      });
+    }
+
+    // Check if advance payment has been made
+    if (!request.advancePayment || !request.advancePayment.isPaid) {
+      console.error('❌ Advance payment not completed');
+      return res.status(400).json({
+        success: false,
+        message: 'Advance payment must be completed before making full payment',
+        error: 'ADVANCE_PAYMENT_REQUIRED'
+      });
+    }
+
+    // Check if full payment has already been made
+    if (request.fullPayment && request.fullPayment.isPaid) {
+      console.error('❌ Full payment already completed');
+      return res.status(400).json({
+        success: false,
+        message: 'Full payment has already been completed for this request',
+        error: 'FULL_PAYMENT_ALREADY_COMPLETED'
+      });
+    }
+
+    // Enhanced validation using GuardrailsService
+    try {
+      console.log('🛡️ Running full payment validations...');
+      
+      // Validate full payment eligibility
+      const eligibilityValidation = await GuardrailsService.validateFullPaymentEligibility(request);
+      if (!eligibilityValidation.isValid) {
+        console.error('❌ Full payment eligibility validation failed:', eligibilityValidation.errors);
+        return res.status(400).json({
+          success: false,
+          message: eligibilityValidation.errors.join(', '),
+          error: 'ELIGIBILITY_VALIDATION_FAILED'
+        });
+      }
+      
+      // Validate user authorization
+      console.log('🔍 DEBUG: About to validate authorization with:', { userId, requestExists: !!request, requestId: request?._id });
+      console.log('🔍 DEBUG: Request tenantId before GuardrailsService:', request.tenantId);
+      console.log('🔍 DEBUG: Request tenantId type:', typeof request.tenantId);
+      const authValidation = await GuardrailsService.validateFullPaymentAuthorization(userId, request);
+      console.log('🔍 DEBUG: Authorization validation result:', authValidation);
+      if (!authValidation.isValid) {
+        console.error('❌ Full payment authorization validation failed:', authValidation.errors);
+        return res.status(403).json({
+          success: false,
+          message: authValidation.errors.join(', '),
+          error: 'AUTHORIZATION_VALIDATION_FAILED'
+        });
+      }
+      
+      console.log('✅ All full payment validations passed');
+    } catch (validationError) {
+      console.error('❌ Error during full payment validation:', validationError.message);
+      return res.status(500).json({
+        success: false,
+        message: 'Validation service error',
+        error: 'VALIDATION_SERVICE_ERROR'
+      });
+    }
+
+    // Determine amount and currency for full payment (only for sale properties)
+    amount = request.fullPayment?.amount;
     if (!amount || amount <= 0) {
-      // Fallback to property price if full payment amount is not preset on the request
-      amount = request.propertyId?.price;
+      // Calculate remaining amount: sale price - advance payment amount
+      const salePrice = Number(request.propertyId?.pricing?.sale) || 0;
+      const advanceAmount = Number(request.advancePayment?.amount) || 0;
+      amount = salePrice - advanceAmount;
+      
+      console.log('🧮 Calculating full payment amount for sale property:', {
+        salePrice,
+        advanceAmount,
+        calculatedAmount: amount,
+        listingType: request.propertyId?.listingType,
+        pricingData: request.propertyId?.pricing
+      });
     }
-    let currency = (request.fullPayment?.currency || 'USD').toUpperCase();
+    currency = (request.fullPayment?.currency || 'USD').toUpperCase();
 
     // Ensure currency is supported by Stripe Checkout; fallback to USD if not
     const supportedCurrencies = new Set(['USD', 'EUR', 'GBP', 'CAD', 'AUD']);
@@ -221,6 +377,8 @@ const createFullPaymentSession = async (req, res) => {
     if (!amount || amount <= 0) {
       return res.status(400).json({ success: false, message: 'Invalid full payment amount' });
     }
+
+    // Note: Amount validation is handled in the comprehensive validation below
 
     const amountInCents = Math.round(amount * 100);
 
@@ -236,6 +394,67 @@ const createFullPaymentSession = async (req, res) => {
     }
     console.log('📧 [Full] Using customer email for Stripe (may be undefined):', customerEmail);
 
+    // Debug environment variables
+    console.log('🔍 Environment check:', {
+      frontendUrl: process.env.FRONTEND_URL,
+      stripeSecretExists: !!process.env.STRIPE_SECRET_KEY,
+      nodeEnv: process.env.NODE_ENV
+    });
+
+    // Use the originUrl from the request body if provided, otherwise fall back to FRONTEND_URL
+    const frontendUrl = req.body.originUrl || process.env.FRONTEND_URL || 'http://localhost:5175';
+    console.log('🔗 Using frontend URL for redirects:', frontendUrl);
+    
+    const successUrl = `${frontendUrl}/tenant/request-info?payment=success&session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `${frontendUrl}/tenant/request-info?payment=cancelled`;
+    
+    console.log('🔗 Stripe session URLs:', { successUrl, cancelUrl });
+
+    // Final comprehensive validation before creating Stripe session
+    try {
+      const comprehensiveValidation = await GuardrailsService.validateFullPayment(userId, requestId, request.propertyId._id, request, request.propertyId);
+      if (!comprehensiveValidation.isValid) {
+        console.error('❌ Comprehensive full payment validation failed:', comprehensiveValidation.errors);
+        return res.status(400).json({
+          success: false,
+          message: comprehensiveValidation.errors.join(', '),
+          error: 'COMPREHENSIVE_VALIDATION_FAILED'
+        });
+      }
+      console.log('✅ Comprehensive full payment validation passed');
+    } catch (comprehensiveValidationError) {
+      console.error('❌ Error during comprehensive validation:', comprehensiveValidationError.message);
+      return res.status(500).json({
+        success: false,
+        message: 'Comprehensive validation service error',
+        error: 'COMPREHENSIVE_VALIDATION_SERVICE_ERROR'
+      });
+    }
+
+    // Validate amount against Stripe limits (max $999,999.99 = 99999999 cents)
+    const STRIPE_MAX_AMOUNT = 99999999; // $999,999.99 in cents
+    if (amountInCents > STRIPE_MAX_AMOUNT) {
+      console.error('❌ Amount exceeds Stripe limit:', {
+        amountInCents,
+        maxAllowed: STRIPE_MAX_AMOUNT,
+        amountInDollars: amountInCents / 100,
+        maxAllowedInDollars: STRIPE_MAX_AMOUNT / 100
+      });
+      return res.status(400).json({
+        success: false,
+        message: `Payment amount ($${(amountInCents / 100).toLocaleString()}) exceeds Stripe's maximum limit of $999,999.99`,
+        error: 'AMOUNT_EXCEEDS_STRIPE_LIMIT'
+      });
+    }
+
+    console.log('🔄 Creating Stripe checkout session with params:', {
+      currency: currency.toLowerCase(),
+      amount: amountInCents,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      customer_email: customerEmail
+    });
+    
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -252,8 +471,8 @@ const createFullPaymentSession = async (req, res) => {
         },
       ],
       mode: 'payment',
-      success_url: `${process.env.FRONTEND_URL}/tenant/request-info?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.FRONTEND_URL}/tenant/request-info?payment=cancelled`,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
       metadata: {
         requestId: request._id.toString(),
         tenantId: userId.toString(),
@@ -281,9 +500,85 @@ const createFullPaymentSession = async (req, res) => {
     return res.status(200).json({ success: true, sessionId: session.id, url: session.url });
   } catch (error) {
     console.error('❗ Error creating full payment session:', error?.message || error);
-    if (error?.stack) console.error(error.stack);
-    if (error?.raw) console.error('Stripe error details:', error.raw);
-    return res.status(500).json({ success: false, message: 'Failed to create full payment session' });
+    console.error('❗ Error type:', error?.type);
+    console.error('❗ Error code:', error?.code);
+    console.error('❗ Request ID:', req.params.requestId);
+    console.error('❗ User ID:', userId);
+    console.error('❗ Amount:', amount);
+    console.error('❗ Currency:', currency);
+    if (error?.stack) console.error('❗ Error stack:', error.stack);
+    if (error?.raw) console.error('❗ Stripe error details:', error.raw);
+    
+    // Log additional context for debugging
+    console.error('❗ Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+    
+    // Provide more specific error messages based on the error type
+    let errorMessage = 'Failed to create full payment session';
+    let statusCode = 500;
+    let errorCode = 'UNKNOWN_ERROR';
+    
+    if (error.type === 'StripeCardError') {
+      errorMessage = `Payment error: ${error.message}`;
+      statusCode = 400;
+      errorCode = 'STRIPE_CARD_ERROR';
+    } else if (error.type === 'StripeInvalidRequestError') {
+      errorMessage = `Invalid request: ${error.message}`;
+      statusCode = 400;
+      errorCode = 'STRIPE_INVALID_REQUEST';
+    } else if (error.type === 'StripeAPIError') {
+      errorMessage = 'Payment service temporarily unavailable';
+      statusCode = 503;
+      errorCode = 'STRIPE_API_ERROR';
+    } else if (error.type === 'StripeConnectionError') {
+      errorMessage = 'Could not connect to payment service';
+      statusCode = 503;
+      errorCode = 'STRIPE_CONNECTION_ERROR';
+    } else if (error.type === 'StripeAuthenticationError') {
+      errorMessage = 'Payment service authentication error';
+      statusCode = 500;
+      errorCode = 'STRIPE_AUTH_ERROR';
+      console.error('❌ Stripe authentication error - check API keys');
+    } else if (error.code === 'resource_missing') {
+      errorMessage = 'Payment configuration error';
+      statusCode = 500;
+      errorCode = 'STRIPE_RESOURCE_MISSING';
+    } else if (error.name === 'ValidationError') {
+      errorMessage = `Validation error: ${error.message}`;
+      statusCode = 400;
+      errorCode = 'VALIDATION_ERROR';
+    } else if (error.name === 'CastError') {
+      errorMessage = 'Invalid request ID format';
+      statusCode = 400;
+      errorCode = 'INVALID_REQUEST_ID';
+    } else if (error.name === 'MongoError' || error.name === 'MongooseError') {
+      errorMessage = 'Database error occurred';
+      statusCode = 500;
+      errorCode = 'DATABASE_ERROR';
+      console.error('❌ Database error details:', error);
+    } else if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+      errorMessage = 'Network connection error';
+      statusCode = 503;
+      errorCode = 'NETWORK_ERROR';
+    } else if (error.code === 'ETIMEDOUT') {
+      errorMessage = 'Request timeout - please try again';
+      statusCode = 408;
+      errorCode = 'TIMEOUT_ERROR';
+    } else if (error.message) {
+      errorMessage = `Server error: ${error.message}`;
+      errorCode = 'SERVER_ERROR';
+    }
+    
+    return res.status(statusCode).json({ 
+      success: false, 
+      message: errorMessage,
+      error: errorCode,
+      details: process.env.NODE_ENV === 'development' ? {
+        originalError: error.message,
+        errorType: error.type,
+        errorCode: error.code,
+        stack: error.stack
+      } : undefined
+    });
   }
 };
 
@@ -565,9 +860,17 @@ const handlePaymentSuccess = async (session) => {
         }
         
         if (newStatus) {
-           // Use the property's state machine method to update status
+           // Update property status to indicate advance payment received, but don't transfer ownership yet
            if (newStatus === 'Sold') {
-             await property.sell(tenantId, tenantId, `Automatically set to Sold after advance payment completion for request ${requestId}`);
+             // For sale properties, mark as reserved/under contract after advance payment
+             property.status = 'Reserved';
+             property.stateHistory.push({
+               status: 'Reserved',
+               timestamp: new Date(),
+               note: `Property reserved after advance payment completion for request ${requestId}`,
+               updatedBy: tenantId
+             });
+             await property.save();
            } else if (newStatus === 'Rented') {
              // Note: Rent objects are now created only when owner approves the request
              // This webhook only updates the property status after advance payment

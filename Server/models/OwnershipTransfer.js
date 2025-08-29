@@ -227,7 +227,7 @@ OwnershipTransferSchema.pre('save', function(next) {
 });
 
 // Instance methods
-OwnershipTransferSchema.methods.close = function(closedBy, note = '') {
+OwnershipTransferSchema.methods.close = async function(closedBy, note = '') {
   this.status = 'Closed';
   this.closing.completedAt = new Date();
   this.closing.completedBy = closedBy;
@@ -239,6 +239,13 @@ OwnershipTransferSchema.methods.close = function(closedBy, note = '') {
     note: note || 'Ownership transfer completed successfully',
     updatedBy: closedBy
   });
+  
+  // Update property status to 'Sold' and transfer ownership
+  const Property = mongoose.model('Property');
+  const property = await Property.findById(this.propertyId);
+  if (property) {
+    await property.sell(closedBy, this.buyerId, `Property sold via ownership transfer ${this._id}`);
+  }
   
   return this.save();
 };
