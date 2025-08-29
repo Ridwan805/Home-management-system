@@ -267,6 +267,15 @@
   font-size: 14px;
 }
 
+.no-contact-info {
+  color: #9ca3af;
+  font-size: 14px;
+  font-style: italic;
+  margin: 0;
+  padding: 10px 0;
+  text-align: center;
+}
+
 .action-btn {
   width: 100%;
   padding: 15px;

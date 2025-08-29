@@ -468,21 +468,38 @@ const OwnerRequestsInbox = () => {
       
       // Client-side validation for advance payment amount
       const selectedRequest = requests.find(req => req._id === selectedRequestForPayment);
-      if (selectedRequest && selectedRequest.propertyId && selectedRequest.propertyId.price) {
-        const propertyPrice = selectedRequest.propertyId.price;
-        const maxAdvanceAmount = propertyPrice * 0.5;
-        const requestedAmount = parseFloat(advancePaymentForm.amount);
+      if (selectedRequest && selectedRequest.propertyId) {
+        const property = selectedRequest.propertyId;
+        const requestType = selectedRequest.requestType;
+        let propertyPrice, maxPercentage, maxAdvanceAmount, priceLabel;
         
-        if (isNaN(requestedAmount) || requestedAmount <= 0) {
-          setAmountError('Please enter a valid amount greater than 0');
-          setActionLoading(false);
-          return;
+        if (requestType === 'Buy') {
+          // For buy requests, use sale price with 20% limit
+          propertyPrice = property.pricing?.sale || property.buyPrice || property.price;
+          maxPercentage = 0.2;
+          priceLabel = 'sale price';
+        } else {
+          // For rent requests, use rent price with 50% limit
+          propertyPrice = property.pricing?.rent || property.rent || property.price;
+          maxPercentage = 0.5;
+          priceLabel = 'monthly rent';
         }
         
-        if (requestedAmount > maxAdvanceAmount) {
-          setAmountError(`Amount cannot exceed BDT ${maxAdvanceAmount.toLocaleString()} (50% of property price)`);
-          setActionLoading(false);
-          return;
+        if (propertyPrice) {
+          maxAdvanceAmount = propertyPrice * maxPercentage;
+          const requestedAmount = parseFloat(advancePaymentForm.amount);
+          
+          if (isNaN(requestedAmount) || requestedAmount <= 0) {
+            setAmountError('Please enter a valid amount greater than 0');
+            setActionLoading(false);
+            return;
+          }
+          
+          if (requestedAmount > maxAdvanceAmount) {
+            setAmountError(`Amount cannot exceed BDT ${maxAdvanceAmount.toLocaleString()} (${maxPercentage * 100}% of ${priceLabel})`);
+            setActionLoading(false);
+            return;
+          }
         }
       } else {
         // If we can't find property price, still validate basic amount
@@ -601,6 +618,8 @@ const OwnerRequestsInbox = () => {
 
   // Handle approve for AdvancePaid requests
   const handleApproveAdvancePaid = async (requestId) => {
+    console.log('🔄 handleApproveAdvancePaid called with requestId:', requestId);
+    
     if (!window.confirm('Are you sure you want to approve this request and mark it as completed?')) {
       return;
     }
@@ -608,6 +627,7 @@ const OwnerRequestsInbox = () => {
     try {
       setActionLoading(true);
       const userData = localStorage.getItem('dwellSyncUser');
+      console.log('📱 User data from localStorage:', userData ? 'Found' : 'Not found');
       
       if (!userData) {
         alert('Please log in to approve request');
@@ -616,34 +636,48 @@ const OwnerRequestsInbox = () => {
       
       const user = JSON.parse(userData);
       const token = user.token;
+      console.log('🔑 Token extracted:', token ? 'Present' : 'Missing');
       
-      const response = await fetch(API.getUrl(API.endpoints.requestStatus(requestId)), {
-        method: 'PUT',
+      const url = API.getUrl(API.endpoints.requestStatusUpdate(requestId));
+      console.log('🌐 Making request to URL:', url);
+      
+      const requestBody = {
+        status: 'Paid/Completed',
+        note: 'Request approved by owner after advance payment completion'
+      };
+      console.log('📤 Request body:', requestBody);
+      
+      const response = await fetch(url, {
+        method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          status: 'Paid/Completed',
-          note: 'Request approved by owner after advance payment completion'
-        })
+        body: JSON.stringify(requestBody)
       });
+      
+      console.log('📥 Response status:', response.status);
+      console.log('📥 Response ok:', response.ok);
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json();
+        console.error('❌ Error response data:', errorData);
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
+      console.log('✅ Success response data:', data);
       
       if (data.success) {
-        alert('Request approved successfully! Tenant has been notified.');
+        alert('Request approved successfully! Request marked as completed.');
         fetchOwnerRequests(); // Refresh the list
       } else {
         alert(data.message || 'Failed to approve request');
       }
     } catch (err) {
-      console.error('Error approving request:', err);
-      alert('Failed to approve request. Please try again.');
+      console.error('❌ Error approving request:', err);
+      console.error('❌ Error stack:', err.stack);
+      alert(`Failed to approve request: ${err.message}`);
     } finally {
       setActionLoading(false);
     }
@@ -873,6 +907,24 @@ const OwnerRequestsInbox = () => {
                       disabled={actionLoading}
                     >
                       Approve Request
+                    </button>
+                  </>
+                )}
+                
+                {request.status === 'Paid/Completed' && (
+                  <>
+                    <button 
+                      onClick={() => handleGetReceipt(request.advancePayment?.paymentId)}
+                      className="action-btn view-btn"
+                      disabled={receiptLoading}
+                    >
+                      {receiptLoading ? (
+                        'Loading...'
+                      ) : (
+                        <>
+                          <FaReceipt /> Show Receipt
+                        </>
+                      )}
                     </button>
                   </>
                 )}
@@ -1186,16 +1238,34 @@ const OwnerRequestsInbox = () => {
               {/* Property Price Information */}
               {(() => {
                 const selectedRequest = requests.find(req => req._id === selectedRequestForPayment);
-                if (selectedRequest && selectedRequest.propertyId && selectedRequest.propertyId.price) {
-                  const propertyPrice = selectedRequest.propertyId.price;
-                  const maxAdvanceAmount = propertyPrice * 0.5;
-                  return (
-                    <div className="property-info" style={{marginBottom: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef'}}>
-                      <h4 style={{margin: '0 0 10px 0', color: '#495057'}}>Property Information</h4>
-                      <p style={{margin: '5px 0', color: '#6c757d'}}><strong>Property Price:</strong> BDT {propertyPrice.toLocaleString()}</p>
-                      <p style={{margin: '5px 0', color: '#28a745'}}><strong>Maximum Advance Payment (50%):</strong> BDT {maxAdvanceAmount.toLocaleString()}</p>
-                    </div>
-                  );
+                if (selectedRequest && selectedRequest.propertyId) {
+                  const property = selectedRequest.propertyId;
+                  const requestType = selectedRequest.requestType;
+                  let propertyPrice, maxPercentage, maxAdvanceAmount, priceLabel;
+                  
+                  if (requestType === 'Buy') {
+                    // For buy requests, use sale price with 20% limit
+                    propertyPrice = property.pricing?.sale || property.buyPrice || property.price;
+                    maxPercentage = 0.2;
+                    priceLabel = 'Sale Price';
+                  } else {
+                    // For rent requests, use rent price with 50% limit
+                    propertyPrice = property.pricing?.rent || property.rent || property.price;
+                    maxPercentage = 0.5;
+                    priceLabel = 'Monthly Rent';
+                  }
+                  
+                  if (propertyPrice) {
+                    maxAdvanceAmount = propertyPrice * maxPercentage;
+                    return (
+                      <div className="property-info" style={{marginBottom: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef'}}>
+                        <h4 style={{margin: '0 0 10px 0', color: '#495057'}}>Property Information</h4>
+                        <p style={{margin: '5px 0', color: '#6c757d'}}><strong>Request Type:</strong> {requestType}</p>
+                        <p style={{margin: '5px 0', color: '#6c757d'}}><strong>{priceLabel}:</strong> BDT {propertyPrice.toLocaleString()}</p>
+                        <p style={{margin: '5px 0', color: '#28a745'}}><strong>Maximum Advance Payment ({maxPercentage * 100}%):</strong> BDT {maxAdvanceAmount.toLocaleString()}</p>
+                      </div>
+                    );
+                  }
                 }
                 return null;
               })()}
@@ -1204,13 +1274,27 @@ const OwnerRequestsInbox = () => {
                 <label htmlFor="amount">
                   Amount * {(() => {
                     const selectedRequest = requests.find(req => req._id === selectedRequestForPayment);
-                    if (selectedRequest && selectedRequest.propertyId && selectedRequest.propertyId.price) {
-                      const maxAmount = selectedRequest.propertyId.price * 0.5;
-                      return `(Max: BDT ${maxAmount.toLocaleString()})`;
+                    if (selectedRequest && selectedRequest.propertyId) {
+                      const property = selectedRequest.propertyId;
+                      const requestType = selectedRequest.requestType;
+                      let propertyPrice, maxPercentage;
+                      
+                      if (requestType === 'Buy') {
+                        propertyPrice = property.pricing?.sale || property.buyPrice || property.price;
+                        maxPercentage = 0.2;
+                      } else {
+                        propertyPrice = property.pricing?.rent || property.rent || property.price;
+                        maxPercentage = 0.5;
+                      }
+                      
+                      if (propertyPrice) {
+                        const maxAmount = propertyPrice * maxPercentage;
+                        return `(Max: BDT ${maxAmount.toLocaleString()})`;
+                      }
                     }
                     return '';
-                  })()}
-                </label>
+                  })()
+                }</label>
                 <input
                   type="number"
                   id="amount"
@@ -1218,8 +1302,22 @@ const OwnerRequestsInbox = () => {
                   min="1"
                   max={(() => {
                     const selectedRequest = requests.find(req => req._id === selectedRequestForPayment);
-                    if (selectedRequest && selectedRequest.propertyId && selectedRequest.propertyId.price) {
-                      return selectedRequest.propertyId.price * 0.5;
+                    if (selectedRequest && selectedRequest.propertyId) {
+                      const property = selectedRequest.propertyId;
+                      const requestType = selectedRequest.requestType;
+                      let propertyPrice, maxPercentage;
+                      
+                      if (requestType === 'Buy') {
+                        propertyPrice = property.pricing?.sale || property.buyPrice || property.price;
+                        maxPercentage = 0.2;
+                      } else {
+                        propertyPrice = property.pricing?.rent || property.rent || property.price;
+                        maxPercentage = 0.5;
+                      }
+                      
+                      if (propertyPrice) {
+                        return propertyPrice * maxPercentage;
+                      }
                     }
                     return undefined;
                   })()}
@@ -1227,16 +1325,31 @@ const OwnerRequestsInbox = () => {
                     const inputValue = e.target.value;
                     const selectedRequest = requests.find(req => req._id === selectedRequestForPayment);
                     
-                    if (selectedRequest && selectedRequest.propertyId && selectedRequest.propertyId.price) {
-                      const maxAmount = selectedRequest.propertyId.price * 0.5;
-                      const numericValue = parseFloat(inputValue);
+                    if (selectedRequest && selectedRequest.propertyId) {
+                      const property = selectedRequest.propertyId;
+                      const requestType = selectedRequest.requestType;
+                      let propertyPrice, maxPercentage, priceLabel;
                       
-                      // Prevent input that exceeds maximum limit
-                      if (inputValue !== '' && !isNaN(numericValue) && numericValue > maxAmount) {
-                        // Don't update the form value if it exceeds the limit
-                        setAmountError(`Maximum allowed amount is BDT ${maxAmount.toLocaleString()} (50% of property price)`);
-                        return;
+                      if (requestType === 'Buy') {
+                        propertyPrice = property.pricing?.sale || property.buyPrice || property.price;
+                        maxPercentage = 0.2;
+                        priceLabel = 'sale price';
+                      } else {
+                        propertyPrice = property.pricing?.rent || property.rent || property.price;
+                        maxPercentage = 0.5;
+                        priceLabel = 'monthly rent';
                       }
+                      
+                      if (propertyPrice) {
+                        const maxAmount = propertyPrice * maxPercentage;
+                        const numericValue = parseFloat(inputValue);
+                        
+                        // Prevent input that exceeds maximum limit
+                        if (inputValue !== '' && !isNaN(numericValue) && numericValue > maxAmount) {
+                          // Don't update the form value if it exceeds the limit
+                          setAmountError(`Maximum allowed amount is BDT ${maxAmount.toLocaleString()} (${maxPercentage * 100}% of ${priceLabel})`);
+                          return;
+                        }
                       
                       // Update the form value
                       setAdvancePaymentForm({...advancePaymentForm, amount: inputValue});
@@ -1255,39 +1368,56 @@ const OwnerRequestsInbox = () => {
                       setAdvancePaymentForm({...advancePaymentForm, amount: inputValue});
                       setAmountError('');
                     }
+                  }
                   }}
                   onKeyDown={(e) => {
                     // Prevent certain keys that could lead to exceeding the limit
                     const selectedRequest = requests.find(req => req._id === selectedRequestForPayment);
-                    if (selectedRequest && selectedRequest.propertyId && selectedRequest.propertyId.price) {
-                      const maxAmount = selectedRequest.propertyId.price * 0.5;
-                      const currentValue = parseFloat(e.target.value) || 0;
+                    if (selectedRequest && selectedRequest.propertyId) {
+                      const property = selectedRequest.propertyId;
+                      const requestType = selectedRequest.requestType;
+                      let propertyPrice, maxPercentage, priceLabel;
                       
-                      // Allow backspace, delete, tab, escape, enter, and arrow keys
-                      if ([8, 9, 27, 13, 46, 37, 38, 39, 40].indexOf(e.keyCode) !== -1 ||
-                          // Allow Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
-                          (e.keyCode === 65 && e.ctrlKey === true) ||
-                          (e.keyCode === 67 && e.ctrlKey === true) ||
-                          (e.keyCode === 86 && e.ctrlKey === true) ||
-                          (e.keyCode === 88 && e.ctrlKey === true)) {
-                        return;
+                      if (requestType === 'Buy') {
+                        propertyPrice = property.pricing?.sale || property.buyPrice || property.price;
+                        maxPercentage = 0.2;
+                        priceLabel = 'sale price';
+                      } else {
+                        propertyPrice = property.pricing?.rent || property.rent || property.price;
+                        maxPercentage = 0.5;
+                        priceLabel = 'monthly rent';
                       }
                       
-                      // For number keys, check if the resulting value would exceed the limit
-                      if ((e.keyCode >= 48 && e.keyCode <= 57) || (e.keyCode >= 96 && e.keyCode <= 105) || e.keyCode === 190 || e.keyCode === 110) {
-                        const newChar = e.key;
-                        const currentInput = e.target.value;
-                        const selectionStart = e.target.selectionStart;
-                        const selectionEnd = e.target.selectionEnd;
-                        
-                        // Simulate the new value after the key press
-                        const newValue = currentInput.substring(0, selectionStart) + newChar + currentInput.substring(selectionEnd);
-                        const newNumericValue = parseFloat(newValue);
-                        
-                        if (!isNaN(newNumericValue) && newNumericValue > maxAmount) {
-                          e.preventDefault();
-                          setAmountError(`Maximum allowed amount is BDT ${maxAmount.toLocaleString()} (50% of property price)`);
+                      if (propertyPrice) {
+                        const maxAmount = propertyPrice * maxPercentage;
+                        const currentValue = parseFloat(e.target.value) || 0;
+                      
+                        // Allow backspace, delete, tab, escape, enter, and arrow keys
+                        if ([8, 9, 27, 13, 46, 37, 38, 39, 40].indexOf(e.keyCode) !== -1 ||
+                            // Allow Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+                            (e.keyCode === 65 && e.ctrlKey === true) ||
+                            (e.keyCode === 67 && e.ctrlKey === true) ||
+                            (e.keyCode === 86 && e.ctrlKey === true) ||
+                            (e.keyCode === 88 && e.ctrlKey === true)) {
                           return;
+                        }
+                        
+                        // For number keys, check if the resulting value would exceed the limit
+                        if ((e.keyCode >= 48 && e.keyCode <= 57) || (e.keyCode >= 96 && e.keyCode <= 105) || e.keyCode === 190 || e.keyCode === 110) {
+                          const newChar = e.key;
+                          const currentInput = e.target.value;
+                          const selectionStart = e.target.selectionStart;
+                          const selectionEnd = e.target.selectionEnd;
+                          
+                          // Simulate the new value after the key press
+                          const newValue = currentInput.substring(0, selectionStart) + newChar + currentInput.substring(selectionEnd);
+                          const newNumericValue = parseFloat(newValue);
+                          
+                          if (!isNaN(newNumericValue) && newNumericValue > maxAmount) {
+                            e.preventDefault();
+                            setAmountError(`Maximum allowed amount is BDT ${maxAmount.toLocaleString()} (${maxPercentage * 100}% of ${priceLabel})`);
+                            return;
+                          }
                         }
                       }
                     }
@@ -1295,15 +1425,31 @@ const OwnerRequestsInbox = () => {
                   onPaste={(e) => {
                     // Handle paste events to prevent exceeding the limit
                     const selectedRequest = requests.find(req => req._id === selectedRequestForPayment);
-                    if (selectedRequest && selectedRequest.propertyId && selectedRequest.propertyId.price) {
-                      const maxAmount = selectedRequest.propertyId.price * 0.5;
-                      const pastedData = e.clipboardData.getData('text');
-                      const pastedValue = parseFloat(pastedData);
+                    if (selectedRequest && selectedRequest.propertyId) {
+                      const property = selectedRequest.propertyId;
+                      const requestType = selectedRequest.requestType;
+                      let propertyPrice, maxPercentage, priceLabel;
                       
-                      if (!isNaN(pastedValue) && pastedValue > maxAmount) {
-                        e.preventDefault();
-                        setAmountError(`Maximum allowed amount is BDT ${maxAmount.toLocaleString()} (50% of property price)`);
-                        return;
+                      if (requestType === 'Buy') {
+                        propertyPrice = property.pricing?.sale || property.buyPrice || property.price;
+                        maxPercentage = 0.2;
+                        priceLabel = 'sale price';
+                      } else {
+                        propertyPrice = property.pricing?.rent || property.rent || property.price;
+                        maxPercentage = 0.5;
+                        priceLabel = 'monthly rent';
+                      }
+                      
+                      if (propertyPrice) {
+                        const maxAmount = propertyPrice * maxPercentage;
+                        const pastedData = e.clipboardData.getData('text');
+                        const pastedValue = parseFloat(pastedData);
+                        
+                        if (!isNaN(pastedValue) && pastedValue > maxAmount) {
+                          e.preventDefault();
+                          setAmountError(`Maximum allowed amount is BDT ${maxAmount.toLocaleString()} (${maxPercentage * 100}% of ${priceLabel})`);
+                          return;
+                        }
                       }
                     }
                   }}
@@ -1321,13 +1467,29 @@ const OwnerRequestsInbox = () => {
                 )}
                 {(() => {
                   const selectedRequest = requests.find(req => req._id === selectedRequestForPayment);
-                  if (selectedRequest && selectedRequest.propertyId && selectedRequest.propertyId.price) {
-                    const maxAmount = selectedRequest.propertyId.price * 0.5;
-                    return (
-                      <small style={{color: '#28a745', fontSize: '12px', fontWeight: '500'}}>
-                        Maximum allowed: BDT {maxAmount.toLocaleString()} (50% of property price)
-                      </small>
-                    );
+                  if (selectedRequest && selectedRequest.propertyId) {
+                    const property = selectedRequest.propertyId;
+                    const requestType = selectedRequest.requestType;
+                    let propertyPrice, maxPercentage, priceLabel;
+                    
+                    if (requestType === 'Buy') {
+                      propertyPrice = property.pricing?.sale || property.buyPrice || property.price;
+                      maxPercentage = 0.2;
+                      priceLabel = 'sale price';
+                    } else {
+                      propertyPrice = property.pricing?.rent || property.rent || property.price;
+                      maxPercentage = 0.5;
+                      priceLabel = 'monthly rent';
+                    }
+                    
+                    if (propertyPrice) {
+                      const maxAmount = propertyPrice * maxPercentage;
+                      return (
+                        <small style={{color: '#28a745', fontSize: '12px', fontWeight: '500'}}>
+                          Maximum allowed: BDT {maxAmount.toLocaleString()} ({maxPercentage * 100}% of {priceLabel})
+                        </small>
+                      );
+                    }
                   }
                   return null;
                 })()}

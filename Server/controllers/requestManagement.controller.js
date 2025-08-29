@@ -22,12 +22,31 @@ const getMyRequests = async (req, res) => {
     const requests = await Request.find(query)
       .populate('propertyId', 'address city state rent buyPrice images')
       .populate('ownerId', 'firstName lastName email')
+      .populate('advancePayment.verifiedBy', 'firstName lastName')
+      .populate('fullPayment.verifiedBy', 'firstName lastName')
       .sort({ createdAt: -1 });
+    
+    // Fetch linked payment records for each request
+    const requestsWithPayments = await Promise.all(
+      requests.map(async (request) => {
+        const requestObj = request.toObject();
+        
+        // Fetch linked Payment records
+        const payments = await Payment.find({ requestId: request._id })
+          .populate('payerId', 'firstName lastName email')
+          .populate('payeeId', 'firstName lastName email')
+          .populate('verifiedBy', 'firstName lastName')
+          .sort({ createdAt: -1 });
+        
+        requestObj.payments = payments;
+        return requestObj;
+      })
+    );
     
     res.status(200).json({
       success: true,
-      count: requests.length,
-      requests
+      count: requestsWithPayments.length,
+      requests: requestsWithPayments
     });
   } catch (error) {
     console.error('Error fetching tenant requests:', error);
@@ -187,7 +206,8 @@ const updateRequestStatus = async (req, res) => {
       'Submitted': ['Under Review', 'Rejected'],
       'Under Review': ['Info Requested', 'Approved – Pay Advance', 'Rejected'],
       'Info Requested': ['Under Review', 'Rejected'],
-      'Payment Submitted': ['Paid/Completed', 'Approved – Pay Advance']
+      'Payment Submitted': ['Paid/Completed', 'Approved – Pay Advance', 'AdvancePaid'],
+      'AdvancePaid': ['Paid/Completed', 'Canceled']
     };
     
     if (!validTransitions[request.status] || !validTransitions[request.status].includes(status)) {

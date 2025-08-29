@@ -293,7 +293,7 @@ const PropertyFilter = () => {
             <div className="property-images">
               {property.images && property.images.length > 0 ? (
                 <img 
-                  src={`http://localhost:5001${property.images[0]}`} 
+                  src={`http://localhost:5001/api/images/${property.images[0].replace('/uploads/', '')}`} 
                   alt="Property" 
                   className="property-image"
                 />

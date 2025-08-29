@@ -255,7 +255,7 @@ const ViewDetails = () => {
         {property.images && property.images.length > 0 ? (
           <div className="property-image-gallery">
             <img 
-              src={`http://localhost:5001${property.images[0]}`} 
+              src={`http://localhost:5001/api/images/${property.images[0].replace('/uploads/', '')}`} 
               alt="Property" 
               className="main-property-image"
             />
@@ -264,7 +264,7 @@ const ViewDetails = () => {
                 {property.images.slice(1).map((image, index) => (
                   <img 
                     key={index} 
-                    src={`http://localhost:5001${image}`} 
+                    src={`http://localhost:5001/api/images/${image.replace('/uploads/', '')}`} 
                     alt={`Property ${index + 2}`} 
                     className="property-thumbnail"
                   />
@@ -361,15 +361,27 @@ const ViewDetails = () => {
           </div>
 
           <div className="property-contact-card">
-            <h3>Contact Information</h3>
-            <div className="contact-item">
-              <span className="contact-icon">📧</span>
-              <span className="contact-text">{property.contactEmail}</span>
-            </div>
-            <div className="contact-item">
-              <span className="contact-icon">📞</span>
-              <span className="contact-text">{property.contactPhone}</span>
-            </div>
+            <h3>Owner Contact Information</h3>
+            {property.ownerUserId ? (
+              <>
+                <div className="contact-item">
+                  <span className="contact-icon">👤</span>
+                  <span className="contact-text">{property.ownerUserId.firstName} {property.ownerUserId.lastName}</span>
+                </div>
+                <div className="contact-item">
+                  <span className="contact-icon">📧</span>
+                  <span className="contact-text">{property.ownerUserId.email}</span>
+                </div>
+                {property.ownerUserId.phoneNumber && (
+                  <div className="contact-item">
+                    <span className="contact-icon">📞</span>
+                    <span className="contact-text">{property.ownerUserId.phoneNumber}</span>
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="no-contact-info">Owner contact information not available</p>
+            )}
           </div>
 
           <div className="property-actions-card">

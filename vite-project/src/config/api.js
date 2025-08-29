@@ -166,6 +166,7 @@ export default {
     propertyById: (id) => `/api/properties/${id}`,
     propertyStatus: (id) => `/api/properties/${id}/status`,
     userProperties: '/api/properties/user',
+    tenantAssignments: '/api/properties/my-assignments',
     
     // Request endpoints
     requests: '/api/requests',
@@ -203,6 +204,9 @@ export default {
     escalateReport: (id) => `/api/admin/reports/${id}/escalate`,
     pendingProperties: '/api/admin/properties/pending',
     approveProperty: (id) => `/api/admin/properties/${id}/approve`,
+    
+    // Image serving endpoint
+    image: (filename) => `/api/images/${filename}`,
   },
   
   // Helper function to get full URL for an endpoint

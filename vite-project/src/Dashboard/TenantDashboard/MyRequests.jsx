@@ -691,18 +691,64 @@ const MyRequests = () => {
                         <span className="info-value">{selectedRequest.advancePayment.amount?.toLocaleString()} {selectedRequest.advancePayment.currency || 'BDT'}</span>
                       </div>
                       <div className="info-item">
+                        <span className="info-label">Status</span>
+                        <span className="info-value">{selectedRequest.advancePayment.status || 'pending'}</span>
+                      </div>
+                      <div className="info-item">
                         <span className="info-label">Due Date</span>
                         <span className="info-value">{formatDate(selectedRequest.advancePayment.dueDate)}</span>
                       </div>
+                      {selectedRequest.advancePayment.paidAt && (
+                        <div className="info-item">
+                          <span className="info-label">Paid At</span>
+                          <span className="info-value">{formatDate(selectedRequest.advancePayment.paidAt)}</span>
+                        </div>
+                      )}
                       {selectedRequest.advancePayment.instructions && (
                         <div className="info-item">
                           <span className="info-label">Instructions</span>
                           <span className="info-value">{selectedRequest.advancePayment.instructions}</span>
                         </div>
                       )}
+                      {selectedRequest.advancePayment.verifiedAt && (
+                        <div className="info-item">
+                          <span className="info-label">Verified At</span>
+                          <span className="info-value">{formatDate(selectedRequest.advancePayment.verifiedAt)}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
+                
+                {selectedRequest.fullPayment && (
+                  <div className="full-payment-info">
+                    <h4>Full Payment Details</h4>
+                    <div className="property-info-grid">
+                      <div className="info-item">
+                        <span className="info-label">Amount</span>
+                        <span className="info-value">{selectedRequest.fullPayment.amount?.toLocaleString()} {selectedRequest.fullPayment.currency || 'BDT'}</span>
+                      </div>
+                      <div className="info-item">
+                        <span className="info-label">Status</span>
+                        <span className="info-value">{selectedRequest.fullPayment.status || 'pending'}</span>
+                      </div>
+                      {selectedRequest.fullPayment.paidAt && (
+                        <div className="info-item">
+                          <span className="info-label">Paid At</span>
+                          <span className="info-value">{formatDate(selectedRequest.fullPayment.paidAt)}</span>
+                        </div>
+                      )}
+                      {selectedRequest.fullPayment.verifiedAt && (
+                        <div className="info-item">
+                          <span className="info-label">Verified At</span>
+                          <span className="info-value">{formatDate(selectedRequest.fullPayment.verifiedAt)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+
                 
                 <div className="modal-actions">
                   <button className="close-btn" onClick={() => setShowModal(false)}>Close</button>

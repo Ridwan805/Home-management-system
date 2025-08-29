@@ -16,42 +16,88 @@ const PeriodicPropertyCleanup = require('./utils/periodicPropertyCleanup');
 
 const app = express();
 
-// Configure CORS with specific options for image serving
+// Configure CORS to allow any origin from any port
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    // Allow any localhost origin for development
-    if (origin.startsWith('http://localhost:') || origin.startsWith('https://localhost:')) {
-      return callback(null, true);
-    }
-    
-    // Allow specific production origins if needed
-    const allowedOrigins = ['http://localhost:5173', 'http://localhost:3000'];
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      return callback(null, true);
-    }
-    
-    return callback(new Error('Not allowed by CORS'));
-  },
+  origin: true, // Allow all origins
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With', 'Cache-Control'],
   exposedHeaders: ['Content-Type', 'Content-Length']
 }));
 
+// Add preflight handling for all routes
+app.options('*', cors());
+
+// Add specific preflight handling for API routes
+app.options('/api/*', (req, res) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.sendStatus(200);
+});
+
+// Handle OPTIONS requests for uploads
+app.options('/uploads/*', (req, res) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.header('Cross-Origin-Embedder-Policy', 'unsafe-none');
+  res.sendStatus(200);
+});
+
 // Add specific headers for static file serving
 app.use('/uploads', (req, res, next) => {
+  // Set CORS headers for image files
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  // Set Cross-Origin-Resource-Policy to allow cross-origin access
   res.header('Cross-Origin-Resource-Policy', 'cross-origin');
-  res.header('Access-Control-Allow-Origin', '*');
+  
+  // Set Cross-Origin-Embedder-Policy to allow embedding
   res.header('Cross-Origin-Embedder-Policy', 'unsafe-none');
+  
+  // Set Cache-Control to prevent caching issues
+  res.header('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.header('Pragma', 'no-cache');
+  res.header('Expires', '0');
+  
+  // Set proper content type for images
+  if (req.path.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+    const ext = path.extname(req.path).toLowerCase();
+    const mimeTypes = {
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.png': 'image/png',
+      '.gif': 'image/gif',
+      '.webp': 'image/webp'
+    };
+    res.header('Content-Type', mimeTypes[ext] || 'image/jpeg');
+  }
+  
   next();
 });
 // Use conditional JSON parser to avoid interfering with Stripe webhook raw body
 app.use((req, res, next) => {
   if (req.originalUrl === '/api/stripe/webhook') return next();
   return express.json()(req, res, next);
+});
+
+// Add request logging middleware
+app.use((req, res, next) => {
+  console.log(`🌐 Incoming request: ${req.method} ${req.originalUrl}`);
+  if (req.query && Object.keys(req.query).length > 0) {
+    console.log('Query parameters:', req.query);
+  }
+  if (req.headers.authorization) {
+    console.log('Authorization header present');
+  }
+  next();
 });
 
 // MongoDB connection with fallback
@@ -82,6 +128,7 @@ const stripeRoutes = require('./routes/stripe.routes');
 const uploadRoutes = require('./routes/upload.routes');
 const notificationRoutes = require('./routes/notifications');
 const debugRoutes = require('./routes/debug');
+const imageServingRoutes = require('./routes/imageServing.routes');
 
 
 let requestManagementRoutes;
@@ -118,6 +165,7 @@ app.use('/api/stripe', stripeRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/debug', debugRoutes);
+app.use('/api/images', imageServingRoutes);
 
 
 

@@ -4,6 +4,7 @@ const BuildingSummary = require('../models/BuildingSummary');
 const Rent = require('../models/Rent');
 const OwnershipTransfer = require('../models/OwnershipTransfer');
 const User = require('../models/User');
+const Request = require('../models/Request');
 
 // Get all properties (public route)
 const getAllProperties = async (req, res) => {
@@ -51,7 +52,7 @@ const getAllProperties = async (req, res) => {
     }
     
     const properties = await Property.find(filter)
-      .populate('ownerUserId', 'firstName lastName email')
+      .populate('ownerUserId', 'firstName lastName email phoneNumber')
       .populate('currentRentId')
       .populate('buildingId', 'name address')
       .sort({ createdAt: -1 });
@@ -418,7 +419,7 @@ const createProperty = async (req, res) => {
 const getPropertyById = async (req, res) => {
   try {
     const property = await Property.findById(req.params.id)
-      .populate('ownerUserId', 'firstName lastName email')
+      .populate('ownerUserId', 'firstName lastName email phoneNumber')
       .populate('currentRentId')
       .populate('buildingId', 'name address amenities policies media');
     
@@ -764,17 +765,17 @@ const getTenantAssignments = async (req, res) => {
   try {
     const userId = req.user.userId;
     
-    // Find active rents where user is a tenant
-    const activeRents = await Rent.find({
-      tenants: userId,
-      status: 'Active'
+    // Find approved requests (Paid/Completed status) where user is the tenant
+    const approvedRequests = await Request.find({
+      tenantId: userId,
+      status: 'Paid/Completed'
     }).populate({
       path: 'propertyId',
       populate: {
         path: 'ownerUserId',
         select: 'firstName lastName email'
       }
-    });
+    }).populate('ownerId', 'firstName lastName email');
     
     // Find properties owned by the user (buyers remain tenants by role)
     const ownedProperties = await Property.find({
@@ -784,21 +785,40 @@ const getTenantAssignments = async (req, res) => {
     });
     
     const assignments = {
-      rentedProperties: activeRents.map(rent => ({
-        property: rent.propertyId,
-        rent: {
-          _id: rent._id,
-          startDate: rent.term.startDate,
-          endDate: rent.term.endDate,
-          rentAmount: rent.rent.amount,
-          status: rent.status
-        },
-        type: 'rental'
-      })),
-      ownedProperties: ownedProperties.map(property => ({
-        property,
-        type: 'ownership'
-      }))
+      rentedProperties: approvedRequests
+        .filter(request => request.requestType === 'Rent')
+        .map(request => ({
+          property: request.propertyId,
+          request: {
+            _id: request._id,
+            requestId: request.requestId,
+            status: request.status,
+            approvedAt: request.updatedAt,
+            requestType: request.requestType
+          },
+          type: 'rental'
+        })),
+      ownedProperties: [
+        // Include properties purchased through approved requests
+        ...approvedRequests
+          .filter(request => request.requestType === 'Buy')
+          .map(request => ({
+            property: request.propertyId,
+            request: {
+              _id: request._id,
+              requestId: request.requestId,
+              status: request.status,
+              approvedAt: request.updatedAt,
+              requestType: request.requestType
+            },
+            type: 'ownership'
+          })),
+        // Include existing owned properties
+        ...ownedProperties.map(property => ({
+          property,
+          type: 'ownership'
+        }))
+      ]
     };
     
     res.json({

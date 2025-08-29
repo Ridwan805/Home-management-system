@@ -219,7 +219,7 @@ const PropertyDetails = () => {
             <div key={property._id} className="property-card">
               <div className="property-image">
                 {property.images && property.images.length > 0 ? (
-                  <img src={`${API.baseUrl}${property.images[0]}`} alt="Property" />
+                  <img src={`${API.baseUrl}/api/images/${property.images[0].replace('/uploads/', '')}`} alt="Property" />
                 ) : (
                   <div className="property-placeholder">No Image Available</div>
                 )}

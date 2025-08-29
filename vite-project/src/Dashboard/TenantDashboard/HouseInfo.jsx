@@ -1,20 +1,35 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './HouseInfo.css';
+import API from '../../config/api';
 
 const HouseInfo = () => {
   const [assignedProperties, setAssignedProperties] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [selectedProperty, setSelectedProperty] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     fetchAssignedProperties();
+    
+    // Set up polling to refresh data every 30 seconds
+    const interval = setInterval(() => {
+      fetchAssignedProperties(true); // Silent refresh
+    }, 30000);
+    
+    return () => clearInterval(interval);
   }, []);
 
-  const fetchAssignedProperties = async () => {
+  const fetchAssignedProperties = useCallback(async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) {
+        setLoading(true);
+        setError('');
+      } else {
+        setRefreshing(true);
+      }
+      
       const userData = JSON.parse(localStorage.getItem('dwellSyncUser'));
       const token = userData?.token;
 
@@ -23,10 +38,13 @@ const HouseInfo = () => {
         return;
       }
 
-      const response = await fetch('http://localhost:5001/api/properties/my-assignments', {
+      // Add cache-busting parameter to prevent stale data
+      const timestamp = new Date().getTime();
+      const response = await fetch(`${API.getUrl(API.endpoints.tenantAssignments)}?_t=${timestamp}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
         }
       });
 
@@ -38,28 +56,30 @@ const HouseInfo = () => {
       // Handle the correct response structure from backend
       const allAssignments = [];
       
-      // Add rented properties
+      // Add rented properties (only from approved requests)
       if (data.assignments?.rentedProperties) {
         data.assignments.rentedProperties.forEach(item => {
           allAssignments.push({
             ...item.property,
             assignmentType: 'Rent',
-            assignedAt: item.rent.startDate,
-            status: item.rent.status,
-            owner: item.property.ownerUserId
+            assignedAt: item.request?.approvedAt || item.property.updatedAt,
+            status: 'Approved',
+            owner: item.property.ownerUserId,
+            requestInfo: item.request
           });
         });
       }
       
-      // Add owned properties
+      // Add owned properties (from approved requests and existing ownership)
       if (data.assignments?.ownedProperties) {
         data.assignments.ownedProperties.forEach(item => {
           allAssignments.push({
             ...item.property,
-            assignmentType: 'Ownership',
-            assignedAt: item.property.updatedAt,
-            status: 'Owned',
-            owner: item.property.ownerUserId
+            assignmentType: item.request ? 'Purchase' : 'Ownership',
+            assignedAt: item.request?.approvedAt || item.property.updatedAt,
+            status: item.request ? 'Approved' : 'Owned',
+            owner: item.property.ownerUserId,
+            requestInfo: item.request
           });
         });
       }
@@ -67,10 +87,17 @@ const HouseInfo = () => {
       setAssignedProperties(allAssignments);
     } catch (err) {
       console.error('Error fetching assigned properties:', err);
-      setError('Failed to load assigned properties');
+      if (!silent) {
+        setError('Failed to load assigned properties');
+      }
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  }, []);
+
+  const handleRefresh = () => {
+    fetchAssignedProperties();
   };
 
   const handleViewDetails = (property) => {
@@ -106,12 +133,22 @@ const HouseInfo = () => {
 
   return (
     <div className="house-info">
-      <h2 className="section-title">House Information</h2>
+      <div className="section-header">
+        <h2 className="section-title">House Information</h2>
+        <button 
+          className={`refresh-btn ${refreshing ? 'refreshing' : ''}`}
+          onClick={handleRefresh}
+          disabled={loading || refreshing}
+          title="Refresh property data"
+        >
+          {refreshing ? '🔄' : '↻'} {refreshing ? 'Refreshing...' : 'Refresh'}
+        </button>
+      </div>
       
       {assignedProperties.length === 0 ? (
         <div className="no-properties">
-          <h3>No Properties Assigned</h3>
-          <p>You don't have any assigned properties yet. Complete a payment for a property request to see it here.</p>
+          <h3>No Approved Properties</h3>
+          <p>You don't have any approved property requests yet. Properties will appear here only after the owner approves your request and marks it as completed.</p>
         </div>
       ) : (
         <div className="properties-grid">
@@ -126,8 +163,6 @@ const HouseInfo = () => {
               
               <div className="property-details">
                 <div className="property-specs">
-                  <span>🛏️ {property.bedrooms} bed</span>
-                  <span>🚿 {property.bathrooms} bath</span>
                   <span>🏠 {property.propertyType}</span>
                 </div>
                 
@@ -188,14 +223,7 @@ const HouseInfo = () => {
                     <span className="info-label">Property Type</span>
                     <span className="info-value">{selectedProperty.propertyType}</span>
                   </div>
-                  <div className="info-item">
-                    <span className="info-label">Bedrooms</span>
-                    <span className="info-value">{selectedProperty.bedrooms}</span>
-                  </div>
-                  <div className="info-item">
-                    <span className="info-label">Bathrooms</span>
-                    <span className="info-value">{selectedProperty.bathrooms}</span>
-                  </div>
+
                   <div className="info-item">
                     <span className="info-label">Price</span>
                     <span className="info-value">৳{selectedProperty.price?.toLocaleString()}</span>
