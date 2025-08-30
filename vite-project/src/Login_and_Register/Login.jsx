@@ -61,8 +61,8 @@ export default function Login() {
             // Redirect to admin dashboard
             navigate('/admin');
           } else if (data.user.role === 'Security Guard') {
-            // Future implementation for security guard dashboard
-            navigate('/');
+            // Redirect to security guard dashboard
+            navigate('/security-guard/profile');
           } else if (data.user.role === 'Service Provider') {
             // Future implementation for service provider dashboard
             navigate('/');

@@ -18,7 +18,8 @@ export default function Register() {
     securityQuestion: '',
     securityAnswer: '',
     phone: '',
-    address: ''
+    address: '',
+    experience: ''
   });
 
   const [message, setMessage] = useState('');
@@ -123,6 +124,21 @@ export default function Register() {
               <option value="Service Provider">Service Provider</option>
             </select>
           </div>
+
+          {/* Experience field - only show for Security Guard */}
+          {formData.role === 'Security Guard' && (
+            <div className="form-group">
+              <label>Experience</label>
+              <textarea 
+                name="experience" 
+                value={formData.experience} 
+                onChange={handleChange} 
+                placeholder="Describe your security experience, certifications, and relevant skills..."
+                rows={4}
+                required
+              />
+            </div>
+          )}
 
           <div className="form-group">
             <label>Security Question</label>

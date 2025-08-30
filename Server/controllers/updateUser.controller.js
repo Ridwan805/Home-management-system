@@ -3,7 +3,7 @@ const User = require('../models/User');
 const updateUser = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { firstName, lastName, email, name, phoneNumber, address } = req.body;
+    const { firstName, lastName, email, name, phoneNumber, address, experience } = req.body;
 
     // Validate required fields
     if (!firstName || !lastName || !email) {
@@ -51,7 +51,8 @@ const updateUser = async (req, res) => {
         email,
         name: name || `${firstName} ${lastName}`,
         phoneNumber: phoneNumber !== undefined ? phoneNumber : (currentUser.phoneNumber || ''),
-        address: address !== undefined ? address : (currentUser.address || '')
+        address: address !== undefined ? address : (currentUser.address || ''),
+        experience: experience !== undefined ? experience : (currentUser.experience || '')
       },
       { new: true, runValidators: true }
     ).select('-password -securityAnswer');

@@ -1,0 +1,94 @@
+.under-construction {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  padding: 2rem;
+}
+
+.construction-content {
+  text-align: center;
+  max-width: 600px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  padding: 3rem 2rem;
+  border: 2px solid #059669;
+}
+
+.construction-icon {
+  font-size: 4rem;
+  margin-bottom: 1.5rem;
+  display: block;
+}
+
+.construction-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #059669;
+  margin-bottom: 1rem;
+}
+
+.construction-message {
+  font-size: 1.125rem;
+  color: #6b7280;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.construction-features {
+  text-align: left;
+  margin: 2rem 0;
+  padding: 0;
+  list-style: none;
+}
+
+.construction-features li {
+  padding: 0.75rem 0;
+  color: #374151;
+  position: relative;
+  padding-left: 2rem;
+}
+
+.construction-features li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: #059669;
+  font-weight: bold;
+  font-size: 1.125rem;
+}
+
+.construction-note {
+  background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+  border: 1px solid #059669;
+  border-radius: 8px;
+  padding: 1.5rem;
+  color: #047857;
+  font-weight: 500;
+  margin-top: 2rem;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .under-construction {
+    padding: 1rem;
+    min-height: 50vh;
+  }
+  
+  .construction-content {
+    padding: 2rem 1.5rem;
+  }
+  
+  .construction-icon {
+    font-size: 3rem;
+  }
+  
+  .construction-title {
+    font-size: 1.5rem;
+  }
+  
+  .construction-message {
+    font-size: 1rem;
+  }
+}

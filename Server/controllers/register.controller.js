@@ -2,7 +2,7 @@ const User = require('../models/User');
 const bcrypt = require('bcrypt');
 
 const register = async (req, res) => {
-  const { firstName, lastName, email, name, password, role, securityQuestion, securityAnswer, phoneNumber, address } = req.body;
+  const { firstName, lastName, email, name, password, role, securityQuestion, securityAnswer, phoneNumber, address, experience } = req.body;
 
   try {
     const existingEmail = await User.findOne({ email });
@@ -30,7 +30,8 @@ const register = async (req, res) => {
       password: hashedPassword,
       role, // value provided by client must match allowed enum
       securityQuestion,
-      securityAnswer: hashedSecurityAnswer
+      securityAnswer: hashedSecurityAnswer,
+      experience: experience || '' // For Security Guards
     });
 
     const savedUser = await newUser.save();

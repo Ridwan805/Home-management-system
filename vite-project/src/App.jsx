@@ -18,6 +18,8 @@ import ViewDetails from './components/ViewDetails';
 import OwnerRequestsInbox from './Dashboard/OwnerProfile/OwnerRequestsInbox';
 import SidebarNav from './Dashboard/OwnerProfile/SidebarNav';
 import Payment from './Dashboard/OwnerProfile/Payment';
+import SecurityGuardDashboard from './Dashboard/SecurityGuardDashboard/SecurityGuardDashboard';
+import ProtectedRoute from './components/ProtectedRoute';
 
 // ✅ ADD THIS IMPORT
 import AdminDashboard from './Dashboard/AdminDashboard/AdminDashboard';
@@ -108,8 +110,7 @@ function AppRoutes() {
 
   return (
     <AuthContext.Provider value={{ isLoggedIn, login, logout, setPopupMessage, userRole }}>
-      {!(
-        location.pathname.startsWith('/dashboard') ||
+      {!(location.pathname.startsWith('/dashboard') ||
         location.pathname.startsWith('/admin') || // ✅ ADDED: hide navbar on admin routes
         location.pathname === '/create-listing' ||
         location.pathname === '/property-details' ||
@@ -117,157 +118,217 @@ function AppRoutes() {
         location.pathname === '/security-guard-info' ||
         location.pathname === '/request-info' ||
         location.pathname === '/payments' ||
-        location.pathname.startsWith('/tenant')
+        location.pathname.startsWith('/tenant') ||
+        location.pathname.startsWith('/security-guard')
       ) && <Navbar />}
 
       {popupMessage && <div className="popup-message">{popupMessage}</div>}
 
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={
+          <ProtectedRoute allowedRoles={['Owner', 'Tenant', 'Admin']}>
+            <HomePage />
+          </ProtectedRoute>
+        } />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/properties" element={<PropertyFilter />} />
-        <Route path="/properties/:propertyId" element={<ViewDetails />} />
-        <Route path="/tenant/:section" element={<TenantDashboard />} />
-        <Route path="/dashboard" element={<OwnerDashboard />} />
-        <Route path="/create-listing" element={<CreateListingPage />} />
+        <Route path="/properties" element={
+          <ProtectedRoute allowedRoles={['Owner', 'Tenant', 'Admin']}>
+            <PropertyFilter />
+          </ProtectedRoute>
+        } />
+        <Route path="/properties/:propertyId" element={
+          <ProtectedRoute allowedRoles={['Owner', 'Tenant', 'Admin']}>
+            <ViewDetails />
+          </ProtectedRoute>
+        } />
+        <Route path="/tenant/:section" element={
+          <ProtectedRoute allowedRoles={['Tenant']}>
+            <TenantDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/dashboard" element={
+          <ProtectedRoute allowedRoles={['Owner']}>
+            <OwnerDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/create-listing" element={
+          <ProtectedRoute allowedRoles={['Owner']}>
+            <CreateListingPage />
+          </ProtectedRoute>
+        } />
 
         <Route
           path="/property-details"
           element={
-            <div className="owner-dashboard">
-              <SidebarNav
-                activeSection="property-details"
-                setActiveSection={(key) => {
-                  if (key === 'profile') navigate('/dashboard');
-                  else if (key === 'create-listing') navigate('/create-listing');
-                  else if (key === 'property-details') navigate('/property-details');
-                  else if (key === 'tenant-info') navigate('/tenant-info');
-                  else if (key === 'security-guard-info') navigate('/security-guard-info');
-                  else if (key === 'request-info') navigate('/request-info');
-                  else if (key === 'payments') navigate('/payments');
-                }}
-              />
-              <main className="dashboard-main">
-                <div className="dashboard-content">
-                  <PropertyListing />
-                </div>
-              </main>
-            </div>
+            <ProtectedRoute allowedRoles={['Owner']}>
+              <div className="owner-dashboard">
+                <SidebarNav
+                  activeSection="property-details"
+                  setActiveSection={(key) => {
+                    if (key === 'profile') navigate('/dashboard');
+                    else if (key === 'create-listing') navigate('/create-listing');
+                    else if (key === 'property-details') navigate('/property-details');
+                    else if (key === 'tenant-info') navigate('/tenant-info');
+                    else if (key === 'security-guard-info') navigate('/security-guard-info');
+                    else if (key === 'request-info') navigate('/request-info');
+                    else if (key === 'payments') navigate('/payments');
+                  }}
+                />
+                <main className="dashboard-main">
+                  <div className="dashboard-content">
+                    <PropertyListing />
+                  </div>
+                </main>
+              </div>
+            </ProtectedRoute>
           }
         />
         <Route
           path="/tenant-info"
           element={
-            <div className="owner-dashboard">
-              <SidebarNav
-                activeSection="tenant-info"
-                setActiveSection={(key) => {
-                  if (key === 'profile') navigate('/dashboard');
-                  else if (key === 'create-listing') navigate('/create-listing');
-                  else if (key === 'property-details') navigate('/property-details');
-                  else if (key === 'tenant-info') navigate('/tenant-info');
-                  else if (key === 'security-guard-info') navigate('/security-guard-info');
-                  else if (key === 'request-info') navigate('/request-info');
-                  else if (key === 'payments') navigate('/payments');
-                }}
-              />
-              <main className="dashboard-main">
-                <div className="dashboard-content">
-                  <TenantInfo />
-                </div>
-              </main>
-            </div>
+            <ProtectedRoute allowedRoles={['Owner']}>
+              <div className="owner-dashboard">
+                <SidebarNav
+                  activeSection="tenant-info"
+                  setActiveSection={(key) => {
+                    if (key === 'profile') navigate('/dashboard');
+                    else if (key === 'create-listing') navigate('/create-listing');
+                    else if (key === 'property-details') navigate('/property-details');
+                    else if (key === 'tenant-info') navigate('/tenant-info');
+                    else if (key === 'security-guard-info') navigate('/security-guard-info');
+                    else if (key === 'request-info') navigate('/request-info');
+                    else if (key === 'payments') navigate('/payments');
+                  }}
+                />
+                <main className="dashboard-main">
+                  <div className="dashboard-content">
+                    <TenantInfo />
+                  </div>
+                </main>
+              </div>
+            </ProtectedRoute>
           }
         />
         <Route
           path="/security-guard-info"
           element={
-            <div className="owner-dashboard">
-              <SidebarNav
-                activeSection="security-guard-info"
-                setActiveSection={(key) => {
-                  if (key === 'profile') navigate('/dashboard');
-                  else if (key === 'create-listing') navigate('/create-listing');
-                  else if (key === 'property-details') navigate('/property-details');
-                  else if (key === 'tenant-info') navigate('/tenant-info');
-                  else if (key === 'security-guard-info') navigate('/security-guard-info');
-                  else if (key === 'request-info') navigate('/request-info');
-                  else if (key === 'payments') navigate('/payments');
-                }}
-              />
-              <main className="dashboard-main">
-                <div className="dashboard-content">
-                  <SecurityGuardInfo />
-                </div>
-              </main>
-            </div>
+            <ProtectedRoute allowedRoles={['Owner']}>
+              <div className="owner-dashboard">
+                <SidebarNav
+                  activeSection="security-guard-info"
+                  setActiveSection={(key) => {
+                    if (key === 'profile') navigate('/dashboard');
+                    else if (key === 'create-listing') navigate('/create-listing');
+                    else if (key === 'property-details') navigate('/property-details');
+                    else if (key === 'tenant-info') navigate('/tenant-info');
+                    else if (key === 'security-guard-info') navigate('/security-guard-info');
+                    else if (key === 'request-info') navigate('/request-info');
+                    else if (key === 'payments') navigate('/payments');
+                  }}
+                />
+                <main className="dashboard-main">
+                  <div className="dashboard-content">
+                    <SecurityGuardInfo />
+                  </div>
+                </main>
+              </div>
+            </ProtectedRoute>
           }
         />
         <Route
           path="/request-info"
           element={
-            <div className="owner-dashboard">
-              <SidebarNav
-                activeSection="request-info"
-                setActiveSection={(key) => {
-                  if (key === 'profile') navigate('/dashboard');
-                  else if (key === 'create-listing') navigate('/create-listing');
-                  else if (key === 'property-details') navigate('/property-details');
-                  else if (key === 'tenant-info') navigate('/tenant-info');
-                  else if (key === 'security-guard-info') navigate('/security-guard-info');
-                  else if (key === 'request-info') navigate('/request-info');
-                  else if (key === 'payments') navigate('/payments');
-                }}
-              />
-              <main className="dashboard-main">
-                <div className="dashboard-content">
-                  <OwnerRequestsInbox />
-                </div>
-              </main>
-            </div>
+            <ProtectedRoute allowedRoles={['Owner']}>
+              <div className="owner-dashboard">
+                <SidebarNav
+                  activeSection="request-info"
+                  setActiveSection={(key) => {
+                    if (key === 'profile') navigate('/dashboard');
+                    else if (key === 'create-listing') navigate('/create-listing');
+                    else if (key === 'property-details') navigate('/property-details');
+                    else if (key === 'tenant-info') navigate('/tenant-info');
+                    else if (key === 'security-guard-info') navigate('/security-guard-info');
+                    else if (key === 'request-info') navigate('/request-info');
+                    else if (key === 'payments') navigate('/payments');
+                  }}
+                />
+                <main className="dashboard-main">
+                  <div className="dashboard-content">
+                    <OwnerRequestsInbox />
+                  </div>
+                </main>
+              </div>
+            </ProtectedRoute>
           }
         />
         <Route
           path="/payments"
           element={
-            <div className="owner-dashboard">
-              <SidebarNav
-                activeSection="payments"
-                setActiveSection={(key) => {
-                  if (key === 'profile') navigate('/dashboard');
-                  else if (key === 'create-listing') navigate('/create-listing');
-                  else if (key === 'property-details') navigate('/property-details');
-                  else if (key === 'tenant-info') navigate('/tenant-info');
-                  else if (key === 'security-guard-info') navigate('/security-guard-info');
-                  else if (key === 'request-info') navigate('/request-info');
-                  else if (key === 'payments') navigate('/payments');
-                }}
-              />
-              <main className="dashboard-main">
-                <div className="dashboard-content">
-                  <Payment />
-                </div>
-              </main>
-            </div>
+            <ProtectedRoute allowedRoles={['Owner']}>
+              <div className="owner-dashboard">
+                <SidebarNav
+                  activeSection="payments"
+                  setActiveSection={(key) => {
+                    if (key === 'profile') navigate('/dashboard');
+                    else if (key === 'create-listing') navigate('/create-listing');
+                    else if (key === 'property-details') navigate('/property-details');
+                    else if (key === 'tenant-info') navigate('/tenant-info');
+                    else if (key === 'security-guard-info') navigate('/security-guard-info');
+                    else if (key === 'request-info') navigate('/request-info');
+                    else if (key === 'payments') navigate('/payments');
+                  }}
+                />
+                <main className="dashboard-main">
+                  <div className="dashboard-content">
+                    <Payment />
+                  </div>
+                </main>
+              </div>
+            </ProtectedRoute>
           }
         />
 
-        {/* Tenant Dashboard Routes */}
-        <Route path="/tenant/:section" element={<TenantDashboard />} />
-        <Route path="/tenant" element={<Navigate to="/tenant/profile" />} />
+        {/* Tenant Dashboard Routes - Duplicate removed */}
+        <Route path="/tenant" element={
+          <ProtectedRoute allowedRoles={['Tenant']}>
+            <Navigate to="/tenant/profile" />
+          </ProtectedRoute>
+        } />
         
-        
+        {/* Security Guard Dashboard Routes */}
+        <Route path="/security-guard/:section" element={
+          <ProtectedRoute allowedRoles={['Security Guard']}>
+            <SecurityGuardDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/security-guard" element={
+          <ProtectedRoute allowedRoles={['Security Guard']}>
+            <Navigate to="/security-guard/profile" />
+          </ProtectedRoute>
+        } />
 
         {/* ✅ Admin Dashboard Route */}
-        <Route path="/admin/*" element={<AdminDashboard />} />
+        <Route path="/admin/*" element={
+          <ProtectedRoute allowedRoles={['Admin']}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
         
         {/* Test Route for PropertyListing Debug */}
-        <Route path="/test-property-listing" element={<TestPropertyListing />} />
+        <Route path="/test-property-listing" element={
+          <ProtectedRoute allowedRoles={['Owner', 'Tenant', 'Admin']}>
+            <TestPropertyListing />
+          </ProtectedRoute>
+        } />
 
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" />} />
+        {/* Fallback - redirect based on user role */}
+        <Route path="*" element={
+          <ProtectedRoute allowedRoles={[]}>
+            <Navigate to="/" />
+          </ProtectedRoute>
+        } />
       </Routes>
     </AuthContext.Provider>
   );

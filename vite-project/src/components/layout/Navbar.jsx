@@ -8,7 +8,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const { isLoggedIn, logout, setPopupMessage, userRole } = useContext(AuthContext);
   // Hide navbar on login and register pages
-  if (location.pathname === '/login' || location.pathname === '/register' || location.pathname.startsWith('/dashboard') || location.pathname === '/create-listing' || location.pathname.startsWith('/tenant')) return null;
+  if (location.pathname === '/login' || location.pathname === '/register' || location.pathname.startsWith('/dashboard') || location.pathname === '/create-listing' || location.pathname.startsWith('/tenant') || location.pathname.startsWith('/security-guard')) return null;
 
   const handleLogout = () => {
     logout();
@@ -22,6 +22,8 @@ const Navbar = () => {
       navigate('/dashboard');
     } else if (userRole === 'Tenant') {
       navigate('/tenant/profile');
+    } else if (userRole === 'Security Guard') {
+      navigate('/security-guard/profile');
     } else {
       // Default or handle other roles
       navigate('/login');
