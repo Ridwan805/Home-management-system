@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import './HomePage.css';
 import { useNavigate, Link } from 'react-router-dom';
 import { FaSearch, FaHome, FaBuilding, FaMoneyBillWave } from 'react-icons/fa';
+import apiConfig from '../config/api';
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -14,7 +15,7 @@ const HomePage = () => {
     const fetchTopProperties = async () => {
       try {
         setLoading(true);
-        const response = await fetch('http://localhost:5001/api/properties/top');
+        const response = await fetch(apiConfig.getUrl(apiConfig.endpoints.topProperties));
         if (!response.ok) {
           throw new Error('Failed to fetch properties');
         }
@@ -90,7 +91,7 @@ const HomePage = () => {
                 <div className="property-card" key={prop._id} onClick={() => navigate(`/properties/${prop._id}`)}>
                   <div className="property-image-container">
                     <img 
-                      src={prop.images && prop.images.length > 0 ? `http://localhost:5001/api/images/${prop.images[0].replace('/uploads/', '')}` : 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='} 
+                      src={prop.images && prop.images.length > 0 ? `${apiConfig.baseUrl}/api/images/${prop.images[0].replace('/uploads/', '')}` : 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='} 
                       alt={prop.address} 
                       className="property-image" 
                     />

@@ -136,7 +136,7 @@ const PropertyListing = () => {
       }
       
       const user = JSON.parse(userData);
-      const response = await fetch(`${API_BASE}/${propertyId}`, {
+      const response = await fetch(API.getUrl(API.endpoints.propertyById(propertyId)), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${user.token}`,

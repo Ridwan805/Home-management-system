@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './UnifiedInquiryForm.css';
+import apiConfig from '../config/api';
 
 const UnifiedInquiryForm = ({ property, requestType, onClose, onSubmit }) => {
   const [formData, setFormData] = useState({

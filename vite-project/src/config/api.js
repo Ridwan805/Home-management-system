@@ -215,9 +215,11 @@ export default {
     register: '/api/auth/register',
     forgotPassword: '/api/auth/forgot-password',
     resetPassword: '/api/auth/reset-password',
+    profile: '/api/auth/me',
     
     // Property endpoints
     properties: '/api/properties',
+    topProperties: '/api/properties/top',
     propertyById: (id) => `/api/properties/${id}`,
     propertyStatus: (id) => `/api/properties/${id}/status`,
     userProperties: '/api/properties/user',
@@ -260,6 +262,21 @@ export default {
     escalateReport: (id) => `/api/admin/reports/${id}/escalate`,
     pendingProperties: '/api/admin/properties/pending',
     approveProperty: (id) => `/api/admin/properties/${id}/approve`,
+    
+    // JobPost endpoints
+    jobPosts: '/api/job-posts',
+    jobPostById: (id) => `/api/job-posts/${id}`,
+    jobPostApplications: (id) => `/api/job-posts/${id}/applications`,
+    hireGuard: (jobId, applicationId) => `/api/job-posts/${jobId}/hire/${applicationId}`,
+    
+    // Security Guard Application endpoints
+    securityGuardApplications: '/api/security-guard-applications',
+    applyForJob: '/api/security-guard-applications/apply',
+    guardApplications: '/api/security-guard-applications/guard',
+    applicationById: (id) => `/api/security-guard-applications/${id}`,
+    updateApplication: (id) => `/api/security-guard-applications/${id}`,
+    withdrawApplication: (id) => `/api/security-guard-applications/${id}/withdraw`,
+    updateApplicationStatus: (id) => `/api/security-guard-applications/${id}/status`,
     
     // Image serving endpoint
     image: (filename) => `/api/images/${filename}`,

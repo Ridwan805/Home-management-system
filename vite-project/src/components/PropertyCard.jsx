@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import './PropertyCard.css';
+import apiConfig from '../config/api';
 
 const PropertyCard = ({ property, onEdit, onViewDetails, onDelete }) => {
   const navigate = useNavigate();

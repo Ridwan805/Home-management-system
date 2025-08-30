@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './TenantProfile.css';
+import apiConfig from '../../config/api';
 
 const TenantProfile = () => {
   const [user, setUser] = useState(null);

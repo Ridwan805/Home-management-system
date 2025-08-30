@@ -129,6 +129,8 @@ const uploadRoutes = require('./routes/upload.routes');
 const notificationRoutes = require('./routes/notifications');
 const debugRoutes = require('./routes/debug');
 const imageServingRoutes = require('./routes/imageServing.routes');
+const jobPostRoutes = require('./routes/jobPost.routes');
+const securityGuardApplicationRoutes = require('./routes/securityGuardApplication.routes');
 
 
 let requestManagementRoutes;
@@ -166,6 +168,8 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/debug', debugRoutes);
 app.use('/api/images', imageServingRoutes);
+app.use('/api/job-posts', jobPostRoutes);
+app.use('/api/security-guard-applications', securityGuardApplicationRoutes);
 
 
 

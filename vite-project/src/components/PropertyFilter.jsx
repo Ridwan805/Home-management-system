@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import './PropertyFilter.css';
 import { FaFilter } from 'react-icons/fa';
-
-const API_BASE = 'http://localhost:5001/api/properties';
+import apiConfig from '../config/api';
 
 const PropertyFilter = () => {
   // Add a visible element to the page to confirm rendering
@@ -74,7 +73,7 @@ const PropertyFilter = () => {
           listingType: params.get('listingType') || '',
         };
         const query = buildQueryString(currentFilters);
-        const apiUrl = `${API_BASE}${query}`;
+        const apiUrl = `${apiConfig.getUrl(apiConfig.endpoints.properties)}${query}`;
         
         const res = await fetch(apiUrl);
         
@@ -293,7 +292,7 @@ const PropertyFilter = () => {
             <div className="property-images">
               {property.images && property.images.length > 0 ? (
                 <img 
-                  src={`http://localhost:5001/api/images/${property.images[0].replace('/uploads/', '')}`} 
+                  src={apiConfig.getUrl(`api/images/${property.images[0].replace('/uploads/', '')}`)} 
                   alt="Property" 
                   className="property-image"
                 />

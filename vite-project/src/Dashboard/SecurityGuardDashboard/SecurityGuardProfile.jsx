@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './SecurityGuardProfile.css';
+import apiConfig from '../../config/api';
 
 const SecurityGuardProfile = () => {
   const [user, setUser] = useState(null);
@@ -19,13 +20,14 @@ const SecurityGuardProfile = () => {
         if (!saved) throw new Error("User not logged in");
         const token = JSON.parse(saved).token;
 
-        const res = await fetch('http://localhost:5001/api/auth/me', {
+        // Fetch user data
+        const userRes = await fetch(apiConfig.getUrl(apiConfig.endpoints.profile), {
           headers: { Authorization: `Bearer ${token}` }
         });
 
-        if (!res.ok) throw new Error('Failed to fetch user data');
+        if (!userRes.ok) throw new Error('Failed to fetch user data');
 
-        const data = await res.json();
+        const data = await userRes.json();
         setUser(data);
         setFormData({ ...data });
       } catch (err) {
@@ -47,7 +49,7 @@ const SecurityGuardProfile = () => {
     try {
       const token = JSON.parse(localStorage.getItem('dwellSyncUser')).token;
 
-      const res = await fetch('http://localhost:5001/api/auth/update', {
+      const res = await fetch(apiConfig.getUrl('api/auth/update'), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

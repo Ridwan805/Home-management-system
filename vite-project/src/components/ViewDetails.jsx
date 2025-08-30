@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import './ViewDetails.css';
 import { toast } from 'react-toastify';
 import UnifiedInquiryForm from './UnifiedInquiryForm';
+import apiConfig from '../config/api';
 
 const ViewDetails = () => {
   const { propertyId } = useParams();
@@ -264,7 +265,7 @@ const ViewDetails = () => {
                 {property.images.slice(1).map((image, index) => (
                   <img 
                     key={index} 
-                    src={`http://localhost:5001/api/images/${image.replace('/uploads/', '')}`} 
+                    src={`${apiConfig.baseUrl}/api/images/${image.replace('/uploads/', '')}`} 
                     alt={`Property ${index + 2}`} 
                     className="property-thumbnail"
                   />

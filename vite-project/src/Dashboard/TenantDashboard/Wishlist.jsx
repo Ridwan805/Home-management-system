@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import './Wishlist.css';
 import { toast } from 'react-toastify';
+import apiConfig from '../../config/api';
 
 const Wishlist = () => {
   const [wishlistItems, setWishlistItems] = useState([]);
