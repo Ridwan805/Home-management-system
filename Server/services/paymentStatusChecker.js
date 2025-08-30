@@ -104,22 +104,16 @@ class PaymentStatusChecker {
           note: `Amount: ${request.advancePayment.amount} ${request.advancePayment.currency} - Verified by status checker`
         });
       } else if (paymentType === 'full') {
-        // Update request full payment status
-        request.fullPayment.status = 'Paid';
-        request.fullPayment.paidAt = new Date();
-        request.fullPayment.paymentIntentId = session.payment_intent;
-        request.fullPayment.isPaid = true;
-        request.fullPayment.canPayAgain = false;
-        
-        // Update request status
-        request.status = 'FullyPaid';
+        // Don't create fullPayment object here - it should be created by the webhook handler
+        // Just update the request status to indicate full payment is being processed
+        request.status = 'Processing Full Payment';
         
         // Add timeline event
         request.timeline.push({
-          event: 'Full payment completed via Stripe (Status Check)',
+          event: 'Full payment processing via Stripe (Status Check)',
           actor: request.tenantId,
           timestamp: new Date(),
-          note: `Amount: ${request.fullPayment.amount} ${request.fullPayment.currency} - Verified by status checker`
+          note: `Full payment session verified - processing payment completion`
         });
       }
       

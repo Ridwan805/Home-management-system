@@ -837,6 +837,149 @@ const getTenantAssignments = async (req, res) => {
   }
 };
 
+// Get detailed property information with ownership history for tenants
+const getTenantPropertyDetails = async (req, res) => {
+  try {
+    const { propertyId } = req.params;
+    const userId = req.user.userId;
+    
+    // Verify the property exists
+    const property = await Property.findById(propertyId)
+      .populate('ownerUserId', 'firstName lastName email phoneNumber')
+      .populate('buildingId', 'name address amenities policies media');
+    
+    if (!property) {
+      return res.status(404).json({
+        success: false,
+        message: 'Property not found'
+      });
+    }
+    
+    // Check if user has access to this property (either as tenant or owner)
+    const hasAccess = await checkTenantPropertyAccess(userId, propertyId);
+    if (!hasAccess) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to view this property'
+      });
+    }
+    
+    // Get ownership transfer history for this property
+    const OwnershipTransfer = require('../models/OwnershipTransfer');
+    const ownershipHistory = await OwnershipTransfer.find({ 
+      propertyId: property._id,
+      status: 'Closed' // Only completed transfers
+    })
+    .populate('buyerId', 'firstName lastName email')
+    .populate('sellerId', 'firstName lastName email')
+    .sort({ createdAt: -1 });
+    
+    // Get the most recent ownership transfer (previous owner)
+    const previousOwner = ownershipHistory.length > 0 ? ownershipHistory[0].sellerId : null;
+    
+    // Get property state history
+    const stateHistory = property.stateHistory || [];
+    
+    // Get building information if property is part of a building
+    let buildingInfo = null;
+    if (property.buildingId) {
+      buildingInfo = {
+        name: property.buildingId.name,
+        address: property.buildingId.address,
+        amenities: property.buildingId.amenities,
+        policies: property.buildingId.policies
+      };
+    }
+    
+    // Prepare the response
+    const propertyDetails = {
+      basicInfo: {
+        _id: property._id,
+        address: property.address,
+        city: property.city,
+        state: property.state,
+        zipCode: property.zipCode,
+        propertyType: property.propertyType,
+        listingType: property.listingType,
+        status: property.status,
+        price: property.pricing?.sale || property.price,
+        rent: property.pricing?.rent,
+        bedrooms: property.specifications?.bedrooms,
+        bathrooms: property.specifications?.bathrooms,
+        squareFootage: property.specifications?.squareFootage,
+        yearBuilt: property.yearBuilt,
+        description: property.description,
+        images: property.images
+      },
+      currentOwner: property.ownerUserId,
+      previousOwner: previousOwner,
+      ownershipHistory: ownershipHistory.map(transfer => ({
+        transferId: transfer._id,
+        buyer: transfer.buyerId,
+        seller: transfer.sellerId,
+        agreedPrice: transfer.agreedPrice,
+        currency: transfer.currency,
+        transferDate: transfer.closing?.completedAt || transfer.updatedAt,
+        status: transfer.status
+      })),
+      stateHistory: stateHistory,
+      buildingInfo: buildingInfo,
+      specifications: property.specifications,
+      amenities: property.amenities,
+      policies: property.policies
+    };
+    
+    res.json({
+      success: true,
+      message: 'Property details retrieved successfully',
+      property: propertyDetails
+    });
+  } catch (err) {
+    console.error('Error getting tenant property details:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Server error: ' + err.message
+    });
+  }
+};
+
+// Helper function to check if tenant has access to a property
+const checkTenantPropertyAccess = async (userId, propertyId) => {
+  try {
+    // Check if user owns the property
+    const ownedProperty = await Property.findOne({
+      _id: propertyId,
+      ownerUserId: userId,
+      isDeleted: { $ne: true }
+    });
+    
+    if (ownedProperty) return true;
+    
+    // Check if user is a tenant in an active rent for this property
+    const Rent = require('../models/Rent');
+    const activeRent = await Rent.findOne({
+      propertyId: propertyId,
+      tenants: userId,
+      status: 'Active'
+    });
+    
+    if (activeRent) return true;
+    
+    // Check if user has an approved request for this property
+    const Request = require('../models/Request');
+    const approvedRequest = await Request.findOne({
+      propertyId: propertyId,
+      tenantId: userId,
+      status: 'Paid/Completed'
+    });
+    
+    return !!approvedRequest;
+  } catch (err) {
+    console.error('Error checking tenant property access:', err);
+    return false;
+  }
+};
+
 // Get properties by building
 const getPropertiesByBuilding = async (req, res) => {
   try {
@@ -1089,6 +1232,7 @@ module.exports = {
   deleteProperty,
   getPropertyAssignments,
   getTenantAssignments,
+  getTenantPropertyDetails,
   getPropertiesByBuilding,
   getPropertiesByFloor,
   getStandaloneProperties,

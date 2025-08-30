@@ -15,6 +15,7 @@ const {
   deleteProperty,
   getPropertyAssignments,
   getTenantAssignments,
+  getTenantPropertyDetails,
   getPropertiesByBuilding,
   getPropertiesByFloor,
   getStandaloneProperties,
@@ -94,6 +95,9 @@ router.get('/assignments', auth, authorizeRole(['owner', 'admin']), getPropertyA
 // GET /api/properties/my-assignments - Get tenant's assigned properties
 router.get('/my-assignments', auth, authorizeRole(['tenant', 'admin']), getTenantAssignments);
 
+// GET /api/properties/tenant/:propertyId/details - Get detailed property info with ownership history for tenants
+router.get('/tenant/:propertyId/details', auth, authorizeRole(['tenant', 'admin']), getTenantPropertyDetails);
+
 // GET /api/properties/:id - Retrieve a single property by ID
 router.get('/:id', getPropertyById);
 
@@ -114,11 +118,5 @@ router.put('/:id/status', auth, authorizeRole(['owner', 'admin']), updatePropert
 
 // DELETE /api/properties/:id - Delete property (owner/admin only)
 router.delete('/:id', auth, authorizeRole(['owner', 'admin']), deleteProperty);
-
-// GET /api/properties/assignments - Get property assignments for owners
-router.get('/assignments', auth, authorizeRole(['owner', 'admin']), getPropertyAssignments);
-
-// GET /api/properties/my-assignments - Get tenant's assigned properties
-router.get('/my-assignments', auth, authorizeRole(['tenant', 'admin']), getTenantAssignments);
 
 module.exports = router;

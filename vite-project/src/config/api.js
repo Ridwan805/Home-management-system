@@ -222,6 +222,7 @@ export default {
     propertyStatus: (id) => `/api/properties/${id}/status`,
     userProperties: '/api/properties/user',
     tenantAssignments: '/api/properties/my-assignments',
+    tenantPropertyDetails: (propertyId) => `/api/properties/tenant/${propertyId}/details`,
     
     // Request endpoints
     requests: '/api/requests',

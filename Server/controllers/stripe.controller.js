@@ -113,6 +113,11 @@ const createPaymentSession = async (req, res) => {
     }
     console.log('📧 [Advance] Using customer email for Stripe (may be undefined):', customerEmail);
 
+    // Get property name and address for display
+    const propertyName = request.propertyId?.name || 'Property';
+    const propertyAddress = request.propertyId?.address || 'Address not available';
+    const displayName = `${propertyName} - ${propertyAddress}`;
+    
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -121,8 +126,10 @@ const createPaymentSession = async (req, res) => {
           price_data: {
             currency: checkoutCurrency.toLowerCase(),
             product_data: {
-              name: `Advance Payment - ${request.propertyId?.address || request.requestId}`,
-              description: `Request ID: ${request.requestId}`,
+              name: `Advance Payment - ${displayName}`,
+              description: currency === 'BDT' 
+              ? `Amount: ${amount.toLocaleString()} BDT (≈ $${(amount / 120).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD)`
+              : `Amount: ${amount.toLocaleString()} ${currency}`,
             },
             unit_amount: amountInCents,
           },
@@ -138,7 +145,9 @@ const createPaymentSession = async (req, res) => {
         ownerId: request.ownerId._id.toString(),
         requestType: 'advance_payment',
         amount: amount.toString(),
-        currency
+        currency,
+        amountInUsd: currency === 'BDT' ? (amount / 120).toString() : amount.toString(),
+        bdtToUsdRate: currency === 'BDT' ? '120' : '1'
       },
       customer_email: customerEmail,
     });
@@ -151,7 +160,9 @@ const createPaymentSession = async (req, res) => {
       event: 'Advance payment session created',
       actor: userId,
       timestamp: new Date(),
-      note: `Amount: ${amount} ${currency}`
+      note: currency === 'BDT' 
+        ? `Amount: ${amount.toLocaleString()} BDT (≈ $${(amount / 120).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD)`
+        : `Amount: ${amount.toLocaleString()} ${currency}`
     });
 
     await request.save();
@@ -348,31 +359,32 @@ const createFullPaymentSession = async (req, res) => {
     }
 
     // Determine amount and currency for full payment (only for sale properties)
-    amount = request.fullPayment?.amount;
-    if (!amount || amount <= 0) {
-      // Calculate remaining amount: sale price - advance payment amount
-      const salePrice = Number(request.propertyId?.pricing?.sale) || 0;
-      const advanceAmount = Number(request.advancePayment?.amount) || 0;
-      amount = salePrice - advanceAmount;
-      
-      console.log('🧮 Calculating full payment amount for sale property:', {
-        salePrice,
-        advanceAmount,
-        calculatedAmount: amount,
-        listingType: request.propertyId?.listingType,
-        pricingData: request.propertyId?.pricing
-      });
-    }
-    currency = (request.fullPayment?.currency || 'USD').toUpperCase();
-
-    // Ensure currency is supported by Stripe Checkout; fallback to USD if not
-    const supportedCurrencies = new Set(['USD', 'EUR', 'GBP', 'CAD', 'AUD']);
-    if (!supportedCurrencies.has(currency)) {
-      console.warn(`⚠️ Unsupported currency "${currency}" for Stripe Checkout. Falling back to USD.`);
-      currency = 'USD';
-    }
-
-    console.log('🧮 Full payment details:', { amount, currency });
+    // Calculate remaining amount: sale price - advance payment amount
+    const salePrice = Number(request.propertyId?.pricing?.sale) || 0;
+    const advanceAmount = Number(request.advancePayment?.amount) || 0;
+    amount = salePrice - advanceAmount;
+    
+    console.log('🧮 Calculating full payment amount for sale property:', {
+      salePrice,
+      advanceAmount,
+      calculatedAmount: amount,
+      listingType: request.propertyId?.listingType,
+      pricingData: request.propertyId?.pricing
+    });
+    
+    // Use BDT as the primary currency for full payments
+    currency = 'BDT';
+    
+    // Convert BDT to USD for Stripe checkout (1 USD = 120 BDT)
+    const bdtToUsdRate = 120;
+    const amountInUsd = amount / bdtToUsdRate;
+    
+    console.log('🧮 Full payment details:', { 
+      amount, 
+      currency, 
+      amountInUsd, 
+      bdtToUsdRate 
+    });
 
     if (!amount || amount <= 0) {
       return res.status(400).json({ success: false, message: 'Invalid full payment amount' });
@@ -380,7 +392,8 @@ const createFullPaymentSession = async (req, res) => {
 
     // Note: Amount validation is handled in the comprehensive validation below
 
-    const amountInCents = Math.round(amount * 100);
+    // Use USD amount for Stripe (convert to cents)
+    const amountInCents = Math.round(amountInUsd * 100);
 
     // Ensure we pass a valid customer email (fallback to DB lookup)
     let customerEmail = req.user.email;
@@ -455,15 +468,20 @@ const createFullPaymentSession = async (req, res) => {
       customer_email: customerEmail
     });
     
+    // Get property name and address for display
+    const propertyName = request.propertyId?.name || 'Property';
+    const propertyAddress = request.propertyId?.address || 'Address not available';
+    const displayName = `${propertyName} - ${propertyAddress}`;
+    
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
         {
           price_data: {
-            currency: currency.toLowerCase(),
+            currency: 'usd', // Stripe checkout uses USD
             product_data: {
-              name: `Full Payment - ${request.propertyId?.address || request.requestId}`,
-              description: `Request ID: ${request.requestId}`,
+              name: `Full Payment - ${displayName}`,
+              description: `Amount: ${amount.toLocaleString()} BDT (≈ $${amountInUsd.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD)`,
             },
             unit_amount: amountInCents,
           },
@@ -479,19 +497,20 @@ const createFullPaymentSession = async (req, res) => {
         ownerId: request.ownerId._id.toString(),
         requestType: 'full_payment',
         amount: amount.toString(),
-        currency
+        currency,
+        amountInUsd: amountInUsd.toString(),
+        bdtToUsdRate: bdtToUsdRate.toString()
       },
       customer_email: customerEmail,
     });
 
     // Store session id and add timeline event
-    request.fullPayment = request.fullPayment || {};
-    request.fullPayment.stripeSessionId = session.id;
+    // Don't create fullPayment object yet - it will be created after successful payment
     request.timeline.push({
       event: 'Full payment session created',
       actor: userId,
       timestamp: new Date(),
-      note: `Amount: ${amount} ${currency}`
+      note: `Amount: ${amount.toLocaleString()} BDT (≈ $${amountInUsd.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD)`
     });
     await request.save();
 
@@ -969,11 +988,13 @@ const handleFullPaymentSuccess = async (session) => {
     request.status = 'Paid/Completed';
     
     // Add timeline event
+    const bdtToUsdRate = parseFloat(session.metadata.bdtToUsdRate || '120');
+    const amountInUsd = parseFloat(amount) / bdtToUsdRate;
     request.timeline.push({
       event: 'Full payment completed via Stripe webhook',
       actor: tenantId,
       timestamp: new Date(),
-      note: `Amount: ${amount} ${currency} via Stripe - Processed immediately via webhook`
+      note: `Amount: ${parseFloat(amount).toLocaleString()} BDT (≈ $${amountInUsd.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD) via Stripe - Processed immediately via webhook`
     });
     
     console.log('💾 [WEBHOOK] Saving request with full payment updates...');
@@ -988,8 +1009,9 @@ const handleFullPaymentSuccess = async (session) => {
     
     // Also update or create the corresponding Payment record for full payment
     console.log('🔄 [WEBHOOK] Updating/creating Payment record for full payment...');
+    let payment; // Declare payment variable in wider scope
     try {
-      let payment = await Payment.findOne({ requestId: request._id, type: 'full_payment' }).sort({ createdAt: -1 });
+      payment = await Payment.findOne({ requestId: request._id, type: 'full_payment' }).sort({ createdAt: -1 });
       
       if (payment) {
         console.log('✅ [WEBHOOK] Found existing Payment record to update:', {
@@ -999,10 +1021,14 @@ const handleFullPaymentSuccess = async (session) => {
         
         // Update existing payment record
         const oldStatus = payment.status;
+        const bdtToUsdRate = parseFloat(session.metadata.bdtToUsdRate || '120');
+        const amountInUsd = parseFloat(amount) / bdtToUsdRate;
         payment.status = 'completed';
         payment.paidAt = new Date();
         payment.amount = parseFloat(amount);
-        payment.currency = currency.toUpperCase();
+        payment.currency = 'BDT'; // Always BDT for full payments
+        payment.amountInUsd = amountInUsd; // Store USD equivalent
+        payment.description = `Full payment for ${request.requestType} request - ${parseFloat(amount).toLocaleString()} BDT (≈ $${amountInUsd.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD)`;
         payment.stripeDetails = {
           ...(payment.stripeDetails || {}),
           sessionId: session.id,
@@ -1029,17 +1055,20 @@ const handleFullPaymentSuccess = async (session) => {
         console.log('🆕 [WEBHOOK] Creating new Payment record for full payment...');
         
         // Create new payment record for full payment
+        const bdtToUsdRate = parseFloat(session.metadata.bdtToUsdRate || '120');
+        const amountInUsd = parseFloat(amount) / bdtToUsdRate;
         payment = new Payment({
           type: 'full_payment',
           status: 'completed',
           method: 'stripe',
           amount: parseFloat(amount),
-          currency: currency.toUpperCase(),
+          currency: 'BDT', // Always BDT for full payments
+          amountInUsd: amountInUsd, // Store USD equivalent
           requestId: request._id,
           propertyId: request.propertyId,
           payerId: tenantId,
           payeeId: request.ownerId,
-          description: `Full payment for ${request.requestType} request`,
+          description: `Full payment for ${request.requestType} request - ${parseFloat(amount).toLocaleString()} BDT (≈ $${amountInUsd.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD)`,
           paidAt: new Date(),
           stripeDetails: {
             sessionId: session.id,
@@ -1089,9 +1118,145 @@ const handleFullPaymentSuccess = async (session) => {
         await property.rent(tenantId, null, `Property status updated to Rented after full payment completion for request ${requestId}`);
         console.log('✅ [WEBHOOK] Property status updated to Rented for rental property');
       } else if (property && property.listingType === 'For Sale') {
-        // Update property status to Sold for sale properties
-        await property.sell(tenantId, tenantId, `Automatically set to Sold after full payment completion for request ${requestId}`);
-        console.log('✅ [WEBHOOK] Property status updated to Sold for sale property');
+        console.log('🏠 [WEBHOOK] Processing property sale and ownership transfer...');
+        
+        // Store the previous owner information before transferring ownership
+        const previousOwnerId = property.ownerUserId || property.owner;
+        const previousOwner = await User.findById(previousOwnerId).select('firstName lastName email phone');
+        
+        // Get the amounts from metadata
+        const totalSalePrice = parseFloat(amount);
+        const advancePaymentAmount = request.advancePayment?.amount || 0;
+        const finalPaymentAmount = parseFloat(amount);
+        const bdtToUsdRate = parseFloat(session.metadata.bdtToUsdRate || '120');
+        
+        // Get property details for comprehensive record
+        const propertyDetails = {
+          name: property.name || 'N/A',
+          address: property.address || 'N/A',
+          propertyType: property.propertyType || 'N/A',
+          squareFootage: property.specifications?.squareFootage || 'N/A',
+          bedrooms: property.specifications?.bedrooms || 'N/A',
+          bathrooms: property.specifications?.bathrooms || 'N/A'
+        };
+        
+        // Create comprehensive OwnershipTransfer record
+        const OwnershipTransfer = require('../models/OwnershipTransfer');
+        const ownershipTransfer = new OwnershipTransfer({
+          propertyId: property._id,
+          buyerId: tenantId,
+          sellerId: previousOwnerId,
+          requestId: request._id,
+          agreedPrice: totalSalePrice,
+          currency: 'BDT',
+          status: 'Closed', // Mark as completed since payment is done
+          downPayment: {
+            amount: advancePaymentAmount,
+            paidAt: request.advancePayment?.paidAt || new Date(),
+            paymentId: request.advancePayment?.paymentId
+          },
+          finalPayment: {
+            amount: finalPaymentAmount,
+            paidAt: new Date(),
+            paymentId: payment.paymentId
+          },
+          closing: {
+            date: new Date(),
+            completedAt: new Date(),
+            completedBy: tenantId,
+            notes: `Property sold via full payment completion. Total: ${totalSalePrice.toLocaleString()} BDT (≈ $${(totalSalePrice / bdtToUsdRate).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD), Advance: ${advancePaymentAmount.toLocaleString()} BDT, Final: ${finalPaymentAmount.toLocaleString()} BDT`
+          },
+          notes: `Property: ${propertyDetails.name} - ${propertyDetails.address}. Type: ${propertyDetails.propertyType}, Size: ${propertyDetails.squareFootage} sq ft, Bedrooms: ${propertyDetails.bedrooms}, Bathrooms: ${propertyDetails.bathrooms}. Purchase completed via Stripe payment. Previous owner: ${previousOwner?.firstName} ${previousOwner?.lastName} (${previousOwner?.email || 'N/A'}, Phone: ${previousOwner?.phone || 'N/A'}). New owner: ${tenantId}. Total sale price: ${totalSalePrice.toLocaleString()} BDT (≈ $${(totalSalePrice / bdtToUsdRate).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD).`,
+          history: [{
+            event: 'Ownership transfer completed',
+            status: 'Closed',
+            timestamp: new Date(),
+            note: `Property ownership transferred from ${previousOwner?.firstName} ${previousOwner?.lastName} to tenant after successful full payment`,
+            updatedBy: tenantId
+          }],
+          // Additional metadata for comprehensive tracking
+          metadata: {
+            stripeSessionId: session.id,
+            paymentIntentId: session.payment_intent,
+            bdtToUsdRate: bdtToUsdRate,
+            propertyDetails: propertyDetails,
+            previousOwnerDetails: {
+              id: previousOwnerId,
+              name: `${previousOwner?.firstName} ${previousOwner?.lastName}`,
+              email: previousOwner?.email,
+              phone: previousOwner?.phone
+            },
+            transactionMethod: 'Stripe Online Payment',
+            advancePaymentDetails: {
+              amount: advancePaymentAmount,
+              paidAt: request.advancePayment?.paidAt,
+              paymentId: request.advancePayment?.paymentId
+            },
+            finalPaymentDetails: {
+              amount: finalPaymentAmount,
+              paidAt: new Date(),
+              paymentId: payment.paymentId
+            }
+          }
+        });
+        
+        // Save the ownership transfer record
+        await ownershipTransfer.save();
+        console.log('✅ [WEBHOOK] OwnershipTransfer record created successfully:', ownershipTransfer._id);
+        
+        // Update property ownership and status
+        await property.sell(tenantId, tenantId, `Property sold after full payment completion for request ${requestId}`);
+        
+        // Update the request to link it to the ownership transfer
+        request.ownershipTransferId = ownershipTransfer._id;
+        await request.save();
+        
+        console.log('✅ [WEBHOOK] Property ownership transferred successfully:', {
+          previousOwner: previousOwner?.firstName + ' ' + previousOwner?.lastName,
+          newOwner: tenantId,
+          ownershipTransferId: ownershipTransfer._id,
+          totalPrice: totalSalePrice,
+          advancePayment: advancePaymentAmount,
+          finalPayment: finalPaymentAmount,
+          propertyDetails: propertyDetails,
+          bdtToUsdRate: bdtToUsdRate,
+          stripeSessionId: session.id,
+          paymentIntentId: session.payment_intent
+        });
+        
+        console.log('📋 [WEBHOOK] Comprehensive ownership transfer details:', {
+          ownershipTransferId: ownershipTransfer._id,
+          property: {
+            id: property._id,
+            name: propertyDetails.name,
+            address: propertyDetails.address,
+            type: propertyDetails.propertyType,
+            size: propertyDetails.squareFootage,
+            bedrooms: propertyDetails.bedrooms,
+            bathrooms: propertyDetails.bathrooms
+          },
+          seller: {
+            id: previousOwnerId,
+            name: `${previousOwner?.firstName} ${previousOwner?.lastName}`,
+            email: previousOwner?.email,
+            phone: previousOwner?.phone
+          },
+          buyer: {
+            id: tenantId
+          },
+          financial: {
+            totalPrice: totalSalePrice,
+            currency: 'BDT',
+            usdEquivalent: (totalSalePrice / bdtToUsdRate).toFixed(2),
+            advancePayment: advancePaymentAmount,
+            finalPayment: finalPaymentAmount
+          },
+          payment: {
+            stripeSessionId: session.id,
+            paymentIntentId: session.payment_intent,
+            method: 'Stripe Online Payment'
+          }
+        });
       }
     } catch (propertyUpdateErr) {
       console.error('❌ [WEBHOOK] Failed to update property status after full payment:', {

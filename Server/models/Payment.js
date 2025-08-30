@@ -151,6 +151,7 @@ const PaymentSchema = new mongoose.Schema({
   // Amount and currency
   amount: { type: Number, required: true, min: 0 },
   currency: { type: String, default: 'BDT', required: true },
+  amountInUsd: { type: Number, required: false, min: 0 }, // USD equivalent for BDT amounts
   
   // Related entities
   requestId: { type: mongoose.Schema.Types.ObjectId, ref: 'Request' },

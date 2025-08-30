@@ -171,6 +171,12 @@ const OwnershipTransferSchema = new mongoose.Schema({
     default: '' 
   },
   
+  // Metadata for storing property details and previous owner information
+  metadata: { 
+    type: mongoose.Schema.Types.Mixed, 
+    default: {} 
+  },
+  
   // Contingencies
   contingencies: [{
     type: { type: String, required: true },

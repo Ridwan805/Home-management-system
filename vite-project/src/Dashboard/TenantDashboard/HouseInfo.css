@@ -397,3 +397,134 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Loading details styles */
+.loading-details {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+.loading-spinner {
+  font-size: 32px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Ownership history styles */
+.ownership-history {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ownership-transfer {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.transfer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.transfer-number {
+  font-weight: 600;
+  color: #495057;
+  font-size: 14px;
+}
+
+.transfer-date {
+  color: #6c757d;
+  font-size: 12px;
+}
+
+.transfer-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.transfer-party {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.party-label {
+  font-weight: 500;
+  color: #495057;
+  font-size: 13px;
+}
+
+.party-name {
+  color: #212529;
+  font-weight: 500;
+}
+
+.transfer-price {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #dee2e6;
+}
+
+.price-label {
+  font-weight: 500;
+  color: #495057;
+  font-size: 13px;
+}
+
+.price-value {
+  color: #28a745;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* Amenities styles */
+.amenities-section {
+  margin-top: 16px;
+}
+
+.amenities-section h4 {
+  margin: 0 0 12px 0;
+  color: #495057;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.amenities-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.amenity-tag {
+  background-color: #e3f2fd;
+  color: #1976d2;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Property description styles */
+.property-description {
+  color: #495057;
+  line-height: 1.6;
+  margin: 0;
+  font-size: 14px;
+}
