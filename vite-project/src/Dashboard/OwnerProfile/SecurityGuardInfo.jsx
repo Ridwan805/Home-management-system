@@ -17,7 +17,15 @@ const SecurityGuardInfo = () => {
     propertyId: '',
     jobType: 'SecurityGuard',
     title: '',
-    requirements: '',
+    requirements: {
+      description: '',
+      duties: '',
+      skills: '',
+      workingHours: '',
+      documentsRequired: '',
+      salary: '',
+      experience: ''
+    },
     location: ''
   });
 
@@ -29,8 +37,16 @@ const SecurityGuardInfo = () => {
   const fetchJobPosts = async () => {
     try {
       setLoading(true);
-      const data = await authenticatedFetch(apiConfig.getUrl('/api/job-posts/owner'));
-      setJobPosts(data.jobPosts || []);
+      const userData = localStorage.getItem('dwellSyncUser');
+      const user = userData ? JSON.parse(userData) : null;
+      const userId = user?.userId;
+      
+      if (!userId) {
+        throw new Error('User ID not found');
+      }
+      
+      const data = await authenticatedFetch(apiConfig.getUrl(`/api/job-posts?postedById=${userId}`));
+      setJobPosts(data || []);
     } catch (error) {
       console.error('Error fetching job posts:', error);
       toast.error('Failed to fetch job posts');
@@ -67,8 +83,8 @@ const SecurityGuardInfo = () => {
     console.log('Creating job post with data:', newJobPost);
     
     // Validate required fields
-    if (!newJobPost.propertyId || !newJobPost.title || !newJobPost.requirements) {
-      toast.error('Please fill in all required fields');
+    if (!newJobPost.propertyId || !newJobPost.title || !newJobPost.requirements.description || !newJobPost.requirements.duties || !newJobPost.requirements.workingHours) {
+      toast.error('Please fill in all required fields (Property, Title, Description, Duties, Working Hours)');
       return;
     }
     
@@ -86,7 +102,15 @@ const SecurityGuardInfo = () => {
         propertyId: '',
         jobType: 'SecurityGuard',
         title: '',
-        requirements: '',
+        requirements: {
+          description: '',
+          duties: '',
+          skills: '',
+          workingHours: '',
+          documentsRequired: '',
+          salary: '',
+          experience: ''
+        },
         location: ''
       });
       fetchJobPosts();
@@ -197,7 +221,18 @@ const SecurityGuardInfo = () => {
                     </div>
                     <div className="job-requirements">
                       <strong>Requirements:</strong>
-                      <p>{job.requirements}</p>
+                      {typeof job.requirements === 'object' && job.requirements ? (
+                        <div className="requirements-details">
+                          {job.requirements.description && <p><strong>Description:</strong> {job.requirements.description}</p>}
+                          {job.requirements.duties && <p><strong>Duties:</strong> {job.requirements.duties}</p>}
+                          {job.requirements.skills && <p><strong>Skills:</strong> {job.requirements.skills}</p>}
+                          {job.requirements.workingHours && <p><strong>Working Hours:</strong> {job.requirements.workingHours}</p>}
+                          {job.requirements.salary && <p><strong>Salary:</strong> {job.requirements.salary}</p>}
+                          {job.requirements.experience && <p><strong>Experience:</strong> {job.requirements.experience}</p>}
+                        </div>
+                      ) : (
+                        <p>{job.requirements || 'No requirements specified'}</p>
+                      )}
                     </div>
                     <div className="job-actions">
                       <button 
@@ -304,13 +339,75 @@ const SecurityGuardInfo = () => {
               </div>
               
               <div className="form-group">
-                <label>Requirements:</label>
+                <label>Job Description:</label>
                 <textarea 
-                  value={newJobPost.requirements}
-                  onChange={(e) => setNewJobPost({...newJobPost, requirements: e.target.value})}
-                  rows="4"
-                  placeholder="e.g., Minimum 2 years experience, Physical fitness, Clean background check..."
+                  value={newJobPost.requirements.description}
+                  onChange={(e) => setNewJobPost({...newJobPost, requirements: {...newJobPost.requirements, description: e.target.value}})}
+                  rows="3"
+                  placeholder="Brief description of the security guard position..."
                   required
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>Duties:</label>
+                <textarea 
+                  value={newJobPost.requirements.duties}
+                  onChange={(e) => setNewJobPost({...newJobPost, requirements: {...newJobPost.requirements, duties: e.target.value}})}
+                  rows="3"
+                  placeholder="Main responsibilities and duties..."
+                  required
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>Working Hours:</label>
+                <input 
+                  type="text"
+                  value={newJobPost.requirements.workingHours}
+                  onChange={(e) => setNewJobPost({...newJobPost, requirements: {...newJobPost.requirements, workingHours: e.target.value}})}
+                  placeholder="e.g., 8 PM - 6 AM, Monday to Friday"
+                  required
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>Required Skills (Optional):</label>
+                <input 
+                  type="text"
+                  value={newJobPost.requirements.skills}
+                  onChange={(e) => setNewJobPost({...newJobPost, requirements: {...newJobPost.requirements, skills: e.target.value}})}
+                  placeholder="e.g., Physical fitness, Communication skills"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>Experience Required (Optional):</label>
+                <input 
+                  type="text"
+                  value={newJobPost.requirements.experience}
+                  onChange={(e) => setNewJobPost({...newJobPost, requirements: {...newJobPost.requirements, experience: e.target.value}})}
+                  placeholder="e.g., Minimum 2 years in security"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>Salary (Optional):</label>
+                <input 
+                  type="text"
+                  value={newJobPost.requirements.salary}
+                  onChange={(e) => setNewJobPost({...newJobPost, requirements: {...newJobPost.requirements, salary: e.target.value}})}
+                  placeholder="e.g., $15/hour, $3000/month"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>Documents Required (Optional):</label>
+                <input 
+                  type="text"
+                  value={newJobPost.requirements.documentsRequired}
+                  onChange={(e) => setNewJobPost({...newJobPost, requirements: {...newJobPost.requirements, documentsRequired: e.target.value}})}
+                  placeholder="e.g., Security license, Background check"
                 />
               </div>
               
@@ -367,7 +464,7 @@ const SecurityGuardInfo = () => {
                           <div className="documents">
                             <h4>Documents:</h4>
                             {application.documents.map((doc, index) => (
-                              <a key={index} href={`http://localhost:5001${doc}`} target="_blank" rel="noopener noreferrer">
+                              <a key={index} href={`${apiConfig.baseUrl}${doc}`} target="_blank" rel="noopener noreferrer">
                                 Document {index + 1}
                               </a>
                             ))}

@@ -2,6 +2,7 @@ import { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import '../components/auth.css';
 import { AuthContext } from '../App';
+import apiConfig from '../config/api';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -26,8 +27,8 @@ export default function Login() {
                           formData.userName === 'testadmin@dwell.com';
       
       const loginEndpoint = isAdminLogin ? 
-        'http://localhost:5001/api/admin/login' : 
-        'http://localhost:5001/api/auth/login';
+        apiConfig.getUrl('/api/admin/login') :
+        apiConfig.getUrl('/api/auth/login');
       
       const requestBody = isAdminLogin ? 
         { email: formData.userName, password: formData.password } :
@@ -46,7 +47,8 @@ export default function Login() {
           role: data.user.role, 
           email: data.user.email,
           firstName: data.user.firstName,
-          lastName: data.user.lastName
+          lastName: data.user.lastName,
+          userId: data.user.id || data.user._id
         });
         setPopupMessage(data.message);  // Use the message from server
         

@@ -23,7 +23,7 @@ const ViewDetails = () => {
     const fetchPropertyDetails = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`http://localhost:5001/api/properties/${propertyId}`);
+        const response = await fetch(apiConfig.getUrl(`/api/properties/${propertyId}`));
         
         if (!response.ok) {
           throw new Error('Failed to fetch property details');
@@ -60,7 +60,7 @@ const ViewDetails = () => {
         const token = user.token;
         if (!token) return;
 
-        const response = await fetch('http://localhost:5001/api/wishlist', {
+        const response = await fetch(apiConfig.getUrl('/api/wishlist'), {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -86,7 +86,7 @@ const ViewDetails = () => {
         const token = user.token;
         if (!token) return;
 
-        const response = await fetch('http://localhost:5001/api/requests', {
+        const response = await fetch(apiConfig.getUrl('/api/requests'), {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -136,7 +136,7 @@ const ViewDetails = () => {
 
       if (isInWishlist) {
         // Remove from wishlist
-        const response = await fetch(`http://localhost:5001/api/wishlist/remove/${propertyId}`, {
+        const response = await fetch(apiConfig.getUrl(`/api/wishlist/remove/${propertyId}`), {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`
@@ -152,7 +152,7 @@ const ViewDetails = () => {
         }
       } else {
         // Add to wishlist
-        const response = await fetch('http://localhost:5001/api/wishlist/add', {
+        const response = await fetch(apiConfig.getUrl('/api/wishlist/add'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -256,7 +256,7 @@ const ViewDetails = () => {
         {property.images && property.images.length > 0 ? (
           <div className="property-image-gallery">
             <img 
-              src={`http://localhost:5001/api/images/${property.images[0].replace('/uploads/', '')}`} 
+              src={`${apiConfig.baseUrl}/api/images/${property.images[0].replace('/uploads/', '')}`} 
               alt="Property" 
               className="main-property-image"
             />

@@ -21,7 +21,7 @@ const PropertyCard = ({ property, onEdit, onViewDetails, onDelete }) => {
     <div className="property-card">
       <div className="property-image">
         {property.images && property.images.length > 0 ? (
-          <img src={`http://localhost:5001${property.images[0]}`} alt="Property" />
+          <img src={`${apiConfig.baseUrl}/api/images/${property.images[0].replace('/uploads/', '')}`} alt="Property" />
         ) : (
           <div className="property-placeholder">No Image Available</div>
         )}

@@ -6,17 +6,30 @@ const Property = require('../models/Property');
 // Create a new job post
 const createJobPost = async (req, res) => {
   try {
+    console.log('🏢 CREATE JOB POST: Request body:', req.body);
+    console.log('🏢 CREATE JOB POST: User from req.user:', req.user);
     const { propertyId, jobType, requirements, title, location } = req.body;
-    const postedById = req.user.id;
+    const postedById = req.user._id || req.user.userId || req.user.id;
+    console.log('🏢 CREATE JOB POST: Posted by ID:', postedById);
 
     // Verify the user owns the property or is authorized to post
     const property = await Property.findById(propertyId);
+    console.log('🏢 CREATE JOB POST: Found property:', property ? property._id : 'null');
     if (!property) {
       return res.status(404).json({ message: 'Property not found' });
     }
 
     // Check if user is owner of the property
-    if (property.ownerId.toString() !== postedById) {
+    const propertyOwnerId = property.ownerUserId || property.owner || property.ownerId;
+    console.log('🏢 CREATE JOB POST: Property owner ID:', propertyOwnerId);
+    console.log('🏢 CREATE JOB POST: Posted by ID:', postedById);
+    
+    const propertyOwnerIdStr = propertyOwnerId ? propertyOwnerId.toString() : null;
+    const postedByIdStr = postedById ? postedById.toString() : null;
+    
+    console.log('🏢 CREATE JOB POST: Owner check:', propertyOwnerIdStr === postedByIdStr);
+    if (propertyOwnerIdStr !== postedByIdStr) {
+      console.log('❌ CREATE JOB POST: Not authorized - owner mismatch');
       return res.status(403).json({ message: 'Not authorized to post jobs for this property' });
     }
 
@@ -50,8 +63,20 @@ const getJobPosts = async (req, res) => {
 
     if (jobType) filter.jobType = jobType;
     if (status) filter.status = status;
-    if (propertyId) filter.propertyId = propertyId;
-    if (postedById) filter.postedById = postedById;
+    if (propertyId) {
+      // Validate propertyId as ObjectId
+      if (!propertyId.match(/^[0-9a-fA-F]{24}$/)) {
+        return res.status(400).json({ message: 'Invalid propertyId format' });
+      }
+      filter.propertyId = propertyId;
+    }
+    if (postedById) {
+      // Validate postedById as ObjectId
+      if (!postedById.match(/^[0-9a-fA-F]{24}$/)) {
+        return res.status(400).json({ message: 'Invalid postedById format' });
+      }
+      filter.postedById = postedById;
+    }
 
     const jobPosts = await JobPost.find(filter)
       .populate('propertyId', 'name address')
@@ -99,7 +124,7 @@ const updateJobPost = async (req, res) => {
   try {
     const { id } = req.params;
     const { requirements, title, location, status } = req.body;
-    const userId = req.user.id;
+    const userId = req.user._id || req.user.userId || req.user.id;
 
     const jobPost = await JobPost.findById(id);
     if (!jobPost) {
@@ -134,7 +159,7 @@ const updateJobPost = async (req, res) => {
 const hireGuard = async (req, res) => {
   try {
     const { jobPostId, applicationId } = req.body;
-    const userId = req.user.id;
+    const userId = req.user._id || req.user.userId || req.user.id;
 
     // Find the job post
     const jobPost = await JobPost.findById(jobPostId);
@@ -201,7 +226,7 @@ const hireGuard = async (req, res) => {
 const getJobApplications = async (req, res) => {
   try {
     const { jobPostId } = req.params;
-    const userId = req.user.id;
+    const userId = req.user._id || req.user.userId || req.user.id;
 
     // Verify job post exists and user is authorized
     const jobPost = await JobPost.findById(jobPostId);
@@ -228,7 +253,7 @@ const getJobApplications = async (req, res) => {
 const cancelJobPost = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
+    const userId = req.user._id || req.user.userId || req.user.id;
 
     const jobPost = await JobPost.findById(id);
     if (!jobPost) {

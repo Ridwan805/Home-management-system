@@ -105,8 +105,10 @@ const getTopProperties = async (req, res) => {
 // Get properties for a specific user
 const getUserProperties = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user._id || req.user.userId || req.user.id;
     const userRole = req.user.role;
+    
+    console.log('getUserProperties - User info:', { userId, userRole, userObject: req.user });
     
     let filter = { isDeleted: { $ne: true } };
     
@@ -127,31 +129,23 @@ const getUserProperties = async (req, res) => {
       filter._id = { $in: propertyIds };
     }
     
+    console.log('getUserProperties - Filter:', filter);
+    
     const properties = await Property.find(filter)
       .populate('ownerUserId', 'firstName lastName email')
       .populate('currentRentId')
       .populate('buildingId', 'name address')
       .sort({ createdAt: -1 });
     
-    // Get additional context for each property
-    const propertiesWithContext = await Promise.all(properties.map(async (property) => {
+    console.log('getUserProperties - Found properties:', properties.length);
+    
+    // Simplified response without complex async operations for now
+    const propertiesWithContext = properties.map(property => {
       const propertyObj = property.toObject();
-      
-      // Get active rent details if property is rented
-      if (property.currentRentId) {
-        const rent = await Rent.findById(property.currentRentId)
-          .populate('tenants', 'firstName lastName email');
-        propertyObj.activeRent = rent;
-      }
-      
-      // Get ownership transfer history
-      const ownershipHistory = await OwnershipTransfer.find({ 
-        propertyId: property._id 
-      }).sort({ createdAt: -1 }).limit(3);
-      propertyObj.recentOwnershipTransfers = ownershipHistory;
-      
       return propertyObj;
-    }));
+    });
+    
+    console.log('getUserProperties - Sending response with', propertiesWithContext.length, 'properties');
     
     res.json({
       success: true,
@@ -230,7 +224,7 @@ const createProperty = async (req, res) => {
     console.log('Request body address:', req.body.address);
     console.log('Request body keys:', Object.keys(req.body));
     
-    const userId = req.user.userId;
+    const userId = req.user._id || req.user.userId || req.user.id;
 
     console.log('Raw req.body:', req.body);
     
@@ -446,7 +440,7 @@ const getPropertyById = async (req, res) => {
 const updateProperty = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.userId;
+    const userId = req.user._id || req.user.userId || req.user.id;
     const userRole = req.user.role;
     
     const property = await Property.findById(id);
@@ -509,7 +503,7 @@ const updateProperty = async (req, res) => {
 const deleteProperty = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.userId;
+    const userId = req.user._id || req.user.userId || req.user.id;
     const userRole = req.user.role;
     
     const property = await Property.findById(id);
@@ -585,7 +579,7 @@ const updatePropertyStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status, note } = req.body;
-    const userId = req.user.userId;
+    const userId = req.user._id || req.user.userId || req.user.id;
     const userRole = req.user.role;
     
     const property = await Property.findById(id);
@@ -699,7 +693,7 @@ const updatePropertyStatus = async (req, res) => {
 // Get property assignments (for owners to see their assigned properties)
 const getPropertyAssignments = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user._id || req.user.userId || req.user.id;
     const userRole = req.user.role;
     
     let query = {};
@@ -763,7 +757,7 @@ const getPropertyAssignments = async (req, res) => {
 // Get tenant's assigned properties
 const getTenantAssignments = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user._id || req.user.userId || req.user.id;
     
     // Find approved requests (Paid/Completed status) where user is the tenant
     const approvedRequests = await Request.find({
@@ -841,7 +835,7 @@ const getTenantAssignments = async (req, res) => {
 const getTenantPropertyDetails = async (req, res) => {
   try {
     const { propertyId } = req.params;
-    const userId = req.user.userId;
+    const userId = req.user._id || req.user.userId || req.user.id;
     
     // Verify the property exists
     const property = await Property.findById(propertyId)
