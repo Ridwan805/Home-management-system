@@ -6,6 +6,7 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const Request = require('../models/Request');
 const Payment = require('../models/Payment');
 const Property = require('../models/Property');
+const OwnershipTransferService = require('./ownershipTransferService');
 // Long polling functionality removed
 
 class PaymentStatusChecker {
@@ -186,8 +187,16 @@ class PaymentStatusChecker {
             } else if (paymentType === 'full') {
               // Full payment completed - finalize the property transfer
               if (newStatus === 'Sold') {
-                // Transfer ownership for sale properties
-                await property.sell(request.tenantId, `Property sold after full payment completion for request ${request._id} (via status checker)`);
+                // Transfer ownership for sale properties using OwnershipTransferService
+                try {
+                  console.log(`🏠 [STATUS_CHECKER] Processing ownership transfer for request ${request._id}...`);
+                  await OwnershipTransferService.processOwnershipTransfer(request);
+                  console.log(`✅ [STATUS_CHECKER] Ownership transfer completed for request ${request._id}`);
+                } catch (transferError) {
+                  console.error(`❌ [STATUS_CHECKER] Ownership transfer failed for request ${request._id}:`, transferError);
+                  // Fallback to direct property.sell() if ownership transfer service fails
+                  await property.sell(request.tenantId, `Property sold after full payment completion for request ${request._id} (via status checker - fallback)`);
+                }
               } else if (newStatus === 'Rented') {
                 // Ensure rental status is properly set (should already be set from advance payment)
                 if (property.status !== 'Rented') {

@@ -1120,143 +1120,26 @@ const handleFullPaymentSuccess = async (session) => {
       } else if (property && property.listingType === 'For Sale') {
         console.log('🏠 [WEBHOOK] Processing property sale and ownership transfer...');
         
-        // Store the previous owner information before transferring ownership
-        const previousOwnerId = property.ownerUserId || property.owner;
-        const previousOwner = await User.findById(previousOwnerId).select('firstName lastName email phone');
+        // Use the OwnershipTransferService for automatic ownership transfer
+        const OwnershipTransferService = require('../services/ownershipTransferService');
         
-        // Get the amounts from metadata
-        const totalSalePrice = parseFloat(amount);
-        const advancePaymentAmount = request.advancePayment?.amount || 0;
-        const finalPaymentAmount = parseFloat(amount);
-        const bdtToUsdRate = parseFloat(session.metadata.bdtToUsdRate || '120');
-        
-        // Get property details for comprehensive record
-        const propertyDetails = {
-          name: property.name || 'N/A',
-          address: property.address || 'N/A',
-          propertyType: property.propertyType || 'N/A',
-          squareFootage: property.specifications?.squareFootage || 'N/A',
-          bedrooms: property.specifications?.bedrooms || 'N/A',
-          bathrooms: property.specifications?.bathrooms || 'N/A'
-        };
-        
-        // Create comprehensive OwnershipTransfer record
-        const OwnershipTransfer = require('../models/OwnershipTransfer');
-        const ownershipTransfer = new OwnershipTransfer({
-          propertyId: property._id,
-          buyerId: tenantId,
-          sellerId: previousOwnerId,
-          requestId: request._id,
-          agreedPrice: totalSalePrice,
-          currency: 'BDT',
-          status: 'Closed', // Mark as completed since payment is done
-          downPayment: {
-            amount: advancePaymentAmount,
-            paidAt: request.advancePayment?.paidAt || new Date(),
-            paymentId: request.advancePayment?.paymentId
-          },
-          finalPayment: {
-            amount: finalPaymentAmount,
-            paidAt: new Date(),
-            paymentId: payment.paymentId
-          },
-          closing: {
-            date: new Date(),
-            completedAt: new Date(),
-            completedBy: tenantId,
-            notes: `Property sold via full payment completion. Total: ${totalSalePrice.toLocaleString()} BDT (≈ $${(totalSalePrice / bdtToUsdRate).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD), Advance: ${advancePaymentAmount.toLocaleString()} BDT, Final: ${finalPaymentAmount.toLocaleString()} BDT`
-          },
-          notes: `Property: ${propertyDetails.name} - ${propertyDetails.address}. Type: ${propertyDetails.propertyType}, Size: ${propertyDetails.squareFootage} sq ft, Bedrooms: ${propertyDetails.bedrooms}, Bathrooms: ${propertyDetails.bathrooms}. Purchase completed via Stripe payment. Previous owner: ${previousOwner?.firstName} ${previousOwner?.lastName} (${previousOwner?.email || 'N/A'}, Phone: ${previousOwner?.phone || 'N/A'}). New owner: ${tenantId}. Total sale price: ${totalSalePrice.toLocaleString()} BDT (≈ $${(totalSalePrice / bdtToUsdRate).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD).`,
-          history: [{
-            event: 'Ownership transfer completed',
-            status: 'Closed',
-            timestamp: new Date(),
-            note: `Property ownership transferred from ${previousOwner?.firstName} ${previousOwner?.lastName} to tenant after successful full payment`,
-            updatedBy: tenantId
-          }],
-          // Additional metadata for comprehensive tracking
-          metadata: {
-            stripeSessionId: session.id,
-            paymentIntentId: session.payment_intent,
-            bdtToUsdRate: bdtToUsdRate,
-            propertyDetails: propertyDetails,
-            previousOwnerDetails: {
-              id: previousOwnerId,
-              name: `${previousOwner?.firstName} ${previousOwner?.lastName}`,
-              email: previousOwner?.email,
-              phone: previousOwner?.phone
-            },
-            transactionMethod: 'Stripe Online Payment',
-            advancePaymentDetails: {
-              amount: advancePaymentAmount,
-              paidAt: request.advancePayment?.paidAt,
-              paymentId: request.advancePayment?.paymentId
-            },
-            finalPaymentDetails: {
-              amount: finalPaymentAmount,
-              paidAt: new Date(),
-              paymentId: payment.paymentId
-            }
-          }
-        });
-        
-        // Save the ownership transfer record
-        await ownershipTransfer.save();
-        console.log('✅ [WEBHOOK] OwnershipTransfer record created successfully:', ownershipTransfer._id);
-        
-        // Update property ownership and status
-        await property.sell(tenantId, tenantId, `Property sold after full payment completion for request ${requestId}`);
-        
-        // Update the request to link it to the ownership transfer
-        request.ownershipTransferId = ownershipTransfer._id;
-        await request.save();
-        
-        console.log('✅ [WEBHOOK] Property ownership transferred successfully:', {
-          previousOwner: previousOwner?.firstName + ' ' + previousOwner?.lastName,
-          newOwner: tenantId,
-          ownershipTransferId: ownershipTransfer._id,
-          totalPrice: totalSalePrice,
-          advancePayment: advancePaymentAmount,
-          finalPayment: finalPaymentAmount,
-          propertyDetails: propertyDetails,
-          bdtToUsdRate: bdtToUsdRate,
-          stripeSessionId: session.id,
-          paymentIntentId: session.payment_intent
-        });
-        
-        console.log('📋 [WEBHOOK] Comprehensive ownership transfer details:', {
-          ownershipTransferId: ownershipTransfer._id,
-          property: {
-            id: property._id,
-            name: propertyDetails.name,
-            address: propertyDetails.address,
-            type: propertyDetails.propertyType,
-            size: propertyDetails.squareFootage,
-            bedrooms: propertyDetails.bedrooms,
-            bathrooms: propertyDetails.bathrooms
-          },
-          seller: {
-            id: previousOwnerId,
-            name: `${previousOwner?.firstName} ${previousOwner?.lastName}`,
-            email: previousOwner?.email,
-            phone: previousOwner?.phone
-          },
-          buyer: {
-            id: tenantId
-          },
-          financial: {
-            totalPrice: totalSalePrice,
-            currency: 'BDT',
-            usdEquivalent: (totalSalePrice / bdtToUsdRate).toFixed(2),
-            advancePayment: advancePaymentAmount,
-            finalPayment: finalPaymentAmount
-          },
-          payment: {
-            stripeSessionId: session.id,
-            paymentIntentId: session.payment_intent,
-            method: 'Stripe Online Payment'
-          }
-        });
+        try {
+          const transferResult = await OwnershipTransferService.processOwnershipTransfer(
+            request, 
+            session, 
+            payment
+          );
+          
+          console.log('✅ [WEBHOOK] Ownership transfer completed successfully:', transferResult);
+        } catch (transferError) {
+          console.error('❌ [WEBHOOK] Ownership transfer failed:', {
+            error: transferError.message,
+            stack: transferError.stack,
+            requestId,
+            propertyId: request.propertyId
+          });
+          // Don't throw the error to prevent webhook failure, but log it for investigation
+        }
       }
     } catch (propertyUpdateErr) {
       console.error('❌ [WEBHOOK] Failed to update property status after full payment:', {

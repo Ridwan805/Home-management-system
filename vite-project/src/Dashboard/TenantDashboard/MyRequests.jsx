@@ -30,6 +30,8 @@ const MyRequests = () => {
   const [paymentReceipt, setPaymentReceipt] = useState(null);
   const [receiptLoading, setReceiptLoading] = useState(false);
   const [debugInfo, setDebugInfo] = useState('');
+  const [showOwnershipModal, setShowOwnershipModal] = useState(false);
+  const [ownershipProperty, setOwnershipProperty] = useState(null);
 
   const statusFilters = [
     { key: 'all', label: 'All Requests' },
@@ -69,8 +71,10 @@ const MyRequests = () => {
     
     if (paymentStatus === 'success' && sessionId) {
       console.log('✅ Payment successful! Session ID:', sessionId);
-      // Show success message or handle payment success
-      alert('Payment completed successfully!');
+      
+      // Check if this is a full payment by fetching session details
+      checkPaymentTypeAndShowMessage(sessionId);
+      
       // Clean up URL parameters
       window.history.replaceState({}, document.title, window.location.pathname);
       // Refresh data after successful payment
@@ -108,7 +112,87 @@ const MyRequests = () => {
 
   // Note: Removed resetPolling useEffect as it was causing polling to restart constantly
 
-
+  // Function to check payment type and show appropriate message
+  const checkPaymentTypeAndShowMessage = async (sessionId) => {
+    try {
+      console.log('🔍 Checking payment type for session:', sessionId);
+      
+      // Fetch the latest requests to get property information
+      const user = JSON.parse(localStorage.getItem('dwellSyncUser'));
+      if (!user || !user.token) {
+        console.log('❌ No user authentication found');
+        return;
+      }
+      
+      // Add a small delay to allow webhook processing
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const response = await authenticatedFetch(
+        'http://localhost:5001/api/request-management/my-requests',
+        { method: 'GET' },
+        navigate
+      );
+      
+      console.log('📋 Fetched requests response:', response);
+      
+      if (response && response.requests) {
+        console.log('🔍 Looking for recently paid requests...');
+        
+        // Find the request that was just paid (look for recent full payment)
+        const recentlyPaidRequest = response.requests.find(req => {
+          console.log('🔍 Checking request:', {
+            id: req._id,
+            requestType: req.requestType,
+            status: req.status,
+            fullPayment: req.fullPayment,
+            propertyListingType: req.propertyId?.listingType
+          });
+          
+          return (
+            req.fullPayment?.status === 'completed' && 
+            req.requestType === 'Buy' && 
+            req.propertyId?.listingType === 'For Sale' &&
+            req.status === 'Paid/Completed'
+          );
+        });
+        
+        console.log('🎯 Recently paid request found:', recentlyPaidRequest);
+        
+        if (recentlyPaidRequest && recentlyPaidRequest.propertyId) {
+          // This is a full payment for a property purchase
+          const property = recentlyPaidRequest.propertyId;
+          const propertyName = property.name || property.address || 'this property';
+          
+          console.log('🏠 Setting up ownership modal for property:', {
+            name: propertyName,
+            address: property.address,
+            price: property.pricing?.sale || property.buyPrice
+          });
+          
+          setOwnershipProperty({
+            name: propertyName,
+            address: property.address,
+            price: property.pricing?.sale || property.buyPrice
+          });
+          setShowOwnershipModal(true);
+          
+          console.log('🎉 Ownership modal should now be visible!');
+        } else {
+          console.log('ℹ️ No recently paid full payment found, showing generic message');
+          // This is an advance payment or other payment type
+          alert('Payment completed successfully!');
+        }
+      } else {
+        console.log('❌ No requests found in response');
+        // Fallback message
+        alert('Payment completed successfully!');
+      }
+    } catch (error) {
+      console.error('❌ Error checking payment type:', error);
+      // Fallback message
+      alert('Payment completed successfully!');
+    }
+  };
 
   const fetchRequests = async () => {
     try {
@@ -358,7 +442,7 @@ const MyRequests = () => {
       }
       
       // Check if full payment is already completed
-      if (selectedRequest.fullPayment?.isPaid) {
+      if (selectedRequest.fullPayment?.status === 'completed') {
         console.error('❌ Full payment already completed');
         alert('Full payment has already been completed for this request.');
         return;
@@ -698,7 +782,7 @@ const MyRequests = () => {
                 <div className="request-header">
                   <div>
                     <h3 className="property-price">
-                      ৳{(
+৳{(
                         request.propertyId?.listingType === 'For Rent' 
                           ? Number(request.propertyId?.pricing?.rent) || 0
                           : Number(request.propertyId?.pricing?.sale) || 0
@@ -787,7 +871,7 @@ const MyRequests = () => {
                   <div className="info-item">
                     <span className="info-label">Price</span>
                     <span className="info-value">
-                      ৳{(
+৳{(
                         selectedRequest.propertyId?.listingType === 'For Rent' 
                           ? Number(selectedRequest.propertyId?.pricing?.rent) || 0
                           : Number(selectedRequest.propertyId?.pricing?.sale) || 0
@@ -820,8 +904,8 @@ const MyRequests = () => {
                   <div className="advance-payment-info">
                     <h4>Advance Payment Details</h4>
                     
-                    {/* Payment Success Confirmation */}
-                    {selectedRequest.advancePayment.isPaid && (
+                    {/* Payment Success Confirmation - Only show if full payment is not completed */}
+                    {selectedRequest.advancePayment.isPaid && selectedRequest.fullPayment?.status !== 'completed' && (
                       <div className="payment-success-banner">
                         <div className="success-icon">✅</div>
                         <div className="success-content">
@@ -861,11 +945,11 @@ const MyRequests = () => {
                             </div>
                           </div>
                           <div className="workflow-arrow">→</div>
-                          <div className={`workflow-step ${selectedRequest.fullPayment?.isPaid ? 'completed' : selectedRequest.status === 'Confirmed for Sale' ? 'current' : 'inactive'}`}>
+                          <div className={`workflow-step ${selectedRequest.fullPayment?.status === 'completed' ? 'completed' : selectedRequest.status === 'Confirmed for Sale' ? 'current' : 'inactive'}`}>
                             <div className="step-number">3</div>
                             <div className="step-label">Full Payment</div>
                             <div className="step-status">
-                              {selectedRequest.fullPayment?.isPaid ? 'Completed' : 
+                              {selectedRequest.fullPayment?.status === 'completed' ? 'Completed' : 
                                selectedRequest.status === 'Confirmed for Sale' ? 'Available' : 'Locked'}
                             </div>
                           </div>
@@ -913,6 +997,17 @@ const MyRequests = () => {
                 {selectedRequest.fullPayment && (
                   <div className="full-payment-info">
                     <h4>Full Payment Details</h4>
+                    
+                    {/* Full Payment Success Confirmation */}
+                    {selectedRequest.fullPayment.status === 'completed' && (
+                      <div className="payment-success-banner ownership-success">
+                        <div className="success-icon">🎉</div>
+                        <div className="success-content">
+                          <h5>Congratulations! You are now the owner!</h5>
+                          <p>Your full payment of ৳{selectedRequest.fullPayment.amount?.toLocaleString()} has been successfully processed and ownership has been transferred to you.</p>
+                        </div>
+                      </div>
+                    )}
                     <div className="property-info-grid">
                       <div className="info-item">
                         <span className="info-label">Amount</span>
@@ -1326,6 +1421,62 @@ const MyRequests = () => {
                   <FaDownload /> Download Receipt
                 </button>
 
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Ownership Congratulations Modal */}
+      {showOwnershipModal && ownershipProperty && (
+        <div className="modal-overlay">
+          <div className="modal ownership-modal">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h2>🎉 Congratulations!</h2>
+                <button 
+                  className="close-btn" 
+                  onClick={() => setShowOwnershipModal(false)}
+                >
+                  ×
+                </button>
+              </div>
+              
+              <div className="ownership-message">
+                <div className="celebration-icon">🏠✨</div>
+                <h3>You are now the owner of</h3>
+                <div className="property-details">
+                  <h4>{ownershipProperty.name}</h4>
+                  {ownershipProperty.address && (
+                    <p className="property-address">{ownershipProperty.address}</p>
+                  )}
+                  {ownershipProperty.price && (
+                    <p className="property-price">Purchase Price: ৳{ownershipProperty.price.toLocaleString()}</p>
+                  )}
+                </div>
+                
+                <div className="ownership-details">
+                  <p>Your full payment has been processed successfully and the ownership transfer is complete!</p>
+                  <p>You will receive official ownership documents and property transfer papers shortly.</p>
+                </div>
+                
+                <div className="next-steps">
+                  <h4>Next Steps:</h4>
+                  <ul>
+                    <li>Check your email for ownership transfer confirmation</li>
+                    <li>Official property documents will be sent to your registered address</li>
+                    <li>You can now access your property management dashboard</li>
+                  </ul>
+                </div>
+              </div>
+              
+              <div className="modal-actions">
+                <button 
+                  className="primary-btn"
+                  onClick={() => setShowOwnershipModal(false)}
+                >
+                  Continue to Dashboard
+                </button>
               </div>
             </div>
           </div>

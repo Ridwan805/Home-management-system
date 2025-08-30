@@ -588,6 +588,42 @@
   line-height: 1.4;
 }
 
+/* Ownership Success Banner */
+.payment-success-banner.ownership-success {
+  background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 50%, #ffcc80 100%);
+  border: 2px solid #ff9800;
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+  animation: celebrateGlow 2s ease-in-out;
+}
+
+.payment-success-banner.ownership-success .success-icon {
+  font-size: 2rem;
+  animation: bounce 1s ease-in-out infinite alternate;
+}
+
+.payment-success-banner.ownership-success .success-content h5 {
+  color: #e65100;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.payment-success-banner.ownership-success .success-content p {
+  color: #ef6c00;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+@keyframes celebrateGlow {
+  0% { box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3); }
+  50% { box-shadow: 0 6px 20px rgba(255, 152, 0, 0.5); }
+  100% { box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3); }
+}
+
+@keyframes bounce {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-3px); }
+}
+
 /* Status Message Banner */
 .status-message-banner {
   background: linear-gradient(135deg, #fff3cd 0%, #fefefe 100%);
@@ -1772,6 +1808,237 @@
     justify-content: center;
     padding: 12px;
   }
-  
+}
 
+/* Ownership Congratulations Modal Styles */
+.ownership-modal {
+  max-width: 600px;
+  width: 90%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.ownership-modal::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(180deg); }
+}
+
+.ownership-modal .modal-header {
+  background: rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 20px;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+}
+
+.ownership-modal .modal-header h2 {
+  margin: 0;
+  font-size: 2.2rem;
+  font-weight: bold;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.ownership-modal .close-btn {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.ownership-modal .close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+.ownership-message {
+  padding: 30px;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+}
+
+.celebration-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+  animation: bounce 2s ease-in-out infinite;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-10px); }
+  60% { transform: translateY(-5px); }
+}
+
+.ownership-message h3 {
+  font-size: 1.8rem;
+  margin: 0 0 20px 0;
+  font-weight: 600;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.property-details {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 15px;
+  padding: 20px;
+  margin: 20px 0;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.property-details h4 {
+  font-size: 1.5rem;
+  margin: 0 0 10px 0;
+  color: #fff;
+  font-weight: bold;
+}
+
+.property-address {
+  font-size: 1.1rem;
+  margin: 5px 0;
+  opacity: 0.9;
+}
+
+.property-price {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #ffd700;
+  margin: 10px 0 0 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.ownership-details {
+  margin: 25px 0;
+  line-height: 1.6;
+}
+
+.ownership-details p {
+  margin: 10px 0;
+  font-size: 1.1rem;
+  opacity: 0.95;
+}
+
+.next-steps {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 20px 0;
+  text-align: left;
+}
+
+.next-steps h4 {
+  margin: 0 0 15px 0;
+  font-size: 1.3rem;
+  color: #ffd700;
+  text-align: center;
+}
+
+.next-steps ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.next-steps li {
+  padding: 8px 0;
+  position: relative;
+  padding-left: 25px;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.next-steps li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: #4ade80;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.ownership-modal .modal-actions {
+  padding: 20px 30px 30px;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+}
+
+.ownership-modal .primary-btn {
+  background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+  color: white;
+  border: none;
+  padding: 15px 40px;
+  border-radius: 50px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.ownership-modal .primary-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.6);
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+}
+
+/* Responsive styles for ownership modal */
+@media (max-width: 768px) {
+  .ownership-modal {
+    width: 95%;
+    margin: 20px;
+  }
+  
+  .ownership-modal .modal-header h2 {
+    font-size: 1.8rem;
+  }
+  
+  .celebration-icon {
+    font-size: 3rem;
+  }
+  
+  .ownership-message h3 {
+    font-size: 1.5rem;
+  }
+  
+  .property-details h4 {
+    font-size: 1.3rem;
+  }
+  
+  .ownership-message {
+    padding: 20px;
+  }
+  
+  .next-steps {
+    text-align: center;
+  }
+  
+  .next-steps li {
+    text-align: left;
+  }
 }
