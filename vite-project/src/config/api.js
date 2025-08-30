@@ -246,6 +246,13 @@ export default {
     paymentHistory: '/api/payments/history',
     paymentDetails: (paymentId) => `/api/payments/${paymentId}`,
     
+    // Invoice endpoints
+    invoices: '/api/invoices',
+    invoiceById: (id) => `/api/invoices/${id}`,
+    invoicePayment: (id) => `/api/invoices/${id}/payment`,
+    overdueInvoices: '/api/invoices/status/overdue',
+    generateMonthlyRent: '/api/invoices/generate/monthly-rent',
+    
     // Building endpoints
     buildings: '/api/buildings',
     buildingById: (id) => `/api/buildings/${id}`,

@@ -8,7 +8,8 @@ const {
   getPaymentStatus,
   uploadPaymentProof,
   updatePaymentStatus,
-  getReceipt
+  getReceipt,
+  createInvoicePaymentSession
 } = require('../controllers/stripe.controller');
 const authMiddleware = require('../middleware/authMiddleware');
 
@@ -38,6 +39,7 @@ router.post('/payment-proof/:paymentId', authMiddleware, uploadPaymentProof);
 // Get payment receipt
 router.get('/receipt/:paymentId', authMiddleware, getReceipt);
 
-
+// Create payment session for invoice payment
+router.post('/create-invoice-payment-session', authMiddleware, createInvoicePaymentSession);
 
 module.exports = router;

@@ -6,6 +6,7 @@ const Payment = require('../models/Payment');
 const User = require('../models/User');
 const InvoiceService = require('../services/invoiceService');
 const mongoose = require('mongoose');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 // Create a new invoice
 const createInvoice = async (req, res) => {
@@ -402,7 +403,82 @@ const addLineItem = async (req, res) => {
 };
 
 // Process payment for invoice
+// Create Stripe checkout session for invoice payment
 const processPayment = async (req, res) => {
+  try {
+    const { invoiceId } = req.params;
+    const { amount, paymentMethod } = req.body;
+    const userId = req.user.userId;
+
+    const invoice = await Invoice.findById(invoiceId)
+      .populate('propertyId', 'title address')
+      .populate('billTo', 'firstName lastName email');
+      
+    if (!invoice) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Invoice not found' 
+      });
+    }
+
+    // Check authorization (bill-to user can process payments)
+    if (invoice.billTo._id.toString() !== userId) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Not authorized to process payment for this invoice' 
+      });
+    }
+
+    // Validate payment amount
+    if (amount !== invoice.total) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Payment amount does not match invoice total' 
+      });
+    }
+
+    // Create Stripe checkout session
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [{
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: `Invoice #${invoice.invoiceNumber || invoice._id.slice(-6)}`,
+            description: `Payment for ${invoice.propertyId?.title || 'Property'} - ${invoice.description || 'Rent Payment'}`,
+          },
+          unit_amount: Math.round(amount * 100), // Convert to cents
+        },
+        quantity: 1,
+      }],
+      mode: 'payment',
+      success_url: `${process.env.FRONTEND_URL}/tenant/payment?session_id={CHECKOUT_SESSION_ID}&status=success`,
+      cancel_url: `${process.env.FRONTEND_URL}/tenant/payment?status=cancelled`,
+      metadata: {
+        invoiceId: invoice._id.toString(),
+        userId: userId,
+        type: 'invoice_payment'
+      },
+      customer_email: invoice.billTo.email,
+    });
+
+    res.json({
+      success: true,
+      checkoutUrl: session.url,
+      sessionId: session.id
+    });
+  } catch (error) {
+    console.error('Error creating payment session:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to create payment session',
+      error: error.message 
+    });
+  }
+};
+
+// Process completed payment from Stripe webhook
+const processCompletedPayment = async (req, res) => {
   try {
     const { invoiceId } = req.params;
     const { paymentId } = req.body;
@@ -667,6 +743,7 @@ module.exports = {
   updateInvoiceStatus,
   addLineItem,
   processPayment,
+  processCompletedPayment,
   getOverdueInvoices,
   generateMonthlyRentInvoices,
   generateOwnershipTransferInvoice,

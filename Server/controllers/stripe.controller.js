@@ -3,9 +3,12 @@ const Request = require('../models/Request');
 const User = require('../models/User');
 const Property = require('../models/Property');
 const Payment = require('../models/Payment');
+const Invoice = require('../models/Invoice');
 const NotificationService = require('../services/notificationService');
 const GuardrailsService = require('../services/guardrailsService');
 const PaymentStatusChecker = require('../services/paymentStatusChecker');
+const PaymentService = require('../services/paymentService');
+const InvoiceService = require('../services/invoiceService');
 // Long polling functionality removed
 
 // Get Stripe publishable key
@@ -675,9 +678,13 @@ const handleWebhook = async (req, res) => {
           return;
         }
         
-        const requestType = sessionData.metadata.requestType || 'advance_payment';
+        const paymentType = sessionData.metadata.type || sessionData.metadata.requestType || 'advance_payment';
         
-        if (requestType === 'full_payment') {
+        if (paymentType === 'invoice_payment') {
+          console.log('🔄 [WEBHOOK] Handling invoice payment...');
+          await handleInvoicePaymentSuccess(sessionData);
+          console.log('✅ [WEBHOOK] Invoice payment handled successfully');
+        } else if (paymentType === 'full_payment') {
           console.log('🔄 [WEBHOOK] Handling full payment...');
           await handleFullPaymentSuccess(sessionData);
           console.log('✅ [WEBHOOK] Full payment handled successfully');
@@ -916,6 +923,22 @@ const handlePaymentSuccess = async (session) => {
         requestId,
         propertyId: request.propertyId
       });
+    }
+    
+    // Generate first monthly invoice for rental properties
+    try {
+      if (request.propertyId?.listingType === 'For Rent') {
+        console.log('🧾 [WEBHOOK] Generating first monthly invoice after advance payment success...');
+        await InvoiceService.generateFirstMonthlyInvoiceAfterAdvance(requestId);
+        console.log('✅ [WEBHOOK] First monthly invoice generated successfully');
+      }
+    } catch (invoiceError) {
+      console.error('❌ [WEBHOOK] Failed to generate first monthly invoice:', {
+        error: invoiceError.message,
+        stack: invoiceError.stack,
+        requestId
+      });
+      // Don't throw the error to prevent webhook failure, but log it for investigation
     }
     
     console.log('Payment processed successfully for request:', requestId);
@@ -1164,7 +1187,213 @@ const handleFullPaymentSuccess = async (session) => {
   }
 };
 
-// Handle payment expired
+// Handle successful invoice payment
+const handleInvoicePaymentSuccess = async (session) => {
+  const startTime = Date.now();
+  
+  try {
+    console.log('🔄 [INVOICE PAYMENT] Processing invoice payment success:', {
+      sessionId: session.id,
+      metadata: session.metadata,
+      amountTotal: session.amount_total,
+      currency: session.currency
+    });
+
+    const { paymentId, userId } = session.metadata;
+    
+    if (!paymentId || !userId) {
+      console.error('❌ [INVOICE PAYMENT] Missing required metadata:', { paymentId, userId });
+      return;
+    }
+
+    // Find the payment record
+    const payment = await Payment.findById(paymentId)
+      .populate('invoiceId', 'invoiceNumber billTo propertyId')
+      .populate({
+        path: 'invoiceId',
+        populate: {
+          path: 'propertyId',
+          select: 'title address ownerId'
+        }
+      });
+      
+    if (!payment) {
+      console.error('❌ [INVOICE PAYMENT] Payment not found:', paymentId);
+      return;
+    }
+
+    // Verify the user is authorized
+    if (payment.payerId.toString() !== userId) {
+      console.error('❌ [INVOICE PAYMENT] User not authorized for this payment:', { userId, payerId: payment.payerId });
+      return;
+    }
+
+    // Use PaymentService to mark payment as completed
+    const paymentDetails = {
+      stripePaymentIntentId: session.payment_intent,
+      chargeId: session.payment_intent, // This would be the actual charge ID from Stripe
+      receiptUrl: session.receipt_url || null
+    };
+
+    await PaymentService.markPaymentAsCompleted(paymentId, paymentDetails);
+    console.log('✅ [INVOICE PAYMENT] Payment and invoice status updated');
+
+    // Send notification to tenant
+    try {
+      await NotificationService.sendNotification({
+        userId: userId,
+        type: 'payment_success',
+        title: 'Payment Successful',
+        message: `Your payment of $${(session.amount_total / 100).toFixed(2)} for invoice #${payment.invoiceId.invoiceNo || payment.invoiceId._id.slice(-6)} has been processed successfully.`,
+        data: {
+          invoiceId: payment.invoiceId._id,
+          paymentId: payment._id,
+          amount: session.amount_total / 100,
+          currency: session.currency.toUpperCase()
+        }
+      });
+      console.log('✅ [INVOICE PAYMENT] Notification sent to tenant');
+    } catch (notificationError) {
+      console.error('❌ [INVOICE PAYMENT] Failed to send notification:', notificationError.message);
+    }
+
+    // Send notification to property owner if different from tenant
+    try {
+      const property = await Property.findById(payment.invoiceId.propertyId._id).populate('ownerId');
+      if (property && property.ownerId && property.ownerId._id.toString() !== userId) {
+        const tenant = await User.findById(userId);
+        await NotificationService.sendNotification({
+          userId: property.ownerId._id,
+          type: 'payment_received',
+          title: 'Payment Received',
+          message: `Payment of $${(session.amount_total / 100).toFixed(2)} received for ${property.displayName || property.address || 'Property'} from ${tenant.firstName} ${tenant.lastName}.`,
+          data: {
+            invoiceId: payment.invoiceId._id,
+            paymentId: payment._id,
+            tenantName: `${tenant.firstName} ${tenant.lastName}`,
+            propertyTitle: property.title
+          }
+        });
+        console.log('✅ [INVOICE PAYMENT] Notification sent to property owner');
+      }
+    } catch (ownerNotificationError) {
+      console.error('❌ [INVOICE PAYMENT] Failed to send owner notification:', ownerNotificationError.message);
+    }
+
+    console.log('✅ [INVOICE PAYMENT] Invoice payment processing completed:', {
+      invoiceId: payment.invoiceId._id,
+      paymentId: payment._id,
+      totalProcessingTime: `${Date.now() - startTime}ms`
+    });
+    
+  } catch (error) {
+    console.error('❌ [INVOICE PAYMENT] Error handling invoice payment success:', error);
+  }
+};
+
+/**
+ * Create a Stripe payment session for an invoice
+ */
+const createInvoicePaymentSession = async (req, res) => {
+  try {
+    const { paymentId } = req.body;
+    const userId = req.user?.userId;
+
+    if (!paymentId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment ID is required'
+      });
+    }
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    // Find the payment and populate related data
+    const payment = await Payment.findById(paymentId)
+      .populate('invoiceId', 'lineItems total dueDate period')
+      .populate('rentId', 'propertyId')
+      .populate({
+        path: 'rentId',
+        populate: {
+          path: 'propertyId',
+          select: 'title address'
+        }
+      });
+
+    if (!payment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Payment not found'
+      });
+    }
+
+    // Verify the user is authorized to pay this invoice
+    if (payment.payerId.toString() !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized to pay this invoice'
+      });
+    }
+
+    // Check if payment is still pending
+    if (payment.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: `Payment is already ${payment.status}`
+      });
+    }
+
+    // Create Stripe checkout session
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+              line_items: [{
+          price_data: {
+            currency: payment.currency.toLowerCase(),
+            product_data: {
+              name: `Monthly Rent - ${payment.rentId.propertyId.displayName || payment.rentId.propertyId.address || 'Property'}`,
+              description: `Invoice for period: ${new Date(payment.invoiceId.period.start).toLocaleDateString()} - ${new Date(payment.invoiceId.period.end).toLocaleDateString()}`
+            },
+            unit_amount: Math.round(payment.amount * 100) // Convert to cents
+          },
+          quantity: 1
+        }],
+      mode: 'payment',
+      success_url: `${process.env.FRONTEND_URL}/tenant/payment?session_id={CHECKOUT_SESSION_ID}&status=success&payment_id=${paymentId}`,
+      cancel_url: `${process.env.FRONTEND_URL}/tenant/payment?status=cancelled&payment_id=${paymentId}`,
+      metadata: {
+        paymentId: paymentId,
+        userId: userId,
+        type: 'invoice_payment'
+      }
+    });
+
+    console.log('✅ Created Stripe session for invoice payment:', {
+      sessionId: session.id,
+      paymentId: paymentId,
+      amount: payment.amount
+    });
+
+    res.status(200).json({
+      success: true,
+      sessionId: session.id,
+      url: session.url
+    });
+
+  } catch (error) {
+    console.error('❌ Error creating invoice payment session:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create payment session',
+      error: error.message
+    });
+  }
+};
+
 const handlePaymentExpired = async (session) => {
   try {
     const { requestId } = session.metadata;
@@ -1485,5 +1714,6 @@ module.exports = {
   getPaymentStatus,
   uploadPaymentProof,
   updatePaymentStatus,
-  getReceipt
+  getReceipt,
+  createInvoicePaymentSession
 };

@@ -9,6 +9,8 @@ const fs = require('fs');
 const path = require('path');
 const NotificationService = require('../services/notificationService');
 const GuardrailsService = require('../services/guardrailsService');
+const InvoiceService = require('../services/invoiceService');
+const PaymentService = require('../services/paymentService');
 // Long polling functionality removed
 
 // Create a new request
@@ -460,6 +462,80 @@ const updateRequestStatus = async (req, res) => {
             // Link request to rent
             request.linkedRentId = rent._id;
             
+            // Generate initial invoice for the first month's rent
+            try {
+              // Populate necessary information for invoice generation
+              await rent.populate('propertyId', 'title address');
+              await rent.populate('tenants', 'firstName lastName email');
+              await rent.populate('ownerId', 'firstName lastName email');
+              
+              // Calculate billing period for the first month
+              const currentDate = new Date();
+              const nextMonth = new Date(currentDate);
+              nextMonth.setMonth(nextMonth.getMonth() + 1);
+              
+              // Create invoice for each tenant
+              for (const tenant of rent.tenants) {
+                const invoiceData = {
+                  rentId: rent._id,
+                  propertyId: rent.propertyId._id,
+                  billTo: tenant._id,
+                  billFrom: rent.ownerId._id,
+                  period: {
+                    start: currentDate,
+                    end: nextMonth
+                  },
+                  dueDate: new Date(currentDate.getFullYear(), currentDate.getMonth(), rent.rent.dueDay + rent.rent.graceDays),
+                  lineItems: [{
+                    type: 'rent',
+                    description: `Monthly rent for ${rent.propertyId.title || 'property'}`,
+                    quantity: 1,
+                    unitPrice: rent.rent.amount / rent.tenants.length,
+                    amount: rent.rent.amount / rent.tenants.length,
+                    taxable: false
+                  }],
+                  subtotal: rent.rent.amount / rent.tenants.length,
+                  total: rent.rent.amount / rent.tenants.length,
+                  balance: rent.rent.amount / rent.tenants.length,
+                  currency: rent.rent.currency || 'BDT',
+                  status: 'open',
+                  auto: {
+                    generated: true,
+                    source: 'rent_contract_creation',
+                    generatedAt: new Date()
+                  }
+                };
+                
+                const invoice = new Invoice(invoiceData);
+                await invoice.save();
+                
+                // Create corresponding payment object
+                await PaymentService.createPaymentForInvoice(invoice);
+                
+                console.log(`🧾 Generated initial invoice ${invoice._id} for tenant ${tenant._id}`);
+              }
+              
+              // Update rent's next invoice date
+              rent.billing = rent.billing || {};
+              rent.billing.lastInvoiceDate = currentDate;
+              rent.billing.nextInvoiceDate = nextMonth;
+              rent.billing.frequency = 'monthly';
+              rent.billing.autoGenerate = true;
+              await rent.save();
+              
+              // Add timeline event for invoice generation
+              request.timeline.push({
+                event: 'Initial invoice generated',
+                actor: userId,
+                timestamp: new Date(),
+                note: `Initial invoice generated for rent contract ${rent._id}`
+              });
+              
+            } catch (invoiceError) {
+              console.error('Error generating initial invoice:', invoiceError);
+              // Don't fail the whole operation if invoice generation fails
+            }
+            
             // Add timeline event
             request.timeline.push({
               event: 'Rent contract created and activated',
@@ -494,6 +570,21 @@ const updateRequestStatus = async (req, res) => {
             // Close the ownership transfer (complete the sale)
             await transfer.close(userId, 'Ownership transfer completed after payment verification');
             
+            // Generate invoice for ownership transfer
+            try {
+              await InvoiceService.generateOwnershipTransferInvoice(transfer._id, userId);
+              
+              // Add timeline event for invoice generation
+              request.timeline.push({
+                event: 'Ownership transfer invoice generated',
+                actor: userId,
+                timestamp: new Date(),
+                note: `Invoice generated for ownership transfer ${transfer._id}`
+              });
+            } catch (invoiceError) {
+              console.error('Error generating ownership transfer invoice:', invoiceError);
+              // Don't fail the whole operation if invoice generation fails
+            }
             
             // Link request to ownership transfer
             request.ownershipTransferId = transfer._id;

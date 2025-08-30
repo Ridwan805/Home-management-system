@@ -131,6 +131,8 @@ const debugRoutes = require('./routes/debug');
 const imageServingRoutes = require('./routes/imageServing.routes');
 const jobPostRoutes = require('./routes/jobPost.routes');
 const securityGuardApplicationRoutes = require('./routes/securityGuardApplication.routes');
+const invoiceRoutes = require('./routes/invoice.routes');
+const paymentRoutes = require('./routes/payment.routes');
 
 
 let requestManagementRoutes;
@@ -170,6 +172,8 @@ app.use('/api/debug', debugRoutes);
 app.use('/api/images', imageServingRoutes);
 app.use('/api/job-posts', jobPostRoutes);
 app.use('/api/security-guard-applications', securityGuardApplicationRoutes);
+app.use('/api/invoices', invoiceRoutes);
+app.use('/api/payments', paymentRoutes);
 
 
 

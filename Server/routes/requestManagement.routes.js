@@ -1,10 +1,6 @@
 const express = require('express');
 const router = express.Router();
 
-
-
-
-
 const {
   getMyRequests,
   getOwnerRequests,
@@ -19,10 +15,7 @@ const {
 const authMiddleware = require('../middleware/authMiddleware');
 
 // Tenant routes
-router.get('/my-requests', (req, res, next) => {
-
-  next();
-}, authMiddleware, getMyRequests);
+router.get('/my-requests', authMiddleware, getMyRequests);
 router.patch('/my-requests/:requestId/cancel', authMiddleware, cancelRequest);
 
 // Owner routes

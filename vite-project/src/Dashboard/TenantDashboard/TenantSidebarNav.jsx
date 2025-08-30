@@ -26,7 +26,6 @@ const TenantSidebarNav = ({ activeSection, setActiveSection }) => {
     <nav className="tenant-sidebar-nav">
       <div className="sidebar-header">
         <Link to="/" className="sidebar-title" style={{ textDecoration: 'none' }}>DwellSync</Link>
-        <span className="sidebar-subtitle">Tenant Portal</span>
       </div>
       <ul className="sidebar-menu">
         {menuItems.map(item => (
