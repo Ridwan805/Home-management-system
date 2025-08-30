@@ -6,7 +6,7 @@ const User = require('../models/User');
 const applyForJob = async (req, res) => {
   try {
     const { jobPostId, details, documents } = req.body;
-    const guardId = req.user.id;
+    const guardId = req.user._id || req.user.userId || req.user.id;
 
     // Verify user is a security guard
     const user = await User.findById(guardId);
@@ -80,7 +80,7 @@ const applyForJob = async (req, res) => {
 // Get applications by guard
 const getMyApplications = async (req, res) => {
   try {
-    const guardId = req.user.id;
+    const guardId = req.user._id || req.user.userId || req.user.id;
     const { status } = req.query;
 
     const filter = { guardId };
@@ -107,7 +107,7 @@ const getMyApplications = async (req, res) => {
 const getApplicationById = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
+    const userId = req.user._id || req.user.userId || req.user.id;
 
     const application = await SecurityGuardApplication.findById(id)
       .populate('guardId', 'firstName lastName email experience')
@@ -144,7 +144,7 @@ const updateApplication = async (req, res) => {
   try {
     const { id } = req.params;
     const { details, documents } = req.body;
-    const guardId = req.user.id;
+    const guardId = req.user._id || req.user.userId || req.user.id;
 
     const application = await SecurityGuardApplication.findById(id);
     if (!application) {
@@ -186,7 +186,7 @@ const updateApplication = async (req, res) => {
 const withdrawApplication = async (req, res) => {
   try {
     const { id } = req.params;
-    const guardId = req.user.id;
+    const guardId = req.user._id || req.user.userId || req.user.id;
 
     const application = await SecurityGuardApplication.findById(id);
     if (!application) {
@@ -228,7 +228,7 @@ const updateApplicationStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status, reviewNotes, rejectionReason } = req.body;
-    const userId = req.user.id;
+    const userId = req.user._id || req.user.userId || req.user.id;
 
     const application = await SecurityGuardApplication.findById(id);
     if (!application) {
@@ -272,7 +272,7 @@ const updateApplicationStatus = async (req, res) => {
 // Get application statistics for a guard
 const getApplicationStats = async (req, res) => {
   try {
-    const guardId = req.user.id;
+    const guardId = req.user._id || req.user.userId || req.user.id;
 
     const stats = await SecurityGuardApplication.aggregate([
       { $match: { guardId: guardId } },

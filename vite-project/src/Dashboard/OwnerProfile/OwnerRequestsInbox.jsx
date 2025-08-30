@@ -573,9 +573,9 @@ const OwnerRequestsInbox = () => {
         return;
       }
 
-      console.log('Making API call to:', `http://localhost:5001/api/stripe/receipt/${paymentId}`);
+      console.log('Making API call to:', API.getUrl(`/api/stripe/receipt/${paymentId}`));
       
-      const response = await fetch(`http://localhost:5001/api/stripe/receipt/${paymentId}`, {
+      const response = await fetch(API.getUrl(`/api/stripe/receipt/${paymentId}`), {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

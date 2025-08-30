@@ -128,7 +128,7 @@ const MyRequests = () => {
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       const response = await authenticatedFetch(
-        'http://localhost:5001/api/request-management/my-requests',
+        API.getUrl('/api/request-management/my-requests'),
         { method: 'GET' },
         navigate
       );
@@ -219,7 +219,7 @@ const MyRequests = () => {
       }
       
       const statusParam = selectedStatus !== 'all' ? `?status=${encodeURIComponent(selectedStatus)}` : '';
-      const apiUrl = `http://localhost:5001/api/request-management/my-requests${statusParam}`;
+      const apiUrl = `${API.getUrl('/api/request-management/my-requests')}${statusParam}`;
       
       console.log('🔍 MyRequests: Making API call to:', apiUrl);
       setDebugInfo(`Making API call to: ${apiUrl}`);
@@ -252,7 +252,7 @@ const MyRequests = () => {
     try {
       console.log('Fetching request stats...');
       const data = await authenticatedFetch(
-        'http://localhost:5001/api/requests/stats',
+        API.getUrl('/api/requests/stats'),
         { method: 'GET' },
         navigate
       );
@@ -298,7 +298,7 @@ const MyRequests = () => {
   const fetchRequestDetails = async (requestId) => {
     try {
       const data = await authenticatedFetch(
-        `http://localhost:5001/api/request-management/request/${requestId}`,
+        API.getUrl(`/api/request-management/request/${requestId}`),
         { method: 'GET' },
         navigate
       );
@@ -329,7 +329,7 @@ const MyRequests = () => {
       const userData = JSON.parse(localStorage.getItem('dwellSyncUser'));
       const token = userData?.token;
 
-      const response = await fetch(`http://localhost:5001/api/request-management/my-requests/${requestId}/cancel`, {
+      const response = await fetch(API.getUrl(`/api/request-management/my-requests/${requestId}/cancel`), {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -369,7 +369,7 @@ const MyRequests = () => {
       console.log('🔄 Creating payment session for request:', requestId);
 
       // Create Stripe payment session
-      const response = await fetch(`http://localhost:5001/api/stripe/create-payment-session/${requestId}`, {
+      const response = await fetch(API.getUrl(`/api/stripe/create-payment-session/${requestId}`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -484,7 +484,7 @@ const MyRequests = () => {
       console.log('🔄 Sending full payment request with origin:', window.location.origin);
       
       const data = await authenticatedFetch(
-        `http://localhost:5001/api/stripe/create-full-payment-session/${requestId}`,
+        API.getUrl(`/api/stripe/create-full-payment-session/${requestId}`),
         {
           method: 'POST',
           body: JSON.stringify({
@@ -559,9 +559,9 @@ const MyRequests = () => {
         return;
       }
 
-      console.log('Making API call to:', `http://localhost:5001/api/stripe/receipt/${paymentId}`);
+      console.log('Making API call to:', API.getUrl(`/api/stripe/receipt/${paymentId}`));
       
-      const response = await fetch(`http://localhost:5001/api/stripe/receipt/${paymentId}`, {
+      const response = await fetch(API.getUrl(`/api/stripe/receipt/${paymentId}`), {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -629,7 +629,7 @@ const MyRequests = () => {
       formData.append('file', paymentProofForm.proofFile);
       formData.append('type', 'payment-proof');
 
-      const uploadResponse = await fetch('http://localhost:5001/api/upload', {
+      const uploadResponse = await fetch(API.getUrl('/api/upload'), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -644,7 +644,7 @@ const MyRequests = () => {
       const uploadData = await uploadResponse.json();
       
       // Then submit payment proof
-      const proofResponse = await fetch(`http://localhost:5001/api/requests/${selectedRequest.requestId}/payment-proof`, {
+      const proofResponse = await fetch(API.getUrl(`/api/requests/${selectedRequest.requestId}/payment-proof`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -14,7 +14,7 @@ module.exports = (allowedRoles) => {
 
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       
-      // Check if user is an admin
+      // Check if user is an admin (admin tokens use 'id' field)
       const admin = await Admin.findOne({ _id: decoded.id });
       if (admin && admin.isActive) {
         if (allowedRoles.includes('admin') || allowedRoles.includes(admin.role)) {
@@ -24,13 +24,20 @@ module.exports = (allowedRoles) => {
         }
       }
 
-      // Check if user is a regular user
-      const user = await User.findOne({ _id: decoded.id });
+      // Check if user is a regular user (user tokens use 'userId' field)
+      const userId = decoded.userId || decoded.id;
+      console.log('🔐 AUTHORIZE ROLE: Looking for user with ID:', userId);
+      const user = await User.findOne({ _id: userId });
+      console.log('🔐 AUTHORIZE ROLE: Found user:', user ? `${user.firstName} ${user.lastName} (${user.role})` : 'null');
+      console.log('🔐 AUTHORIZE ROLE: Allowed roles:', allowedRoles);
       if (user) {
         if (allowedRoles.includes('user') || allowedRoles.includes(user.role)) {
+          console.log('✅ AUTHORIZE ROLE: Access granted for role:', user.role);
           req.user = user;
           req.userType = 'user';
           return next();
+        } else {
+          console.log('❌ AUTHORIZE ROLE: Role not allowed. User role:', user.role, 'Allowed:', allowedRoles);
         }
       }
 

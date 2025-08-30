@@ -385,7 +385,7 @@ const UnifiedInquiryForm = ({ property, requestType, onClose, onSubmit }) => {
         const user = JSON.parse(userData);
         const token = user.token;
         if (token) {
-          const response = await fetch('http://localhost:5001/api/requests', {
+          const response = await fetch(apiConfig.getUrl('/api/requests'), {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -491,7 +491,7 @@ const UnifiedInquiryForm = ({ property, requestType, onClose, onSubmit }) => {
         hasPersonalPhoto: !!formDataToSend.get('personalPhoto')
       });
       
-      const response = await fetch('http://localhost:5001/api/requests', {
+      const response = await fetch(apiConfig.getUrl('/api/requests'), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

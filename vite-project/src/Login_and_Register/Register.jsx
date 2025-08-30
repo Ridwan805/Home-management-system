@@ -2,6 +2,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import '../components/auth.css';
 import { AuthContext } from '../App';
+import apiConfig from '../config/api';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -41,7 +42,7 @@ export default function Register() {
     }
 
     try {
-      const res = await fetch('http://localhost:5001/api/auth/register', {
+      const res = await fetch(apiConfig.getUrl('/api/auth/register'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

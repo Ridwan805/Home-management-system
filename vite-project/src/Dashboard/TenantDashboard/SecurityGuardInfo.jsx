@@ -75,7 +75,7 @@ const SecurityGuardInfo = () => {
       });
       const data = await response.json();
       if (response.ok) {
-        setJobPosts(data.jobPosts || []);
+        setJobPosts(data || []);
       } else {
         setError(data.message || 'Failed to fetch job posts');
       }

@@ -20,7 +20,7 @@ export default function ForgotPassword() {
     setLoading(true);
     setMessage('');
     try {
-      const res = await fetch('http://localhost:5001/api/auth/forgot-password/question', {
+      const res = await fetch(apiConfig.getUrl('/api/auth/forgot-password/question'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
@@ -49,7 +49,7 @@ export default function ForgotPassword() {
       return;
     }
     try {
-      const res = await fetch('http://localhost:5001/api/auth/forgot-password/reset', {
+      const res = await fetch(apiConfig.getUrl('/api/auth/forgot-password/reset'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, securityAnswer, newPassword })

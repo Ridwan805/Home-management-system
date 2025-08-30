@@ -217,7 +217,7 @@ const PropertyListing = () => {
             {selectedProperty.images && selectedProperty.images.length > 0 && (
               <div className="modal-image-gallery">
                 {selectedProperty.images.map((image, index) => (
-                  <img key={index} src={`http://localhost:5001${image}`} alt={`Property ${index + 1}`} />
+                  <img key={index} src={`${apiConfig.baseUrl}/api/images/${image.replace('/uploads/', '')}`} alt={`Property ${index + 1}`} />
                 ))}
               </div>
             )}
