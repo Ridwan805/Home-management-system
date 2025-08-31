@@ -126,7 +126,7 @@ function AppRoutes() {
 
       <Routes>
         <Route path="/" element={
-          <ProtectedRoute allowedRoles={['Owner', 'Tenant', 'Admin']}>
+          <ProtectedRoute allowedRoles={['Owner', 'Tenant', 'admin']}>
             <HomePage />
           </ProtectedRoute>
         } />
@@ -134,12 +134,12 @@ function AppRoutes() {
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/properties" element={
-          <ProtectedRoute allowedRoles={['Owner', 'Tenant', 'Admin']}>
+          <ProtectedRoute allowedRoles={['Owner', 'Tenant', 'admin']}>
             <PropertyFilter />
           </ProtectedRoute>
         } />
         <Route path="/properties/:propertyId" element={
-          <ProtectedRoute allowedRoles={['Owner', 'Tenant', 'Admin']}>
+          <ProtectedRoute allowedRoles={['Owner', 'Tenant', 'admin']}>
             <ViewDetails />
           </ProtectedRoute>
         } />
@@ -311,14 +311,14 @@ function AppRoutes() {
 
         {/* ✅ Admin Dashboard Route */}
         <Route path="/admin/*" element={
-          <ProtectedRoute allowedRoles={['Admin']}>
+          <ProtectedRoute allowedRoles={['admin']}>
             <AdminDashboard />
           </ProtectedRoute>
         } />
         
         {/* Test Route for PropertyListing Debug */}
         <Route path="/test-property-listing" element={
-          <ProtectedRoute allowedRoles={['Owner', 'Tenant', 'Admin']}>
+          <ProtectedRoute allowedRoles={['Owner', 'Tenant', 'admin']}>
             <TestPropertyListing />
           </ProtectedRoute>
         } />
