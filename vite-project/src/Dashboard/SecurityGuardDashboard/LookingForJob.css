@@ -265,6 +265,34 @@
   color: #dc2626;
 }
 
+.status-hired {
+  background: #dcfce7;
+  color: #166534;
+  font-weight: 700;
+}
+
+.reapply-btn {
+  margin-left: 0.5rem;
+  background: #f59e0b;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.reapply-btn:hover {
+  background: #d97706;
+  transform: translateY(-1px);
+}
+
+.reapply-btn:active {
+  transform: translateY(0);
+}
+
 /* Modal Styles */
 .modal-overlay {
   position: fixed;

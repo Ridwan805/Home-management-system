@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import SecurityGuardSidebarNav from './SecurityGuardSidebarNav';
 import SecurityGuardProfile from './SecurityGuardProfile';
 import LookingForJob from './LookingForJob';
-import UpdateExistingJob from './UpdateExistingJob';
+import MyJob from './MyJob';
 import SalaryInput from './SalaryInput';
 import './SecurityGuardDashboard.css';
 
@@ -35,7 +35,7 @@ const SecurityGuardDashboard = () => {
         <div className="dashboard-content">
           {activeSection === 'profile' && <SecurityGuardProfile />}
           {activeSection === 'looking-for-job' && <LookingForJob />}
-          {activeSection === 'update-existing-job' && <UpdateExistingJob />}
+          {activeSection === 'my-job' && <MyJob />}
           {activeSection === 'salary-input' && <SalaryInput />}
         </div>
       </main>

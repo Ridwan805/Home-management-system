@@ -19,7 +19,7 @@ const OwnerRequestsInbox = () => {
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
 
-  const [debugInfo, setDebugInfo] = useState('Component loading...');
+
   
   // Receipt state
   const [paymentReceipt, setPaymentReceipt] = useState(null);
@@ -27,8 +27,6 @@ const OwnerRequestsInbox = () => {
   const [receiptLoading, setReceiptLoading] = useState(false);
 
   useEffect(() => {
-    console.log('=== OwnerRequestsInbox component mounted ===');
-    setDebugInfo('Component mounted, fetching requests...');
     fetchOwnerRequests();
   }, []);
 
@@ -36,15 +34,15 @@ const OwnerRequestsInbox = () => {
 
   const fetchOwnerRequests = async () => {
     try {
-      console.log('=== Starting fetchOwnerRequests ===');
+  
       setLoading(true);
       setError(''); // Clear any previous errors
-      setDebugInfo('🔄 Fetching requests from API...');
+  
       const userData = localStorage.getItem('dwellSyncUser');
       
       if (!userData) {
         setError('Please log in to view requests');
-        setDebugInfo('❌ No user data found');
+  
         setLoading(false);
         return;
       }
@@ -54,7 +52,7 @@ const OwnerRequestsInbox = () => {
       
       if (!token) {
         setError('Please log in to view requests');
-        setDebugInfo('❌ No auth token found');
+  
         setLoading(false);
         return;
       }
@@ -74,21 +72,21 @@ const OwnerRequestsInbox = () => {
       const data = await response.json();
       
       if (data.success) {
-        console.log('Loaded requests:', data.requests?.length || 0);
-        setDebugInfo(`✅ Loaded ${data.requests?.length || 0} requests`);
+  
+  
         if (data.requests && data.requests.length > 0) {
-          console.log('Request statuses:', data.requests.map(r => ({ id: r.requestId, status: r.status })));
+    
         }
         setRequests(data.requests || []);
         setFilteredRequests(data.requests || []);
       } else {
         setError(data.message || 'Failed to fetch requests');
-        setDebugInfo('❌ API returned error');
+  
       }
     } catch (err) {
       console.error('Error fetching requests:', err);
       setError('Failed to fetch requests. Please try again.');
-      setDebugInfo('❌ Network error');
+
     } finally {
       setLoading(false);
     }
@@ -431,8 +429,8 @@ const OwnerRequestsInbox = () => {
   const [amountError, setAmountError] = useState('');
 
   const handleApprove = (requestId) => {
-    setDebugInfo(`🔄 Approve button clicked for request ${requestId}`);
-    console.log('🔄 handleApprove called for:', requestId);
+
+
     setSelectedRequestForPayment(requestId);
     setAmountError(''); // Clear any previous errors
     setAdvancePaymentForm({
@@ -443,7 +441,7 @@ const OwnerRequestsInbox = () => {
       additionalNote: ''
     }); // Reset form
     setShowAdvancePaymentModal(true);
-    setDebugInfo('✅ Advance payment modal should be open');
+
   };
 
   const handleAdvancePaymentSubmit = async (e) => {
@@ -558,7 +556,7 @@ const OwnerRequestsInbox = () => {
       setReceiptLoading(true);
       
       // Debug logging
-      console.log('Payment ID received:', paymentId);
+  
       
       if (!paymentId) {
         alert('Payment ID not found. Cannot retrieve receipt.');
@@ -573,7 +571,7 @@ const OwnerRequestsInbox = () => {
         return;
       }
 
-      console.log('Making API call to:', API.getUrl(`/api/stripe/receipt/${paymentId}`));
+  
       
       const response = await fetch(API.getUrl(`/api/stripe/receipt/${paymentId}`), {
         method: 'GET',
@@ -583,7 +581,7 @@ const OwnerRequestsInbox = () => {
         }
       });
 
-      console.log('Response status:', response.status);
+  
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -592,7 +590,7 @@ const OwnerRequestsInbox = () => {
       }
 
       const data = await response.json();
-      console.log('API Response data:', data);
+  
       
       if (data.success) {
         setPaymentReceipt(data);
@@ -618,7 +616,7 @@ const OwnerRequestsInbox = () => {
 
   // Handle approve for AdvancePaid requests (for Rent requests)
   const handleApproveAdvancePaid = async (requestId) => {
-    console.log('🔄 handleApproveAdvancePaid called with requestId:', requestId);
+
     
     if (!window.confirm('Are you sure you want to approve this request and mark it as completed?')) {
       return;
@@ -627,7 +625,7 @@ const OwnerRequestsInbox = () => {
     try {
       setActionLoading(true);
       const userData = localStorage.getItem('dwellSyncUser');
-      console.log('📱 User data from localStorage:', userData ? 'Found' : 'Not found');
+  
       
       if (!userData) {
         alert('Please log in to approve request');
@@ -636,16 +634,16 @@ const OwnerRequestsInbox = () => {
       
       const user = JSON.parse(userData);
       const token = user.token;
-      console.log('🔑 Token extracted:', token ? 'Present' : 'Missing');
+  
       
       const url = API.getUrl(API.endpoints.requestStatusUpdate(requestId));
-      console.log('🌐 Making request to URL:', url);
+  
       
       const requestBody = {
         status: 'Paid/Completed',
         note: 'Request approved by owner after advance payment completion'
       };
-      console.log('📤 Request body:', requestBody);
+  
       
       const response = await fetch(url, {
         method: 'PATCH',
@@ -656,8 +654,7 @@ const OwnerRequestsInbox = () => {
         body: JSON.stringify(requestBody)
       });
       
-      console.log('📥 Response status:', response.status);
-      console.log('📥 Response ok:', response.ok);
+      
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -666,7 +663,7 @@ const OwnerRequestsInbox = () => {
       }
 
       const data = await response.json();
-      console.log('✅ Success response data:', data);
+      
       
       if (data.success) {
         alert('Request approved successfully! Request marked as completed.');
@@ -685,7 +682,7 @@ const OwnerRequestsInbox = () => {
 
   // Handle confirm sale for Buy requests
   const handleConfirmSale = async (requestId) => {
-    console.log('🔄 handleConfirmSale called with requestId:', requestId);
+
     
     if (!window.confirm('Are you sure you want to confirm this sale? The tenant will be required to pay the full amount.')) {
       return;
@@ -742,7 +739,7 @@ const OwnerRequestsInbox = () => {
 
   // Handle refund for Buy requests
   const handleRefundAdvance = async (requestId) => {
-    console.log('🔄 handleRefundAdvance called with requestId:', requestId);
+
     
     if (!window.confirm('Are you sure you want to cancel this sale and refund the advance payment?')) {
       return;
@@ -869,9 +866,7 @@ const OwnerRequestsInbox = () => {
       <div className="owner-requests-header">
         <h1>Property Requests Inbox</h1>
         <p>Manage requests for your properties</p>
-        <div className="debug-info" style={{fontSize: '12px', color: '#666', marginTop: '10px'}}>
-          Debug: {debugInfo}
-        </div>
+
       </div>
 
       <div className="requests-filters">

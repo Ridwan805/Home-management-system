@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { authenticatedFetch } from '../../config/api';
+import apiConfig from '../../config/api';
 import { useNavigate } from 'react-router-dom';
 import './PaymentInfo.css';
 
@@ -44,14 +45,12 @@ const PaymentInfo = () => {
     const fetchAllData = async () => {
       try {
         const response = await authenticatedFetch(
-          'http://localhost:5001/api/payments/my-payments',
+          apiConfig.getUrl('/api/payments/my-payments'),
           { method: 'GET' },
           navigate
         );
         
-        console.log('🔍 Payment API Response:', response);
-        console.log('📄 Invoices:', response.data?.pendingInvoices);
-        console.log('💰 Payment History:', response.data?.paymentHistory);
+
         
         setInvoices(response.data?.pendingInvoices || []);
         setPaymentHistory(response.data?.paymentHistory || []);
@@ -102,10 +101,10 @@ const PaymentInfo = () => {
     setLoadingInvoices(true);
     try {
       const response = await authenticatedFetch(
-        'http://localhost:5001/api/payments/my-payments',
-        { method: 'GET' },
-        navigate
-      );
+          apiConfig.getUrl('/api/payments/my-payments'),
+          { method: 'GET' },
+          navigate
+        );
       setInvoices(response.data?.pendingInvoices || []);
       setError(null); // Clear any previous errors
     } catch (err) {
@@ -120,10 +119,10 @@ const PaymentInfo = () => {
     setLoadingHistory(true);
     try {
       const response = await authenticatedFetch(
-        'http://localhost:5001/api/payments/my-payments',
-        { method: 'GET' },
-        navigate
-      );
+          apiConfig.getUrl('/api/payments/my-payments'),
+          { method: 'GET' },
+          navigate
+        );
       setPaymentHistory(response.data?.paymentHistory || []);
       setError(null); // Clear any previous errors
     } catch (err) {
@@ -157,7 +156,7 @@ const PaymentInfo = () => {
     setProcessingPayment(true);
     try {
       const response = await authenticatedFetch(
-        `http://localhost:5001/api/invoices/${selectedInvoice._id}/payment`,
+        apiConfig.getUrl(`/api/invoices/${selectedInvoice._id}/payment`),
         {
           method: 'POST',
           headers: {
@@ -190,7 +189,7 @@ const PaymentInfo = () => {
     setProcessingPayment(true);
     try {
       const response = await authenticatedFetch(
-        'http://localhost:5001/api/stripe/create-invoice-payment-session',
+        apiConfig.getUrl('/api/stripe/create-invoice-payment-session'),
         {
           method: 'POST',
           headers: {
@@ -272,7 +271,7 @@ const PaymentInfo = () => {
     const refreshAll = async () => {
       try {
         const response = await authenticatedFetch(
-          'http://localhost:5001/api/payments/my-payments',
+          apiConfig.getUrl('/api/payments/my-payments'),
           { method: 'GET' },
           navigate
         );
@@ -454,13 +453,7 @@ const PaymentInfo = () => {
               </thead>
               <tbody>
                 {paymentHistory.map((payment) => {
-                  console.log('🔍 Rendering payment:', {
-                    id: payment._id,
-                    status: payment.status,
-                    method: payment.method,
-                    provider: payment.provider,
-                    amount: payment.amount
-                  });
+
                   
                   return (
                     <tr key={payment._id}>

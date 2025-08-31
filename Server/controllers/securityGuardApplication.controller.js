@@ -1,4 +1,4 @@
-const SecurityGuardApplication = require('../models/SecurityGuardApplication');
+const SecurityGuardJob = require('../models/securityguardjobs');
 const JobPost = require('../models/JobPost');
 const User = require('../models/User');
 const NotificationService = require('../services/notificationService');
@@ -30,20 +30,30 @@ const applyForJob = async (req, res) => {
     }
 
     // Check if user already applied
-    const existingApplication = await SecurityGuardApplication.findOne({
+    const existingApplication = await SecurityGuardJob.findOne({
       jobPostId,
       guardId
     });
 
     if (existingApplication) {
-      return res.status(400).json({ message: 'You have already applied for this job' });
+      // Allow reapplication only if the previous application was rejected
+      if (existingApplication.status !== 'Rejected') {
+        return res.status(400).json({ 
+          message: `You have already applied for this job. Current status: ${existingApplication.status}. You can only reapply if your application was rejected.` 
+        });
+      }
+      
+      // If rejected, delete the old application to allow reapplication
+      await SecurityGuardJob.findByIdAndDelete(existingApplication._id);
     }
 
     // Create application
-    const application = new SecurityGuardApplication({
+    const application = new SecurityGuardJob({
       jobPostId,
       guardId,
-      details: {
+      propertyId: jobPost.propertyId,
+      ownerId: jobPost.postedById,
+      applicationDetails: {
         experience: details.experience || user.experience || '',
         license: details.license || '',
         certifications: details.certifications || '',
@@ -103,7 +113,7 @@ const getMyApplications = async (req, res) => {
     const filter = { guardId };
     if (status) filter.status = status;
 
-    const applications = await SecurityGuardApplication.find(filter)
+    const applications = await SecurityGuardJob.find(filter)
       .populate({
         path: 'jobPostId',
         populate: {
@@ -126,7 +136,7 @@ const getApplicationById = async (req, res) => {
     const { id } = req.params;
     const userId = (req.user._id || req.user.userId || req.user.id).toString();
 
-    const application = await SecurityGuardApplication.findById(id)
+    const application = await SecurityGuardJob.findById(id)
       .populate('guardId', 'firstName lastName email experience')
       .populate({
         path: 'jobPostId',
@@ -163,7 +173,7 @@ const updateApplication = async (req, res) => {
     const { details, documents } = req.body;
     const guardId = (req.user._id || req.user.userId || req.user.id).toString();
 
-    const application = await SecurityGuardApplication.findById(id);
+    const application = await SecurityGuardJob.findById(id);
     if (!application) {
       return res.status(404).json({ message: 'Application not found' });
     }
@@ -180,7 +190,7 @@ const updateApplication = async (req, res) => {
 
     // Update details and documents
     if (details) {
-      application.details = { ...application.details, ...details };
+      application.applicationDetails = { ...application.applicationDetails, ...details };
     }
     if (documents) {
       application.documents = { ...application.documents, ...documents };
@@ -205,7 +215,7 @@ const withdrawApplication = async (req, res) => {
     const { id } = req.params;
     const guardId = (req.user._id || req.user.userId || req.user.id).toString();
 
-    const application = await SecurityGuardApplication.findById(id);
+    const application = await SecurityGuardJob.findById(id);
     if (!application) {
       return res.status(404).json({ message: 'Application not found' });
     }
@@ -231,7 +241,7 @@ const withdrawApplication = async (req, res) => {
     );
 
     // Delete the application
-    await SecurityGuardApplication.findByIdAndDelete(id);
+    await SecurityGuardJob.findByIdAndDelete(id);
 
     res.json({ message: 'Application withdrawn successfully' });
   } catch (error) {
@@ -244,10 +254,10 @@ const withdrawApplication = async (req, res) => {
 const updateApplicationStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, reviewNotes, rejectionReason } = req.body;
+    const { status, reviewNotes, rejectionReason, salary, jobDetails } = req.body;
     const userId = (req.user._id || req.user.userId || req.user.id).toString();
 
-    const application = await SecurityGuardApplication.findById(id);
+    const application = await SecurityGuardJob.findById(id);
     if (!application) {
       return res.status(404).json({ message: 'Application not found' });
     }
@@ -259,7 +269,7 @@ const updateApplicationStatus = async (req, res) => {
     }
 
     // Validate status transition
-    const validStatuses = ['Applied', 'Reviewed', 'Accepted', 'Rejected', 'Hired'];
+    const validStatuses = ['Applied', 'Reviewed', 'Accepted', 'Rejected', 'Hired', 'Active', 'Fired', 'Completed'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ message: 'Invalid status' });
     }
@@ -271,6 +281,35 @@ const updateApplicationStatus = async (req, res) => {
     
     if (status === 'Accepted' || status === 'Rejected' || status === 'Hired') {
       application.decisionAt = new Date();
+    }
+
+    // Handle hiring process
+    if (status === 'Hired') {
+      application.hiredDate = new Date();
+      application.isActive = true;
+      
+      // Set salary information if provided
+      if (salary) {
+        application.salary = {
+          amount: salary.amount || 0,
+          currency: salary.currency || 'USD',
+          paymentFrequency: salary.paymentFrequency || 'monthly'
+        };
+      }
+      
+      // Set job details if provided
+      if (jobDetails) {
+        application.jobDetails = {
+          ...application.jobDetails,
+          ...jobDetails
+        };
+      }
+      
+      // Update job post status to filled
+      jobPost.status = 'Filled';
+      jobPost.hiredUserId = application.guardId;
+      jobPost.hiredDate = new Date();
+      await jobPost.save();
     }
 
     await application.save();
@@ -309,7 +348,7 @@ const getApplicationStats = async (req, res) => {
   try {
     const guardId = (req.user._id || req.user.userId || req.user.id).toString();
 
-    const stats = await SecurityGuardApplication.aggregate([
+    const stats = await SecurityGuardJob.aggregate([
       { $match: { guardId: guardId } },
       {
         $group: {
@@ -367,7 +406,7 @@ const getApplicationsByJobPost = async (req, res) => {
     }
 
     // Get applications for this job post
-    const applications = await SecurityGuardApplication.find({ jobPostId })
+    const applications = await SecurityGuardJob.find({ jobPostId })
       .populate('guardId', 'firstName lastName email phone profilePicture')
       .sort({ createdAt: -1 });
 

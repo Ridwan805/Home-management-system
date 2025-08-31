@@ -327,16 +327,35 @@ const LookingForJob = () => {
                   <div className="job-actions">
                     {applied ? (
                       <div className="application-status">
-                        <span className={`status-badge status-${status.toLowerCase()}`}>
-                          {status}
-                        </span>
-                        {status === 'Applied' && (
-                          <button 
-                            className="undo-apply-btn"
-                            onClick={() => handleWithdrawApplication(job._id)}
-                          >
-                            Undo Apply
-                          </button>
+                        {status === 'Hired' ? (
+                          <span className="status-badge status-hired">
+                            Hired
+                          </span>
+                        ) : (
+                          <>
+                            <span className={`status-badge status-${status.toLowerCase()}`}>
+                              {status}
+                            </span>
+                            {status === 'Applied' && (
+                              <button 
+                                className="undo-apply-btn"
+                                onClick={() => handleWithdrawApplication(job._id)}
+                              >
+                                Undo Apply
+                              </button>
+                            )}
+                            {status === 'Rejected' && (
+                              <button 
+                                className="apply-btn reapply-btn"
+                                onClick={() => {
+                                  setSelectedJob(job);
+                                  setShowApplicationModal(true);
+                                }}
+                              >
+                                Apply Again
+                              </button>
+                            )}
+                          </>
                         )}
                       </div>
                     ) : (

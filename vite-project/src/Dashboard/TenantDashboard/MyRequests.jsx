@@ -9,7 +9,7 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import PaymentStatusIndicator from '../../components/PaymentStatusIndicator';
 
 const MyRequests = () => {
-  console.log('🏠 MyRequests component is rendering! User is on the correct page.');
+
   
   const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
@@ -29,7 +29,7 @@ const MyRequests = () => {
   const [uploadLoading, setUploadLoading] = useState(false);
   const [paymentReceipt, setPaymentReceipt] = useState(null);
   const [receiptLoading, setReceiptLoading] = useState(false);
-  const [debugInfo, setDebugInfo] = useState('');
+
   const [showOwnershipModal, setShowOwnershipModal] = useState(false);
   const [ownershipProperty, setOwnershipProperty] = useState(null);
 
@@ -53,12 +53,12 @@ const MyRequests = () => {
   
   // Initial load effect to handle payment redirects and authentication
   useEffect(() => {
-    console.log('🏠 MyRequests component rendered');
+  
     
     // Check authentication status first
     const userData = JSON.parse(localStorage.getItem('dwellSyncUser'));
     if (!userData || !userData.token) {
-      console.log('❌ No authentication found, redirecting to login');
+
       // If user is not authenticated, redirect to login
       navigate('/login');
       return;
@@ -70,7 +70,7 @@ const MyRequests = () => {
     const sessionId = urlParams.get('session_id');
     
     if (paymentStatus === 'success' && sessionId) {
-      console.log('✅ Payment successful! Session ID:', sessionId);
+
       
       // Check if this is a full payment by fetching session details
       checkPaymentTypeAndShowMessage(sessionId);
@@ -83,7 +83,7 @@ const MyRequests = () => {
         fetchStats();
       }, 1000); // Small delay to ensure webhook processing
     } else if (paymentStatus === 'cancelled') {
-      console.log('❌ Payment cancelled');
+
       alert('Payment was cancelled.');
       // Clean up URL parameters
       window.history.replaceState({}, document.title, window.location.pathname);
@@ -100,7 +100,7 @@ const MyRequests = () => {
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem('dwellSyncUser'));
     if (!userData || !userData.token) {
-      console.log('❌ Authentication lost, redirecting to login');
+
       navigate('/login');
       return;
     }
@@ -115,12 +115,12 @@ const MyRequests = () => {
   // Function to check payment type and show appropriate message
   const checkPaymentTypeAndShowMessage = async (sessionId) => {
     try {
-      console.log('🔍 Checking payment type for session:', sessionId);
+  
       
       // Fetch the latest requests to get property information
       const user = JSON.parse(localStorage.getItem('dwellSyncUser'));
       if (!user || !user.token) {
-        console.log('❌ No user authentication found');
+  
         return;
       }
       
@@ -133,20 +133,14 @@ const MyRequests = () => {
         navigate
       );
       
-      console.log('📋 Fetched requests response:', response);
+
       
       if (response && response.requests) {
-        console.log('🔍 Looking for recently paid requests...');
+
         
         // Find the request that was just paid (look for recent full payment)
         const recentlyPaidRequest = response.requests.find(req => {
-          console.log('🔍 Checking request:', {
-            id: req._id,
-            requestType: req.requestType,
-            status: req.status,
-            fullPayment: req.fullPayment,
-            propertyListingType: req.propertyId?.listingType
-          });
+
           
           return (
             req.fullPayment?.status === 'completed' && 
@@ -156,18 +150,14 @@ const MyRequests = () => {
           );
         });
         
-        console.log('🎯 Recently paid request found:', recentlyPaidRequest);
+
         
         if (recentlyPaidRequest && recentlyPaidRequest.propertyId) {
           // This is a full payment for a property purchase
           const property = recentlyPaidRequest.propertyId;
           const propertyName = property.name || property.address || 'this property';
           
-          console.log('🏠 Setting up ownership modal for property:', {
-            name: propertyName,
-            address: property.address,
-            price: property.pricing?.sale || property.buyPrice
-          });
+
           
           setOwnershipProperty({
             name: propertyName,
@@ -176,14 +166,14 @@ const MyRequests = () => {
           });
           setShowOwnershipModal(true);
           
-          console.log('🎉 Ownership modal should now be visible!');
+
         } else {
-          console.log('ℹ️ No recently paid full payment found, showing generic message');
+
           // This is an advance payment or other payment type
           alert('Payment completed successfully!');
         }
       } else {
-        console.log('❌ No requests found in response');
+
         // Fallback message
         alert('Payment completed successfully!');
       }
@@ -199,21 +189,18 @@ const MyRequests = () => {
       setLoading(true);
       setError(''); // Clear any previous errors
       
-      console.log('🔍 MyRequests: Starting to fetch requests...');
-      console.log('🔍 MyRequests: Selected status:', selectedStatus);
+      
       
       // Check if user is authenticated
       const user = JSON.parse(localStorage.getItem('dwellSyncUser'));
-      console.log('🔍 MyRequests: User data from localStorage:', user ? 'Found' : 'Not found');
-      console.log('🔍 MyRequests: User token:', user?.token ? 'Present' : 'Missing');
+
       
-      // Add visible debug info
-      setDebugInfo(`User: ${user ? 'Found' : 'Not found'}, Token: ${user?.token ? 'Present' : 'Missing'}, Status: ${selectedStatus}`);
+
       
       if (!user || !user.token) {
         console.error('❌ MyRequests: No authentication data found');
         setError('Please log in to view your requests');
-        setDebugInfo('❌ No authentication data found');
+
         navigate('/login');
         return;
       }
@@ -221,8 +208,7 @@ const MyRequests = () => {
       const statusParam = selectedStatus !== 'all' ? `?status=${encodeURIComponent(selectedStatus)}` : '';
       const apiUrl = `${API.getUrl('/api/request-management/my-requests')}${statusParam}`;
       
-      console.log('🔍 MyRequests: Making API call to:', apiUrl);
-      setDebugInfo(`Making API call to: ${apiUrl}`);
+
       
       const data = await authenticatedFetch(
         apiUrl,
@@ -230,14 +216,13 @@ const MyRequests = () => {
         navigate
       );
       
-      console.log('✅ MyRequests: API response received:', data);
-      console.log('✅ MyRequests: Number of requests:', data?.requests?.length || 0);
+
       
-      setDebugInfo(`✅ API response received. Requests: ${data?.requests?.length || 0}`);
+
       setRequests(data.requests || []);
       
       if (!data.requests || data.requests.length === 0) {
-        console.log('ℹ️ MyRequests: No requests found');
+
       }
       
     } catch (err) {
@@ -250,14 +235,14 @@ const MyRequests = () => {
 
   const fetchStats = async () => {
     try {
-      console.log('Fetching request stats...');
+
       const data = await authenticatedFetch(
         API.getUrl('/api/requests/stats'),
         { method: 'GET' },
         navigate
       );
       
-      console.log('Stats received:', data);
+
       setStats(data.statusBreakdown || {});
     } catch (err) {
       console.error('Error fetching stats:', err);
@@ -366,7 +351,7 @@ const MyRequests = () => {
         return;
       }
 
-      console.log('🔄 Creating payment session for request:', requestId);
+
 
       // Create Stripe payment session
       const response = await fetch(API.getUrl(`/api/stripe/create-payment-session/${requestId}`), {
@@ -380,21 +365,19 @@ const MyRequests = () => {
         })
       });
 
-      console.log('🔍 Response status:', response.status);
-      console.log('🔍 Response headers:', response.headers);
+
 
       const data = await response.json();
-      console.log('🔍 Full response data:', data);
 
       if (!response.ok) {
         console.error('❌ HTTP Error:', response.status, data);
         throw new Error(`HTTP error! status: ${response.status}, message: ${data.message || 'Unknown error'}`);
       }
       
-      console.log('💳 Payment session response:', data);
+
       
       if (data.success && data.url) {
-        console.log('✅ Redirecting to Stripe checkout:', data.url);
+
         // Redirect to Stripe checkout
         window.location.href = data.url;
       } else {
@@ -417,8 +400,7 @@ const MyRequests = () => {
       setPaymentLoading(true);
       
       // Enhanced validation checks with specific error messages
-      console.log('🔄 Starting full payment validation for request:', requestId);
-      console.log('🔍 Current request data:', selectedRequest);
+
       
       // Check if selectedRequest exists
       if (!selectedRequest) {
@@ -472,16 +454,10 @@ const MyRequests = () => {
         return;
       }
 
-      console.log('✅ All validations passed. Creating full payment session...');
-      console.log('🔍 Request status:', selectedRequest?.status);
-      console.log('🔍 Request type:', selectedRequest?.requestType);
-      console.log('🔍 Property listing type:', selectedRequest?.propertyId?.listingType);
-      console.log('🔍 Advance payment status:', selectedRequest?.advancePayment);
-      console.log('🔍 Full payment status:', selectedRequest?.fullPayment);
-      console.log('🔍 User token length:', userData.token.length);
+
 
       // Use authenticatedFetch instead of direct fetch
-      console.log('🔄 Sending full payment request with origin:', window.location.origin);
+
       
       const data = await authenticatedFetch(
         API.getUrl(`/api/stripe/create-full-payment-session/${requestId}`),
@@ -494,10 +470,10 @@ const MyRequests = () => {
         navigate
       );
       
-      console.log('💳 Full payment session response:', data);
+
       
       if (data && data.success && data.url) {
-        console.log('✅ Redirecting to Stripe checkout for full payment:', data.url);
+
         // Redirect to Stripe checkout
         window.location.href = data.url;
       } else {
@@ -541,10 +517,7 @@ const MyRequests = () => {
     try {
       setReceiptLoading(true);
       
-      // Debug logging
-      console.log('Payment ID received:', paymentId);
-      console.log('Selected request:', selectedRequest);
-      console.log('Advance payment data:', selectedRequest?.advancePayment);
+
       
       if (!paymentId) {
         alert('Payment ID not found. Cannot retrieve receipt.');
@@ -559,7 +532,7 @@ const MyRequests = () => {
         return;
       }
 
-      console.log('Making API call to:', API.getUrl(`/api/stripe/receipt/${paymentId}`));
+
       
       const response = await fetch(API.getUrl(`/api/stripe/receipt/${paymentId}`), {
         method: 'GET',
@@ -569,7 +542,7 @@ const MyRequests = () => {
         }
       });
 
-      console.log('Response status:', response.status);
+
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -578,7 +551,6 @@ const MyRequests = () => {
       }
 
       const data = await response.json();
-      console.log('API Response data:', data);
       
       if (data.success) {
         setPaymentReceipt(data);
@@ -749,12 +721,7 @@ const MyRequests = () => {
         </div>
       </div>
 
-      {/* Debug Info */}
-      {debugInfo && (
-        <div style={{background: '#f0f0f0', padding: '10px', margin: '10px 0', borderRadius: '5px', fontSize: '12px'}}>
-          Debug: {debugInfo}
-        </div>
-      )}
+
 
       {/* Request List */}
       {requests.length === 0 ? (

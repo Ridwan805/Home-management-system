@@ -70,7 +70,7 @@ const OwnerDashboard = () => {
         if (!data.success || !Array.isArray(data.properties)) {
           throw new Error('Invalid data received from server');
         }
-        console.log('Properties fetched:', data.properties.length);
+
         setProperties(data.properties);
         setLoading(false);
       } catch (err) {

@@ -376,13 +376,7 @@ class GuardrailsService {
       propertyPrice = property.pricing?.rent || property.rent || property.price;
     }
     
-    console.log('🔍 AMOUNT VALIDATION DEBUG:', {
-      propertyListingType: property.listingType,
-      pricingObject: property.pricing,
-      buyPrice: property.buyPrice,
-      price: property.price,
-      calculatedPropertyPrice: propertyPrice
-    });
+
     
     const advanceAmount = request.advancePayment?.amount || 0;
     const expectedRemainingAmount = propertyPrice - advanceAmount;
@@ -426,32 +420,17 @@ class GuardrailsService {
   static async validateFullPaymentAuthorization(userId, request) {
     const errors = [];
 
-    console.log('🔍 GUARDRAILS DEBUG: validateFullPaymentAuthorization called');
-    console.log('🔍 GUARDRAILS DEBUG: userId type:', typeof userId, 'value:', userId);
-    console.log('🔍 GUARDRAILS DEBUG: request type:', typeof request, 'exists:', !!request);
-    
     if (!userId || !request) {
-      console.log('❌ GUARDRAILS DEBUG: Missing userId or request');
       errors.push('User ID or request not provided');
       return { isValid: false, errors };
     }
 
     // Check if user is the tenant who made the request
-    console.log('🔍 GUARDRAILS DEBUG: Comparing tenant authorization');
-    console.log('🔍 GUARDRAILS DEBUG: request.tenantId type:', typeof request.tenantId, 'value:', request.tenantId);
-    
     // Extract the actual ID from the tenantId (could be ObjectId or populated User object)
     const tenantIdString = request.tenantId._id ? request.tenantId._id.toString() : request.tenantId.toString();
     const userIdString = userId.toString();
     
-    console.log('🔍 GUARDRAILS DEBUG: tenantIdString:', tenantIdString);
-    console.log('🔍 GUARDRAILS DEBUG: userIdString:', userIdString);
-    console.log('🔍 GUARDRAILS DEBUG: Are they equal?:', tenantIdString === userIdString);
-    
     if (tenantIdString !== userIdString) {
-      console.log('❌ User is not the tenant of this request');
-      console.log('❌ Request tenant ID:', tenantIdString);
-      console.log('❌ User ID:', userIdString);
       errors.push('User is not authorized to make full payment for this request');
     } else {
       console.log('✅ User is authorized - tenant IDs match');

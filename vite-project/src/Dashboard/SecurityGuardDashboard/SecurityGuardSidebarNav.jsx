@@ -6,7 +6,7 @@ import './SecurityGuardSidebarNav.css';
 const menuItems = [
   { key: 'profile', label: 'Profile', description: 'Personal Information' },
   { key: 'looking-for-job', label: 'Looking for Job', description: 'Browse Available Positions' },
-  { key: 'update-existing-job', label: 'Update Existing Job', description: 'Manage Current Position' },
+  { key: 'my-job', label: 'My Job', description: 'View Current Assignment Details' },
   { key: 'salary-input', label: 'Salary Input', description: 'Record Salary Information' },
 ];
 

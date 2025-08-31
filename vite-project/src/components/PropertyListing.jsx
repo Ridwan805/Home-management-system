@@ -117,7 +117,7 @@ const PropertyListing = () => {
         prop._id === propertyId ? updatedProperty : prop
       ));
       
-      console.log('Property updated successfully:', updatedProperty);
+      
       
       // Close the edit modal
       setEditingProperty(null);

@@ -1,5 +1,5 @@
 const JobPost = require('../models/JobPost');
-const SecurityGuardApplication = require('../models/SecurityGuardApplication');
+const SecurityGuardJob = require('../models/securityguardjobs');
 const User = require('../models/User');
 const Property = require('../models/Property');
 const NotificationService = require('../services/notificationService');
@@ -82,10 +82,35 @@ const getJobPosts = async (req, res) => {
     const jobPosts = await JobPost.find(filter)
       .populate('propertyId', 'name address')
       .populate('postedById', 'firstName lastName email')
-      .populate('hiredUserId', 'firstName lastName email')
+      .populate({
+        path: 'hiredUserId',
+        select: 'firstName lastName email phoneNumber'
+      })
       .sort({ createdAt: -1 });
 
-    res.json(jobPosts);
+    // For hired guards, also fetch their application details
+    const jobPostsWithApplications = await Promise.all(
+      jobPosts.map(async (jobPost) => {
+        const jobPostObj = jobPost.toObject();
+        
+        if (jobPost.status === 'Filled' && jobPost.hiredUserId) {
+          // Find the application for the hired guard
+          const application = await SecurityGuardJob.findOne({
+            jobPostId: jobPost._id,
+            guardId: jobPost.hiredUserId._id,
+            status: 'Hired'
+          });
+          
+          if (application) {
+            jobPostObj.hiredGuardApplication = application;
+          }
+        }
+        
+        return jobPostObj;
+      })
+    );
+
+    res.json(jobPostsWithApplications);
   } catch (error) {
     console.error('Error fetching job posts:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -196,15 +221,43 @@ const hireGuard = async (req, res) => {
     }
 
     // Find the application to accept
-    const acceptedApplication = await SecurityGuardApplication.findById(applicationId);
+    const acceptedApplication = await SecurityGuardJob.findById(applicationId);
     if (!acceptedApplication || acceptedApplication.jobPostId.toString() !== jobPostId) {
       return res.status(404).json({ message: 'Application not found' });
     }
 
+    // Get tenant information for the property
+    const Rent = require('../models/Rent');
+    let tenantId = null;
+    
+    // Populate property to get currentRentId
+    await jobPost.populate('propertyId', 'currentRentId');
+    
+    if (jobPost.propertyId.currentRentId) {
+      const currentRent = await Rent.findById(jobPost.propertyId.currentRentId);
+      if (currentRent && currentRent.tenants && currentRent.tenants.length > 0) {
+        tenantId = currentRent.tenants[0]; // Take the first tenant
+      }
+    } else {
+      // If no currentRentId, try to find active rent for this property
+      const activeRent = await Rent.findOne({
+        propertyId: jobPost.propertyId._id,
+        status: 'Active'
+      });
+      if (activeRent && activeRent.tenants && activeRent.tenants.length > 0) {
+        tenantId = activeRent.tenants[0]; // Take the first tenant
+      }
+    }
+    
     // Update the accepted application
     console.log('🎯 HIRE GUARD: Updating application status to Hired');
     acceptedApplication.status = 'Hired';
     acceptedApplication.decisionAt = new Date();
+    acceptedApplication.hiredDate = new Date();
+    if (tenantId) {
+      acceptedApplication.tenantId = tenantId;
+      console.log('🎯 HIRE GUARD: Tenant ID set:', tenantId);
+    }
     await acceptedApplication.save();
     console.log('🎯 HIRE GUARD: Application updated successfully');
 
@@ -217,7 +270,7 @@ const hireGuard = async (req, res) => {
     console.log('🎯 HIRE GUARD: Job post updated successfully');
 
     // Reject all other applications
-    await SecurityGuardApplication.updateMany(
+    await SecurityGuardJob.updateMany(
       {
         jobPostId: jobPostId,
         _id: { $ne: applicationId },
@@ -317,9 +370,9 @@ const getJobApplications = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to view applications' });
     }
 
-    const applications = await SecurityGuardApplication.find({ jobPostId })
+    const applications = await SecurityGuardJob.find({ jobPostId })
       .populate('guardId', 'firstName lastName email experience')
-      .sort({ submittedAt: -1 });
+      .sort({ applicationDate: -1 });
 
     res.json({ applications });
   } catch (error) {
@@ -351,7 +404,7 @@ const cancelJobPost = async (req, res) => {
     await jobPost.save();
 
     // Reject all pending applications
-    await SecurityGuardApplication.updateMany(
+    await SecurityGuardJob.updateMany(
       {
         jobPostId: id,
         status: { $in: ['Applied', 'Reviewed'] }
@@ -378,48 +431,107 @@ const getTenantAssignedGuards = async (req, res) => {
   try {
     const tenantId = req.user.id;
     
-    // Get all properties where the user is a tenant
-    const tenantProperties = await Property.find({
-      'tenants.userId': tenantId,
-      'tenants.status': 'Active'
-    });
+    // Import required models
+    const SecurityGuardJob = require('../models/securityguardjobs');
+    const Rent = require('../models/Rent');
     
-    if (!tenantProperties || tenantProperties.length === 0) {
+    // First, find all properties where this user is an active tenant
+    const activeRents = await Rent.find({
+      tenants: tenantId,
+      status: 'Active'
+    }).select('propertyId');
+    
+    if (!activeRents || activeRents.length === 0) {
       return res.json({
         success: true,
         assignedGuards: [],
-        message: 'No properties assigned to this tenant'
+        message: 'No active rental properties found'
       });
     }
     
-    const propertyIds = tenantProperties.map(prop => prop._id);
+    // Extract property IDs from active rents
+    const propertyIds = activeRents.map(rent => rent.propertyId);
     
-    // Find all filled job posts for these properties with hired guards
-    const filledJobPosts = await JobPost.find({
+    // Find all active security guard jobs for these properties
+    const assignedJobs = await SecurityGuardJob.find({
       propertyId: { $in: propertyIds },
-      status: 'Filled',
-      hiredUserId: { $ne: null },
-      jobType: 'SecurityGuard'
+      isActive: true,
+      status: { $in: ['Hired', 'Active'] }
     })
-    .populate('hiredUserId', 'firstName lastName email phoneNumber profilePicture')
-    .populate('propertyId', 'address')
-    .sort({ updatedAt: -1 });
+    .populate('guardId', 'firstName lastName email phoneNumber profilePicture experience certifications specialSkills emergencyContact availability')
+    .populate('propertyId', 'address city state propertyType specifications location')
+    .populate('jobPostId', 'title requirements')
+    .populate('ownerId', 'firstName lastName email phoneNumber')
+    .sort({ hiredDate: -1 });
     
-    // Format the response
-    const assignedGuards = filledJobPosts.map(jobPost => ({
+    if (!assignedJobs || assignedJobs.length === 0) {
+      return res.json({
+        success: true,
+        assignedGuards: [],
+        message: 'No security guards assigned to your properties'
+      });
+    }
+    
+    // Format the response with comprehensive guard details
+    const assignedGuards = assignedJobs.map(job => ({
+      _id: job._id,
       jobPost: {
-        _id: jobPost._id,
-        title: jobPost.title,
-        requirements: jobPost.requirements,
-        updatedAt: jobPost.updatedAt
+        _id: job.jobPostId?._id || job._id,
+        title: job.jobPostId?.title || 'Security Guard Position',
+        requirements: job.jobPostId?.requirements || {},
+        updatedAt: job.updatedAt,
+        hiredDate: job.hiredDate
       },
-      guard: jobPost.hiredUserId,
-      property: jobPost.propertyId
+      guard: {
+        _id: job.guardId._id,
+        name: `${job.guardId.firstName} ${job.guardId.lastName}`,
+        firstName: job.guardId.firstName,
+        lastName: job.guardId.lastName,
+        email: job.guardId.email,
+        phoneNumber: job.guardId.phoneNumber,
+        profilePicture: job.guardId.profilePicture,
+        experience: job.guardId.experience,
+        certifications: job.guardId.certifications,
+        specialSkills: job.guardId.specialSkills,
+        emergencyContact: job.guardId.emergencyContact,
+        availability: job.guardId.availability
+      },
+      property: {
+        _id: job.propertyId._id,
+        address: job.propertyId.address,
+        city: job.propertyId.city,
+        state: job.propertyId.state,
+        propertyType: job.propertyId.propertyType,
+        specifications: job.propertyId.specifications,
+        location: job.propertyId.location
+      },
+      owner: job.ownerId ? {
+        _id: job.ownerId._id,
+        name: `${job.ownerId.firstName} ${job.ownerId.lastName}`,
+        email: job.ownerId.email,
+        phoneNumber: job.ownerId.phoneNumber
+      } : null,
+      jobDetails: {
+        status: job.status,
+        salary: job.salary,
+        workSchedule: job.jobDetails?.workSchedule,
+        duties: job.jobDetails?.duties,
+        equipmentProvided: job.jobDetails?.equipmentProvided,
+        specialInstructions: job.jobDetails?.specialInstructions,
+        emergencyContacts: job.jobDetails?.emergencyContacts
+      },
+      timeline: {
+        appliedDate: job.appliedDate,
+        hiredDate: job.hiredDate,
+        startDate: job.startDate,
+        endDate: job.endDate
+      }
     }));
     
     res.json({
       success: true,
-      assignedGuards
+      assignedGuards,
+      totalGuards: assignedGuards.length
     });
   } catch (error) {
     console.error('Error fetching tenant assigned guards:', error);
@@ -492,6 +604,139 @@ const fireGuard = async (req, res) => {
   }
 };
 
+// Get security guard's current job assignment
+const getGuardCurrentJob = async (req, res) => {
+  try {
+    const guardId = req.user._id || req.user.userId || req.user.id;
+    
+    // Import SecurityGuardJob model
+    const SecurityGuardJob = require('../models/securityguardjobs');
+    const Rent = require('../models/Rent');
+    
+    // Find the current active job for this guard using the new schema
+    const currentJob = await SecurityGuardJob.findOne({
+      guardId: guardId,
+      isActive: true,
+      status: { $in: ['Hired', 'Active'] }
+    })
+    .populate('propertyId', 'address ownerUserId currentRentId propertyType specifications location contactInfo')
+    .populate('ownerId', 'firstName lastName email phoneNumber')
+    .populate('tenantId', 'firstName lastName email phoneNumber')
+    .populate('jobPostId', 'title requirements');
+    
+    if (!currentJob) {
+      return res.json({
+        success: true,
+        data: null,
+        message: 'No current job assignment found'
+      });
+    }
+    
+    // Get comprehensive tenant information from rent records
+    let tenantDetails = null;
+    let rentDetails = null;
+    
+    if (currentJob.tenantId) {
+      // Use the populated tenant data
+      tenantDetails = {
+        _id: currentJob.tenantId._id,
+        name: `${currentJob.tenantId.firstName} ${currentJob.tenantId.lastName}`,
+        email: currentJob.tenantId.email,
+        phoneNumber: currentJob.tenantId.phoneNumber
+      };
+    } else if (currentJob.propertyId) {
+      // Try to find tenant through rent records if tenantId is null
+      let activeRent = null;
+      
+      // First try currentRentId
+      if (currentJob.propertyId.currentRentId) {
+        activeRent = await Rent.findById(currentJob.propertyId.currentRentId)
+          .populate('tenants', 'firstName lastName email phoneNumber');
+      }
+      
+      // If no currentRentId or rent not found, search for active rent
+      if (!activeRent) {
+        activeRent = await Rent.findOne({
+          propertyId: currentJob.propertyId._id,
+          status: 'Active'
+        }).populate('tenants', 'firstName lastName email phoneNumber');
+      }
+      
+      if (activeRent && activeRent.tenants && activeRent.tenants.length > 0) {
+        const tenant = activeRent.tenants[0];
+        tenantDetails = {
+          _id: tenant._id,
+          name: `${tenant.firstName} ${tenant.lastName}`,
+          email: tenant.email,
+          phoneNumber: tenant.phoneNumber
+        };
+        
+        rentDetails = {
+          _id: activeRent._id,
+          status: activeRent.status,
+          startDate: activeRent.term?.startDate,
+          endDate: activeRent.term?.endDate,
+          rentAmount: activeRent.rent?.amount,
+          currency: activeRent.rent?.currency || 'USD'
+        };
+        
+        // Update the security guard job with the found tenantId
+        await SecurityGuardJob.findByIdAndUpdate(currentJob._id, {
+          tenantId: tenant._id
+        });
+      }
+    }
+    
+    // Format the response with comprehensive data
+    const jobDetails = {
+      _id: currentJob._id,
+      title: currentJob.jobPostId?.title || 'Security Guard Position',
+      description: currentJob.jobPostId?.requirements?.description || currentJob.jobDetails?.duties || '',
+      salary: currentJob.salary?.amount ? `${currentJob.salary.currency} ${currentJob.salary.amount}/${currentJob.salary.paymentFrequency}` : 'Not specified',
+      workingHours: currentJob.jobDetails?.workSchedule || currentJob.jobPostId?.requirements?.workingHours || 'Not specified',
+      hiredDate: currentJob.hiredDate || currentJob.createdAt,
+      status: currentJob.status,
+      property: {
+        _id: currentJob.propertyId._id,
+        name: currentJob.propertyId.address,
+        address: currentJob.propertyId.address,
+        type: currentJob.propertyId.propertyType || 'Property',
+        specifications: currentJob.propertyId.specifications,
+        location: currentJob.propertyId.location,
+        contactInfo: currentJob.propertyId.contactInfo
+      },
+      owner: {
+        _id: currentJob.ownerId._id,
+        name: `${currentJob.ownerId.firstName} ${currentJob.ownerId.lastName}`,
+        email: currentJob.ownerId.email,
+        phoneNumber: currentJob.ownerId.phoneNumber
+      },
+      tenant: tenantDetails,
+      rent: rentDetails,
+      // Additional job details
+      jobDetails: {
+        duties: currentJob.jobDetails?.duties,
+        workSchedule: currentJob.jobDetails?.workSchedule,
+        equipmentProvided: currentJob.jobDetails?.equipmentProvided,
+        specialInstructions: currentJob.jobDetails?.specialInstructions,
+        emergencyContacts: currentJob.jobDetails?.emergencyContacts
+      }
+    };
+    
+    res.json({
+      success: true,
+      data: jobDetails
+    });
+  } catch (error) {
+    console.error('Error fetching guard current job:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error', 
+      error: error.message 
+    });
+  }
+};
+
 module.exports = {
   createJobPost,
   getJobPosts,
@@ -501,5 +746,6 @@ module.exports = {
   getJobApplications,
   cancelJobPost,
   fireGuard,
-  getTenantAssignedGuards
+  getTenantAssignedGuards,
+  getGuardCurrentJob
 };

@@ -23,7 +23,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 // ✅ ADD THIS IMPORT
 import AdminDashboard from './Dashboard/AdminDashboard/AdminDashboard';
-import TestPropertyListing from './components/TestPropertyListing';
+
  
 
 // Session context for login state
@@ -316,12 +316,7 @@ function AppRoutes() {
           </ProtectedRoute>
         } />
         
-        {/* Test Route for PropertyListing Debug */}
-        <Route path="/test-property-listing" element={
-          <ProtectedRoute allowedRoles={['Owner', 'Tenant', 'admin']}>
-            <TestPropertyListing />
-          </ProtectedRoute>
-        } />
+
 
         {/* Fallback - redirect based on user role */}
         <Route path="*" element={

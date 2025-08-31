@@ -27,7 +27,7 @@ const PendingProperties = () => {
       );
       
       setProperties(data.properties || data);
-      console.log('Fetched pending properties:', data);
+      
     } catch (err) {
       console.error('Error fetching pending properties:', err);
       setError('Failed to load pending properties. Please try again later.');

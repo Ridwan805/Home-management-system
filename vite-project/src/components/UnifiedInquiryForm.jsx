@@ -360,23 +360,16 @@ const UnifiedInquiryForm = ({ property, requestType, onClose, onSubmit }) => {
   };
 
   const handleSubmit = async () => {
-    console.log('handleSubmit called, current step:', currentStep);
-    console.log('Form data before validation:', {
-      hasNidFile: !!formData.documents.nidFile,
-      hasPersonalPhoto: !!formData.documents.personalPhoto,
-      hasLetterToOwner: !!formData.letterToOwner.trim(),
-      consentAgreed: formData.consent.agreed
-    });
+
     
     // Validate all steps before submission
     if (!validateAllSteps()) {
-      console.log('Validation failed for one or more steps');
-      console.log('Current errors:', errors);
+
       alert('Please complete all required fields before submitting. Check the Identity & Compliance section for required documents.');
       return;
     }
     
-    console.log('All validation passed, proceeding with submission');
+
     
     // Check if user has already applied to this property
     try {
@@ -481,15 +474,7 @@ const UnifiedInquiryForm = ({ property, requestType, onClose, onSubmit }) => {
         throw new Error('Please log in to submit a request');
       }
       
-      console.log('Submitting form data:', {
-        propertyId: formDataToSend.get('propertyId'),
-        requestType: formDataToSend.get('requestType'),
-        payload: formDataToSend.get('payload'),
-        consent: formDataToSend.get('consent'),
-        hasNidFile: !!formDataToSend.get('nidFile'),
-        hasTinFile: !!formDataToSend.get('tinFile'),
-        hasPersonalPhoto: !!formDataToSend.get('personalPhoto')
-      });
+
       
       const response = await fetch(apiConfig.getUrl('/api/requests'), {
         method: 'POST',
@@ -499,12 +484,11 @@ const UnifiedInquiryForm = ({ property, requestType, onClose, onSubmit }) => {
         body: formDataToSend
       });
       
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
       
       if (response.ok) {
         const result = await response.json();
-        console.log('Request submitted successfully:', result);
+
         
         // Clear the draft
         clearDraft();

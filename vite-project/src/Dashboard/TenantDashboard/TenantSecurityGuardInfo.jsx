@@ -104,32 +104,196 @@ const TenantSecurityGuardInfo = () => {
                     <h4 className="guard-name">
                       {guardAssignment.guard.firstName} {guardAssignment.guard.lastName}
                     </h4>
-                    <p className="guard-contact">
-                      <strong>Email:</strong> {guardAssignment.guard.email}
-                    </p>
-                    <p className="guard-contact">
-                      <strong>Phone:</strong> {guardAssignment.guard.phoneNumber || 'Not provided'}
-                    </p>
-                    <p className="guard-property">
-                      <strong>Property:</strong> {guardAssignment.property.address}
-                    </p>
-                    <p className="guard-position">
-                      <strong>Position:</strong> {guardAssignment.jobPost.title}
-                    </p>
-                    <p className="guard-hours">
-                      <strong>Working Hours:</strong> {guardAssignment.jobPost.requirements.workingHours}
-                    </p>
-                    <p className="guard-salary">
-                      <strong>Salary:</strong> {guardAssignment.jobPost.requirements.salary}
-                    </p>
-                    <p className="guard-hired-date">
-                      <strong>Hired:</strong> {formatDate(guardAssignment.jobPost.updatedAt)}
-                    </p>
+                    
+                    {/* Basic Contact Information */}
+                    <div className="info-section">
+                      <h5>Contact Information</h5>
+                      <div className="detail-grid">
+                        <div className="detail-item">
+                          <span className="label">Email:</span>
+                          <span className="value">{guardAssignment.guard.email}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="label">Phone:</span>
+                          <span className="value">{guardAssignment.guard.phoneNumber || 'Not provided'}</span>
+                        </div>
+                        {guardAssignment.guard.emergencyContact && (
+                          <div className="detail-item">
+                            <span className="label">Emergency Contact:</span>
+                            <span className="value">{guardAssignment.guard.emergencyContact}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Professional Information */}
+                    <div className="info-section">
+                      <h5>Professional Details</h5>
+                      <div className="detail-grid">
+                        {guardAssignment.guard.experience && (
+                          <div className="detail-item">
+                            <span className="label">Experience:</span>
+                            <span className="value">{guardAssignment.guard.experience}</span>
+                          </div>
+                        )}
+                        {guardAssignment.guard.certifications && (
+                          <div className="detail-item">
+                            <span className="label">Certifications:</span>
+                            <span className="value">{guardAssignment.guard.certifications}</span>
+                          </div>
+                        )}
+                        {guardAssignment.guard.specialSkills && (
+                          <div className="detail-item">
+                            <span className="label">Special Skills:</span>
+                            <span className="value">{guardAssignment.guard.specialSkills}</span>
+                          </div>
+                        )}
+                        {guardAssignment.guard.availability && (
+                          <div className="detail-item">
+                            <span className="label">Availability:</span>
+                            <span className="value">{guardAssignment.guard.availability}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Property Information */}
+                    <div className="info-section">
+                      <h5>Property Assignment</h5>
+                      <div className="detail-grid">
+                        <div className="detail-item">
+                          <span className="label">Property:</span>
+                          <span className="value">{guardAssignment.property.address}</span>
+                        </div>
+                        {guardAssignment.property.propertyType && (
+                          <div className="detail-item">
+                            <span className="label">Property Type:</span>
+                            <span className="value">{guardAssignment.property.propertyType}</span>
+                          </div>
+                        )}
+                        {guardAssignment.property.specifications && (
+                          <div className="detail-item">
+                            <span className="label">Specifications:</span>
+                            <span className="value">
+                              {guardAssignment.property.specifications.bedrooms && `${guardAssignment.property.specifications.bedrooms} bed`}
+                              {guardAssignment.property.specifications.bathrooms && `, ${guardAssignment.property.specifications.bathrooms} bath`}
+                              {guardAssignment.property.specifications.squareFootage && `, ${guardAssignment.property.specifications.squareFootage} sqft`}
+                            </span>
+                          </div>
+                        )}
+                        {guardAssignment.property.location && (
+                          <div className="detail-item">
+                            <span className="label">Location Details:</span>
+                            <span className="value">
+                              {guardAssignment.property.location.city && guardAssignment.property.location.city}
+                              {guardAssignment.property.location.state && `, ${guardAssignment.property.location.state}`}
+                              {guardAssignment.property.location.zipCode && ` ${guardAssignment.property.location.zipCode}`}
+                              {guardAssignment.property.location.country && `, ${guardAssignment.property.location.country}`}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Job Details */}
+                    <div className="info-section">
+                      <h5>Job Information</h5>
+                      <div className="detail-grid">
+                        <div className="detail-item">
+                          <span className="label">Position:</span>
+                          <span className="value">{guardAssignment.jobPost.title}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="label">Working Hours:</span>
+                          <span className="value">{guardAssignment.jobPost.requirements?.workingHours || 'Not specified'}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="label">Salary:</span>
+                          <span className="value">{guardAssignment.jobPost.requirements?.salary || 'Not specified'}</span>
+                        </div>
+                        {guardAssignment.jobDetails?.duties && (
+                          <div className="detail-item">
+                            <span className="label">Duties:</span>
+                            <span className="value">{guardAssignment.jobDetails.duties}</span>
+                          </div>
+                        )}
+                        {guardAssignment.jobDetails?.equipment && (
+                          <div className="detail-item">
+                            <span className="label">Equipment Provided:</span>
+                            <span className="value">{guardAssignment.jobDetails.equipment}</span>
+                          </div>
+                        )}
+                        {guardAssignment.jobDetails?.instructions && (
+                          <div className="detail-item">
+                            <span className="label">Special Instructions:</span>
+                            <span className="value">{guardAssignment.jobDetails.instructions}</span>
+                          </div>
+                        )}
+                        {guardAssignment.jobDetails?.emergencyContacts && (
+                          <div className="detail-item">
+                            <span className="label">Emergency Contacts:</span>
+                            <span className="value">{guardAssignment.jobDetails.emergencyContacts}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Timeline Information */}
+                    <div className="info-section">
+                      <h5>Timeline</h5>
+                      <div className="detail-grid">
+                        <div className="detail-item">
+                          <span className="label">Hired Date:</span>
+                          <span className="value">{guardAssignment.hiredDate ? formatDate(guardAssignment.hiredDate) : formatDate(guardAssignment.jobPost.updatedAt)}</span>
+                        </div>
+                        {guardAssignment.startDate && (
+                          <div className="detail-item">
+                            <span className="label">Start Date:</span>
+                            <span className="value">{formatDate(guardAssignment.startDate)}</span>
+                          </div>
+                        )}
+                        {guardAssignment.endDate && (
+                          <div className="detail-item">
+                            <span className="label">End Date:</span>
+                            <span className="value">{formatDate(guardAssignment.endDate)}</span>
+                          </div>
+                        )}
+                        <div className="detail-item">
+                          <span className="label">Status:</span>
+                          <span className={`value status-${guardAssignment.status?.toLowerCase() || 'active'}`}>
+                            {guardAssignment.status || 'Active'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Owner Information */}
+                    {guardAssignment.owner && (
+                      <div className="info-section">
+                        <h5>Property Owner</h5>
+                        <div className="detail-grid">
+                          <div className="detail-item">
+                            <span className="label">Name:</span>
+                            <span className="value">{guardAssignment.owner.name || `${guardAssignment.owner.firstName || ''} ${guardAssignment.owner.lastName || ''}`.trim()}</span>
+                          </div>
+                          <div className="detail-item">
+                            <span className="label">Email:</span>
+                            <span className="value">{guardAssignment.owner.email}</span>
+                          </div>
+                          {guardAssignment.owner.phoneNumber && (
+                            <div className="detail-item">
+                              <span className="label">Phone:</span>
+                              <span className="value">{guardAssignment.owner.phoneNumber}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                     
                     <div className="guard-actions-readonly">
                       <div className="contact-info">
-                        <p><strong>Contact Information:</strong></p>
-                        <p>For any security concerns or to contact this guard, please use the provided email or phone number above.</p>
+                        <p><strong>Security Contact:</strong></p>
+                        <p>For any security concerns or emergencies, contact this guard using the information provided above. For non-urgent matters, you may also contact the property owner.</p>
                       </div>
                     </div>
                   </div>

@@ -80,7 +80,7 @@ const SecurityGuardInfo = () => {
 
   const createJobPost = async (e) => {
     e.preventDefault();
-    console.log('Creating job post with data:', newJobPost);
+    
     
     // Validate required fields
     if (!newJobPost.propertyId || !newJobPost.title || !newJobPost.requirements.description || !newJobPost.requirements.duties || !newJobPost.requirements.workingHours) {
@@ -214,10 +214,7 @@ const SecurityGuardInfo = () => {
     toast.info('Messaging system will be implemented soon');
   };
 
-  const handlePayment = (jobId) => {
-    // TODO: Implement payment system
-    toast.info('Payment system will be implemented soon');
-  };
+
 
   const handleFireGuard = async (jobId) => {
     const reason = window.prompt('Please provide a reason for termination (optional):');
@@ -353,25 +350,94 @@ const SecurityGuardInfo = () => {
               {jobPosts
                 .filter(job => job.status === 'Filled' && job.hiredUserId)
                 .map(job => (
-                  <div key={job._id} className="hired-guard-card">
-                    <div className="guard-info">
-                      <h3>{job.hiredUserId.firstName} {job.hiredUserId.lastName}</h3>
-                      <p><strong>Email:</strong> {job.hiredUserId.email}</p>
-                      <p><strong>Phone:</strong> {job.hiredUserId.phone || 'Not provided'}</p>
-                      <p><strong>Property:</strong> {job.propertyId?.address || job.propertyId?.name || 'N/A'}</p>
-                      <p><strong>Position:</strong> {job.title || 'Security Guard'}</p>
-                      <p><strong>Salary:</strong> {job.requirements?.salary || 'Not specified'}</p>
-                      <p><strong>Working Hours:</strong> {job.requirements?.workingHours || 'Not specified'}</p>
+                  <div key={job._id} className="hired-guard-card enhanced">
+                    <div className="guard-header">
+                      <div className="guard-avatar">
+                        <div className="avatar-placeholder">
+                          {job.hiredUserId.firstName?.[0]}{job.hiredUserId.lastName?.[0]}
+                        </div>
+                      </div>
+                      <div className="guard-basic-info">
+                        <h3>{job.hiredUserId.firstName} {job.hiredUserId.lastName}</h3>
+                        <p className="guard-position">{job.title || 'Security Guard'}</p>
+                        <p className="guard-property">{job.propertyId?.address || job.propertyId?.name || 'N/A'}</p>
+                      </div>
                     </div>
+                    
+                    <div className="guard-details">
+                      <div className="detail-section">
+                        <h4>Contact Information</h4>
+                        <div className="detail-grid">
+                          <div className="detail-item">
+                            <span className="label">Email:</span>
+                            <span className="value">{job.hiredUserId.email}</span>
+                          </div>
+                          <div className="detail-item">
+                            <span className="label">Phone:</span>
+                            <span className="value">{job.hiredUserId.phoneNumber || 'Not provided'}</span>
+                          </div>
+                          <div className="detail-item">
+                            <span className="label">Address:</span>
+                            <span className="value">{job.hiredUserId.address || 'Not provided'}</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="detail-section">
+                        <h4>Professional Information</h4>
+                        <div className="detail-grid">
+                          <div className="detail-item">
+                            <span className="label">Experience:</span>
+                            <span className="value">{job.hiredGuardApplication?.details?.experience || job.hiredUserId.experience || 'Not specified'}</span>
+                          </div>
+                          <div className="detail-item">
+                            <span className="label">License:</span>
+                            <span className="value">{job.hiredGuardApplication?.details?.license || 'Not specified'}</span>
+                          </div>
+                          <div className="detail-item">
+                            <span className="label">Certifications:</span>
+                            <span className="value">{job.hiredGuardApplication?.details?.certifications || 'Not specified'}</span>
+                          </div>
+                          <div className="detail-item">
+                            <span className="label">Skills:</span>
+                            <span className="value">{job.hiredGuardApplication?.details?.skills || 'Not specified'}</span>
+                          </div>
+                          <div className="detail-item">
+                            <span className="label">Availability:</span>
+                            <span className="value">{job.hiredGuardApplication?.details?.availability || 'Not specified'}</span>
+                          </div>
+                          <div className="detail-item">
+                            <span className="label">Previous Work:</span>
+                            <span className="value">{job.hiredGuardApplication?.details?.previousWork || 'Not specified'}</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="detail-section">
+                        <h4>Job Details</h4>
+                        <div className="detail-grid">
+                          <div className="detail-item">
+                            <span className="label">Salary:</span>
+                            <span className="value">{job.requirements?.salary || 'Not specified'}</span>
+                          </div>
+                          <div className="detail-item">
+                            <span className="label">Working Hours:</span>
+                            <span className="value">{job.requirements?.workingHours || 'Not specified'}</span>
+                          </div>
+                          <div className="detail-item">
+                            <span className="label">Hired Date:</span>
+                            <span className="value">{job.hiredGuardApplication?.decisionAt ? new Date(job.hiredGuardApplication.decisionAt).toLocaleDateString() : 'Not available'}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
                     <div className="guard-actions">
                       <button className="btn btn-primary" onClick={() => handleMessageGuard(job.hiredUserId._id)}>
-                        Message
-                      </button>
-                      <button className="btn btn-success" onClick={() => handlePayment(job._id)}>
-                        Make Payment
+                        <i className="icon-message"></i> Message
                       </button>
                       <button className="btn btn-danger" onClick={() => handleFireGuard(job._id)}>
-                        Fire Guard
+                        <i className="icon-fire"></i> Fire Guard
                       </button>
                     </div>
                   </div>

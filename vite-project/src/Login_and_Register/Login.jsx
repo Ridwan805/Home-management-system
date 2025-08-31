@@ -21,10 +21,9 @@ export default function Login() {
     e.preventDefault();
     try {
       // Check if this is an admin login attempt
-      const isAdminLogin = formData.userName.includes('admin') || 
+      const isAdminLogin = formData.userName === 'admin@dwell.com' || 
                           formData.userName === 'admin1@dwell.com' || 
-                          formData.userName === 'admin2@dwell.com' ||
-                          formData.userName === 'testadmin@dwell.com';
+                          formData.userName === 'admin2@dwell.com';
       
       const loginEndpoint = isAdminLogin ? 
         apiConfig.getUrl('/api/admin/login') :

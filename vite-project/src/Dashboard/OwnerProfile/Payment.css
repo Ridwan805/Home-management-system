@@ -6,6 +6,55 @@
   padding: 24px;
 }
 
+/* Payment Message */
+.payment-message {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+  border-radius: 8px;
+  font-weight: 500;
+  animation: slideDown 0.3s ease-out;
+}
+
+.payment-message.success {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.payment-message.error {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.close-message-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.close-message-btn:hover {
+  opacity: 1;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .payment-header {
   margin-bottom: 24px;
 }
@@ -157,6 +206,179 @@
   color: #b91c1c;
 }
 
+/* Security Guard Payments Section */
+.security-guard-payments-section {
+  padding: 16px 0;
+}
+
+.security-guard-payments-section h3 {
+  color: #1e40af;
+  margin-bottom: 24px;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.no-guards {
+  text-align: center;
+  padding: 48px 24px;
+  color: #64748b;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.guards-payment-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.guard-payment-card {
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.guard-payment-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.guard-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.guard-avatar {
+  margin-right: 16px;
+}
+
+.avatar-placeholder {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 1.25rem;
+}
+
+.guard-basic-info h4 {
+  margin: 0 0 4px 0;
+  color: #1e40af;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.guard-position {
+  margin: 0 0 4px 0;
+  color: #64748b;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.guard-property {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 0.875rem;
+}
+
+.payment-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  margin-bottom: 6px;
+  color: #374151;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.form-group input,
+.form-group select {
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.pay-guard-button {
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 12px 16px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  margin-top: 8px;
+}
+
+.pay-guard-button:hover:not(:disabled) {
+  background-color: #1d4ed8;
+}
+
+.pay-guard-button:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.view-history-button {
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.view-history-button:hover {
+  background-color: #e5e7eb;
+}
+
+.guard-payment-history {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+  margin-top: 24px;
+}
+
+.guard-payment-history h4 {
+  color: #1e40af;
+  margin-bottom: 16px;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
 @media (max-width: 768px) {
   .payment-container {
     padding: 16px;
@@ -166,5 +388,24 @@
   .payment-history-table td {
     padding: 8px 12px;
     font-size: 0.875rem;
+  }
+  
+  .guards-payment-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .guard-payment-card {
+    padding: 16px;
+  }
+  
+  .guard-header {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+  
+  .guard-avatar {
+    margin-right: 0;
   }
 }

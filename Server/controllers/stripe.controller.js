@@ -197,12 +197,7 @@ const createFullPaymentSession = async (req, res) => {
     userId = req.user.userId;
     
     console.log('🔄 Creating full payment session...');
-    console.log('📋 Request params:', req.params);
-    console.log('👤 User from token:', req.user);
-    console.log('📦 Request body:', req.body);
-    console.log('🔍 Headers:', req.headers);
     console.log('🧭 createFullPaymentSession called', { requestId, userId, providedAmount, providedCurrency });
-    console.log('🔍 DEBUG: Request type:', req.body.debugRequestType || 'UNKNOWN');
     
     console.log('🔄 STRIPE CONTROLLER: Creating FULL payment session for:', { requestId, userId });
     console.log('🔑 Stripe keys check:', {
@@ -337,11 +332,7 @@ const createFullPaymentSession = async (req, res) => {
       }
       
       // Validate user authorization
-      console.log('🔍 DEBUG: About to validate authorization with:', { userId, requestExists: !!request, requestId: request?._id });
-      console.log('🔍 DEBUG: Request tenantId before GuardrailsService:', request.tenantId);
-      console.log('🔍 DEBUG: Request tenantId type:', typeof request.tenantId);
       const authValidation = await GuardrailsService.validateFullPaymentAuthorization(userId, request);
-      console.log('🔍 DEBUG: Authorization validation result:', authValidation);
       if (!authValidation.isValid) {
         console.error('❌ Full payment authorization validation failed:', authValidation.errors);
         return res.status(403).json({
@@ -410,15 +401,18 @@ const createFullPaymentSession = async (req, res) => {
     }
     console.log('📧 [Full] Using customer email for Stripe (may be undefined):', customerEmail);
 
-    // Debug environment variables
-    console.log('🔍 Environment check:', {
-      frontendUrl: process.env.FRONTEND_URL,
-      stripeSecretExists: !!process.env.STRIPE_SECRET_KEY,
-      nodeEnv: process.env.NODE_ENV
-    });
+
 
     // Use the originUrl from the request body if provided, otherwise fall back to FRONTEND_URL
-    const frontendUrl = req.body.originUrl || process.env.FRONTEND_URL || 'http://localhost:5175';
+    const frontendUrl = req.body.originUrl || process.env.FRONTEND_URL;
+    
+    if (!frontendUrl) {
+      return res.status(500).json({
+        success: false,
+        error: 'FRONTEND_URL_NOT_CONFIGURED',
+        message: 'Frontend URL is not configured. Please set FRONTEND_URL environment variable.'
+      });
+    }
     console.log('🔗 Using frontend URL for redirects:', frontendUrl);
     
     const successUrl = `${frontendUrl}/tenant/request-info?payment=success&session_id={CHECKOUT_SESSION_ID}`;

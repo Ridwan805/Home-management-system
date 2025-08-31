@@ -127,7 +127,7 @@ const requestRoutes = require('./routes/request.routes');
 const stripeRoutes = require('./routes/stripe.routes');
 const uploadRoutes = require('./routes/upload.routes');
 const notificationRoutes = require('./routes/notifications');
-const debugRoutes = require('./routes/debug');
+
 const imageServingRoutes = require('./routes/imageServing.routes');
 const jobPostRoutes = require('./routes/jobPost.routes');
 const securityGuardApplicationRoutes = require('./routes/securityGuardApplication.routes');
@@ -169,7 +169,7 @@ app.use('/api/requests', requestRoutes);
 app.use('/api/stripe', stripeRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/notifications', notificationRoutes);
-app.use('/api/debug', debugRoutes);
+
 app.use('/api/images', imageServingRoutes);
 app.use('/api/job-posts', jobPostRoutes);
 app.use('/api/security-guard-applications', securityGuardApplicationRoutes);

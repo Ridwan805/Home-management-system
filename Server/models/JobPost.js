@@ -40,7 +40,7 @@ const jobPostSchema = new mongoose.Schema({
   },
   applications: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'SecurityGuardApplication'
+    ref: 'SecurityGuardJob'
   }],
   hiredUserId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -49,7 +49,7 @@ const jobPostSchema = new mongoose.Schema({
   },
   hiredApplicationId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'SecurityGuardApplication',
+    ref: 'SecurityGuardJob',
     default: null
   },
   paymentInfo: {

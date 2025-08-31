@@ -21,18 +21,13 @@ const API_BASE_URL = `http://localhost:${getApiPort()}`;
  * @returns {Promise<any>} - The parsed response data
  */
 export const handleApiResponse = async (response, navigate = null) => {
-  console.log('🔍 Processing API response:', {
-    status: response.status,
-    statusText: response.statusText,
-    ok: response.ok,
-    url: response.url
-  });
+
 
   // First check if the response is ok
   if (response.ok) {
     try {
       const data = await response.json();
-      console.log('✅ API response parsed successfully');
+
       return data;
     } catch (parseError) {
       console.error('❌ Failed to parse successful response:', parseError);
@@ -63,7 +58,7 @@ export const handleApiResponse = async (response, navigate = null) => {
     
     // Redirect to login page if navigate function is provided
     if (navigate) {
-      console.log('🔄 Redirecting to login page');
+
       navigate('/login');
     } else {
       // Fallback if navigate is not provided
@@ -87,7 +82,6 @@ export const handleApiResponse = async (response, navigate = null) => {
  * @returns {Promise<any>} - The parsed response data
  */
 export const authenticatedFetch = async (url, options = {}, navigate = null) => {
-  console.log('🔄 authenticatedFetch called:', { url, method: options.method || 'GET' });
   
   try {
     // Get user data from localStorage
@@ -99,11 +93,7 @@ export const authenticatedFetch = async (url, options = {}, navigate = null) => 
       throw new Error('Authentication required');
     }
     
-    console.log('🔍 User data found:', { 
-      userId: user.userId, 
-      tokenLength: token?.length,
-      tokenPrefix: token?.substring(0, 20) + '...' 
-    });
+
     
     // Set up headers with authentication token
     const headers = {
@@ -112,12 +102,7 @@ export const authenticatedFetch = async (url, options = {}, navigate = null) => 
       ...options.headers
     };
     
-    console.log('🔄 Making fetch request with headers:', {
-      url,
-      method: options.method || 'GET',
-      hasAuth: !!headers.Authorization,
-      contentType: headers['Content-Type']
-    });
+
     
     // Make the API request
     const response = await fetch(url, {
@@ -125,12 +110,7 @@ export const authenticatedFetch = async (url, options = {}, navigate = null) => 
       headers
     });
     
-    console.log('📡 Fetch response received:', {
-      status: response.status,
-      statusText: response.statusText,
-      ok: response.ok,
-      url: response.url
-    });
+
     
     // Handle the response with token expiration check
     return await handleApiResponse(response, navigate);
@@ -281,6 +261,7 @@ export default {
     applyForJob: '/api/security-guard-applications/apply',
     guardApplications: '/api/security-guard-applications/guard',
     tenantAssignedGuards: '/api/job-posts/tenant/assigned-guards',
+    guardCurrentJob: '/api/job-posts/guard/current-job',
     applicationById: (id) => `/api/security-guard-applications/${id}`,
     updateApplication: (id) => `/api/security-guard-applications/${id}`,
     withdrawApplication: (id) => `/api/security-guard-applications/${id}/withdraw`,

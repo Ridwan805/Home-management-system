@@ -9,7 +9,8 @@ const {
   getJobApplications,
   cancelJobPost,
   fireGuard,
-  getTenantAssignedGuards
+  getTenantAssignedGuards,
+  getGuardCurrentJob
 } = require('../controllers/jobPost.controller');
 const authMiddleware = require('../middleware/authMiddleware');
 const authorizeRole = require('../middleware/authorizeRole');
@@ -73,6 +74,13 @@ router.get('/tenant/assigned-guards',
   authMiddleware, 
   authorizeRole(['Tenant']), 
   getTenantAssignedGuards
+);
+
+// Get security guard's current job assignment
+router.get('/guard/current-job', 
+  authMiddleware, 
+  authorizeRole(['Security Guard']), 
+  getGuardCurrentJob
 );
 
 module.exports = router;
