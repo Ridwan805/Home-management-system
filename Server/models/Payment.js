@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 // Define valid payment types
-const PAYMENT_TYPES = ['advance_payment', 'full_payment', 'monthly_rent', 'security_deposit', 'utility_bill', 'maintenance_fee', 'other'];
+const PAYMENT_TYPES = ['advance_payment', 'full_payment', 'monthly_rent', 'security_deposit', 'utility_bill', 'maintenance_fee', 'security_guard_payment', 'other'];
 
 // Define valid payment statuses
 const PAYMENT_STATUSES = ['pending', 'processing', 'completed', 'paid', 'failed', 'cancelled', 'refunded', 'disputed'];

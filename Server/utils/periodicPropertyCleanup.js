@@ -21,11 +21,11 @@ class PeriodicPropertyCleanup {
 
   /**
    * Start the periodic cleanup scheduler
-   * @param {string} cronExpression - Cron expression for scheduling (default: every 15 seconds)
+   * @param {string} cronExpression - Cron expression for scheduling (default: every 5 minutes)
    */
-  start(cronExpression = '*/15 * * * * *') {
+  start(cronExpression = '*/5 * * * *') {
     console.log(`🕐 Starting periodic property cleanup scheduler...`);
-    console.log(`📅 Schedule: ${cronExpression} (every 15 seconds by default)`);
+    console.log(`📅 Schedule: ${cronExpression} (every 5 minutes by default)`);
     
     // Schedule the cleanup task
     this.scheduledTask = cron.schedule(cronExpression, async () => {

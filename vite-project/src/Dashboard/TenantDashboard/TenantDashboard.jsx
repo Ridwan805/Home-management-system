@@ -4,7 +4,7 @@ import TenantSidebarNav from './TenantSidebarNav';
 import TenantProfile from './TenantProfile';
 import PaymentInfo from './PaymentInfo';
 import HouseInfo from './HouseInfo';
-import SecurityGuardInfo from '../OwnerProfile/SecurityGuardInfo';
+import TenantSecurityGuardInfo from './TenantSecurityGuardInfo';
 import ReportProblem from './ReportProblem';
 import Wishlist from './Wishlist';
 import MyRequests from './MyRequests';
@@ -39,7 +39,7 @@ const TenantDashboard = () => {
           {activeSection === 'profile' && <TenantProfile />}
           {activeSection === 'payment' && <PaymentInfo />}
           {activeSection === 'house-info' && <HouseInfo />}
-          {activeSection === 'security-guard-info' && <SecurityGuardInfo />}
+          {activeSection === 'security-guard-info' && <TenantSecurityGuardInfo />}
           {activeSection === 'report-problem' && <ReportProblem />}
           {activeSection === 'wishlist' && <Wishlist />}
           {activeSection === 'request-info' && <MyRequests />}

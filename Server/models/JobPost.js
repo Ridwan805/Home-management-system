@@ -47,6 +47,20 @@ const jobPostSchema = new mongoose.Schema({
     ref: 'User',
     default: null
   },
+  hiredApplicationId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'SecurityGuardApplication',
+    default: null
+  },
+  paymentInfo: {
+    amount: { type: Number, default: 0 },
+    currency: { type: String, default: 'BDT' },
+    frequency: { type: String, enum: ['monthly', 'weekly', 'daily', 'one-time'], default: 'monthly' },
+    nextPaymentDue: { type: Date },
+    lastPaymentDate: { type: Date },
+    totalPaid: { type: Number, default: 0 },
+    paymentStatus: { type: String, enum: ['pending', 'current', 'overdue'], default: 'pending' }
+  },
   title: {
     type: String,
     required: true

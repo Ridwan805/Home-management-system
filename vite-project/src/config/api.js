@@ -273,13 +273,14 @@ export default {
     // JobPost endpoints
     jobPosts: '/api/job-posts',
     jobPostById: (id) => `/api/job-posts/${id}`,
-    jobPostApplications: (id) => `/api/job-posts/${id}/applications`,
-    hireGuard: (jobId, applicationId) => `/api/job-posts/${jobId}/hire/${applicationId}`,
+    jobPostApplications: (id) => `/api/security-guard-applications/job/${id}`,
+    hireGuard: '/api/job-posts/hire',
     
     // Security Guard Application endpoints
     securityGuardApplications: '/api/security-guard-applications',
     applyForJob: '/api/security-guard-applications/apply',
     guardApplications: '/api/security-guard-applications/guard',
+    tenantAssignedGuards: '/api/job-posts/tenant/assigned-guards',
     applicationById: (id) => `/api/security-guard-applications/${id}`,
     updateApplication: (id) => `/api/security-guard-applications/${id}`,
     withdrawApplication: (id) => `/api/security-guard-applications/${id}/withdraw`,

@@ -1,12 +1,13 @@
 const SecurityGuardApplication = require('../models/SecurityGuardApplication');
 const JobPost = require('../models/JobPost');
 const User = require('../models/User');
+const NotificationService = require('../services/notificationService');
 
 // Apply for a security guard job
 const applyForJob = async (req, res) => {
   try {
     const { jobPostId, details, documents } = req.body;
-    const guardId = req.user._id || req.user.userId || req.user.id;
+    const guardId = (req.user._id || req.user.userId || req.user.id).toString();
 
     // Verify user is a security guard
     const user = await User.findById(guardId);
@@ -60,6 +61,22 @@ const applyForJob = async (req, res) => {
     jobPost.applications.push(application._id);
     await jobPost.save();
 
+    // Send notification to job poster about new application
+    try {
+      await jobPost.populate('propertyId', 'address');
+      const guardName = `${user.firstName} ${user.lastName}`;
+      
+      await NotificationService.sendOwnerNewApplicationNotification(
+        jobPost.postedById,
+        application._id,
+        guardName,
+        jobPost.title,
+        jobPost.propertyId?.address || 'Unknown Property'
+      );
+    } catch (notificationError) {
+      console.error('Error sending new application notification:', notificationError);
+    }
+
     // Populate response
     await application.populate('guardId', 'firstName lastName email');
     await application.populate('jobPostId', 'title requirements');
@@ -80,7 +97,7 @@ const applyForJob = async (req, res) => {
 // Get applications by guard
 const getMyApplications = async (req, res) => {
   try {
-    const guardId = req.user._id || req.user.userId || req.user.id;
+    const guardId = (req.user._id || req.user.userId || req.user.id).toString();
     const { status } = req.query;
 
     const filter = { guardId };
@@ -107,7 +124,7 @@ const getMyApplications = async (req, res) => {
 const getApplicationById = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user._id || req.user.userId || req.user.id;
+    const userId = (req.user._id || req.user.userId || req.user.id).toString();
 
     const application = await SecurityGuardApplication.findById(id)
       .populate('guardId', 'firstName lastName email experience')
@@ -144,7 +161,7 @@ const updateApplication = async (req, res) => {
   try {
     const { id } = req.params;
     const { details, documents } = req.body;
-    const guardId = req.user._id || req.user.userId || req.user.id;
+    const guardId = (req.user._id || req.user.userId || req.user.id).toString();
 
     const application = await SecurityGuardApplication.findById(id);
     if (!application) {
@@ -186,7 +203,7 @@ const updateApplication = async (req, res) => {
 const withdrawApplication = async (req, res) => {
   try {
     const { id } = req.params;
-    const guardId = req.user._id || req.user.userId || req.user.id;
+    const guardId = (req.user._id || req.user.userId || req.user.id).toString();
 
     const application = await SecurityGuardApplication.findById(id);
     if (!application) {
@@ -228,7 +245,7 @@ const updateApplicationStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status, reviewNotes, rejectionReason } = req.body;
-    const userId = req.user._id || req.user.userId || req.user.id;
+    const userId = (req.user._id || req.user.userId || req.user.id).toString();
 
     const application = await SecurityGuardApplication.findById(id);
     if (!application) {
@@ -242,7 +259,7 @@ const updateApplicationStatus = async (req, res) => {
     }
 
     // Validate status transition
-    const validStatuses = ['Applied', 'Reviewed', 'Accepted', 'Rejected'];
+    const validStatuses = ['Applied', 'Reviewed', 'Accepted', 'Rejected', 'Hired'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ message: 'Invalid status' });
     }
@@ -252,12 +269,30 @@ const updateApplicationStatus = async (req, res) => {
     if (reviewNotes) application.reviewNotes = reviewNotes;
     if (rejectionReason) application.rejectionReason = rejectionReason;
     
-    if (status === 'Accepted' || status === 'Rejected') {
+    if (status === 'Accepted' || status === 'Rejected' || status === 'Hired') {
       application.decisionAt = new Date();
     }
 
     await application.save();
     await application.populate('guardId', 'firstName lastName email');
+
+    // Send notification to guard about status change
+    try {
+      await application.populate('jobPostId', 'title');
+      await jobPost.populate('propertyId', 'address');
+      
+      await NotificationService.sendGuardApplicationStatusNotification(
+        application.guardId._id,
+        application._id,
+        application.status, // oldStatus
+        status, // newStatus
+        application.jobPostId.title,
+        jobPost.propertyId?.address || 'Unknown Property',
+        rejectionReason
+      );
+    } catch (notificationError) {
+      console.error('Error sending application status notification:', notificationError);
+    }
 
     res.json({
       message: `Application ${status.toLowerCase()} successfully`,
@@ -272,7 +307,7 @@ const updateApplicationStatus = async (req, res) => {
 // Get application statistics for a guard
 const getApplicationStats = async (req, res) => {
   try {
-    const guardId = req.user._id || req.user.userId || req.user.id;
+    const guardId = (req.user._id || req.user.userId || req.user.id).toString();
 
     const stats = await SecurityGuardApplication.aggregate([
       { $match: { guardId: guardId } },
@@ -304,6 +339,48 @@ const getApplicationStats = async (req, res) => {
   }
 };
 
+// Get applications for a specific job post (Owner only)
+const getApplicationsByJobPost = async (req, res) => {
+  try {
+    const { jobPostId } = req.params;
+    const ownerId = (req.user._id || req.user.userId || req.user.id).toString();
+
+    // Validate user ID
+    if (!ownerId) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    // Verify job post exists and belongs to the owner
+    const jobPost = await JobPost.findById(jobPostId);
+    if (!jobPost) {
+      return res.status(404).json({ message: 'Job post not found' });
+    }
+
+
+
+    if (!jobPost.postedById) {
+      return res.status(500).json({ message: 'Job post missing postedById field' });
+    }
+
+    if (jobPost.postedById.toString() !== ownerId.toString()) {
+      return res.status(403).json({ message: 'Not authorized to view applications' });
+    }
+
+    // Get applications for this job post
+    const applications = await SecurityGuardApplication.find({ jobPostId })
+      .populate('guardId', 'firstName lastName email phone profilePicture')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      applications
+    });
+  } catch (error) {
+    console.error('Error fetching applications by job post:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 module.exports = {
   applyForJob,
   getMyApplications,
@@ -311,5 +388,6 @@ module.exports = {
   updateApplication,
   withdrawApplication,
   updateApplicationStatus,
-  getApplicationStats
+  getApplicationStats,
+  getApplicationsByJobPost
 };

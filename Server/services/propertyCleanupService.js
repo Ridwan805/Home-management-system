@@ -4,6 +4,7 @@
 const Request = require('../models/Request');
 const Property = require('../models/Property');
 const mongoose = require('mongoose');
+const propertyStatusLogger = require('../utils/propertyStatusLogger');
 
 class PropertyCleanupService {
   /**
@@ -56,6 +57,8 @@ class PropertyCleanupService {
           
           if (!dryRun) {
             try {
+              const previousStatus = property.status;
+              
               // Reset property to Available status
               await Property.updateOne(
                 { _id: property._id },
@@ -76,15 +79,36 @@ class PropertyCleanupService {
                 }
               );
               
+              // Log the status update
+              await propertyStatusLogger.logStatusUpdate({
+                propertyId: property._id.toString(),
+                previousStatus,
+                newStatus: 'Available',
+                trigger: 'orphaned-property-cleanup',
+                triggeredBy,
+                source: 'PropertyCleanupService.cleanupOrphanedProperties',
+                metadata: {
+                  listingType: property.listingType,
+                  address: `${property.address}, ${property.city}, ${property.state}`,
+                  dryRun: false
+                }
+              });
+              
               results.fixed++;
-              console.log(`✅ Property ${property._id} reset to Available`);
               
             } catch (error) {
               results.errors.push({
                 propertyId: property._id,
                 error: error.message
               });
-              console.error(`❌ Failed to reset property ${property._id}:`, error.message);
+              
+              // Log the error
+              await propertyStatusLogger.logError({
+                propertyId: property._id.toString(),
+                operation: 'reset-orphaned-property',
+                error: error.message,
+                source: 'PropertyCleanupService.cleanupOrphanedProperties'
+              });
             }
           }
         }
@@ -145,10 +169,17 @@ class PropertyCleanupService {
    */
   static async resetOrphanedProperty(propertyId, triggeredBy = 'system') {
     try {
+      const property = await Property.findById(propertyId);
+      if (!property) {
+        return false;
+      }
+      
       const isOrphaned = await this.isPropertyOrphaned(propertyId);
       if (!isOrphaned) {
         return false;
       }
+      
+      const previousStatus = property.status;
       
       await Property.updateOne(
         { _id: propertyId },
@@ -169,11 +200,31 @@ class PropertyCleanupService {
         }
       );
       
-      console.log(`✅ Orphaned property ${propertyId} reset to Available`);
+      // Log the status update
+      await propertyStatusLogger.logStatusUpdate({
+        propertyId: propertyId.toString(),
+        previousStatus,
+        newStatus: 'Available',
+        trigger: 'orphaned-property-reset',
+        triggeredBy,
+        source: 'PropertyCleanupService.resetOrphanedProperty',
+        metadata: {
+          listingType: property.listingType,
+          address: `${property.address}, ${property.city}, ${property.state}`
+        }
+      });
+      
       return true;
       
     } catch (error) {
-      console.error(`❌ Failed to reset orphaned property ${propertyId}:`, error);
+      // Log the error
+      await propertyStatusLogger.logError({
+        propertyId: propertyId.toString(),
+        operation: 'reset-orphaned-property',
+        error: error.message,
+        source: 'PropertyCleanupService.resetOrphanedProperty'
+      });
+      
       return false;
     }
   }

@@ -168,13 +168,16 @@ const SecurityGuardInfo = () => {
   const handleHireGuard = async (applicationId) => {
     try {
       const token = getAuthToken();
-      const response = await fetch(apiConfig.getUrl(`api/job-posts/${selectedJobPost._id}/hire`), {
+      const response = await fetch(apiConfig.getUrl('api/job-posts/hire'), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ applicationId })
+        body: JSON.stringify({ 
+          jobPostId: selectedJobPost._id,
+          applicationId 
+        })
       });
 
       const data = await response.json();

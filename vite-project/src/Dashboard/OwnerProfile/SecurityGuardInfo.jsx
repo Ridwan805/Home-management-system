@@ -67,7 +67,7 @@ const SecurityGuardInfo = () => {
   const fetchApplications = async (jobPostId) => {
     try {
       setLoading(true);
-      const data = await authenticatedFetch(apiConfig.getUrl(`/api/security-guard-applications/job/${jobPostId}`));
+      const data = await authenticatedFetch(apiConfig.getUrl(apiConfig.endpoints.jobPostApplications(jobPostId)));
       setApplications(data.applications || []);
       setShowApplicationsModal(true);
     } catch (error) {
@@ -139,9 +139,12 @@ const SecurityGuardInfo = () => {
 
   const hireGuard = async (applicationId) => {
     try {
-      const data = await authenticatedFetch(apiConfig.getUrl(apiConfig.endpoints.hireGuard(selectedJobPost._id, applicationId)), {
+      const data = await authenticatedFetch(apiConfig.getUrl(apiConfig.endpoints.hireGuard), {
         method: 'POST',
-        body: JSON.stringify({ applicationId })
+        body: JSON.stringify({ 
+          jobPostId: selectedJobPost._id,
+          applicationId: applicationId 
+        })
       });
       
       toast.success('Security guard hired successfully!');
@@ -150,6 +153,91 @@ const SecurityGuardInfo = () => {
     } catch (error) {
       console.error('Error hiring guard:', error);
       toast.error('Failed to hire security guard');
+    }
+  };
+
+  const handleHireGuard = async (jobPostId, applicationId) => {
+    if (!window.confirm('Are you sure you want to hire this security guard?')) {
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      const data = await authenticatedFetch(apiConfig.getUrl(apiConfig.endpoints.hireGuard), {
+        method: 'POST',
+        body: JSON.stringify({ 
+          jobPostId: jobPostId,
+          applicationId: applicationId 
+        })
+      });
+      
+      toast.success('Security guard hired successfully!');
+      setShowApplicationsModal(false);
+      fetchJobPosts();
+    } catch (error) {
+      console.error('Error hiring guard:', error);
+      toast.error('Failed to hire security guard');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRejectApplication = async (applicationId) => {
+    const reason = window.prompt('Please provide a reason for rejection (optional):');
+    
+    if (!window.confirm('Are you sure you want to reject this application?')) {
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      const data = await authenticatedFetch(apiConfig.getUrl(apiConfig.endpoints.updateApplicationStatus(applicationId)), {
+        method: 'PATCH',
+        body: JSON.stringify({ 
+          status: 'Rejected',
+          rejectionReason: reason || ''
+        })
+      });
+      
+      toast.success('Application rejected successfully!');
+      fetchApplications(selectedJobPost._id);
+    } catch (error) {
+      console.error('Error rejecting application:', error);
+      toast.error('Failed to reject application');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMessageGuard = (guardId) => {
+    // TODO: Implement messaging system
+    toast.info('Messaging system will be implemented soon');
+  };
+
+  const handlePayment = (jobId) => {
+    // TODO: Implement payment system
+    toast.info('Payment system will be implemented soon');
+  };
+
+  const handleFireGuard = async (jobId) => {
+    const reason = window.prompt('Please provide a reason for termination (optional):');
+    
+    if (!window.confirm('Are you sure you want to fire this security guard? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      // Use the new fire guard endpoint
+      await authenticatedFetch(apiConfig.getUrl(`/api/job-posts/${jobId}/fire`), {
+        method: 'POST',
+        body: JSON.stringify({ reason: reason || '' })
+      });
+      
+      toast.success('Security guard has been fired successfully');
+      fetchJobPosts();
+    } catch (error) {
+      console.error('Error firing guard:', error);
+      toast.error('Failed to fire security guard');
     }
   };
 
@@ -263,21 +351,33 @@ const SecurityGuardInfo = () => {
           <div className="hired-guards">
             <div className="hired-guards-grid">
               {jobPosts
-                .filter(job => job.status === 'filled' && job.hiredGuard)
+                .filter(job => job.status === 'Filled' && job.hiredUserId)
                 .map(job => (
                   <div key={job._id} className="hired-guard-card">
                     <div className="guard-info">
-                      <h3>{job.hiredGuard.name}</h3>
-                      <p><strong>Email:</strong> {job.hiredGuard.email}</p>
-                      <p><strong>Phone:</strong> {job.hiredGuard.phone}</p>
-                      <p><strong>Property:</strong> {job.property?.address}</p>
-                      <p><strong>Job Type:</strong> {job.jobType}</p>
-                      <p><strong>Hired Date:</strong> {new Date(job.hiredAt).toLocaleDateString()}</p>
+                      <h3>{job.hiredUserId.firstName} {job.hiredUserId.lastName}</h3>
+                      <p><strong>Email:</strong> {job.hiredUserId.email}</p>
+                      <p><strong>Phone:</strong> {job.hiredUserId.phone || 'Not provided'}</p>
+                      <p><strong>Property:</strong> {job.propertyId?.address || job.propertyId?.name || 'N/A'}</p>
+                      <p><strong>Position:</strong> {job.title || 'Security Guard'}</p>
+                      <p><strong>Salary:</strong> {job.requirements?.salary || 'Not specified'}</p>
+                      <p><strong>Working Hours:</strong> {job.requirements?.workingHours || 'Not specified'}</p>
+                    </div>
+                    <div className="guard-actions">
+                      <button className="btn btn-primary" onClick={() => handleMessageGuard(job.hiredUserId._id)}>
+                        Message
+                      </button>
+                      <button className="btn btn-success" onClick={() => handlePayment(job._id)}>
+                        Make Payment
+                      </button>
+                      <button className="btn btn-danger" onClick={() => handleFireGuard(job._id)}>
+                        Fire Guard
+                      </button>
                     </div>
                   </div>
                 ))
               }
-              {jobPosts.filter(job => job.status === 'filled').length === 0 && (
+              {jobPosts.filter(job => job.status === 'Filled').length === 0 && (
                 <div className="empty-state">
                   <p>No security guards hired yet.</p>
                 </div>
@@ -449,46 +549,63 @@ const SecurityGuardInfo = () => {
                   {applications.map(application => (
                     <div key={application._id} className="application-card">
                       <div className="applicant-info">
-                        <h3>{application.guard.name}</h3>
-                        <p><strong>Email:</strong> {application.guard.email}</p>
-                        <p><strong>Phone:</strong> {application.guard.phone}</p>
-                        <p><strong>Experience:</strong> {application.guard.experience || 'Not specified'}</p>
+                        <h3>{application.guardId?.firstName} {application.guardId?.lastName}</h3>
+                        <p><strong>Email:</strong> {application.guardId?.email}</p>
+                        <p><strong>Experience:</strong> {application.details?.experience || 'Not specified'}</p>
                         <p><strong>Applied:</strong> {new Date(application.submittedAt).toLocaleDateString()}</p>
+                        <p><strong>Status:</strong> <span className={`status ${application.status.toLowerCase()}`}>{application.status}</span></p>
                       </div>
                       
                       <div className="application-details">
                         <h4>Application Details:</h4>
-                        <p>{application.details}</p>
+                        <div className="details-grid">
+                          <p><strong>Availability:</strong> {application.details?.availability || 'Not specified'}</p>
+                          <p><strong>License:</strong> {application.details?.license || 'Not specified'}</p>
+                          <p><strong>Certifications:</strong> {application.details?.certifications || 'Not specified'}</p>
+                          <p><strong>Previous Work:</strong> {application.details?.previousWork || 'Not specified'}</p>
+                          <p><strong>Skills:</strong> {application.details?.skills || 'Not specified'}</p>
+                          {application.details?.coverLetter && (
+                            <p><strong>Cover Letter:</strong> {application.details.coverLetter}</p>
+                          )}
+                        </div>
                         
-                        {application.documents && application.documents.length > 0 && (
+                        {(application.documents?.idDocument || application.documents?.licenseDocument || application.documents?.resume) && (
                           <div className="documents">
                             <h4>Documents:</h4>
-                            {application.documents.map((doc, index) => (
-                              <a key={index} href={`${apiConfig.baseUrl}${doc}`} target="_blank" rel="noopener noreferrer">
-                                Document {index + 1}
-                              </a>
-                            ))}
+                            <div className="document-links">
+                              {application.documents.idDocument && (
+                                <a href={`${apiConfig.baseUrl}/api/images/${application.documents.idDocument}`} target="_blank" rel="noopener noreferrer">
+                                  ID Document
+                                </a>
+                              )}
+                              {application.documents.licenseDocument && (
+                                <a href={`${apiConfig.baseUrl}/api/images/${application.documents.licenseDocument}`} target="_blank" rel="noopener noreferrer">
+                                  License Document
+                                </a>
+                              )}
+                              {application.documents.resume && (
+                                <a href={`${apiConfig.baseUrl}/api/images/${application.documents.resume}`} target="_blank" rel="noopener noreferrer">
+                                  Resume
+                                </a>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>
                       
-                      <div className="application-status">
-                        <span className={`status ${application.status}`}>
-                          {application.status}
-                        </span>
-                      </div>
-                      
-                      {application.status === 'pending' && (
+                      {(application.status === 'Applied' || application.status === 'Reviewed') && (
                         <div className="application-actions">
                           <button 
                             className="btn btn-success"
-                            onClick={() => hireGuard(application._id)}
+                            onClick={() => handleHireGuard(selectedJobPost._id, application._id)}
+                            disabled={loading}
                           >
                             Hire
                           </button>
                           <button 
                             className="btn btn-danger"
-                            onClick={() => updateApplicationStatus(application._id, 'rejected')}
+                            onClick={() => handleRejectApplication(application._id)}
+                            disabled={loading}
                           >
                             Reject
                           </button>

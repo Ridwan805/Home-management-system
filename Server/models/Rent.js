@@ -202,24 +202,106 @@ RentSchema.pre('save', function(next) {
   next();
 });
 
+// Middleware to automatically reset property status when rent is terminated or expires
+RentSchema.post('save', async function(doc) {
+  // Check if status was changed to a terminal state
+  if (this.isModified && this.isModified('status') && ['Terminated', 'Expired'].includes(doc.status)) {
+    try {
+      // Import services here to avoid circular dependency
+      const PropertyCleanupService = require('../services/propertyCleanupService');
+      const propertyStatusLogger = require('../utils/propertyStatusLogger');
+      
+      // Get property details for logging
+      const Property = require('./Property');
+      const property = await Property.findById(doc.propertyId);
+      
+      if (property) {
+        const previousStatus = property.status;
+        
+        // Check if the property is now orphaned and reset if needed
+        const wasReset = await PropertyCleanupService.resetOrphanedProperty(
+          doc.propertyId.toString(),
+          `auto-cleanup-on-${doc.status.toLowerCase()}`
+        );
+        
+        if (wasReset) {
+          // Additional logging for rent termination/expiration
+          await propertyStatusLogger.logStatusUpdate({
+            propertyId: doc.propertyId.toString(),
+            previousStatus,
+            newStatus: 'Available',
+            trigger: `rent-${doc.status.toLowerCase()}`,
+            triggeredBy: `auto-cleanup-on-${doc.status.toLowerCase()}`,
+            source: 'Rent.post-save',
+            metadata: {
+              rentId: doc._id.toString(),
+              rentStatus: doc.status,
+              tenantId: doc.tenantId?.toString(),
+              terminationReason: doc.terminationReason || 'Not specified'
+            }
+          });
+        }
+      }
+    } catch (error) {
+      const propertyStatusLogger = require('../utils/propertyStatusLogger');
+      await propertyStatusLogger.logError({
+        propertyId: doc.propertyId?.toString() || 'unknown',
+        operation: 'rent-termination-cleanup',
+        error: error.message,
+        source: 'Rent.post-save'
+      });
+    }
+  }
+});
+
 // Post-delete middleware to handle property status updates
 RentSchema.post('deleteOne', { document: true, query: false }, async function(doc) {
   if (doc && doc.propertyId) {
     try {
       const PropertyCleanupService = require('../services/propertyCleanupService');
+      const propertyStatusLogger = require('../utils/propertyStatusLogger');
+      
+      // Get property details for logging
+      const Property = require('./Property');
+      const property = await Property.findById(doc.propertyId);
       
       console.log(`🧹 Checking property ${doc.propertyId} after rent ${doc._id} deletion...`);
       
-      const wasReset = await PropertyCleanupService.resetOrphanedProperty(
-        doc.propertyId.toString(),
-        'auto-cleanup-on-rent-delete'
-      );
-      
-      if (wasReset) {
-        console.log(`🔄 Property ${doc.propertyId} automatically reset to Available after rent ${doc._id} deletion`);
+      if (property) {
+        const previousStatus = property.status;
+        
+        const wasReset = await PropertyCleanupService.resetOrphanedProperty(
+          doc.propertyId.toString(),
+          'auto-cleanup-on-rent-delete'
+        );
+        
+        if (wasReset) {
+          console.log(`🔄 Property ${doc.propertyId} automatically reset to Available after rent ${doc._id} deletion`);
+          
+          // Log the status update
+          await propertyStatusLogger.logStatusUpdate({
+            propertyId: doc.propertyId.toString(),
+            previousStatus,
+            newStatus: 'Available',
+            trigger: 'rent-deletion',
+            triggeredBy: 'auto-cleanup-on-rent-delete',
+            source: 'Rent.post-deleteOne',
+            metadata: {
+              deletedRentId: doc._id.toString(),
+              tenantId: doc.tenantId?.toString()
+            }
+          });
+        }
       }
     } catch (error) {
       console.error('Error in post-delete property cleanup for rent:', error);
+      const propertyStatusLogger = require('../utils/propertyStatusLogger');
+      await propertyStatusLogger.logError({
+        propertyId: doc.propertyId?.toString() || 'unknown',
+        operation: 'rent-deletion-cleanup',
+        error: error.message,
+        source: 'Rent.post-deleteOne'
+      });
     }
   }
 });
@@ -228,19 +310,49 @@ RentSchema.post('findOneAndDelete', async function(doc) {
   if (doc && doc.propertyId) {
     try {
       const PropertyCleanupService = require('../services/propertyCleanupService');
+      const propertyStatusLogger = require('../utils/propertyStatusLogger');
+      
+      // Get property details for logging
+      const Property = require('./Property');
+      const property = await Property.findById(doc.propertyId);
       
       console.log(`🧹 Checking property ${doc.propertyId} after rent ${doc._id} deletion...`);
       
-      const wasReset = await PropertyCleanupService.resetOrphanedProperty(
-        doc.propertyId.toString(),
-        'auto-cleanup-on-rent-delete'
-      );
-      
-      if (wasReset) {
-        console.log(`🔄 Property ${doc.propertyId} automatically reset to Available after rent ${doc._id} deletion`);
+      if (property) {
+        const previousStatus = property.status;
+        
+        const wasReset = await PropertyCleanupService.resetOrphanedProperty(
+          doc.propertyId.toString(),
+          'auto-cleanup-on-rent-delete'
+        );
+        
+        if (wasReset) {
+          console.log(`🔄 Property ${doc.propertyId} automatically reset to Available after rent ${doc._id} deletion`);
+          
+          // Log the status update
+          await propertyStatusLogger.logStatusUpdate({
+            propertyId: doc.propertyId.toString(),
+            previousStatus,
+            newStatus: 'Available',
+            trigger: 'rent-deletion',
+            triggeredBy: 'auto-cleanup-on-rent-delete',
+            source: 'Rent.post-findOneAndDelete',
+            metadata: {
+              deletedRentId: doc._id.toString(),
+              tenantId: doc.tenantId?.toString()
+            }
+          });
+        }
       }
     } catch (error) {
       console.error('Error in post-delete property cleanup for rent:', error);
+      const propertyStatusLogger = require('../utils/propertyStatusLogger');
+      await propertyStatusLogger.logError({
+        propertyId: doc.propertyId?.toString() || 'unknown',
+        operation: 'rent-deletion-cleanup',
+        error: error.message,
+        source: 'Rent.post-findOneAndDelete'
+      });
     }
   }
 });
@@ -249,13 +361,40 @@ RentSchema.post('deleteMany', async function() {
   try {
     // For bulk deletes, run a full cleanup check
     const PropertyCleanupService = require('../services/propertyCleanupService');
+    const propertyStatusLogger = require('../utils/propertyStatusLogger');
     
     console.log('🧹 Running property cleanup after bulk rent deletion...');
-    await PropertyCleanupService.cleanupOrphanedProperties({
+    
+    const cleanupResult = await PropertyCleanupService.cleanupOrphanedProperties({
       triggeredBy: 'auto-cleanup-bulk-rent-delete'
     });
+    
+    // Log bulk cleanup operation
+    if (cleanupResult && cleanupResult.length > 0) {
+      for (const result of cleanupResult) {
+        await propertyStatusLogger.logStatusUpdate({
+          propertyId: result.propertyId,
+          previousStatus: result.previousStatus,
+          newStatus: 'Available',
+          trigger: 'bulk-rent-deletion',
+          triggeredBy: 'auto-cleanup-bulk-rent-delete',
+          source: 'Rent.post-deleteMany',
+          metadata: {
+            bulkOperation: true,
+            cleanupReason: result.reason
+          }
+        });
+      }
+    }
   } catch (error) {
     console.error('Error in post-bulk-delete property cleanup for rents:', error);
+    const propertyStatusLogger = require('../utils/propertyStatusLogger');
+    await propertyStatusLogger.logError({
+      propertyId: 'bulk-operation',
+      operation: 'bulk-rent-deletion-cleanup',
+      error: error.message,
+      source: 'Rent.post-deleteMany'
+    });
   }
 });
 

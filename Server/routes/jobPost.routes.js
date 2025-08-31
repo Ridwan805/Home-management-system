@@ -7,7 +7,9 @@ const {
   updateJobPost,
   hireGuard,
   getJobApplications,
-  cancelJobPost
+  cancelJobPost,
+  fireGuard,
+  getTenantAssignedGuards
 } = require('../controllers/jobPost.controller');
 const authMiddleware = require('../middleware/authMiddleware');
 const authorizeRole = require('../middleware/authorizeRole');
@@ -52,11 +54,25 @@ router.get('/:jobPostId/applications',
   getJobApplications
 );
 
-// Cancel/Close job post (Owner only)
+// Cancel/Delete job post (Owner only)
 router.delete('/:id', 
   authMiddleware, 
   authorizeRole(['Owner']), 
   cancelJobPost
+);
+
+// Fire a security guard (Owner only)
+router.post('/:id/fire', 
+  authMiddleware, 
+  authorizeRole(['Owner']), 
+  fireGuard
+);
+
+// Get assigned guards for tenant (Tenant only)
+router.get('/tenant/assigned-guards', 
+  authMiddleware, 
+  authorizeRole(['Tenant']), 
+  getTenantAssignedGuards
 );
 
 module.exports = router;

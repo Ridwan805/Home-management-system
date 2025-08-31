@@ -190,6 +190,189 @@ class NotificationService {
       throw error;
     }
   }
+
+  /**
+   * Send security guard application status notification
+   * @param {string} guardId - The guard ID to notify
+   * @param {string} applicationId - The application ID
+   * @param {string} oldStatus - The old status
+   * @param {string} newStatus - The new status
+   * @param {string} jobTitle - The job title
+   * @param {string} propertyAddress - The property address
+   * @param {string} rejectionReason - Optional rejection reason
+   * @returns {Promise<Object>} The created notification
+   */
+  static async sendGuardApplicationStatusNotification(guardId, applicationId, oldStatus, newStatus, jobTitle, propertyAddress, rejectionReason = '') {
+    try {
+      let title, message;
+      
+      switch (newStatus) {
+        case 'Reviewed':
+          title = 'Application Under Review';
+          message = `Your application for ${jobTitle} at ${propertyAddress} is now under review.`;
+          break;
+        case 'Accepted':
+          title = 'Application Accepted';
+          message = `Congratulations! Your application for ${jobTitle} at ${propertyAddress} has been accepted. You may be contacted soon for the hiring process.`;
+          break;
+        case 'Hired':
+          title = 'You Have Been Hired!';
+          message = `Congratulations! You have been officially hired for ${jobTitle} at ${propertyAddress}. Please check your dashboard for further details.`;
+          break;
+        case 'Rejected':
+          title = 'Application Rejected';
+          message = `Unfortunately, your application for ${jobTitle} at ${propertyAddress} has been rejected.${rejectionReason ? ` Reason: ${rejectionReason}` : ''}`;
+          break;
+        default:
+          title = 'Application Status Updated';
+          message = `Your application for ${jobTitle} at ${propertyAddress} status has been updated to ${newStatus}.`;
+      }
+      
+      return await this.createNotification(
+        guardId,
+        'job_application',
+        title,
+        message,
+        { applicationId }
+      );
+    } catch (error) {
+      console.error('Error sending guard application status notification:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send security guard hiring notification
+   * @param {string} guardId - The guard ID to notify
+   * @param {string} jobPostId - The job post ID
+   * @param {string} jobTitle - The job title
+   * @param {string} propertyAddress - The property address
+   * @param {Object} jobDetails - Additional job details
+   * @returns {Promise<Object>} The created notification
+   */
+  static async sendGuardHiringNotification(guardId, jobPostId, jobTitle, propertyAddress, jobDetails = {}) {
+    try {
+      const title = 'Congratulations! You\'ve Been Hired';
+      const message = `You have been hired for the position of ${jobTitle} at ${propertyAddress}. ${jobDetails.salary ? `Salary: ${jobDetails.salary}. ` : ''}${jobDetails.workingHours ? `Working Hours: ${jobDetails.workingHours}. ` : ''}Please check your dashboard for more details.`;
+      
+      return await this.createNotification(
+        guardId,
+        'job_hired',
+        title,
+        message,
+        { jobPostId }
+      );
+    } catch (error) {
+      console.error('Error sending guard hiring notification:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send owner notification about new guard application
+   * @param {string} ownerId - The owner ID to notify
+   * @param {string} applicationId - The application ID
+   * @param {string} guardName - The guard's name
+   * @param {string} jobTitle - The job title
+   * @param {string} propertyAddress - The property address
+   * @returns {Promise<Object>} The created notification
+   */
+  static async sendOwnerNewApplicationNotification(ownerId, applicationId, guardName, jobTitle, propertyAddress) {
+    try {
+      const title = 'New Security Guard Application';
+      const message = `${guardName} has applied for the ${jobTitle} position at ${propertyAddress}. Review the application in your dashboard.`;
+      
+      return await this.createNotification(
+        ownerId,
+        'new_application',
+        title,
+        message,
+        { applicationId }
+      );
+    } catch (error) {
+      console.error('Error sending owner new application notification:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send guard termination notification
+   * @param {string} guardId - The guard ID to notify
+   * @param {string} jobTitle - The job title
+   * @param {string} propertyAddress - The property address
+   * @param {string} reason - Optional termination reason
+   * @returns {Promise<Object>} The created notification
+   */
+  static async sendGuardTerminationNotification(guardId, jobTitle, propertyAddress, reason = '') {
+    try {
+      const title = 'Employment Terminated';
+      const message = `Your employment as ${jobTitle} at ${propertyAddress} has been terminated.${reason ? ` Reason: ${reason}` : ''}`;
+      
+      return await this.createNotification(
+        guardId,
+        'job_terminated',
+        title,
+        message
+      );
+    } catch (error) {
+      console.error('Error sending guard termination notification:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send notification to tenants about hired guard
+   * @param {string} tenantId - The tenant ID to notify
+   * @param {string} guardName - The guard's name
+   * @param {string} jobTitle - The job title
+   * @param {string} propertyAddress - The property address
+   * @param {Object} guardDetails - Additional guard details
+   * @returns {Promise<Object>} The created notification
+   */
+  static async sendTenantGuardHiredNotification(tenantId, guardName, jobTitle, propertyAddress, guardDetails = {}) {
+    try {
+      const title = 'New Security Guard Assigned';
+      const message = `A new security guard, ${guardName}, has been hired for ${jobTitle} at your property: ${propertyAddress}. ${guardDetails.workingHours ? `Working Hours: ${guardDetails.workingHours}. ` : ''}You can view their contact information in your dashboard.`;
+      
+      return await this.createNotification(
+        tenantId,
+        'guard_assigned',
+        title,
+        message,
+        { guardDetails }
+      );
+    } catch (error) {
+      console.error('Error sending tenant guard hired notification:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send notification to owners about hired guard
+   * @param {string} ownerId - The owner ID to notify
+   * @param {string} guardName - The guard's name
+   * @param {string} jobTitle - The job title
+   * @param {string} propertyAddress - The property address
+   * @param {Object} guardDetails - Additional guard details
+   * @returns {Promise<Object>} The created notification
+   */
+  static async sendOwnerGuardHiredNotification(ownerId, guardName, jobTitle, propertyAddress, guardDetails = {}) {
+    try {
+      const title = 'Security Guard Successfully Hired';
+      const message = `You have successfully hired ${guardName} for ${jobTitle} at ${propertyAddress}. ${guardDetails.salary ? `Salary: ${guardDetails.salary}. ` : ''}${guardDetails.workingHours ? `Working Hours: ${guardDetails.workingHours}. ` : ''}The guard information has been shared with your tenants.`;
+      
+      return await this.createNotification(
+        ownerId,
+        'guard_hired_confirmation',
+        title,
+        message,
+        { guardDetails }
+      );
+    } catch (error) {
+      console.error('Error sending owner guard hired notification:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = NotificationService;

@@ -688,6 +688,10 @@ const handleWebhook = async (req, res) => {
           console.log('🔄 [WEBHOOK] Handling full payment...');
           await handleFullPaymentSuccess(sessionData);
           console.log('✅ [WEBHOOK] Full payment handled successfully');
+        } else if (paymentType === 'security_guard_payment') {
+          console.log('🔄 [WEBHOOK] Handling security guard payment...');
+          await handleSecurityGuardPaymentSuccess(sessionData);
+          console.log('✅ [WEBHOOK] Security guard payment handled successfully');
         } else {
           console.log('🔄 [WEBHOOK] Handling advance payment...');
           await handlePaymentSuccess(sessionData);
@@ -1700,6 +1704,137 @@ const getReceipt = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve receipt'
+    });
+  }
+};
+
+// Handle successful security guard payment
+const handleSecurityGuardPaymentSuccess = async (session) => {
+  const startTime = Date.now();
+  try {
+    console.log('➡️ [WEBHOOK] handleSecurityGuardPaymentSuccess invoked at', new Date().toISOString(), {
+      sessionId: session?.id,
+      paymentIntent: session?.payment_intent,
+      paymentStatus: session?.payment_status,
+      metadata: session?.metadata
+    });
+
+    const { paymentId, jobPostId, guardId, ownerId, amount, frequency } = session.metadata;
+
+    if (!paymentId || !jobPostId || !guardId || !ownerId) {
+      console.error('❌ [WEBHOOK] Missing required metadata:', { paymentId, jobPostId, guardId, ownerId });
+      return;
+    }
+
+    // Find and update the payment record
+    const payment = await Payment.findById(paymentId);
+    if (!payment) {
+      console.error('❌ [WEBHOOK] Payment not found:', paymentId);
+      return;
+    }
+
+    // Check if payment is already processed
+    if (payment.status === 'completed') {
+      console.log('⚠️ [WEBHOOK] Payment already processed, skipping update:', {
+        paymentId,
+        currentStatus: payment.status
+      });
+      return;
+    }
+
+    console.log('🔄 [WEBHOOK] Updating security guard payment status...');
+
+    // Update payment status
+    payment.status = 'completed';
+    payment.paidAt = new Date();
+    payment.stripeDetails = {
+      ...payment.stripeDetails,
+      paymentIntentId: session.payment_intent
+    };
+
+    // Add to payment history
+    payment.history.push({
+      status: 'completed',
+      timestamp: new Date(),
+      note: 'Security guard payment completed via Stripe webhook',
+      updatedBy: ownerId
+    });
+
+    await payment.save();
+    console.log('✅ [WEBHOOK] Security guard payment updated successfully');
+
+    // Update job post payment info
+    const JobPost = require('../models/JobPost');
+    const jobPost = await JobPost.findById(jobPostId);
+    if (jobPost) {
+      jobPost.paymentInfo.lastPaymentDate = new Date();
+      jobPost.paymentInfo.totalPaid += parseFloat(amount);
+      jobPost.paymentInfo.paymentStatus = 'current';
+
+      // Calculate next payment due date based on frequency
+      if (frequency && frequency !== 'one-time') {
+        const nextDue = new Date();
+        switch (frequency) {
+          case 'daily':
+            nextDue.setDate(nextDue.getDate() + 1);
+            break;
+          case 'weekly':
+            nextDue.setDate(nextDue.getDate() + 7);
+            break;
+          case 'monthly':
+            nextDue.setMonth(nextDue.getMonth() + 1);
+            break;
+        }
+        jobPost.paymentInfo.nextPaymentDue = nextDue;
+      }
+
+      await jobPost.save();
+      console.log('✅ [WEBHOOK] Job post payment info updated');
+    }
+
+    // Send notifications
+    try {
+      // Notify the guard about payment received
+      await NotificationService.createNotification({
+        userId: guardId,
+        type: 'payment_received',
+        title: 'Payment Received',
+        message: `You have received a payment of ${amount} BDT for your security guard services.`,
+        metadata: {
+          paymentId: payment._id,
+          jobPostId: jobPostId,
+          amount: amount
+        }
+      });
+
+      // Notify the owner about successful payment
+      await NotificationService.createNotification({
+        userId: ownerId,
+        type: 'payment_completed',
+        title: 'Payment Completed',
+        message: `Your payment of ${amount} BDT to the security guard has been processed successfully.`,
+        metadata: {
+          paymentId: payment._id,
+          jobPostId: jobPostId,
+          amount: amount
+        }
+      });
+
+      console.log('✅ [WEBHOOK] Notifications sent successfully');
+    } catch (notificationError) {
+      console.error('❌ [WEBHOOK] Failed to send notifications:', notificationError.message);
+    }
+
+    console.log('✅ [WEBHOOK] Security guard payment processing completed', {
+      paymentId,
+      processingTime: `${Date.now() - startTime}ms`
+    });
+
+  } catch (error) {
+    console.error('❌ [WEBHOOK] Error handling security guard payment success:', {
+      error: error.message,
+      stack: error.stack,
+      sessionId: session?.id
     });
   }
 };

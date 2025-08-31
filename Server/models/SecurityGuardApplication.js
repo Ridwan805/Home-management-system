@@ -28,7 +28,7 @@ const securityGuardApplicationSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Applied', 'Reviewed', 'Accepted', 'Rejected'],
+    enum: ['Applied', 'Reviewed', 'Accepted', 'Rejected', 'Hired'],
     default: 'Applied'
   },
   submittedAt: {

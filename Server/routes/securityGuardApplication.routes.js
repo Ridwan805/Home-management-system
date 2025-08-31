@@ -7,7 +7,8 @@ const {
   updateApplication,
   withdrawApplication,
   updateApplicationStatus,
-  getApplicationStats
+  getApplicationStats,
+  getApplicationsByJobPost
 } = require('../controllers/securityGuardApplication.controller');
 const authMiddleware = require('../middleware/authMiddleware');
 const authorizeRole = require('../middleware/authorizeRole');
@@ -31,6 +32,13 @@ router.get('/stats',
   authMiddleware, 
   authorizeRole(['Security Guard']), 
   getApplicationStats
+);
+
+// Get applications for a job post (Owner only) - MUST come before /:id route
+router.get('/job/:jobPostId', 
+  authMiddleware, 
+  authorizeRole(['Owner']), 
+  getApplicationsByJobPost
 );
 
 // Get specific application by ID (Security Guard or Owner)

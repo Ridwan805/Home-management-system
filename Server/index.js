@@ -131,6 +131,7 @@ const debugRoutes = require('./routes/debug');
 const imageServingRoutes = require('./routes/imageServing.routes');
 const jobPostRoutes = require('./routes/jobPost.routes');
 const securityGuardApplicationRoutes = require('./routes/securityGuardApplication.routes');
+const securityGuardPaymentRoutes = require('./routes/securityGuardPayment.routes');
 const invoiceRoutes = require('./routes/invoice.routes');
 const paymentRoutes = require('./routes/payment.routes');
 
@@ -172,6 +173,7 @@ app.use('/api/debug', debugRoutes);
 app.use('/api/images', imageServingRoutes);
 app.use('/api/job-posts', jobPostRoutes);
 app.use('/api/security-guard-applications', securityGuardApplicationRoutes);
+app.use('/api/security-guard-payments', securityGuardPaymentRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/payments', paymentRoutes);
 
@@ -244,7 +246,7 @@ app.listen(PORT, () => {
   InvoiceService.initializeCronJobs();
   console.log('🧾 Invoice service cron jobs initialized');
   
-  // Start periodic property cleanup (runs every 15 seconds)
-  PeriodicPropertyCleanup.start('*/15 * * * * *');
-  console.log('🧹 Periodic property cleanup service started');
+  // Start periodic property cleanup (runs every 5 minutes)
+  PeriodicPropertyCleanup.start('*/5 * * * *');
+  console.log('🧹 Periodic property cleanup service started (every 5 minutes)');
 });

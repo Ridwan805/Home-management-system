@@ -262,6 +262,71 @@ RequestSchema.pre('save', function(next) {
   next();
 });
 
+// Middleware to automatically reset property status when request reaches terminal state
+RequestSchema.post('save', async function(doc) {
+  // Check if status was changed to a terminal state that should trigger property cleanup
+  const terminalStates = ['Canceled', 'Rejected', 'Expired', 'Refunded'];
+  
+  if (this.isModified && this.isModified('status') && terminalStates.includes(doc.status)) {
+    try {
+      // Import services here to avoid circular dependency
+      const PropertyCleanupService = require('../services/propertyCleanupService');
+      const propertyStatusLogger = require('../utils/propertyStatusLogger');
+      
+      // Get property details for logging
+      const Property = require('./Property');
+      const property = await Property.findById(doc.propertyId);
+      
+      if (property) {
+        const previousStatus = property.status;
+        
+        // Check if the property is now orphaned and reset if needed
+        const wasReset = await PropertyCleanupService.resetOrphanedProperty(
+          doc.propertyId.toString(),
+          `auto-cleanup-on-${doc.status.toLowerCase()}`
+        );
+        
+        if (wasReset) {
+          console.log(`🔄 Property ${doc.propertyId} automatically reset to Available after request ${doc._id} status changed to ${doc.status}`);
+          
+          // Log the status update
+          await propertyStatusLogger.logStatusUpdate({
+            propertyId: doc.propertyId.toString(),
+            previousStatus,
+            newStatus: 'Available',
+            trigger: `request-${doc.status.toLowerCase()}`,
+            triggeredBy: `auto-cleanup-on-${doc.status.toLowerCase()}`,
+            source: 'Request.post-save',
+            metadata: {
+              requestId: doc._id.toString(),
+              requestType: doc.requestType,
+              requestStatus: doc.status,
+              tenantId: doc.tenantId?.toString(),
+              ownerId: doc.ownerId?.toString(),
+              statusChangeReason: doc.statusChangeNote || 'Not specified'
+            }
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error in post-save property cleanup:', error);
+      
+      // Log the error
+      try {
+        const propertyStatusLogger = require('../utils/propertyStatusLogger');
+        await propertyStatusLogger.logError({
+          propertyId: doc.propertyId?.toString() || 'unknown',
+          operation: 'request-status-change-cleanup',
+          error: error.message,
+          source: 'Request.post-save'
+        });
+      } catch (logError) {
+        console.error('Error logging request cleanup error:', logError);
+      }
+    }
+  }
+});
+
 // Static method to get valid status transitions
 RequestSchema.statics.getValidStatusTransitions = function() {
   return {
@@ -348,20 +413,59 @@ RequestSchema.statics.findCompletedWithoutContract = function() {
 RequestSchema.post('findOneAndDelete', async function(doc) {
   if (doc && doc.propertyId) {
     try {
-      // Import PropertyCleanupService here to avoid circular dependency
+      // Import services here to avoid circular dependency
       const PropertyCleanupService = require('../services/propertyCleanupService');
+      const propertyStatusLogger = require('../utils/propertyStatusLogger');
       
-      // Check if the property is now orphaned and reset if needed
-      const wasReset = await PropertyCleanupService.resetOrphanedProperty(
-        doc.propertyId.toString(),
-        'auto-cleanup-on-delete'
-      );
+      // Get property details for logging
+      const Property = require('./Property');
+      const property = await Property.findById(doc.propertyId);
       
-      if (wasReset) {
-        console.log(`🔄 Property ${doc.propertyId} automatically reset to Available after request ${doc._id} deletion`);
+      if (property) {
+        const previousStatus = property.status;
+        
+        // Check if the property is now orphaned and reset if needed
+        const wasReset = await PropertyCleanupService.resetOrphanedProperty(
+          doc.propertyId.toString(),
+          'auto-cleanup-on-delete'
+        );
+        
+        if (wasReset) {
+          console.log(`🔄 Property ${doc.propertyId} automatically reset to Available after request ${doc._id} deletion`);
+          
+          // Log the status update
+          await propertyStatusLogger.logStatusUpdate({
+            propertyId: doc.propertyId.toString(),
+            previousStatus,
+            newStatus: 'Available',
+            trigger: 'request-deleted',
+            triggeredBy: 'auto-cleanup-on-delete',
+            source: 'Request.post-findOneAndDelete',
+            metadata: {
+              deletedRequestId: doc._id.toString(),
+              requestType: doc.requestType,
+              requestStatus: doc.status,
+              tenantId: doc.tenantId?.toString(),
+              ownerId: doc.ownerId?.toString()
+            }
+          });
+        }
       }
     } catch (error) {
       console.error('Error in post-delete property cleanup:', error);
+      
+      // Log the error
+      try {
+        const propertyStatusLogger = require('../utils/propertyStatusLogger');
+        await propertyStatusLogger.logError({
+          propertyId: doc.propertyId?.toString() || 'unknown',
+          operation: 'request-deletion-cleanup',
+          error: error.message,
+          source: 'Request.post-findOneAndDelete'
+        });
+      } catch (logError) {
+        console.error('Error logging request deletion cleanup error:', logError);
+      }
     }
   }
 });
@@ -371,17 +475,56 @@ RequestSchema.post('deleteOne', async function() {
   if (doc && doc.propertyId) {
     try {
       const PropertyCleanupService = require('../services/propertyCleanupService');
+      const propertyStatusLogger = require('../utils/propertyStatusLogger');
       
-      const wasReset = await PropertyCleanupService.resetOrphanedProperty(
-        doc.propertyId.toString(),
-        'auto-cleanup-on-delete'
-      );
+      // Get property details for logging
+      const Property = require('./Property');
+      const property = await Property.findById(doc.propertyId);
       
-      if (wasReset) {
-        console.log(`🔄 Property ${doc.propertyId} automatically reset to Available after request ${doc._id} deletion`);
+      if (property) {
+        const previousStatus = property.status;
+        
+        const wasReset = await PropertyCleanupService.resetOrphanedProperty(
+          doc.propertyId.toString(),
+          'auto-cleanup-on-delete'
+        );
+        
+        if (wasReset) {
+          console.log(`🔄 Property ${doc.propertyId} automatically reset to Available after request ${doc._id} deletion`);
+          
+          // Log the status update
+          await propertyStatusLogger.logStatusUpdate({
+            propertyId: doc.propertyId.toString(),
+            previousStatus,
+            newStatus: 'Available',
+            trigger: 'request-deleted',
+            triggeredBy: 'auto-cleanup-on-delete',
+            source: 'Request.post-deleteOne',
+            metadata: {
+              deletedRequestId: doc._id.toString(),
+              requestType: doc.requestType,
+              requestStatus: doc.status,
+              tenantId: doc.tenantId?.toString(),
+              ownerId: doc.ownerId?.toString()
+            }
+          });
+        }
       }
     } catch (error) {
       console.error('Error in post-delete property cleanup:', error);
+      
+      // Log the error
+      try {
+        const propertyStatusLogger = require('../utils/propertyStatusLogger');
+        await propertyStatusLogger.logError({
+          propertyId: doc.propertyId?.toString() || 'unknown',
+          operation: 'request-deletion-cleanup',
+          error: error.message,
+          source: 'Request.post-deleteOne'
+        });
+      } catch (logError) {
+        console.error('Error logging request deletion cleanup error:', logError);
+      }
     }
   }
 });
@@ -390,13 +533,38 @@ RequestSchema.post('deleteMany', async function() {
   try {
     // For bulk deletes, run a full cleanup check
     const PropertyCleanupService = require('../services/propertyCleanupService');
+    const propertyStatusLogger = require('../utils/propertyStatusLogger');
     
     console.log('🧹 Running property cleanup after bulk request deletion...');
-    await PropertyCleanupService.cleanupOrphanedProperties({
+    const cleanupResults = await PropertyCleanupService.cleanupOrphanedProperties({
       triggeredBy: 'auto-cleanup-bulk-delete'
     });
+    
+    // Log cleanup operation
+    await propertyStatusLogger.logCleanupOperation({
+      operation: 'bulk-request-deletion-cleanup',
+      propertiesChecked: cleanupResults?.totalChecked || 0,
+      orphanedFound: cleanupResults?.orphanedFound || 0,
+      propertiesFixed: cleanupResults?.fixed || 0,
+      errors: cleanupResults?.errors || [],
+      triggeredBy: 'auto-cleanup-bulk-delete'
+    });
+    
   } catch (error) {
     console.error('Error in post-bulk-delete property cleanup:', error);
+    
+    // Log the error
+    try {
+      const propertyStatusLogger = require('../utils/propertyStatusLogger');
+      await propertyStatusLogger.logError({
+        propertyId: 'bulk-operation',
+        operation: 'bulk-request-deletion-cleanup',
+        error: error.message,
+        source: 'Request.post-deleteMany'
+      });
+    } catch (logError) {
+      console.error('Error logging bulk request deletion cleanup error:', logError);
+    }
   }
 });
 

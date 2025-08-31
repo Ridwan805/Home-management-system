@@ -234,6 +234,8 @@ OwnershipTransferSchema.pre('save', function(next) {
 
 // Instance methods
 OwnershipTransferSchema.methods.close = async function(closedBy, note = '') {
+  const previousStatus = this.status;
+  
   this.status = 'Closed';
   this.closing.completedAt = new Date();
   this.closing.completedBy = closedBy;
@@ -250,13 +252,41 @@ OwnershipTransferSchema.methods.close = async function(closedBy, note = '') {
   const Property = mongoose.model('Property');
   const property = await Property.findById(this.propertyId);
   if (property) {
+    const previousPropertyStatus = property.status;
+    
     await property.sell(closedBy, this.buyerId, `Property sold via ownership transfer ${this._id}`);
+    
+    // Log the status update
+    try {
+      const propertyStatusLogger = require('../utils/propertyStatusLogger');
+      await propertyStatusLogger.logStatusUpdate({
+        propertyId: this.propertyId.toString(),
+        previousStatus: previousPropertyStatus,
+        newStatus: 'Sold',
+        trigger: 'ownership-transfer-closed',
+        triggeredBy: closedBy?.toString() || 'system',
+        source: 'OwnershipTransfer.close',
+        metadata: {
+          transferId: this._id.toString(),
+          buyerId: this.buyerId?.toString(),
+          sellerId: this.sellerId?.toString(),
+          agreedPrice: this.agreedPrice,
+          closingNote: note || 'Ownership transfer completed successfully',
+          previousTransferStatus: previousStatus,
+          completedAt: this.closing.completedAt
+        }
+      });
+    } catch (error) {
+      console.error('Error logging ownership transfer closure:', error);
+    }
   }
   
   return this.save();
 };
 
-OwnershipTransferSchema.methods.cancel = function(canceledBy, reason = '') {
+OwnershipTransferSchema.methods.cancel = async function(canceledBy, reason = '') {
+  const previousStatus = this.status;
+  
   this.status = 'Canceled';
   
   this.history.push({
@@ -266,6 +296,49 @@ OwnershipTransferSchema.methods.cancel = function(canceledBy, reason = '') {
     note: reason || 'Ownership transfer canceled',
     updatedBy: canceledBy
   });
+  
+  // Automatically reset property status when ownership transfer is cancelled
+  try {
+    const Property = require('./Property');
+    const property = await Property.findById(this.propertyId);
+    
+    if (property && property.status === 'Sold') {
+      const previousPropertyStatus = property.status;
+      
+      await property.makeAvailable(
+        canceledBy, 
+        `Property automatically reset to Available after ownership transfer cancellation: ${reason || 'Transfer cancelled'}`,
+        { cancelledTransferId: this._id }
+      );
+      
+      console.log(`🔄 Property ${this.propertyId} automatically reset to Available after ownership transfer ${this._id} cancellation`);
+      
+      // Log the status update
+      try {
+        const propertyStatusLogger = require('../utils/propertyStatusLogger');
+        await propertyStatusLogger.logStatusUpdate({
+          propertyId: this.propertyId.toString(),
+          previousStatus: previousPropertyStatus,
+          newStatus: 'Available',
+          trigger: 'ownership-transfer-cancelled',
+          triggeredBy: canceledBy?.toString() || 'system',
+          source: 'OwnershipTransfer.cancel',
+          metadata: {
+            transferId: this._id.toString(),
+            buyerId: this.buyerId?.toString(),
+            sellerId: this.sellerId?.toString(),
+            agreedPrice: this.agreedPrice,
+            reason: reason || 'Transfer cancelled',
+            previousTransferStatus: previousStatus
+          }
+        });
+      } catch (error) {
+        console.error('Error logging ownership transfer cancellation:', error);
+      }
+    }
+  } catch (error) {
+    console.error('Error resetting property status after ownership transfer cancellation:', error);
+  }
   
   return this.save();
 };
@@ -370,5 +443,130 @@ OwnershipTransferSchema.statics.findPendingClosings = function(daysAhead = 30) {
     isDeleted: false
   }).populate('propertyId buyerId sellerId');
 };
+
+// Middleware to handle property status cleanup when ownership transfers are deleted
+OwnershipTransferSchema.post('findOneAndDelete', async function(doc) {
+  if (doc && doc.propertyId) {
+    try {
+      const PropertyCleanupService = require('../services/propertyCleanupService');
+      
+      console.log(`🧹 Checking property ${doc.propertyId} after ownership transfer ${doc._id} deletion...`);
+      
+      const wasReset = await PropertyCleanupService.resetOrphanedProperty(
+        doc.propertyId.toString(),
+        'auto-cleanup-on-ownership-transfer-delete'
+      );
+      
+      if (wasReset) {
+        console.log(`🔄 Property ${doc.propertyId} automatically reset to Available after ownership transfer ${doc._id} deletion`);
+        
+        // Log the status update
+        try {
+          const propertyStatusLogger = require('../utils/propertyStatusLogger');
+          await propertyStatusLogger.logStatusUpdate({
+            propertyId: doc.propertyId.toString(),
+            previousStatus: 'Sold',
+            newStatus: 'Available',
+            trigger: 'ownership-transfer-deleted',
+            triggeredBy: 'system',
+            source: 'OwnershipTransfer.post.findOneAndDelete',
+            metadata: {
+              deletedTransferId: doc._id.toString(),
+              buyerId: doc.buyerId?.toString(),
+              sellerId: doc.sellerId?.toString(),
+              agreedPrice: doc.agreedPrice,
+              transferStatus: doc.status
+            }
+          });
+        } catch (error) {
+          console.error('Error logging ownership transfer deletion cleanup:', error);
+        }
+      }
+    } catch (error) {
+      console.error('Error in post-delete property cleanup for ownership transfer:', error);
+    }
+  }
+});
+
+OwnershipTransferSchema.post('deleteOne', { document: true, query: false }, async function(doc) {
+  if (doc && doc.propertyId) {
+    try {
+      const PropertyCleanupService = require('../services/propertyCleanupService');
+      
+      console.log(`🧹 Checking property ${doc.propertyId} after ownership transfer ${doc._id} deletion...`);
+      
+      const wasReset = await PropertyCleanupService.resetOrphanedProperty(
+        doc.propertyId.toString(),
+        'auto-cleanup-on-ownership-transfer-delete'
+      );
+      
+      if (wasReset) {
+        console.log(`🔄 Property ${doc.propertyId} automatically reset to Available after ownership transfer ${doc._id} deletion`);
+        
+        // Log the status update
+        try {
+          const propertyStatusLogger = require('../utils/propertyStatusLogger');
+          await propertyStatusLogger.logStatusUpdate({
+            propertyId: doc.propertyId.toString(),
+            previousStatus: 'Sold',
+            newStatus: 'Available',
+            trigger: 'ownership-transfer-deleted',
+            triggeredBy: 'system',
+            source: 'OwnershipTransfer.post.deleteOne',
+            metadata: {
+              deletedTransferId: doc._id.toString(),
+              buyerId: doc.buyerId?.toString(),
+              sellerId: doc.sellerId?.toString(),
+              agreedPrice: doc.agreedPrice,
+              transferStatus: doc.status
+            }
+          });
+        } catch (error) {
+          console.error('Error logging ownership transfer deletion cleanup:', error);
+        }
+      }
+    } catch (error) {
+      console.error('Error in post-delete property cleanup for ownership transfer:', error);
+    }
+  }
+});
+
+OwnershipTransferSchema.post('deleteMany', async function() {
+  try {
+    // For bulk deletes, run a full cleanup check
+    const PropertyCleanupService = require('../services/propertyCleanupService');
+    
+    console.log('🧹 Running property cleanup after bulk ownership transfer deletion...');
+    const cleanupResults = await PropertyCleanupService.cleanupOrphanedProperties({
+      triggeredBy: 'auto-cleanup-bulk-ownership-transfer-delete'
+    });
+    
+    // Log bulk cleanup results
+    if (cleanupResults && cleanupResults.length > 0) {
+      try {
+        const propertyStatusLogger = require('../utils/propertyStatusLogger');
+        
+        for (const result of cleanupResults) {
+          await propertyStatusLogger.logStatusUpdate({
+            propertyId: result.propertyId,
+            previousStatus: result.previousStatus || 'Sold',
+            newStatus: result.newStatus || 'Available',
+            trigger: 'bulk-ownership-transfer-deleted',
+            triggeredBy: 'system',
+            source: 'OwnershipTransfer.post.deleteMany',
+            metadata: {
+              bulkCleanup: true,
+              cleanupReason: 'auto-cleanup-bulk-ownership-transfer-delete'
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error logging bulk ownership transfer deletion cleanup:', error);
+      }
+    }
+  } catch (error) {
+    console.error('Error in post-bulk-delete property cleanup for ownership transfers:', error);
+  }
+});
 
 module.exports = mongoose.model('OwnershipTransfer', OwnershipTransferSchema);

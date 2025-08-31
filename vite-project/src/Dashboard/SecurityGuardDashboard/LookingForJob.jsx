@@ -173,6 +173,60 @@ const LookingForJob = () => {
     return application ? application.status : null;
   };
 
+  // Get application ID for a job
+  const getApplicationId = (jobId) => {
+    const application = myApplications.find(app => app.jobPostId === jobId);
+    return application ? application._id : null;
+  };
+
+  // Handle withdraw application (Undo Apply)
+  const handleWithdrawApplication = async (jobId) => {
+    const applicationId = getApplicationId(jobId);
+    if (!applicationId) {
+      alert('Application not found');
+      return;
+    }
+
+    if (!window.confirm('Are you sure you want to withdraw your application? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const userData = localStorage.getItem('dwellSyncUser');
+      if (!userData) {
+        alert('Please log in to withdraw application');
+        return;
+      }
+      
+      const user = JSON.parse(userData);
+      const token = user.token;
+      if (!token) {
+        alert('Please log in to withdraw application');
+        return;
+      }
+
+      const response = await fetch(apiConfig.getUrl(apiConfig.endpoints.withdrawApplication(applicationId)), {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        // Refresh applications to update UI
+        fetchMyApplications();
+        alert('Application withdrawn successfully!');
+      } else {
+        const errorData = await response.json();
+        alert(errorData.message || 'Failed to withdraw application');
+      }
+    } catch (err) {
+      alert('Error withdrawing application');
+      console.error('Error withdrawing application:', err);
+    }
+  };
+
   if (loading) {
     return (
       <div className="looking-for-job">
@@ -276,6 +330,14 @@ const LookingForJob = () => {
                         <span className={`status-badge status-${status.toLowerCase()}`}>
                           {status}
                         </span>
+                        {status === 'Applied' && (
+                          <button 
+                            className="undo-apply-btn"
+                            onClick={() => handleWithdrawApplication(job._id)}
+                          >
+                            Undo Apply
+                          </button>
+                        )}
                       </div>
                     ) : (
                       <button 
