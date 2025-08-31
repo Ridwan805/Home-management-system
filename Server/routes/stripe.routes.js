@@ -14,6 +14,9 @@ const {
   getReceipt,
   createInvoicePaymentSession,
   createSubscriptionPaymentSession
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 } = require('../controllers/stripe.controller');
 const authMiddleware = require('../middleware/authMiddleware');
@@ -44,9 +47,17 @@ router.post('/payment-proof/:paymentId', authMiddleware, uploadPaymentProof);
 // Get payment receipt
 router.get('/receipt/:paymentId', authMiddleware, getReceipt);
 
+<<<<<<< Updated upstream
 
 
 // Create payment session for subscription payment
+router.post('/create-subscription-payment-session', authMiddleware, createSubscriptionPaymentSession);
+=======
+// Create invoice payment session
+router.post('/create-invoice-payment-session', authMiddleware, createInvoicePaymentSession);
+>>>>>>> Stashed changes
+
+// Create subscription payment session
 router.post('/create-subscription-payment-session', authMiddleware, createSubscriptionPaymentSession);
 
 module.exports = router;

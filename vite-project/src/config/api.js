@@ -198,10 +198,17 @@ export default {
     pendingProperties: '/api/admin/properties/pending',
     approveProperty: (id) => `/api/admin/properties/${id}/approve`,
     
+<<<<<<< Updated upstream
     // Admin subscription endpoints
     adminSubscriptionInvoices: '/api/admin/subscription/invoices',
     adminSubscriptionPayments: '/api/admin/subscription/payments',
     adminSubscriptionStats: '/api/admin/subscription/stats',
+=======
+    // Subscription management endpoints
+    createMonthlyInvoices: '/api/admin/subscriptions/create-monthly-invoices',
+    subscriptionStats: '/api/admin/subscriptions/stats',
+    createSubscriptionPaymentSession: '/api/stripe/create-subscription-payment-session',
+>>>>>>> Stashed changes
     
     // JobPost endpoints
     jobPosts: '/api/job-posts',

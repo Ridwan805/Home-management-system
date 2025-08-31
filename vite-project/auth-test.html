@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>DwellSync Authentication Test</h1>
+    <button onclick="testAuth()">Test Authentication</button>
+    <button onclick="clearStorage()">Clear Storage</button>
+    <div id="results"></div>
+
+    <script>
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.textContent = message;
+            results.appendChild(div);
+            console.log(message);
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        function clearStorage() {
+            localStorage.removeItem('dwellSyncUser');
+            log('Local storage cleared', 'info');
+        }
+
+        async function testAuth() {
+            clearResults();
+            log('🔍 Testing authentication and API connectivity...', 'info');
+            
+            // Check localStorage for user data
+            const userDataStr = localStorage.getItem('dwellSyncUser');
+            if (!userDataStr) {
+                log('❌ No user data found in localStorage. Please log in first.', 'error');
+                return;
+            }
+
+            let user;
+            try {
+                user = JSON.parse(userDataStr);
+                log('✅ User data found in localStorage', 'success');
+                log(`👤 User: ${user.userName || user.name} (${user.role})`, 'info');
+                log(`🔑 Token length: ${user.token ? user.token.length : 'No token'}`, 'info');
+            } catch (e) {
+                log('❌ Invalid user data in localStorage', 'error');
+                return;
+            }
+
+            if (!user.token) {
+                log('❌ No authentication token found', 'error');
+                return;
+            }
+
+            // Test API connectivity
+            log('📡 Testing API connectivity...', 'info');
+            try {
+                const response = await fetch('http://localhost:5001/api/payments/my-payments', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${user.token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                log(`📡 API Response: ${response.status} ${response.statusText}`, response.ok ? 'success' : 'error');
+
+                if (response.ok) {
+                    const data = await response.json();
+                    log('✅ API call successful', 'success');
+                    log(`📄 Data received: ${JSON.stringify(data, null, 2)}`, 'info');
+                    
+                    if (data.data) {
+                        log(`📄 Pending Invoices: ${data.data.pendingInvoices?.length || 0}`, 'info');
+                        log(`💰 Payment History: ${data.data.paymentHistory?.length || 0}`, 'info');
+                    }
+                } else {
+                    const errorData = await response.text();
+                    log(`❌ API Error: ${errorData}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Network Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-run test on page load
+        window.onload = function() {
+            log('🚀 Authentication test page loaded. Click "Test Authentication" to begin.', 'info');
+        };
+    </script>
+</body>
+</html>

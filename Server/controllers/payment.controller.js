@@ -108,6 +108,40 @@ class PaymentController {
   }
 
   /**
+   * Get all payments for the authenticated user (general endpoint)
+   */
+  static async getAllUserPayments(req, res) {
+    try {
+      const userId = req.user.userId;
+      
+      if (!userId) {
+        return res.status(400).json({
+          success: false,
+          message: 'User ID is required'
+        });
+      }
+
+      // Get all payments where the user is the payer (including subscription payments)
+      const payments = await Payment.find({
+        payerId: userId,
+        isDeleted: false
+      })
+      .populate('invoiceId', 'invoiceNumber description total status')
+      .populate('rentId', 'propertyId amount')
+      .sort({ createdAt: -1 });
+      
+      res.status(200).json(payments);
+    } catch (error) {
+      console.error('Error getting all user payments:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve payments',
+        error: error.message
+      });
+    }
+  }
+
+  /**
    * Get all payments for the authenticated user (no tenantId required)
    */
   static async getMyPayments(req, res) {
@@ -330,6 +364,94 @@ class PaymentController {
       res.status(500).json({
         success: false,
         message: 'Failed to create payments for existing invoices',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * Create subscription payment records for all owners
+   */
+  static async createSubscriptionPayments(req, res) {
+    try {
+      const { invoiceId, amount = 12000 } = req.body;
+      const User = require('../models/User');
+      
+      // Get all users with Owner role
+      const owners = await User.find({ role: 'Owner' }).select('_id firstName lastName email');
+      
+      if (owners.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'No owners found in the system'
+        });
+      }
+
+      const createdPayments = [];
+      const errors = [];
+
+      // Create payment record for each owner
+      for (const owner of owners) {
+        try {
+          const paymentData = {
+            type: 'monthly_rent', // Using existing enum value
+            status: 'pending',
+            method: 'stripe', // Default method
+            amount: amount,
+            currency: 'BDT',
+            payerId: owner._id,
+            description: `Monthly Subscription Fee - ${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`,
+            dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000), // 15 days from now
+            billingPeriod: {
+              startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+              endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0),
+              isRecurring: true,
+              recurringFrequency: 'monthly'
+            },
+            metadata: {
+              subscriptionPayment: true,
+              invoiceId: invoiceId
+            },
+            tags: ['subscription', 'monthly_fee']
+          };
+
+          const payment = new Payment(paymentData);
+          await payment.save();
+          
+          createdPayments.push({
+            paymentId: payment.paymentId,
+            ownerId: owner._id,
+            ownerName: `${owner.firstName} ${owner.lastName}`,
+            amount: payment.amount,
+            dueDate: payment.dueDate
+          });
+        } catch (error) {
+          errors.push({
+            ownerId: owner._id,
+            ownerName: `${owner.firstName} ${owner.lastName}`,
+            error: error.message
+          });
+        }
+      }
+
+      res.status(201).json({
+        success: true,
+        data: {
+          created: createdPayments,
+          errors: errors,
+          summary: {
+            totalOwners: owners.length,
+            successfulPayments: createdPayments.length,
+            failedPayments: errors.length
+          }
+        },
+        message: `Created ${createdPayments.length} subscription payment records for owners`
+      });
+    } catch (error) {
+      console.error('Error creating subscription payments:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to create subscription payments',
         error: error.message
       });
     }

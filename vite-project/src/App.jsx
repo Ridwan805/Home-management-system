@@ -17,7 +17,12 @@ import PropertyFilter from './components/PropertyFilter';
 import ViewDetails from './components/ViewDetails';
 import OwnerRequestsInbox from './Dashboard/OwnerProfile/OwnerRequestsInbox';
 import SidebarNav from './Dashboard/OwnerProfile/SidebarNav';
+<<<<<<< Updated upstream
 import Payment from './Dashboard/OwnerProfile/Payment';
+=======
+import OwnerPayments from './Dashboard/OwnerProfile/OwnerPayments';
+import SecurityGuardDashboard from './Dashboard/SecurityGuardDashboard/SecurityGuardDashboard';
+>>>>>>> Stashed changes
 import ProtectedRoute from './components/ProtectedRoute';
 
 // ✅ ADD THIS IMPORT
@@ -256,6 +261,7 @@ function AppRoutes() {
         <Route
           path="/payments"
           element={
+<<<<<<< Updated upstream
             <div className="owner-dashboard">
               <SidebarNav
                 activeSection="payments"
@@ -275,6 +281,29 @@ function AppRoutes() {
                 </div>
               </main>
             </div>
+=======
+            <ProtectedRoute allowedRoles={['Owner']}>
+              <div className="owner-dashboard">
+                <SidebarNav
+                  activeSection="payments"
+                  setActiveSection={(key) => {
+                    if (key === 'profile') navigate('/dashboard');
+                    else if (key === 'create-listing') navigate('/create-listing');
+                    else if (key === 'property-details') navigate('/property-details');
+                    else if (key === 'tenant-info') navigate('/tenant-info');
+                    else if (key === 'security-guard-info') navigate('/security-guard-info');
+                    else if (key === 'request-info') navigate('/request-info');
+                    else if (key === 'payments') navigate('/payments');
+                  }}
+                />
+                <main className="dashboard-main">
+                  <div className="dashboard-content">
+                    <OwnerPayments />
+                  </div>
+                </main>
+              </div>
+            </ProtectedRoute>
+>>>>>>> Stashed changes
           }
         />
 
@@ -290,6 +319,16 @@ function AppRoutes() {
             <AdminDashboard />
           </ProtectedRoute>
         } />
+<<<<<<< Updated upstream
+=======
+        
+        {/* Test Route for PropertyListing Debug */}
+        <Route path="/test-property-listing" element={
+          <ProtectedRoute allowedRoles={['Owner', 'Tenant', 'admin']}>
+            <TestPropertyListing />
+          </ProtectedRoute>
+        } />
+>>>>>>> Stashed changes
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" />} />

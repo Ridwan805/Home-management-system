@@ -17,6 +17,7 @@ const userSchema = new mongoose.Schema({
   securityQuestion: { type: String, required: true },
   securityAnswer: { type: String, required: true },
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
   wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Property' }]
 =======
   experience: { type: String, default: '' }, // For Security Guards
@@ -66,6 +67,11 @@ const userSchema = new mongoose.Schema({
   isDeleted: { type: Boolean, default: false },
   deletedAt: { type: Date },
   deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+>>>>>>> Stashed changes
+=======
+  experience: { type: String, default: '' }, // For Security Guards
+  wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Property' }],
+  frozen: { type: Boolean, default: false } // Account freeze status for subscription management
 >>>>>>> Stashed changes
 }, { timestamps: true });
 

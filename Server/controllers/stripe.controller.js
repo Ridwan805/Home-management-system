@@ -130,8 +130,8 @@ const createPaymentSession = async (req, res) => {
         },
       ],
       mode: 'payment',
-      success_url: `${process.env.FRONTEND_URL}/tenant/request-info?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.FRONTEND_URL}/tenant/request-info?payment=cancelled`,
+      success_url: `${process.env.FRONTEND_URL}/tenant/payment?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.FRONTEND_URL}/tenant/payment?payment=cancelled`,
       metadata: {
         requestId: request._id.toString(),
         tenantId: userId.toString(),
@@ -236,6 +236,75 @@ const createFullPaymentSession = async (req, res) => {
     }
     console.log('📧 [Full] Using customer email for Stripe (may be undefined):', customerEmail);
 
+<<<<<<< Updated upstream
+=======
+    // Debug environment variables
+    console.log('🔍 Environment check:', {
+      frontendUrl: process.env.FRONTEND_URL,
+      stripeSecretExists: !!process.env.STRIPE_SECRET_KEY,
+      nodeEnv: process.env.NODE_ENV
+    });
+
+    // Use the originUrl from the request body if provided, otherwise fall back to FRONTEND_URL
+    const frontendUrl = req.body.originUrl || process.env.FRONTEND_URL || 'http://localhost:5175';
+    console.log('🔗 Using frontend URL for redirects:', frontendUrl);
+    
+    const successUrl = `${frontendUrl}/tenant/payment?payment=success&session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `${frontendUrl}/tenant/payment?payment=cancelled`;
+    
+    console.log('🔗 Stripe session URLs:', { successUrl, cancelUrl });
+
+    // Final comprehensive validation before creating Stripe session
+    try {
+      const comprehensiveValidation = await GuardrailsService.validateFullPayment(userId, requestId, request.propertyId._id, request, request.propertyId);
+      if (!comprehensiveValidation.isValid) {
+        console.error('❌ Comprehensive full payment validation failed:', comprehensiveValidation.errors);
+        return res.status(400).json({
+          success: false,
+          message: comprehensiveValidation.errors.join(', '),
+          error: 'COMPREHENSIVE_VALIDATION_FAILED'
+        });
+      }
+      console.log('✅ Comprehensive full payment validation passed');
+    } catch (comprehensiveValidationError) {
+      console.error('❌ Error during comprehensive validation:', comprehensiveValidationError.message);
+      return res.status(500).json({
+        success: false,
+        message: 'Comprehensive validation service error',
+        error: 'COMPREHENSIVE_VALIDATION_SERVICE_ERROR'
+      });
+    }
+
+    // Validate amount against Stripe limits (max $999,999.99 = 99999999 cents)
+    const STRIPE_MAX_AMOUNT = 99999999; // $999,999.99 in cents
+    if (amountInCents > STRIPE_MAX_AMOUNT) {
+      console.error('❌ Amount exceeds Stripe limit:', {
+        amountInCents,
+        maxAllowed: STRIPE_MAX_AMOUNT,
+        amountInDollars: amountInCents / 100,
+        maxAllowedInDollars: STRIPE_MAX_AMOUNT / 100
+      });
+      return res.status(400).json({
+        success: false,
+        message: `Payment amount ($${(amountInCents / 100).toLocaleString()}) exceeds Stripe's maximum limit of $999,999.99`,
+        error: 'AMOUNT_EXCEEDS_STRIPE_LIMIT'
+      });
+    }
+
+    console.log('🔄 Creating Stripe checkout session with params:', {
+      currency: currency.toLowerCase(),
+      amount: amountInCents,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      customer_email: customerEmail
+    });
+    
+    // Get property name and address for display
+    const propertyName = request.propertyId?.name || 'Property';
+    const propertyAddress = request.propertyId?.address || 'Address not available';
+    const displayName = `${propertyName} - ${propertyAddress}`;
+    
+>>>>>>> Stashed changes
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -361,12 +430,18 @@ const handleWebhook = async (req, res) => {
           return;
         }
         
+<<<<<<< Updated upstream
         const requestType = sessionData.metadata.requestType || 'advance_payment';
         
 <<<<<<< Updated upstream
         if (requestType === 'full_payment') {
 =======
         if (paymentType === 'subscription_payment') {
+=======
+        const paymentType = sessionData.metadata.type || sessionData.metadata.requestType || sessionData.metadata.paymentType || 'advance_payment';
+        
+        if (paymentType === 'subscription') {
+>>>>>>> Stashed changes
           console.log('🔄 [WEBHOOK] Handling subscription payment...');
           await handleSubscriptionPaymentSuccess(sessionData);
           console.log('✅ [WEBHOOK] Subscription payment handled successfully');
@@ -859,6 +934,91 @@ const handleInvoicePaymentSuccess = async (session) => {
   }
 };
 
+// Handle subscription payment success
+const handleSubscriptionPaymentSuccess = async (session) => {
+  const startTime = Date.now();
+  
+  try {
+    console.log('🔄 [SUBSCRIPTION PAYMENT] Processing subscription payment success:', {
+      sessionId: session.id,
+      metadata: session.metadata,
+      amountTotal: session.amount_total,
+      currency: session.currency
+    });
+
+    const { paymentId, userId, subscriptionPeriod } = session.metadata;
+    
+    if (!paymentId || !userId) {
+      console.error('❌ [SUBSCRIPTION PAYMENT] Missing required metadata:', { paymentId, userId });
+      return;
+    }
+
+    // Find the payment record
+    const payment = await Payment.findById(paymentId)
+      .populate('invoiceId', 'description amount dueDate metadata')
+      .populate('payerId', 'name email firstName lastName');
+      
+    if (!payment) {
+      console.error('❌ [SUBSCRIPTION PAYMENT] Payment not found:', paymentId);
+      return;
+    }
+
+    // Verify the user is authorized
+    if (payment.payerId._id.toString() !== userId) {
+      console.error('❌ [SUBSCRIPTION PAYMENT] User not authorized for this payment:', { userId, payerId: payment.payerId._id });
+      return;
+    }
+
+    // Update payment status
+    payment.status = 'completed';
+    payment.paidAt = new Date();
+    payment.stripeSessionId = session.id;
+    payment.stripePaymentIntentId = session.payment_intent;
+    payment.receiptUrl = session.receipt_url || null;
+    await payment.save();
+
+    // Update invoice status if exists
+    if (payment.invoiceId) {
+      payment.invoiceId.status = 'paid';
+      payment.invoiceId.paidAt = new Date();
+      await payment.invoiceId.save();
+    }
+
+    console.log('✅ [SUBSCRIPTION PAYMENT] Payment and invoice status updated');
+
+    // Send notification to owner
+    try {
+      const period = subscriptionPeriod ? JSON.parse(subscriptionPeriod) : payment.metadata?.subscriptionPeriod;
+      await NotificationService.sendNotification({
+        userId: userId,
+        type: 'subscription_payment_success',
+        title: 'Subscription Payment Successful',
+        message: `Your subscription payment of BDT ${payment.amount} for ${period?.month}/${period?.year} has been processed successfully.`,
+        data: {
+          paymentId: payment._id,
+          invoiceId: payment.invoiceId?._id,
+          amount: payment.amount,
+          period: period,
+          receiptUrl: payment.receiptUrl
+        }
+      });
+      console.log('✅ [SUBSCRIPTION PAYMENT] Notification sent to owner');
+    } catch (notificationError) {
+      console.error('❌ [SUBSCRIPTION PAYMENT] Failed to send notification:', notificationError.message);
+    }
+
+    console.log('✅ [SUBSCRIPTION PAYMENT] Subscription payment processing completed:', {
+      paymentId: payment._id,
+      ownerId: payment.payerId._id,
+      amount: payment.amount,
+      totalProcessingTime: `${Date.now() - startTime}ms`
+    });
+    
+  } catch (error) {
+    console.error('❌ [SUBSCRIPTION PAYMENT] Error handling subscription payment success:', error);
+  }
+};
+
 /**
  * Create a Stripe payment session for an invoice
  */
@@ -962,6 +1122,7 @@ const createInvoicePaymentSession = async (req, res) => {
   }
 };
 
+<<<<<<< Updated upstream
 // Create Stripe checkout session for subscription payment
 const createSubscriptionPaymentSession = async (req, res) => {
   try {
@@ -972,6 +1133,18 @@ const createSubscriptionPaymentSession = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Invoice IDs are required'
+=======
+// Create Stripe checkout session for subscription invoice payments
+const createSubscriptionPaymentSession = async (req, res) => {
+  try {
+    const { paymentId, redirectUrl } = req.body;
+    const userId = req.user?.userId;
+
+    if (!paymentId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment ID is required'
+>>>>>>> Stashed changes
       });
     }
 
@@ -982,6 +1155,7 @@ const createSubscriptionPaymentSession = async (req, res) => {
       });
     }
 
+<<<<<<< Updated upstream
     // Find the invoices
     const invoices = await Invoice.find({
       _id: { $in: invoiceIds },
@@ -1019,10 +1193,48 @@ const createSubscriptionPaymentSession = async (req, res) => {
       },
       quantity: 1
     }));
+=======
+    // Find the payment and populate related data
+    const payment = await Payment.findById(paymentId)
+      .populate('invoiceId', 'description amount dueDate metadata')
+      .populate('payerId', 'name email');
+
+    if (!payment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Payment not found'
+      });
+    }
+
+    // Verify the user is authorized to pay this invoice
+    if (payment.payerId._id.toString() !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized to pay this invoice'
+      });
+    }
+
+    // Check if payment is still pending
+    if (payment.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: `Payment is already ${payment.status}`
+      });
+    }
+
+    // Verify this is a subscription payment
+    if (!payment.metadata?.subscriptionPayment) {
+      return res.status(400).json({
+        success: false,
+        message: 'This is not a subscription payment'
+      });
+    }
+>>>>>>> Stashed changes
 
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
+<<<<<<< Updated upstream
       line_items: lineItems,
       mode: 'payment',
       success_url: `${process.env.FRONTEND_URL}/owner/payment?session_id={CHECKOUT_SESSION_ID}&status=success`,
@@ -1032,13 +1244,40 @@ const createSubscriptionPaymentSession = async (req, res) => {
         userId: userId,
         type: 'subscription_payment',
         totalAmount: totalAmount.toString()
+=======
+      line_items: [{
+        price_data: {
+          currency: payment.currency?.toLowerCase() || 'bdt',
+          product_data: {
+            name: payment.description || 'Monthly Subscription Payment',
+            description: `Subscription payment for ${payment.metadata.subscriptionPeriod?.month}/${payment.metadata.subscriptionPeriod?.year}`
+          },
+          unit_amount: Math.round(payment.amount * 100) // Convert to cents
+        },
+        quantity: 1
+      }],
+      mode: 'payment',
+      success_url: redirectUrl ? `${redirectUrl}?session_id={CHECKOUT_SESSION_ID}&status=success&payment_id=${paymentId}` : `${process.env.FRONTEND_URL}/owner/payments?session_id={CHECKOUT_SESSION_ID}&status=success&payment_id=${paymentId}`,
+      cancel_url: redirectUrl ? `${redirectUrl}?status=cancelled&payment_id=${paymentId}` : `${process.env.FRONTEND_URL}/owner/payments?status=cancelled&payment_id=${paymentId}`,
+      metadata: {
+        paymentId: paymentId,
+        userId: userId,
+        type: 'subscription_payment',
+        subscriptionPeriod: JSON.stringify(payment.metadata.subscriptionPeriod)
+>>>>>>> Stashed changes
       }
     });
 
     console.log('✅ Created Stripe session for subscription payment:', {
       sessionId: session.id,
+<<<<<<< Updated upstream
       invoiceIds: invoiceIds,
       totalAmount: totalAmount
+=======
+      paymentId: paymentId,
+      amount: payment.amount,
+      period: payment.metadata.subscriptionPeriod
+>>>>>>> Stashed changes
     });
 
     res.status(200).json({
@@ -1051,12 +1290,17 @@ const createSubscriptionPaymentSession = async (req, res) => {
     console.error('❌ Error creating subscription payment session:', error);
     res.status(500).json({
       success: false,
+<<<<<<< Updated upstream
       message: 'Failed to create payment session',
+=======
+      message: 'Failed to create subscription payment session',
+>>>>>>> Stashed changes
       error: error.message
     });
   }
 };
 
+<<<<<<< Updated upstream
 // Handle successful subscription payment
 const handleSubscriptionPaymentSuccess = async (session) => {
   try {
@@ -1151,6 +1395,8 @@ const handleSubscriptionPaymentSuccess = async (session) => {
   }
 };
 
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 const handlePaymentExpired = async (session) => {
   try {
@@ -1478,5 +1724,8 @@ module.exports = {
   getReceipt,
   createInvoicePaymentSession,
   createSubscriptionPaymentSession
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 };

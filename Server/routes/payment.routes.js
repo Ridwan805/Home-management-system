@@ -4,6 +4,9 @@ const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Get all payments for the authenticated user (general endpoint)
+router.get('/', authMiddleware, PaymentController.getAllUserPayments);
+
 // Get pending invoices for a tenant
 router.get('/tenant/:tenantId/pending-invoices', authMiddleware, PaymentController.getPendingInvoices);
 
@@ -28,5 +31,8 @@ router.get('/owner/history', authMiddleware, PaymentController.getOwnerPayments)
 
 // Admin utility: Create payment objects for existing invoices
 router.post('/admin/create-for-existing-invoices', authMiddleware, PaymentController.createPaymentsForExistingInvoices);
+
+// Admin utility: Create subscription payment records for all owners
+router.post('/admin/create-subscription-payments', authMiddleware, PaymentController.createSubscriptionPayments);
 
 module.exports = router;

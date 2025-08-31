@@ -50,13 +50,12 @@ const AdvancePaymentSchema = new mongoose.Schema({
   verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   verificationNote: { type: String, default: '' },
   isPaid: { type: Boolean, default: false },
-  canPayAgain: { type: Boolean, default: false },
   paymentId: { type: String, default: '' }
 }, { _id: false });
 
 // Full payment schema for handling complete payment details
 const FullPaymentSchema = new mongoose.Schema({
-  status: { type: String, enum: ['pending', 'completed', 'failed'], default: 'completed' },
+  status: { type: String, enum: ['pending', 'completed', 'failed'], default: 'pending' },
   amount: { type: Number, required: true },
   currency: { type: String, default: 'BDT' },
   stripeSessionId: { type: String, default: '' },
@@ -65,8 +64,7 @@ const FullPaymentSchema = new mongoose.Schema({
   proofUrl: { type: String, default: '' },
   verifiedAt: { type: Date },
   verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  verificationNote: { type: String, default: '' },
-  canPayAgain: { type: Boolean, default: false }
+  verificationNote: { type: String, default: '' }
 }, { _id: false });
 
 // Main Request schema
@@ -98,18 +96,6 @@ const RequestSchema = new mongoose.Schema({
     type: String, 
     enum: REQUEST_TYPES, 
     required: true 
-  },
-  
-  // New fields for linking to contracts
-  rentId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Rent',
-    required: false // Set when rental request is approved and Rent is created
-  },
-  ownershipTransferId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'OwnershipTransfer',
-    required: false // Set when purchase request is approved and OwnershipTransfer is created
   },
 
   // Payload - Stores all submitted form data from unified inquiry form
@@ -257,8 +243,12 @@ RequestSchema.statics.getValidStatusTransitions = function() {
     'Under Review': ['Info Requested', 'Approved – Pay Advance', 'Rejected', 'Canceled'],
     'Info Requested': ['Under Review', 'Rejected', 'Canceled', 'Expired'],
     'Approved – Pay Advance': ['Payment Submitted', 'Canceled', 'Expired'],
+<<<<<<< Updated upstream
     'Payment Submitted': ['AdvancePaid', 'Under Review', 'Canceled'],
     'AdvancePaid': ['Paid/Completed', 'Canceled'],
+=======
+    'Payment Submitted': ['Paid/Completed', 'Under Review', 'Canceled'],
+>>>>>>> Stashed changes
     'Paid/Completed': [], // Terminal state
     'Rejected': [], // Terminal state
     'Canceled': [], // Terminal state
@@ -286,6 +276,7 @@ RequestSchema.methods.transitionStatus = function(newStatus, actor, note = '') {
   return this.save();
 };
 
+<<<<<<< Updated upstream
 // Instance methods for contract linking
 RequestSchema.methods.linkToRent = function(rentId) {
   if (this.requestType !== 'Rent') {
@@ -331,14 +322,13 @@ RequestSchema.statics.findCompletedWithoutContract = function() {
 };
 
 // Indexes for better query performance
+=======
+// Index for efficient queries
+>>>>>>> Stashed changes
 RequestSchema.index({ propertyId: 1, tenantId: 1 });
 RequestSchema.index({ ownerId: 1, status: 1 });
 RequestSchema.index({ status: 1, createdAt: -1 });
 RequestSchema.index({ requestId: 1 }, { unique: true });
 RequestSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
-RequestSchema.index({ rentId: 1 });
-RequestSchema.index({ ownershipTransferId: 1 });
-RequestSchema.index({ requestType: 1, status: 1 });
-RequestSchema.index({ tenantId: 1, status: 1 });
 
 module.exports = mongoose.model('Request', RequestSchema);

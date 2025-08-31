@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+<<<<<<< Updated upstream
 import { FaSearch, FaFilter, FaDownload, FaEdit, FaPause, FaPlay, FaTrash, FaEye, FaExclamationTriangle, FaCheckCircle, FaClock, FaBan, FaCreditCard, FaDollarSign } from 'react-icons/fa';
 import './adminDashboard.css';
 
@@ -32,11 +33,42 @@ const SubscriptionManagement = () => {
       setLoading(true);
       const user = JSON.parse(localStorage.getItem('dwellSyncUser') || '{}');
       const response = await fetch('http://localhost:5001/api/admin/subscription/invoices', {
+=======
+import { FaMoneyBillWave, FaFileInvoice, FaUsers, FaSync, FaCheck, FaClock, FaExclamationTriangle } from 'react-icons/fa';
+import apiConfig from '../../config/api';
+import './adminDashboard.css';
+
+const SubscriptionManagement = () => {
+  const [payments, setPayments] = useState([]);
+  const [invoices, setInvoices] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [stats, setStats] = useState({
+    totalOwners: 0,
+    pendingPayments: 0,
+    completedPayments: 0,
+    totalRevenue: 0
+  });
+
+  const user = JSON.parse(localStorage.getItem('dwellSyncUser') || '{}');
+
+  useEffect(() => {
+    fetchSubscriptionData();
+    fetchSubscriptionStats();
+  }, []);
+
+  const fetchSubscriptionData = async () => {
+    setLoading(true);
+    try {
+      // Fetch payment data
+      const paymentRes = await fetch(apiConfig.getUrl('/api/payments'), {
+>>>>>>> Stashed changes
         headers: {
           'Authorization': `Bearer ${user.token}`,
           'Content-Type': 'application/json'
         }
       });
+<<<<<<< Updated upstream
 
       if (!response.ok) {
         throw new Error('Failed to fetch admin subscription invoices');
@@ -46,20 +78,40 @@ const SubscriptionManagement = () => {
       setInvoices(data.invoices || []);
     } catch (err) {
       setError(err.message);
+=======
+      
+      if (paymentRes.ok) {
+        const paymentData = await paymentRes.json();
+        const subscriptionPayments = paymentData.filter(payment => 
+          payment.metadata?.subscriptionPayment || payment.tags?.includes('subscription')
+        );
+        setPayments(subscriptionPayments);
+      }
+    } catch (error) {
+      console.error('Error fetching subscription data:', error);
+      setMessage('Failed to load subscription data');
+>>>>>>> Stashed changes
     } finally {
       setLoading(false);
     }
   };
 
+<<<<<<< Updated upstream
   const fetchPayments = async () => {
     try {
       const user = JSON.parse(localStorage.getItem('dwellSyncUser') || '{}');
       const response = await fetch('http://localhost:5001/api/admin/subscription/payments', {
+=======
+  const fetchSubscriptionStats = async () => {
+    try {
+      const res = await fetch(apiConfig.getUrl(apiConfig.endpoints.subscriptionStats), {
+>>>>>>> Stashed changes
         headers: {
           'Authorization': `Bearer ${user.token}`,
           'Content-Type': 'application/json'
         }
       });
+<<<<<<< Updated upstream
 
       if (!response.ok) {
         throw new Error('Failed to fetch admin subscription payments');
@@ -98,11 +150,33 @@ const SubscriptionManagement = () => {
       setActionLoading(true);
       const user = JSON.parse(localStorage.getItem('dwellSyncUser') || '{}');
       const response = await fetch(`/api/subscriptions/${subscriptionId}/freeze`, {
+=======
+      
+      if (res.ok) {
+        const data = await res.json();
+        setStats({
+          totalOwners: data.data.totalOwners,
+          pendingPayments: data.data.pendingPayments,
+          completedPayments: data.data.completedPayments,
+          totalRevenue: data.data.totalRevenue
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching subscription stats:', error);
+    }
+  };
+
+  const createMonthlyInvoices = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(apiConfig.getUrl(apiConfig.endpoints.createMonthlyInvoices), {
+>>>>>>> Stashed changes
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${user.token}`,
           'Content-Type': 'application/json'
         },
+<<<<<<< Updated upstream
         body: JSON.stringify({ reason })
       });
 
@@ -126,11 +200,37 @@ const SubscriptionManagement = () => {
       setActionLoading(true);
       const user = JSON.parse(localStorage.getItem('dwellSyncUser') || '{}');
       const response = await fetch(`/api/subscriptions/${subscriptionId}/unfreeze`, {
+=======
+        body: JSON.stringify({ amount: 1200 }) // Default subscription amount
+      });
+      
+      const data = await res.json();
+      if (res.ok) {
+        setMessage(`Successfully created ${data.data.invoicesCreated} monthly invoices for ${data.data.period.month}/${data.data.period.year}`);
+        fetchSubscriptionStats();
+        fetchSubscriptionData();
+      } else {
+        setMessage(data.message || 'Failed to create monthly invoices');
+      }
+    } catch (error) {
+      console.error('Error creating monthly invoices:', error);
+      setMessage('Failed to create monthly invoices');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createSubscriptionPayments = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(apiConfig.getUrl('/api/payments/admin/create-subscription-payments'), {
+>>>>>>> Stashed changes
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${user.token}`,
           'Content-Type': 'application/json'
         },
+<<<<<<< Updated upstream
         body: JSON.stringify({ reason })
       });
 
@@ -209,12 +309,56 @@ const SubscriptionManagement = () => {
 
   const formatDate = (date) => {
     return new Date(date).toLocaleDateString('en-US', {
+=======
+        body: JSON.stringify({ amount: 12000 })
+      });
+      
+      const data = await res.json();
+      if (res.ok) {
+        setMessage(`Created ${data.data.summary.successfulPayments} subscription payment records`);
+        fetchSubscriptionData();
+      } else {
+        setMessage(data.message || 'Failed to create subscription payments');
+      }
+    } catch (error) {
+      console.error('Error creating subscription payments:', error);
+      setMessage('Failed to create subscription payments');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'completed':
+        return <FaCheck className="status-icon completed" />;
+      case 'pending':
+        return <FaClock className="status-icon pending" />;
+      case 'failed':
+        return <FaExclamationTriangle className="status-icon failed" />;
+      default:
+        return <FaClock className="status-icon pending" />;
+    }
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-BD', {
+      style: 'currency',
+      currency: 'BDT',
+      minimumFractionDigits: 0
+    }).format(amount);
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+>>>>>>> Stashed changes
       year: 'numeric',
       month: 'short',
       day: 'numeric'
     });
   };
 
+<<<<<<< Updated upstream
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -239,10 +383,41 @@ const SubscriptionManagement = () => {
         <div className="subscription-actions">
           <button className="btn-export">
             <FaDownload /> Export Data
+=======
+  return (
+    <div className="subscription-management">
+      <div className="subscription-header">
+        <h2>Subscription Management</h2>
+        <div className="subscription-actions">
+          <button 
+            onClick={createMonthlyInvoices} 
+            disabled={loading}
+            className="action-button primary"
+          >
+            <FaFileInvoice /> Create Monthly Invoices
+          </button>
+          <button 
+            onClick={createSubscriptionPayments} 
+            disabled={loading}
+            className="action-button secondary"
+          >
+            <FaMoneyBillWave /> Generate Payment Records
+          </button>
+          <button 
+            onClick={() => {
+              fetchSubscriptionData();
+              fetchSubscriptionStats();
+            }} 
+            disabled={loading}
+            className="action-button refresh"
+          >
+            <FaSync /> Refresh
+>>>>>>> Stashed changes
           </button>
         </div>
       </div>
 
+<<<<<<< Updated upstream
       {error && (
         <div className="error-message">
           <FaExclamationTriangle /> {error}
@@ -270,10 +445,46 @@ const SubscriptionManagement = () => {
           <div className="stat-content">
             <h3>Total Invoices</h3>
             <div className="stat-value">{stats.invoices?.total || 0}</div>
+=======
+      {message && (
+        <div className={`message ${message.includes('success') || message.includes('Created') ? 'success' : 'error'}`}>
+          {message}
+        </div>
+      )}
+
+      {/* Statistics Cards */}
+      <div className="subscription-stats">
+        <div className="stat-card">
+          <div className="stat-icon">
+            <FaUsers />
+          </div>
+          <div className="stat-content">
+            <h3>{stats.totalOwners}</h3>
+            <p>Total Owners</p>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon pending">
+            <FaClock />
+          </div>
+          <div className="stat-content">
+            <h3>{stats.pendingPayments}</h3>
+            <p>Pending Payments</p>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon completed">
+            <FaCheck />
+          </div>
+          <div className="stat-content">
+            <h3>{stats.completedPayments}</h3>
+            <p>Completed Payments</p>
+>>>>>>> Stashed changes
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-icon revenue">
+<<<<<<< Updated upstream
             <FaDollarSign />
           </div>
           <div className="stat-content">
@@ -288,10 +499,18 @@ const SubscriptionManagement = () => {
           <div className="stat-content">
             <h3>This Month</h3>
             <div className="stat-value">${stats.revenue?.currentMonth || 0}</div>
+=======
+            <FaMoneyBillWave />
+          </div>
+          <div className="stat-content">
+            <h3>{formatCurrency(stats.totalRevenue)}</h3>
+            <p>Total Revenue</p>
+>>>>>>> Stashed changes
           </div>
         </div>
       </div>
 
+<<<<<<< Updated upstream
       {/* Tab Navigation */}
       <div className="tab-navigation">
         <button 
@@ -409,10 +628,34 @@ const SubscriptionManagement = () => {
                     </div>
                     <div className="payment-status">
                       <span className={`status-badge ${payment.status}`}>
+=======
+      {/* Payment Records */}
+      <div className="subscription-section">
+        <h3>Recent Subscription Payments</h3>
+        {loading ? (
+          <div className="loading">Loading subscription data...</div>
+        ) : (
+          <div className="payments-grid">
+            {payments.length === 0 ? (
+              <div className="no-data">
+                <p>No subscription payments found. Create payment records to get started.</p>
+              </div>
+            ) : (
+              payments.slice(0, 10).map((payment) => (
+                <div key={payment._id} className="payment-card">
+                  <div className="payment-header">
+                    <div className="payment-id">
+                      <strong>#{payment.paymentId}</strong>
+                    </div>
+                    <div className="payment-status">
+                      {getStatusIcon(payment.status)}
+                      <span className={`status-text ${payment.status}`}>
+>>>>>>> Stashed changes
                         {payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
                       </span>
                     </div>
                   </div>
+<<<<<<< Updated upstream
 
                   <div className="payment-details">
                     <div className="detail-item">
@@ -442,6 +685,21 @@ const SubscriptionManagement = () => {
                     >
                       <FaEye /> View Details
                     </button>
+=======
+                  <div className="payment-details">
+                    <div className="payment-amount">
+                      <strong>{formatCurrency(payment.amount)}</strong>
+                    </div>
+                    <div className="payment-description">
+                      {payment.description}
+                    </div>
+                    <div className="payment-dates">
+                      <div>Due: {formatDate(payment.dueDate)}</div>
+                      {payment.paidAt && (
+                        <div>Paid: {formatDate(payment.paidAt)}</div>
+                      )}
+                    </div>
+>>>>>>> Stashed changes
                   </div>
                 </div>
               ))
@@ -449,6 +707,7 @@ const SubscriptionManagement = () => {
           </div>
         )}
       </div>
+<<<<<<< Updated upstream
 
       {/* Modal for various actions */}
       {showModal && selectedItem && (
@@ -563,6 +822,8 @@ const ItemModal = ({ item, type, onClose }) => {
           </button>
         </div>
       </div>
+=======
+>>>>>>> Stashed changes
     </div>
   );
 };

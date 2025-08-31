@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const Payment = require('../models/Payment');
 const bcrypt = require('bcrypt');
 const { generateSubscriptionInvoiceForNewOwner } = require('../services/invoiceService');
 
@@ -37,6 +38,7 @@ const register = async (req, res) => {
     const savedUser = await newUser.save();
     console.log('Saved user:', savedUser);
 
+<<<<<<< Updated upstream
     // Generate subscription invoice for new owners
     if (savedUser.role === 'Owner') {
       try {
@@ -45,6 +47,38 @@ const register = async (req, res) => {
       } catch (invoiceError) {
         console.error('Error generating subscription invoice for new owner:', invoiceError.message);
         // Don't fail registration if invoice generation fails
+=======
+    // Create default payment record for new owners
+    if (role === 'Owner') {
+      try {
+        const defaultPayment = new Payment({
+          type: 'monthly_rent', // Using existing enum value
+          status: 'pending',
+          method: 'stripe', // Default method
+          amount: 12000,
+          currency: 'BDT',
+          payerId: savedUser._id,
+          description: `Initial Subscription Fee - ${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`,
+          dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000), // 15 days from registration
+          billingPeriod: {
+            startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+            endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0),
+            isRecurring: true,
+            recurringFrequency: 'monthly'
+          },
+          metadata: {
+            subscriptionPayment: true,
+            initialPayment: true
+          },
+          tags: ['subscription', 'monthly_fee', 'initial']
+        });
+        
+        await defaultPayment.save();
+        console.log('Created default payment for new owner:', defaultPayment.paymentId);
+      } catch (paymentError) {
+        console.error('Error creating default payment:', paymentError.message);
+        // Don't fail registration if payment creation fails
+>>>>>>> Stashed changes
       }
     }
 

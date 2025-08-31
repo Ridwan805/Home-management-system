@@ -4,29 +4,6 @@
   min-height: 100vh;
 }
 
-/* Popup Message Styling */
-.popup-message {
-  position: fixed;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: #4CAF50;
-  color: white;
-  padding: 15px 25px;
-  border-radius: 5px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  z-index: 1000;
-  animation: fadeInOut 5s ease-in-out;
-  font-weight: 500;
-}
-
-@keyframes fadeInOut {
-  0% { opacity: 0; }
-  10% { opacity: 1; }
-  90% { opacity: 1; }
-  100% { opacity: 0; }
-}
-
 .section-title {
   font-size: 2rem;
   font-weight: 600;
@@ -702,7 +679,28 @@
   box-shadow: 0 4px 8px rgba(103, 58, 183, 0.3);
 }
 
+.modal-actions .download-pdf-btn {
+  background: #2196F3;
+  color: white;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
 
+.modal-actions .download-pdf-btn:hover {
+  background: #0b7dda;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(33, 150, 243, 0.3);
+}
 
 .modal-actions .download-btn {
   background: #009688;
@@ -750,7 +748,28 @@
   box-shadow: 0 4px 8px rgba(121, 85, 72, 0.3);
 }
 
+.modal-actions .view-pdf-btn {
+  background: #9c27b0;
+  color: white;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
 
+.modal-actions .view-pdf-btn:hover {
+  background: #7b1fa2;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(156, 39, 176, 0.3);
+}
 
 /* Payment Proof Modal Styles */
 .payment-proof-info {
@@ -834,15 +853,11 @@
 
 /* Receipt Modal Styles */
 .receipt-modal {
-  max-width: 700px;
-  max-height: 90vh;
-  overflow-y: auto;
+  max-width: 600px;
 }
 
 .receipt-body {
   padding: 0;
-  max-height: 70vh;
-  overflow-y: auto;
 }
 
 .receipt-container {
@@ -854,48 +869,23 @@
 
 .receipt-header {
   text-align: center;
-  margin-bottom: 30px;
-  padding-bottom: 20px;
-  border-bottom: 3px solid #3498db;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #f0f0f0;
 }
 
 .receipt-header h2 {
-  color: #2c3e50;
-  margin-bottom: 10px;
-  font-size: 1.8rem;
-}
-
-.receipt-id {
-  color: #7f8c8d;
-  font-size: 0.95rem;
+  color: #333;
   margin-bottom: 5px;
 }
 
-.receipt-date {
-  color: #7f8c8d;
+.receipt-id {
+  color: #666;
   font-size: 0.9rem;
 }
 
-.receipt-section {
-  margin-bottom: 25px;
-  padding: 20px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  border-left: 4px solid #3498db;
-}
-
-.receipt-section .section-title {
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: #2c3e50;
-  margin-bottom: 15px;
-  text-align: left;
-  border-bottom: 1px solid #dee2e6;
-  padding-bottom: 8px;
-}
-
 .receipt-details {
-  margin-bottom: 0;
+  margin-bottom: 25px;
 }
 
 .receipt-row {
@@ -903,83 +893,36 @@
   justify-content: space-between;
   margin-bottom: 12px;
   padding-bottom: 8px;
-  border-bottom: 1px solid #e9ecef;
-}
-
-.receipt-row:last-child {
-  border-bottom: none;
-  margin-bottom: 0;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .receipt-label {
   font-weight: 600;
-  color: #495057;
-  flex: 1;
+  color: #555;
 }
 
 .receipt-value {
   text-align: right;
-  color: #212529;
-  flex: 1;
-  word-break: break-word;
-}
-
-.receipt-value.amount {
-  font-weight: 700;
-  color: #28a745;
-  font-size: 1.1rem;
+  color: #333;
 }
 
 .receipt-status {
   font-weight: 600;
-  color: #28a745;
-  text-transform: uppercase;
-  font-size: 0.9rem;
+  color: #4caf50;
 }
 
 .receipt-footer {
   text-align: center;
-  margin-top: 30px;
-  padding-top: 20px;
-  border-top: 3px solid #3498db;
-  color: #6c757d;
+  margin-top: 25px;
+  padding-top: 15px;
+  border-top: 2px solid #f0f0f0;
+  color: #666;
 }
 
-.receipt-footer p {
-  margin-bottom: 8px;
-}
-
-.receipt-note {
-  font-size: 0.9rem;
-  font-style: italic;
-  color: #6c757d;
-}
-
-/* Download and Print Button Styles */
-.download-btn, .print-btn {
-  background: linear-gradient(135deg, #3498db, #2980b9);
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: 10px;
-}
-
-.download-btn:hover, .print-btn:hover {
-  background: linear-gradient(135deg, #2980b9, #1f5f8b);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
-}
-
-.download-btn:active, .print-btn:active {
-  transform: translateY(0);
+.receipt-timestamp {
+  font-size: 0.8rem;
+  margin-top: 10px;
+  color: #999;
 }
 
 @media print {
@@ -1193,6 +1136,7 @@
     height: 35px;
     font-size: 1.5rem;
   }
+<<<<<<< Updated upstream
 }
 
 /* Receipt Display Styles */
@@ -1508,4 +1452,6 @@
   }
   
 
+=======
+>>>>>>> Stashed changes
 }

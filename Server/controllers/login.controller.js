@@ -10,6 +10,7 @@ const login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid username/email or password' });
     }
 
+<<<<<<< Updated upstream
     // Check if account is frozen or login is disabled
     const loginCheck = user.canUserLogin();
     if (!loginCheck.canLogin) {
@@ -23,6 +24,12 @@ const login = async (req, res) => {
         isFrozen: user.isFrozen,
         freezeReason: user.freezeReason,
         contactSupport: true
+=======
+    // Check if account is frozen (except for admins)
+    if (user.frozen && user.role !== 'Admin') {
+      return res.status(403).json({ 
+        message: 'Your account has been suspended due to a payment issue. Please contact support.' 
+>>>>>>> Stashed changes
       });
     }
 

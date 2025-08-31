@@ -16,6 +16,7 @@ const authMiddleware = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     req.user = { userId: decoded.userId, role: decoded.role };
 =======
     
@@ -43,6 +44,12 @@ const authMiddleware = async (req, res, next) => {
       accountStatus: user.accountStatus,
       subscriptionStatus: user.subscriptionStatus
     };
+>>>>>>> Stashed changes
+=======
+    // Handle both userId (regular users) and id (admin users) from JWT payload
+    const userId = decoded.userId || decoded.id;
+    req.user = { userId: userId, role: decoded.role, permissions: decoded.permissions };
+    console.log('✅ Auth successful for user:', userId, 'role:', decoded.role);
 >>>>>>> Stashed changes
     next();
   } catch (err) {

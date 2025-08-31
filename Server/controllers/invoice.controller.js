@@ -660,6 +660,94 @@ const markOverdueInvoices = async (req, res) => {
   }
 };
 
+// Create global subscription invoice
+const createGlobalSubscriptionInvoice = async (req, res) => {
+  try {
+    const { amount = 12000, dueDate } = req.body;
+    const userId = req.user.userId;
+
+    // Check if a global subscription invoice already exists for this month
+    const currentMonth = new Date();
+    const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+    const endOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
+
+    const existingInvoice = await Invoice.findOne({
+      'auto.source': 'subscription',
+      issuedAt: {
+        $gte: startOfMonth,
+        $lte: endOfMonth
+      }
+    });
+
+    if (existingInvoice) {
+      return res.status(400).json({ 
+        message: 'Global subscription invoice already exists for this month',
+        invoice: existingInvoice
+      });
+    }
+
+    // Create a dummy property for the global subscription
+    const globalProperty = await Property.findOne({ name: 'Global Subscription' }) || 
+      await Property.create({
+        name: 'Global Subscription',
+        description: 'Virtual property for subscription management',
+        ownerId: userId,
+        address: 'System Generated',
+        rent: amount,
+        isActive: false // Mark as inactive since it's virtual
+      });
+
+    // Create the global subscription invoice
+    const invoiceData = {
+      propertyId: globalProperty._id,
+      billTo: userId, // Admin creates it
+      billFrom: userId,
+      dueDate: dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+      period: {
+        start: startOfMonth,
+        end: endOfMonth
+      },
+      lineItems: [{
+        type: 'fee',
+        description: 'Monthly Subscription Fee',
+        quantity: 1,
+        unitPrice: amount,
+        amount: amount,
+        taxable: false
+      }],
+      subtotal: amount,
+      total: amount,
+      balance: amount,
+      currency: 'BDT',
+      status: 'open',
+      auto: {
+        generated: true,
+        source: 'subscription',
+        generatedAt: new Date(),
+        generatedBy: userId
+      },
+      notes: 'Global subscription invoice for all property owners'
+    };
+
+    const invoice = new Invoice(invoiceData);
+    await invoice.save();
+
+    res.status(201).json({
+      message: 'Global subscription invoice created successfully',
+      invoice: {
+        id: invoice._id,
+        invoiceNo: invoice.invoiceNo,
+        amount: invoice.total,
+        dueDate: invoice.dueDate,
+        status: invoice.status
+      }
+    });
+  } catch (error) {
+    console.error('Error creating global subscription invoice:', error);
+    res.status(500).json({ message: 'Server error while creating subscription invoice' });
+  }
+};
+
 module.exports = {
   createInvoice,
   getInvoices,
@@ -671,5 +759,6 @@ module.exports = {
   generateMonthlyRentInvoices,
   generateOwnershipTransferInvoice,
   processInvoicePaymentService,
-  markOverdueInvoices
+  markOverdueInvoices,
+  createGlobalSubscriptionInvoice
 };

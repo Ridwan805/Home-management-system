@@ -1,6 +1,10 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+<<<<<<< Updated upstream
 import { FaTachometerAlt, FaHourglass, FaFlag, FaUsers, FaCreditCard, FaCog, FaSignOutAlt } from 'react-icons/fa';
+=======
+import { FaTachometerAlt, FaHourglass, FaFlag, FaUsers, FaMoneyBillWave, FaSignOutAlt } from 'react-icons/fa';
+>>>>>>> Stashed changes
 import './adminDashboard.css'; // Make sure your filename casing matches here
 
 const AdminSidebar = ({ activeTab }) => {
@@ -43,6 +47,7 @@ const AdminSidebar = ({ activeTab }) => {
           </li>
           <li className={activeTab === 'subscription-management' ? 'active' : ''}>
             <Link to="/admin/subscriptions">
+<<<<<<< Updated upstream
               <FaCreditCard className="nav-icon" />
               <span>Subscriptions</span>
             </Link>
@@ -51,6 +56,10 @@ const AdminSidebar = ({ activeTab }) => {
             <Link to="/admin/configuration">
               <FaCog className="nav-icon" />
               <span>Configuration</span>
+=======
+              <FaMoneyBillWave className="nav-icon" />
+              <span>Subscription Management</span>
+>>>>>>> Stashed changes
             </Link>
           </li>
           <li className="logout-item">

@@ -4,13 +4,13 @@ import './MyRequests.css';
 import { authenticatedFetch } from '../../config/api.js';
 import API from '../../config/api.js';
 import { FaDownload, FaUpload, FaReceipt, FaPrint } from 'react-icons/fa';
-// TEMPORARILY DISABLED FOR WEBHOOK TESTING
-import LoadingSpinner from '../../components/LoadingSpinner';
-import PaymentStatusIndicator from '../../components/PaymentStatusIndicator';
 
 const MyRequests = () => {
+<<<<<<< Updated upstream
   console.log('🏠 MyRequests component is rendering! User is on the correct page.');
   
+=======
+>>>>>>> Stashed changes
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -49,15 +49,25 @@ const MyRequests = () => {
     fetchStats();
   }, [selectedStatus]);
   
+<<<<<<< Updated upstream
   // Initial load effect to handle payment redirects
+=======
+  // Add an effect to refresh data when component mounts or when returning from payment
+>>>>>>> Stashed changes
   useEffect(() => {
-    console.log('🏠 MyRequests component rendered');
+    // This will ensure data is refreshed when returning from payment
+    fetchRequests();
+    fetchStats();
     
+<<<<<<< Updated upstream
     // Check for payment success/cancel parameters in URL
+=======
+    // Check if we're returning from a payment
+>>>>>>> Stashed changes
     const urlParams = new URLSearchParams(window.location.search);
-    const paymentStatus = urlParams.get('payment');
-    const sessionId = urlParams.get('session_id');
+    const paymentStatus = urlParams.get('payment_status');
     
+<<<<<<< Updated upstream
     if (paymentStatus === 'success' && sessionId) {
       console.log('✅ Payment successful! Session ID:', sessionId);
       // Show success message or handle payment success
@@ -97,10 +107,35 @@ const MyRequests = () => {
       navigate(window.location.pathname, { replace: true });
     }
   }, [navigate]);
+=======
+    if (paymentStatus === 'success') {
+      // If returning from successful payment, refresh data again after a short delay
+      // to ensure webhook has been processed
+      setTimeout(() => {
+        fetchRequests();
+        fetchStats();
+      }, 2000);
+      
+      // Clean up URL parameters after processing
+      navigate(window.location.pathname, { replace: true });
+    }
+    
+    // Set up an interval to refresh payment status every 5 seconds
+    const intervalId = setInterval(() => {
+      if (selectedRequest) {
+        fetchRequestDetails(selectedRequest._id);
+      }
+    }, 5000);
+    
+    return () => clearInterval(intervalId);
+  }, [navigate, selectedRequest]);
+>>>>>>> Stashed changes
 
-  // Note: Removed resetPolling useEffect as it was causing polling to restart constantly
 
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
 
   const fetchRequests = async () => {
     try {
@@ -288,17 +323,6 @@ const MyRequests = () => {
   const handleGetReceipt = async (paymentId) => {
     try {
       setReceiptLoading(true);
-      
-      // Debug logging
-      console.log('Payment ID received:', paymentId);
-      console.log('Selected request:', selectedRequest);
-      console.log('Advance payment data:', selectedRequest?.advancePayment);
-      
-      if (!paymentId) {
-        alert('Payment ID not found. Cannot retrieve receipt.');
-        return;
-      }
-      
       const userData = JSON.parse(localStorage.getItem('dwellSyncUser'));
       const token = userData?.token;
 
@@ -307,8 +331,11 @@ const MyRequests = () => {
         return;
       }
 
+<<<<<<< Updated upstream
       console.log('Making API call to:', `http://localhost:5001/api/stripe/receipt/${paymentId}`);
       
+=======
+>>>>>>> Stashed changes
       const response = await fetch(`http://localhost:5001/api/stripe/receipt/${paymentId}`, {
         method: 'GET',
         headers: {
@@ -317,16 +344,11 @@ const MyRequests = () => {
         }
       });
 
-      console.log('Response status:', response.status);
-      
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API Error Response:', errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log('API Response data:', data);
       
       if (data.success) {
         setPaymentReceipt(data);
@@ -339,7 +361,6 @@ const MyRequests = () => {
           setShowReceiptModal(true);
         }
       } else {
-        console.error('API returned error:', data.message);
         alert(data.message || 'Failed to retrieve receipt');
       }
     } catch (err) {
@@ -441,13 +462,11 @@ const MyRequests = () => {
     }
   };
 
-
-
   if (loading) {
     return (
       <div className="my-requests">
         <h2 className="section-title">My Requests</h2>
-        <LoadingSpinner message="Loading your requests..." />
+        <div className="loading-message">Loading your requests...</div>
       </div>
     );
   }
@@ -527,10 +546,9 @@ const MyRequests = () => {
                       {request.requestType === 'Rent' && <span className="rent-period">/month</span>}
                     </h3>
                   </div>
-                  <PaymentStatusIndicator 
-                    status={request.status}
-                    onRetry={() => fetchRequestDetails(request._id)}
-                  />
+                  <span className={`request-status ${getStatusClass(request.status)}`}>
+                    {request.status}
+                  </span>
                 </div>
                 
                 <p className="property-address">{request.propertyId?.address}</p>
@@ -597,11 +615,9 @@ const MyRequests = () => {
               <div className="modal-property-details">
                 <div className="modal-status-header">
                   <h4>{selectedRequest.propertyId?.address}</h4>
-                  <PaymentStatusIndicator 
-                    status={selectedRequest.status}
-                    onRetry={() => fetchRequestDetails(selectedRequest._id)}
-                    showTimestamp={true}
-                  />
+                  <span className={`request-status ${getStatusClass(selectedRequest.status)}`}>
+                    {selectedRequest.status}
+                  </span>
                 </div>
                 
                 <div className="property-info-grid">
@@ -671,23 +687,19 @@ const MyRequests = () => {
                    !selectedRequest.advancePayment.isPaid && 
                    !selectedRequest.isPaid && (
                     <button 
-                    className="pay-btn"
-                    onClick={() => handlePayNow(selectedRequest._id)}
-                    disabled={paymentLoading}
-                  >
-                    {paymentLoading ? (
-                      <>
-                        <LoadingSpinner size="small" />
-                        Processing...
-                      </>
-                    ) : (
-                      `Pay Online (৳${selectedRequest.advancePayment.amount})`
-                    )}
-                  </button>
+                      className="pay-btn"
+                      onClick={() => handlePayNow(selectedRequest._id)}
+                      disabled={paymentLoading}
+                    >
+                      {paymentLoading ? 'Processing...' : `Pay Online (৳${selectedRequest.advancePayment.amount})`}
+                    </button>
                   )}
                   
+<<<<<<< Updated upstream
 
                   
+=======
+>>>>>>> Stashed changes
                   {/* Show Receipt button if payment has been made */}
                   {(selectedRequest.status === 'Advance Payment Received' || 
                     selectedRequest.status === 'AdvancePaid' || 
@@ -696,21 +708,12 @@ const MyRequests = () => {
                     selectedRequest.isPaid ||
                     (selectedRequest.advancePayment && selectedRequest.advancePayment.isPaid)) && (
                     <button 
-                    className="show-receipt-btn"
-                    onClick={() => handleGetReceipt(selectedRequest.advancePayment?.paymentId)}
-                    disabled={receiptLoading}
-                  >
-                    {receiptLoading ? (
-                      <>
-                        <LoadingSpinner size="small" />
-                        Loading...
-                      </>
-                    ) : (
-                      <>
-                        <FaReceipt /> Show Receipt
-                      </>
-                    )}
-                  </button>
+                      className="show-receipt-btn"
+                      onClick={() => handleGetReceipt(selectedRequest.advancePayment?.paymentId)}
+                      disabled={receiptLoading}
+                    >
+                      {receiptLoading ? 'Loading...' : <><FaReceipt /> Show Receipt</>}
+                    </button>
                   )}
                 </div>
               </div>
@@ -789,14 +792,7 @@ const MyRequests = () => {
                     className="submit-proof-btn"
                     disabled={uploadLoading || !paymentProofForm.proofFile}
                   >
-                    {uploadLoading ? (
-                      <>
-                        <LoadingSpinner size="small" />
-                        Uploading...
-                      </>
-                    ) : (
-                      'Submit Payment Proof'
-                    )}
+                    {uploadLoading ? 'Uploading...' : 'Submit Payment Proof'}
                   </button>
                 </div>
               </form>
@@ -824,120 +820,43 @@ const MyRequests = () => {
                 <div className="receipt-container">
                   <div className="receipt-header">
                     <h2>Payment Receipt</h2>
-                    <p className="receipt-id">Receipt ID: {paymentReceipt.receiptData?.receiptId || 'N/A'}</p>
-                    <p className="receipt-date">Generated on: {new Date().toLocaleString()}</p>
+                    <p className="receipt-id">Receipt ID: {paymentReceipt.receiptData?.paymentId || 'N/A'}</p>
                   </div>
                   
-                  {/* Payment Information */}
-                  <div className="receipt-section">
-                    <h3 className="section-title">Payment Details</h3>
-                    <div className="receipt-details">
-                      <div className="receipt-row">
-                        <span className="receipt-label">Amount:</span>
-                        <span className="receipt-value amount">{paymentReceipt.receiptData?.currency || '৳'} {paymentReceipt.receiptData?.amount?.toLocaleString() || 'N/A'}</span>
-                      </div>
-                      <div className="receipt-row">
-                        <span className="receipt-label">Payment Status:</span>
-                        <span className="receipt-value receipt-status">{paymentReceipt.receiptData?.paymentStatus || 'N/A'}</span>
-                      </div>
-                      <div className="receipt-row">
-                        <span className="receipt-label">Payment Method:</span>
-                        <span className="receipt-value">{paymentReceipt.receiptData?.paymentMethod || 'N/A'}</span>
-                      </div>
-                      <div className="receipt-row">
-                        <span className="receipt-label">Payment Date:</span>
-                        <span className="receipt-value">{paymentReceipt.receiptData?.paidAt ? formatDate(paymentReceipt.receiptData.paidAt) : 'N/A'}</span>
-                      </div>
-                      <div className="receipt-row">
-                        <span className="receipt-label">Transaction ID:</span>
-                        <span className="receipt-value">{paymentReceipt.receiptData?.transactionId || 'N/A'}</span>
-                      </div>
+                  <div className="receipt-details">
+                    <div className="receipt-row">
+                      <span className="receipt-label">Property:</span>
+                      <span className="receipt-value">{paymentReceipt.receiptData?.propertyTitle || 'N/A'}</span>
                     </div>
-                  </div>
-
-                  {/* Request Information */}
-                  <div className="receipt-section">
-                    <h3 className="section-title">Request Details</h3>
-                    <div className="receipt-details">
-                      <div className="receipt-row">
-                        <span className="receipt-label">Request ID:</span>
-                        <span className="receipt-value">{paymentReceipt.receiptData?.request?.requestId || 'N/A'}</span>
-                      </div>
-                      <div className="receipt-row">
-                        <span className="receipt-label">Request Type:</span>
-                        <span className="receipt-value">{paymentReceipt.receiptData?.request?.requestType || 'N/A'}</span>
-                      </div>
-                      <div className="receipt-row">
-                        <span className="receipt-label">Request Status:</span>
-                        <span className="receipt-value">{paymentReceipt.receiptData?.request?.status || 'N/A'}</span>
-                      </div>
-                      <div className="receipt-row">
-                        <span className="receipt-label">Submitted Date:</span>
-                        <span className="receipt-value">{paymentReceipt.receiptData?.request?.submittedAt ? formatDate(paymentReceipt.receiptData.request.submittedAt) : 'N/A'}</span>
-                      </div>
+                    <div className="receipt-row">
+                      <span className="receipt-label">Address:</span>
+                      <span className="receipt-value">{paymentReceipt.receiptData?.propertyAddress || 'N/A'}</span>
                     </div>
-                  </div>
-
-                  {/* Property Information */}
-                  <div className="receipt-section">
-                    <h3 className="section-title">Property Details</h3>
-                    <div className="receipt-details">
-                      <div className="receipt-row">
-                        <span className="receipt-label">Address:</span>
-                        <span className="receipt-value">{paymentReceipt.receiptData?.property?.address || 'N/A'}</span>
-                      </div>
-                      <div className="receipt-row">
-                        <span className="receipt-label">Property Price:</span>
-                        <span className="receipt-value">৳ {paymentReceipt.receiptData?.property?.price?.toLocaleString() || 'N/A'}</span>
-                      </div>
-                      <div className="receipt-row">
-                        <span className="receipt-label">Description:</span>
-                        <span className="receipt-value">{paymentReceipt.receiptData?.property?.description || 'N/A'}</span>
-                      </div>
+                    <div className="receipt-row">
+                      <span className="receipt-label">Amount:</span>
+                      <span className="receipt-value">{paymentReceipt.receiptData?.currency || '৳'} {paymentReceipt.receiptData?.amount?.toLocaleString() || 'N/A'}</span>
                     </div>
-                  </div>
-
-                  {/* Tenant Information */}
-                  <div className="receipt-section">
-                    <h3 className="section-title">Tenant Information</h3>
-                    <div className="receipt-details">
-                      <div className="receipt-row">
-                        <span className="receipt-label">Name:</span>
-                        <span className="receipt-value">{paymentReceipt.receiptData?.tenant?.name || 'N/A'}</span>
-                      </div>
-                      <div className="receipt-row">
-                        <span className="receipt-label">Email:</span>
-                        <span className="receipt-value">{paymentReceipt.receiptData?.tenant?.email || 'N/A'}</span>
-                      </div>
-                      <div className="receipt-row">
-                        <span className="receipt-label">Phone:</span>
-                        <span className="receipt-value">{paymentReceipt.receiptData?.tenant?.phone || 'N/A'}</span>
-                      </div>
+                    <div className="receipt-row">
+                      <span className="receipt-label">Payment Date:</span>
+                      <span className="receipt-value">{paymentReceipt.receiptData?.paymentDate ? formatDate(paymentReceipt.receiptData.paymentDate) : 'N/A'}</span>
                     </div>
-                  </div>
-
-                  {/* Owner Information */}
-                  <div className="receipt-section">
-                    <h3 className="section-title">Owner Information</h3>
-                    <div className="receipt-details">
-                      <div className="receipt-row">
-                        <span className="receipt-label">Name:</span>
-                        <span className="receipt-value">{paymentReceipt.receiptData?.owner?.name || 'N/A'}</span>
-                      </div>
-                      <div className="receipt-row">
-                        <span className="receipt-label">Email:</span>
-                        <span className="receipt-value">{paymentReceipt.receiptData?.owner?.email || 'N/A'}</span>
-                      </div>
-                      <div className="receipt-row">
-                        <span className="receipt-label">Phone:</span>
-                        <span className="receipt-value">{paymentReceipt.receiptData?.owner?.phone || 'N/A'}</span>
-                      </div>
+                    <div className="receipt-row">
+                      <span className="receipt-label">Payment Method:</span>
+                      <span className="receipt-value">{paymentReceipt.receiptData?.paymentMethod || 'N/A'}</span>
+                    </div>
+                    <div className="receipt-row">
+                      <span className="receipt-label">Status:</span>
+                      <span className="receipt-value receipt-status">{paymentReceipt.receiptData?.paymentStatus || 'N/A'}</span>
+                    </div>
+                    <div className="receipt-row">
+                      <span className="receipt-label">Transaction ID:</span>
+                      <span className="receipt-value">{paymentReceipt.receiptData?.transactionId || 'N/A'}</span>
                     </div>
                   </div>
                   
                   <div className="receipt-footer">
                     <p>Thank you for your payment!</p>
-                    <p className="receipt-note">This is an official receipt for your advance payment.</p>
+                    <p className="receipt-timestamp">Generated on: {new Date().toLocaleString()}</p>
                   </div>
                 </div>
               </div>
@@ -959,7 +878,13 @@ const MyRequests = () => {
                     <FaReceipt /> View Official Receipt
                   </button>
                 )}
-
+                <button 
+                  type="button" 
+                  className="download-pdf-btn" 
+                  onClick={() => window.open(`http://localhost:5001/api/pdf/download-receipt?session_id=${paymentReceipt.receiptData?.sessionId || paymentReceipt.payment?.stripeDetails?.sessionId}`, '_blank')}
+                >
+                  <FaDownload /> Download PDF Receipt
+                </button>
                 <button 
                   type="button" 
                   className="print-btn" 
@@ -967,51 +892,19 @@ const MyRequests = () => {
                 >
                   <FaPrint /> Print Receipt
                 </button>
-                
                 <button 
                   type="button" 
-                  className="download-btn" 
-                  onClick={() => {
-                    const receiptElement = document.querySelector('.receipt-container');
-                    const printWindow = window.open('', '_blank');
-                    printWindow.document.write(`
-                      <html>
-                        <head>
-                          <title>Payment Receipt - ${paymentReceipt.receiptData?.receiptId || 'N/A'}</title>
-                          <style>
-                            body { font-family: Arial, sans-serif; margin: 20px; }
-                            .receipt-container { max-width: 800px; margin: 0 auto; }
-                            .receipt-header { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #3498db; }
-                            .receipt-header h2 { color: #2c3e50; margin-bottom: 10px; font-size: 1.8rem; }
-                            .receipt-id, .receipt-date { color: #7f8c8d; font-size: 0.9rem; margin-bottom: 5px; }
-                            .receipt-section { margin-bottom: 25px; padding: 20px; background-color: #f8f9fa; border-radius: 8px; border-left: 4px solid #3498db; }
-                            .section-title { font-size: 1.2rem; font-weight: 600; color: #2c3e50; margin-bottom: 15px; border-bottom: 1px solid #dee2e6; padding-bottom: 8px; }
-                            .receipt-row { display: flex; justify-content: space-between; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #e9ecef; }
-                            .receipt-row:last-child { border-bottom: none; margin-bottom: 0; }
-                            .receipt-label { font-weight: 600; color: #495057; flex: 1; }
-                            .receipt-value { text-align: right; color: #212529; flex: 1; word-break: break-word; }
-                            .receipt-value.amount { font-weight: 700; color: #28a745; font-size: 1.1rem; }
-                            .receipt-status { font-weight: 600; color: #28a745; text-transform: uppercase; font-size: 0.9rem; }
-                            .receipt-footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 3px solid #3498db; color: #6c757d; }
-                            .receipt-note { font-size: 0.9rem; font-style: italic; color: #6c757d; }
-                          </style>
-                        </head>
-                        <body>
-                          ${receiptElement.outerHTML}
-                        </body>
-                      </html>
-                    `);
-                    printWindow.document.close();
-                    printWindow.focus();
-                    setTimeout(() => {
-                      printWindow.print();
-                      printWindow.close();
-                    }, 250);
-                  }}
+                  className="view-pdf-btn" 
+                  onClick={() => window.open(`http://localhost:5001/api/pdf/generate-receipt?session_id=${paymentReceipt.receiptData?.sessionId || paymentReceipt.payment?.stripeDetails?.sessionId}`, '_blank')}
                 >
+<<<<<<< Updated upstream
                   <FaDownload /> Download Receipt
                 </button>
 
+=======
+                  <FaReceipt /> View Online Receipt
+                </button>
+>>>>>>> Stashed changes
               </div>
             </div>
           </div>

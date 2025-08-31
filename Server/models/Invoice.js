@@ -159,10 +159,14 @@ const InvoiceSchema = new mongoose.Schema({
   propertyId: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'Property', 
+<<<<<<< Updated upstream
     required: function() {
       // propertyId is not required for admin subscription invoices
       return !this.lineItems?.some(item => item.type === 'subscription' && this.billTo && this.billFrom && this.billTo.equals(this.billFrom));
     }
+=======
+    required: false // Made optional for subscription invoices
+>>>>>>> Stashed changes
   },
   
   // Billing information

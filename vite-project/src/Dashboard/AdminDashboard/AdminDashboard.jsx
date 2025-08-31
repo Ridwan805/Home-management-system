@@ -6,7 +6,10 @@ import PendingProperties from './PendingProperties';
 import ReportManagement from './ReportManagement';
 import UserModeration from './UserModeration';
 import SubscriptionManagement from './SubscriptionManagement';
+<<<<<<< Updated upstream
 import ConfigurationManagement from './ConfigurationManagement';
+=======
+>>>>>>> Stashed changes
 import './adminDashboard.css';
 
 const AdminDashboard = () => {
@@ -35,8 +38,11 @@ const AdminDashboard = () => {
       setActiveTab('user-moderation');
     } else if (path === '/admin/subscriptions') {
       setActiveTab('subscription-management');
+<<<<<<< Updated upstream
     } else if (path === '/admin/configuration') {
       setActiveTab('configuration');
+=======
+>>>>>>> Stashed changes
     }
   }, [location.pathname]);
 
@@ -49,8 +55,12 @@ const AdminDashboard = () => {
           <Route path="/pending-properties" element={<PendingProperties />} />
           <Route path="/reports" element={<ReportManagement />} />
           <Route path="/users" element={<UserModeration />} />
+<<<<<<< Updated upstream
           <Route path="/admin/subscriptions" element={<SubscriptionManagement />} />
           <Route path="/admin/configuration" element={<ConfigurationManagement />} />
+=======
+          <Route path="/subscriptions" element={<SubscriptionManagement />} />
+>>>>>>> Stashed changes
           <Route path="*" element={<DashboardOverview />} />
         </Routes>
       </main>
