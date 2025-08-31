@@ -18,6 +18,7 @@ import ViewDetails from './components/ViewDetails';
 import OwnerRequestsInbox from './Dashboard/OwnerProfile/OwnerRequestsInbox';
 import SidebarNav from './Dashboard/OwnerProfile/SidebarNav';
 import Payment from './Dashboard/OwnerProfile/Payment';
+import ProtectedRoute from './components/ProtectedRoute';
 
 // ✅ ADD THIS IMPORT
 import AdminDashboard from './Dashboard/AdminDashboard/AdminDashboard';
@@ -122,17 +123,6 @@ function AppRoutes() {
       {popupMessage && <div className="popup-message">{popupMessage}</div>}
 
       <Routes>
-<<<<<<< Updated upstream
-        <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/properties" element={<PropertyFilter />} />
-        <Route path="/properties/:propertyId" element={<ViewDetails />} />
-        <Route path="/tenant/:section" element={<TenantDashboard />} />
-        <Route path="/dashboard" element={<OwnerDashboard />} />
-        <Route path="/create-listing" element={<CreateListingPage />} />
-=======
         <Route path="/" element={
           <ProtectedRoute allowedRoles={['Owner', 'Tenant', 'admin']}>
             <HomePage />
@@ -166,7 +156,6 @@ function AppRoutes() {
             <CreateListingPage />
           </ProtectedRoute>
         } />
->>>>>>> Stashed changes
 
         <Route
           path="/property-details"
@@ -296,22 +285,11 @@ function AppRoutes() {
         
 
         {/* ✅ Admin Dashboard Route */}
-<<<<<<< Updated upstream
-        <Route path="/admin/*" element={<AdminDashboard />} />
-=======
         <Route path="/admin/*" element={
           <ProtectedRoute allowedRoles={['admin']}>
             <AdminDashboard />
           </ProtectedRoute>
         } />
-        
-        {/* Test Route for PropertyListing Debug */}
-        <Route path="/test-property-listing" element={
-          <ProtectedRoute allowedRoles={['Owner', 'Tenant', 'admin']}>
-            <TestPropertyListing />
-          </ProtectedRoute>
-        } />
->>>>>>> Stashed changes
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" />} />

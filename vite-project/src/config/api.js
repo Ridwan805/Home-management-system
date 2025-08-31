@@ -197,8 +197,6 @@ export default {
     escalateReport: (id) => `/api/admin/reports/${id}/escalate`,
     pendingProperties: '/api/admin/properties/pending',
     approveProperty: (id) => `/api/admin/properties/${id}/approve`,
-<<<<<<< Updated upstream
-=======
     
     // Admin subscription endpoints
     adminSubscriptionInvoices: '/api/admin/subscription/invoices',
@@ -221,8 +219,7 @@ export default {
     updateApplicationStatus: (id) => `/api/security-guard-applications/${id}/status`,
     
     // Image serving endpoint
-    image: (filename) => `/api/images/${filename}`,
->>>>>>> Stashed changes
+    image: (filename) => `/api/images/${filename}`
   },
   
   // Helper function to get full URL for an endpoint
