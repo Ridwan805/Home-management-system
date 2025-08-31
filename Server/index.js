@@ -9,6 +9,15 @@ const fs = require('fs');
 const PaymentScheduler = require('./services/paymentScheduler');
 // Invoice service for automatic invoice generation
 const InvoiceService = require('./services/invoiceService');
+<<<<<<< Updated upstream
+=======
+// Scheduled jobs service for automated tasks
+const ScheduledJobsService = require('./services/scheduledJobs');
+// Notification service for subscription reminders and account status changes
+const notificationService = require('./services/notificationService');
+// Periodic property cleanup service for orphaned properties
+const PeriodicPropertyCleanup = require('./utils/periodicPropertyCleanup');
+>>>>>>> Stashed changes
 
 const app = express();
 app.use(cors());
@@ -26,6 +35,13 @@ mongoose.connect(mongoUrl)
     console.log('✅ MongoDB connected successfully');
     console.log('Database:', mongoose.connection.db.databaseName);
     console.log('Connection URL:', mongoUrl);
+<<<<<<< Updated upstream
+=======
+    PaymentScheduler.start();
+    InvoiceService.initializeCronJobs();
+    ScheduledJobsService.init();
+    notificationService.initializeCronJobs();
+>>>>>>> Stashed changes
   })
   .catch(err => {
     console.error('❌ MongoDB connection error:', err);
@@ -42,6 +58,17 @@ const requestRoutes = require('./routes/request.routes');
 const stripeRoutes = require('./routes/stripe.routes');
 const uploadRoutes = require('./routes/upload.routes');
 const notificationRoutes = require('./routes/notifications');
+<<<<<<< Updated upstream
+=======
+const debugRoutes = require('./routes/debug');
+const imageServingRoutes = require('./routes/imageServing.routes');
+const jobPostRoutes = require('./routes/jobPost.routes');
+const securityGuardApplicationRoutes = require('./routes/securityGuardApplication.routes');
+const invoiceRoutes = require('./routes/invoice.routes');
+const paymentRoutes = require('./routes/payment.routes');
+const subscriptionRoutes = require('./routes/subscription.routes');
+const adminSubscriptionRoutes = require('./routes/adminSubscription.routes');
+>>>>>>> Stashed changes
 
 
 let requestManagementRoutes;
@@ -77,6 +104,18 @@ app.use('/api/requests', requestRoutes);
 app.use('/api/stripe', stripeRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/notifications', notificationRoutes);
+<<<<<<< Updated upstream
+=======
+app.use('/api/debug', debugRoutes);
+app.use('/api/images', imageServingRoutes);
+app.use('/api/job-posts', jobPostRoutes);
+app.use('/api/security-guard-applications', securityGuardApplicationRoutes);
+app.use('/api/invoices', invoiceRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/subscriptions', subscriptionRoutes);
+app.use('/api/admin/subscription', adminSubscriptionRoutes);
+
+>>>>>>> Stashed changes
 
 
 // Request-management routes will be mounted after admin routes to avoid conflicts
@@ -138,4 +177,15 @@ app.listen(PORT, () => {
   // Initialize invoice service cron jobs
   InvoiceService.initializeCronJobs();
   console.log('🧾 Invoice service cron jobs initialized');
+<<<<<<< Updated upstream
+=======
+  
+  // Initialize scheduled jobs service (includes admin subscription invoices)
+  ScheduledJobsService.init();
+  console.log('📅 Scheduled jobs service initialized');
+  
+  // Start periodic property cleanup (runs every 15 seconds)
+  PeriodicPropertyCleanup.start('*/15 * * * * *');
+  console.log('🧹 Periodic property cleanup service started');
+>>>>>>> Stashed changes
 });

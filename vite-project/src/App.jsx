@@ -122,6 +122,7 @@ function AppRoutes() {
       {popupMessage && <div className="popup-message">{popupMessage}</div>}
 
       <Routes>
+<<<<<<< Updated upstream
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
@@ -131,6 +132,41 @@ function AppRoutes() {
         <Route path="/tenant/:section" element={<TenantDashboard />} />
         <Route path="/dashboard" element={<OwnerDashboard />} />
         <Route path="/create-listing" element={<CreateListingPage />} />
+=======
+        <Route path="/" element={
+          <ProtectedRoute allowedRoles={['Owner', 'Tenant', 'admin']}>
+            <HomePage />
+          </ProtectedRoute>
+        } />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/properties" element={
+          <ProtectedRoute allowedRoles={['Owner', 'Tenant', 'admin']}>
+            <PropertyFilter />
+          </ProtectedRoute>
+        } />
+        <Route path="/properties/:propertyId" element={
+          <ProtectedRoute allowedRoles={['Owner', 'Tenant', 'admin']}>
+            <ViewDetails />
+          </ProtectedRoute>
+        } />
+        <Route path="/tenant/:section" element={
+          <ProtectedRoute allowedRoles={['Tenant']}>
+            <TenantDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/dashboard" element={
+          <ProtectedRoute allowedRoles={['Owner']}>
+            <OwnerDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/create-listing" element={
+          <ProtectedRoute allowedRoles={['Owner']}>
+            <CreateListingPage />
+          </ProtectedRoute>
+        } />
+>>>>>>> Stashed changes
 
         <Route
           path="/property-details"
@@ -260,7 +296,22 @@ function AppRoutes() {
         
 
         {/* ✅ Admin Dashboard Route */}
+<<<<<<< Updated upstream
         <Route path="/admin/*" element={<AdminDashboard />} />
+=======
+        <Route path="/admin/*" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
+        
+        {/* Test Route for PropertyListing Debug */}
+        <Route path="/test-property-listing" element={
+          <ProtectedRoute allowedRoles={['Owner', 'Tenant', 'admin']}>
+            <TestPropertyListing />
+          </ProtectedRoute>
+        } />
+>>>>>>> Stashed changes
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" />} />

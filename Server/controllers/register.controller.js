@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
+const { generateSubscriptionInvoiceForNewOwner } = require('../services/invoiceService');
 
 const register = async (req, res) => {
   const { firstName, lastName, email, name, password, role, securityQuestion, securityAnswer, phoneNumber, address } = req.body;
@@ -35,6 +36,17 @@ const register = async (req, res) => {
 
     const savedUser = await newUser.save();
     console.log('Saved user:', savedUser);
+
+    // Generate subscription invoice for new owners
+    if (savedUser.role === 'Owner') {
+      try {
+        await generateSubscriptionInvoiceForNewOwner(savedUser._id);
+        console.log('Subscription invoice generated for new owner:', savedUser._id);
+      } catch (invoiceError) {
+        console.error('Error generating subscription invoice for new owner:', invoiceError.message);
+        // Don't fail registration if invoice generation fails
+      }
+    }
 
     res.status(201).json({
       message: 'User registered successfully',

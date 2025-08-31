@@ -5,6 +5,8 @@ import DashboardOverview from './DashboardOverview';
 import PendingProperties from './PendingProperties';
 import ReportManagement from './ReportManagement';
 import UserModeration from './UserModeration';
+import SubscriptionManagement from './SubscriptionManagement';
+import ConfigurationManagement from './ConfigurationManagement';
 import './adminDashboard.css';
 
 const AdminDashboard = () => {
@@ -31,6 +33,10 @@ const AdminDashboard = () => {
       setActiveTab('report-management');
     } else if (path === '/admin/users') {
       setActiveTab('user-moderation');
+    } else if (path === '/admin/subscriptions') {
+      setActiveTab('subscription-management');
+    } else if (path === '/admin/configuration') {
+      setActiveTab('configuration');
     }
   }, [location.pathname]);
 
@@ -43,6 +49,8 @@ const AdminDashboard = () => {
           <Route path="/pending-properties" element={<PendingProperties />} />
           <Route path="/reports" element={<ReportManagement />} />
           <Route path="/users" element={<UserModeration />} />
+          <Route path="/admin/subscriptions" element={<SubscriptionManagement />} />
+          <Route path="/admin/configuration" element={<ConfigurationManagement />} />
           <Route path="*" element={<DashboardOverview />} />
         </Routes>
       </main>

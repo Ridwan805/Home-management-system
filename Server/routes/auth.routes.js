@@ -10,7 +10,7 @@ const register = require('../controllers/register.controller');
 const getMe = require('../controllers/getMe.controller');
 const updateUser = require('../controllers/updateUser.controller');
 const { getSecurityQuestion, resetPassword } = require('../controllers/forgotPassword.controller');
-const authMiddleware = require('../middleware/auth');
+const { authMiddleware } = require('../middleware/auth');
 
 // ✅ Custom login route handling both users and admins
 router.post('/login', async (req, res) => {

@@ -1,13 +1,48 @@
 // Server/services/notificationService.js
+const nodemailer = require('nodemailer');
+const cron = require('node-cron');
 const User = require('../models/User');
 const Request = require('../models/Request');
 const Property = require('../models/Property');
+<<<<<<< Updated upstream
 
 // In-memory notification store (in production, use Redis or database)
 const notifications = new Map();
 
 class NotificationService {
   // Create a notification
+=======
+const Notification = require('../models/Notification');
+const Subscription = require('../models/Subscription');
+
+class NotificationService {
+  constructor() {
+    this.transporter = null;
+    this.initializeEmailTransporter();
+  }
+
+  // Initialize email transporter for subscription notifications
+  initializeEmailTransporter() {
+    try {
+      this.transporter = nodemailer.createTransport({
+        service: 'gmail', // or your preferred email service
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASSWORD
+        }
+      });
+      console.log('📧 Email transporter initialized successfully');
+    } catch (error) {
+      console.error('❌ Failed to initialize email transporter:', error);
+      this.transporter = null;
+    }
+  }
+  /**
+   * Create a notification for a user
+   * @param {Object} notificationData - The notification data object
+   * @returns {Promise<Object>} The created notification
+   */
+>>>>>>> Stashed changes
   static async createNotification(userId, type, title, message, data = {}) {
     try {
       const notification = {
@@ -233,6 +268,400 @@ class NotificationService {
     };
     return statusTypes[status] || 'info';
   }
+
+  // ===== SUBSCRIPTION NOTIFICATION METHODS =====
+
+  // Send payment reminder email
+  async sendPaymentReminder(user, subscription, daysUntilDue, reminderType) {
+    try {
+      const subject = this.getPaymentReminderSubject(reminderType, daysUntilDue);
+      const htmlContent = this.getPaymentReminderTemplate(user, subscription, daysUntilDue, reminderType);
+
+      const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: user.email,
+        subject: subject,
+        html: htmlContent
+      };
+
+      if (this.transporter) {
+        await this.transporter.sendMail(mailOptions);
+        console.log(`📧 Payment reminder sent to ${user.email} (${reminderType})`);
+      }
+
+      // Create in-app notification
+      await NotificationService.createNotification({
+        userId: user._id,
+        type: 'payment_reminder',
+        title: subject,
+        message: `Payment due ${daysUntilDue >= 0 ? `in ${daysUntilDue} days` : `${Math.abs(daysUntilDue)} days ago`}`,
+        relatedId: subscription._id,
+        relatedModel: 'Subscription'
+      });
+
+      // Record the reminder in subscription history
+      await this.recordReminderSent(subscription._id, reminderType, daysUntilDue);
+
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to send payment reminder:', error);
+      return false;
+    }
+  }
+
+  // Send account status change notification
+  async sendAccountStatusNotification(user, oldStatus, newStatus, reason = null) {
+    try {
+      const subject = this.getStatusChangeSubject(newStatus);
+      const htmlContent = this.getStatusChangeTemplate(user, oldStatus, newStatus, reason);
+
+      const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: user.email,
+        subject: subject,
+        html: htmlContent
+      };
+
+      if (this.transporter) {
+        await this.transporter.sendMail(mailOptions);
+        console.log(`📧 Account status notification sent to ${user.email} (${newStatus})`);
+      }
+
+      // Create in-app notification
+      await NotificationService.createNotification({
+        userId: user._id,
+        type: 'account_status',
+        title: subject,
+        message: `Account status changed from ${oldStatus} to ${newStatus}${reason ? `: ${reason}` : ''}`,
+        relatedId: user._id,
+        relatedModel: 'User'
+      });
+
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to send account status notification:', error);
+      return false;
+    }
+  }
+
+  // Send payment confirmation
+  async sendPaymentConfirmation(user, subscription, paymentAmount, paymentDate) {
+    try {
+      const subject = 'Payment Confirmation - Home Management System';
+      const htmlContent = this.getPaymentConfirmationTemplate(user, subscription, paymentAmount, paymentDate);
+
+      const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: user.email,
+        subject: subject,
+        html: htmlContent
+      };
+
+      if (this.transporter) {
+        await this.transporter.sendMail(mailOptions);
+        console.log(`📧 Payment confirmation sent to ${user.email}`);
+      }
+
+      // Create in-app notification
+      await NotificationService.createNotification({
+        userId: user._id,
+        type: 'payment_confirmation',
+        title: subject,
+        message: `Payment of $${paymentAmount} confirmed for ${new Date(paymentDate).toLocaleDateString()}`,
+        relatedId: subscription._id,
+        relatedModel: 'Subscription'
+      });
+
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to send payment confirmation:', error);
+      return false;
+    }
+  }
+
+  // Process scheduled payment reminders
+  async processScheduledReminders() {
+    try {
+      console.log('🔄 Processing scheduled payment reminders...');
+      
+      const subscriptionsForReminder = await Subscription.findSubscriptionsForReminder();
+      
+      for (const subscription of subscriptionsForReminder) {
+        const user = await User.findById(subscription.ownerId);
+        if (!user || !user.notificationPreferences.emailReminders) {
+          continue;
+        }
+
+        const daysUntilDue = Math.ceil(
+          (new Date(subscription.nextBillingPeriod.dueDate) - new Date()) / (1000 * 60 * 60 * 24)
+        );
+
+        let reminderType = 'general';
+        if (daysUntilDue <= 1) {
+          reminderType = 'final_day';
+        } else if (daysUntilDue <= 7) {
+          reminderType = 'one_week';
+        } else if (daysUntilDue <= 14) {
+          reminderType = 'two_weeks';
+        }
+
+        // Check if this type of reminder was already sent recently
+        const lastReminder = subscription.reminderHistory[subscription.reminderHistory.length - 1];
+        if (lastReminder && 
+            lastReminder.type === reminderType && 
+            new Date() - lastReminder.sentAt < 24 * 60 * 60 * 1000) { // 24 hours
+          continue;
+        }
+
+        await this.sendPaymentReminder(user, subscription, daysUntilDue, reminderType);
+      }
+
+      console.log('✅ Scheduled payment reminders processed');
+    } catch (error) {
+      console.error('❌ Error processing scheduled reminders:', error);
+    }
+  }
+
+  // Process overdue notifications
+  async processOverdueNotifications() {
+    try {
+      console.log('🔄 Processing overdue notifications...');
+      
+      const overdueSubscriptions = await Subscription.findOverdueSubscriptions();
+      
+      for (const subscription of overdueSubscriptions) {
+        const user = await User.findById(subscription.ownerId);
+        if (!user || !user.notificationPreferences.emailReminders) {
+          continue;
+        }
+
+        const daysOverdue = subscription.daysOverdue;
+        
+        // Send final warning if not sent yet
+        const lastReminder = subscription.reminderHistory[subscription.reminderHistory.length - 1];
+        if (!lastReminder || lastReminder.type !== 'overdue_warning') {
+          await this.sendPaymentReminder(user, subscription, -daysOverdue, 'overdue_warning');
+        }
+      }
+
+      console.log('✅ Overdue notifications processed');
+    } catch (error) {
+      console.error('❌ Error processing overdue notifications:', error);
+    }
+  }
+
+  // Record reminder sent in subscription
+  async recordReminderSent(subscriptionId, reminderType, daysUntilDue) {
+    try {
+      await Subscription.findByIdAndUpdate(subscriptionId, {
+        $push: {
+          reminderHistory: {
+            type: reminderType,
+            sentAt: new Date(),
+            daysUntilDue: daysUntilDue
+          }
+        },
+        lastReminderSent: new Date(),
+        $inc: { reminderCount: 1 }
+      });
+    } catch (error) {
+      console.error('❌ Error recording reminder:', error);
+    }
+  }
+
+  // Email template helper methods
+  getPaymentReminderSubject(reminderType, daysUntilDue) {
+    switch (reminderType) {
+      case 'two_weeks':
+        return 'Payment Due in 14 Days - Home Management System';
+      case 'one_week':
+        return 'Payment Due in 7 Days - Home Management System';
+      case 'final_day':
+        return 'URGENT: Payment Due Today - Home Management System';
+      case 'overdue_warning':
+        return 'FINAL WARNING: Payment Overdue - Account at Risk';
+      default:
+        return `Payment Reminder - ${Math.abs(daysUntilDue)} days ${daysUntilDue >= 0 ? 'remaining' : 'overdue'}`;
+    }
+  }
+
+  getStatusChangeSubject(newStatus) {
+    switch (newStatus) {
+      case 'frozen':
+        return 'Account Frozen - Home Management System';
+      case 'active':
+        return 'Account Reactivated - Home Management System';
+      case 'warning':
+        return 'Account Warning - Home Management System';
+      default:
+        return 'Account Status Update - Home Management System';
+    }
+  }
+
+  getPaymentReminderTemplate(user, subscription, daysUntilDue, reminderType) {
+    const isOverdue = daysUntilDue < 0;
+    const urgencyClass = isOverdue ? 'urgent' : (daysUntilDue <= 7 ? 'warning' : 'info');
+    
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          .container { max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif; }
+          .header { background-color: #2c3e50; color: white; padding: 20px; text-align: center; }
+          .content { padding: 20px; }
+          .urgent { border-left: 5px solid #e74c3c; background-color: #fdf2f2; }
+          .warning { border-left: 5px solid #f39c12; background-color: #fef9e7; }
+          .info { border-left: 5px solid #3498db; background-color: #ebf3fd; }
+          .button { background-color: #3498db; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 10px 0; }
+          .footer { background-color: #ecf0f1; padding: 15px; text-align: center; font-size: 12px; color: #7f8c8d; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Payment Reminder</h1>
+          </div>
+          <div class="content ${urgencyClass}">
+            <h2>Hello ${user.firstName || user.name},</h2>
+            <p>
+              ${isOverdue 
+                ? `Your subscription payment is <strong>${Math.abs(daysUntilDue)} days overdue</strong>.` 
+                : `Your subscription payment is due in <strong>${daysUntilDue} days</strong>.`
+              }
+            </p>
+            <div style="margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px;">
+              <h3>Payment Details:</h3>
+              <p><strong>Amount Due:</strong> $${subscription.config.monthlyFee}</p>
+              <p><strong>Due Date:</strong> ${new Date(subscription.nextBillingPeriod.dueDate).toLocaleDateString()}</p>
+              <p><strong>Billing Period:</strong> ${new Date(subscription.nextBillingPeriod.startDate).toLocaleDateString()} - ${new Date(subscription.nextBillingPeriod.endDate).toLocaleDateString()}</p>
+            </div>
+            ${isOverdue ? `
+              <div style="background-color: #f8d7da; border: 1px solid #f5c6cb; padding: 15px; border-radius: 5px; margin: 15px 0;">
+                <h4 style="color: #721c24; margin: 0 0 10px 0;">⚠️ Important Notice</h4>
+                <p style="color: #721c24; margin: 0;">Your account may be frozen if payment is not received promptly. Please make your payment immediately to avoid service interruption.</p>
+              </div>
+            ` : ''}
+            <a href="${process.env.FRONTEND_URL}/payment" class="button">Make Payment Now</a>
+            <p>If you have already made this payment, please disregard this notice.</p>
+          </div>
+          <div class="footer">
+            <p>Home Management System | Contact: ${process.env.SUPPORT_EMAIL || 'support@homemanagement.com'}</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  getStatusChangeTemplate(user, oldStatus, newStatus, reason) {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          .container { max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif; }
+          .header { background-color: #2c3e50; color: white; padding: 20px; text-align: center; }
+          .content { padding: 20px; }
+          .status-change { padding: 15px; border-radius: 5px; margin: 15px 0; }
+          .frozen { background-color: #fdf2f2; border: 1px solid #f5c6cb; }
+          .active { background-color: #d4edda; border: 1px solid #c3e6cb; }
+          .warning { background-color: #fef9e7; border: 1px solid #ffeaa7; }
+          .footer { background-color: #ecf0f1; padding: 15px; text-align: center; font-size: 12px; color: #7f8c8d; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Account Status Update</h1>
+          </div>
+          <div class="content">
+            <h2>Hello ${user.firstName || user.name},</h2>
+            <p>Your account status has been updated.</p>
+            <div class="status-change ${newStatus}">
+              <h3>Status Change:</h3>
+              <p><strong>Previous Status:</strong> ${oldStatus}</p>
+              <p><strong>New Status:</strong> ${newStatus}</p>
+              ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}
+            </div>
+            ${newStatus === 'frozen' ? `
+              <div style="background-color: #f8d7da; border: 1px solid #f5c6cb; padding: 15px; border-radius: 5px; margin: 15px 0;">
+                <h4 style="color: #721c24;">Account Frozen</h4>
+                <p style="color: #721c24;">Your account has been temporarily frozen. You will not be able to access certain features until this is resolved.</p>
+                <p style="color: #721c24;">Please contact support or make any outstanding payments to reactivate your account.</p>
+              </div>
+            ` : ''}
+            ${newStatus === 'active' ? `
+              <div style="background-color: #d4edda; border: 1px solid #c3e6cb; padding: 15px; border-radius: 5px; margin: 15px 0;">
+                <h4 style="color: #155724;">Account Reactivated</h4>
+                <p style="color: #155724;">Your account has been reactivated. You now have full access to all features.</p>
+              </div>
+            ` : ''}
+          </div>
+          <div class="footer">
+            <p>Home Management System | Contact: ${process.env.SUPPORT_EMAIL || 'support@homemanagement.com'}</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  getPaymentConfirmationTemplate(user, subscription, paymentAmount, paymentDate) {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          .container { max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif; }
+          .header { background-color: #27ae60; color: white; padding: 20px; text-align: center; }
+          .content { padding: 20px; }
+          .confirmation { background-color: #d4edda; border: 1px solid #c3e6cb; padding: 15px; border-radius: 5px; margin: 15px 0; }
+          .footer { background-color: #ecf0f1; padding: 15px; text-align: center; font-size: 12px; color: #7f8c8d; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>✅ Payment Confirmed</h1>
+          </div>
+          <div class="content">
+            <h2>Hello ${user.firstName || user.name},</h2>
+            <p>Thank you! Your payment has been successfully processed.</p>
+            <div class="confirmation">
+              <h3>Payment Details:</h3>
+              <p><strong>Amount Paid:</strong> $${paymentAmount}</p>
+              <p><strong>Payment Date:</strong> ${new Date(paymentDate).toLocaleDateString()}</p>
+              <p><strong>Next Due Date:</strong> ${new Date(subscription.nextBillingPeriod.dueDate).toLocaleDateString()}</p>
+            </div>
+            <p>Your account is now up to date. Thank you for your prompt payment!</p>
+          </div>
+          <div class="footer">
+            <p>Home Management System | Contact: ${process.env.SUPPORT_EMAIL || 'support@homemanagement.com'}</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  // Initialize cron jobs for automated notifications
+  initializeCronJobs() {
+    // Run payment reminders daily at 9 AM
+    cron.schedule('0 9 * * *', () => {
+      this.processScheduledReminders();
+    });
+
+    // Run overdue notifications daily at 10 AM
+    cron.schedule('0 10 * * *', () => {
+      this.processOverdueNotifications();
+    });
+
+    console.log('📅 Notification cron jobs initialized');
+  }
 }
 
-module.exports = NotificationService;
+// Create singleton instance
+const notificationService = new NotificationService();
+
+module.exports = notificationService;

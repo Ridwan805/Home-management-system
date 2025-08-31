@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Property = require('../models/Property');
-const auth = require('../middleware/auth');
+const { authMiddleware: auth } = require('../middleware/auth');
 const multer = require('multer');
 const path = require('path');
 const {
@@ -75,6 +75,12 @@ router.get('/user', auth, getUserProperties);
 // GET /api/properties/search - Advanced property search
 router.get('/search', searchProperties);
 
+<<<<<<< Updated upstream
+=======
+// GET /api/properties/check-combination - Check if building-unit-floor combination exists
+// router.get('/check-combination', auth, checkCombination); // Function not implemented
+
+>>>>>>> Stashed changes
 // GET /api/properties/standalone - Get standalone properties
 router.get('/standalone', getStandaloneProperties);
 
@@ -90,6 +96,12 @@ router.get('/assignments', auth, authorizeRole(['owner', 'admin']), getPropertyA
 // GET /api/properties/my-assignments - Get tenant's assigned properties
 router.get('/my-assignments', auth, authorizeRole(['tenant', 'admin']), getTenantAssignments);
 
+<<<<<<< Updated upstream
+=======
+// GET /api/properties/tenant/:propertyId/details - Get detailed property info with ownership history for tenants
+// router.get('/tenant/:propertyId/details', auth, authorizeRole(['tenant', 'admin']), getTenantPropertyDetails); // Function not implemented
+
+>>>>>>> Stashed changes
 // GET /api/properties/:id - Retrieve a single property by ID
 router.get('/:id', getPropertyById);
 

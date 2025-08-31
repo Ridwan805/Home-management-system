@@ -363,7 +363,19 @@ const handleWebhook = async (req, res) => {
         
         const requestType = sessionData.metadata.requestType || 'advance_payment';
         
+<<<<<<< Updated upstream
         if (requestType === 'full_payment') {
+=======
+        if (paymentType === 'subscription_payment') {
+          console.log('🔄 [WEBHOOK] Handling subscription payment...');
+          await handleSubscriptionPaymentSuccess(sessionData);
+          console.log('✅ [WEBHOOK] Subscription payment handled successfully');
+        } else if (paymentType === 'invoice_payment') {
+          console.log('🔄 [WEBHOOK] Handling invoice payment...');
+          await handleInvoicePaymentSuccess(sessionData);
+          console.log('✅ [WEBHOOK] Invoice payment handled successfully');
+        } else if (paymentType === 'full_payment') {
+>>>>>>> Stashed changes
           console.log('🔄 [WEBHOOK] Handling full payment...');
           await handleFullPaymentSuccess(sessionData);
           console.log('✅ [WEBHOOK] Full payment handled successfully');
@@ -740,7 +752,406 @@ const handleFullPaymentSuccess = async (session) => {
   }
 };
 
+<<<<<<< Updated upstream
 // Handle payment expired
+=======
+// Handle successful invoice payment
+const handleInvoicePaymentSuccess = async (session) => {
+  const startTime = Date.now();
+  
+  try {
+    console.log('🔄 [INVOICE PAYMENT] Processing invoice payment success:', {
+      sessionId: session.id,
+      metadata: session.metadata,
+      amountTotal: session.amount_total,
+      currency: session.currency
+    });
+
+    const { paymentId, userId } = session.metadata;
+    
+    if (!paymentId || !userId) {
+      console.error('❌ [INVOICE PAYMENT] Missing required metadata:', { paymentId, userId });
+      return;
+    }
+
+    // Find the payment record
+    const payment = await Payment.findById(paymentId)
+      .populate('invoiceId', 'invoiceNumber billTo propertyId')
+      .populate({
+        path: 'invoiceId',
+        populate: {
+          path: 'propertyId',
+          select: 'title address ownerId'
+        }
+      });
+      
+    if (!payment) {
+      console.error('❌ [INVOICE PAYMENT] Payment not found:', paymentId);
+      return;
+    }
+
+    // Verify the user is authorized
+    if (payment.payerId.toString() !== userId) {
+      console.error('❌ [INVOICE PAYMENT] User not authorized for this payment:', { userId, payerId: payment.payerId });
+      return;
+    }
+
+    // Use PaymentService to mark payment as completed
+    const paymentDetails = {
+      stripePaymentIntentId: session.payment_intent,
+      chargeId: session.payment_intent, // This would be the actual charge ID from Stripe
+      receiptUrl: session.receipt_url || null
+    };
+
+    await PaymentService.markPaymentAsCompleted(paymentId, paymentDetails);
+    console.log('✅ [INVOICE PAYMENT] Payment and invoice status updated');
+
+    // Send notification to tenant
+    try {
+      await NotificationService.sendNotification({
+        userId: userId,
+        type: 'payment_success',
+        title: 'Payment Successful',
+        message: `Your payment of $${(session.amount_total / 100).toFixed(2)} for invoice #${payment.invoiceId.invoiceNo || payment.invoiceId._id.slice(-6)} has been processed successfully.`,
+        data: {
+          invoiceId: payment.invoiceId._id,
+          paymentId: payment._id,
+          amount: session.amount_total / 100,
+          currency: session.currency.toUpperCase()
+        }
+      });
+      console.log('✅ [INVOICE PAYMENT] Notification sent to tenant');
+    } catch (notificationError) {
+      console.error('❌ [INVOICE PAYMENT] Failed to send notification:', notificationError.message);
+    }
+
+    // Send notification to property owner if different from tenant
+    try {
+      const property = await Property.findById(payment.invoiceId.propertyId._id).populate('ownerId');
+      if (property && property.ownerId && property.ownerId._id.toString() !== userId) {
+        const tenant = await User.findById(userId);
+        await NotificationService.sendNotification({
+          userId: property.ownerId._id,
+          type: 'payment_received',
+          title: 'Payment Received',
+          message: `Payment of $${(session.amount_total / 100).toFixed(2)} received for ${property.displayName || property.address || 'Property'} from ${tenant.firstName} ${tenant.lastName}.`,
+          data: {
+            invoiceId: payment.invoiceId._id,
+            paymentId: payment._id,
+            tenantName: `${tenant.firstName} ${tenant.lastName}`,
+            propertyTitle: property.title
+          }
+        });
+        console.log('✅ [INVOICE PAYMENT] Notification sent to property owner');
+      }
+    } catch (ownerNotificationError) {
+      console.error('❌ [INVOICE PAYMENT] Failed to send owner notification:', ownerNotificationError.message);
+    }
+
+    console.log('✅ [INVOICE PAYMENT] Invoice payment processing completed:', {
+      invoiceId: payment.invoiceId._id,
+      paymentId: payment._id,
+      totalProcessingTime: `${Date.now() - startTime}ms`
+    });
+    
+  } catch (error) {
+    console.error('❌ [INVOICE PAYMENT] Error handling invoice payment success:', error);
+  }
+};
+
+/**
+ * Create a Stripe payment session for an invoice
+ */
+const createInvoicePaymentSession = async (req, res) => {
+  try {
+    const { paymentId } = req.body;
+    const userId = req.user?.userId;
+
+    if (!paymentId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment ID is required'
+      });
+    }
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    // Find the payment and populate related data
+    const payment = await Payment.findById(paymentId)
+      .populate('invoiceId', 'lineItems total dueDate period')
+      .populate('rentId', 'propertyId')
+      .populate({
+        path: 'rentId',
+        populate: {
+          path: 'propertyId',
+          select: 'title address'
+        }
+      });
+
+    if (!payment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Payment not found'
+      });
+    }
+
+    // Verify the user is authorized to pay this invoice
+    if (payment.payerId.toString() !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized to pay this invoice'
+      });
+    }
+
+    // Check if payment is still pending
+    if (payment.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: `Payment is already ${payment.status}`
+      });
+    }
+
+    // Create Stripe checkout session
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+              line_items: [{
+          price_data: {
+            currency: payment.currency.toLowerCase(),
+            product_data: {
+              name: `Monthly Rent - ${payment.rentId.propertyId.displayName || payment.rentId.propertyId.address || 'Property'}`,
+              description: `Invoice for period: ${new Date(payment.invoiceId.period.start).toLocaleDateString()} - ${new Date(payment.invoiceId.period.end).toLocaleDateString()}`
+            },
+            unit_amount: Math.round(payment.amount * 100) // Convert to cents
+          },
+          quantity: 1
+        }],
+      mode: 'payment',
+      success_url: `${process.env.FRONTEND_URL}/tenant/payment?session_id={CHECKOUT_SESSION_ID}&status=success&payment_id=${paymentId}`,
+      cancel_url: `${process.env.FRONTEND_URL}/tenant/payment?status=cancelled&payment_id=${paymentId}`,
+      metadata: {
+        paymentId: paymentId,
+        userId: userId,
+        type: 'invoice_payment'
+      }
+    });
+
+    console.log('✅ Created Stripe session for invoice payment:', {
+      sessionId: session.id,
+      paymentId: paymentId,
+      amount: payment.amount
+    });
+
+    res.status(200).json({
+      success: true,
+      sessionId: session.id,
+      url: session.url
+    });
+
+  } catch (error) {
+    console.error('❌ Error creating invoice payment session:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create payment session',
+      error: error.message
+    });
+  }
+};
+
+// Create Stripe checkout session for subscription payment
+const createSubscriptionPaymentSession = async (req, res) => {
+  try {
+    const { invoiceIds } = req.body;
+    const userId = req.user?.userId;
+
+    if (!invoiceIds || !Array.isArray(invoiceIds) || invoiceIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invoice IDs are required'
+      });
+    }
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    // Find the invoices
+    const invoices = await Invoice.find({
+      _id: { $in: invoiceIds },
+      ownerId: userId,
+      status: 'pending'
+    });
+
+    if (invoices.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No valid pending invoices found'
+      });
+    }
+
+    if (invoices.length !== invoiceIds.length) {
+      return res.status(400).json({
+        success: false,
+        message: 'Some invoices are not found or not pending'
+      });
+    }
+
+    // Calculate total amount
+    const totalAmount = invoices.reduce((sum, invoice) => sum + invoice.total, 0);
+    const currency = invoices[0].currency || 'USD';
+
+    // Create line items for Stripe
+    const lineItems = invoices.map(invoice => ({
+      price_data: {
+        currency: currency.toLowerCase(),
+        product_data: {
+          name: `Subscription Fee - ${new Date(invoice.period.start).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`,
+          description: `Period: ${new Date(invoice.period.start).toLocaleDateString()} - ${new Date(invoice.period.end).toLocaleDateString()}`
+        },
+        unit_amount: Math.round(invoice.total * 100) // Convert to cents
+      },
+      quantity: 1
+    }));
+
+    // Create Stripe checkout session
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: lineItems,
+      mode: 'payment',
+      success_url: `${process.env.FRONTEND_URL}/owner/payment?session_id={CHECKOUT_SESSION_ID}&status=success`,
+      cancel_url: `${process.env.FRONTEND_URL}/owner/payment?status=cancelled`,
+      metadata: {
+        invoiceIds: invoiceIds.join(','),
+        userId: userId,
+        type: 'subscription_payment',
+        totalAmount: totalAmount.toString()
+      }
+    });
+
+    console.log('✅ Created Stripe session for subscription payment:', {
+      sessionId: session.id,
+      invoiceIds: invoiceIds,
+      totalAmount: totalAmount
+    });
+
+    res.status(200).json({
+      success: true,
+      sessionId: session.id,
+      url: session.url
+    });
+
+  } catch (error) {
+    console.error('❌ Error creating subscription payment session:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create payment session',
+      error: error.message
+    });
+  }
+};
+
+// Handle successful subscription payment
+const handleSubscriptionPaymentSuccess = async (session) => {
+  try {
+    console.log('🔄 Processing subscription payment success:', {
+      sessionId: session.id,
+      metadata: session.metadata
+    });
+
+    const { invoiceIds, userId, totalAmount } = session.metadata;
+    
+    if (!invoiceIds || !userId) {
+      throw new Error('Missing required metadata in session');
+    }
+
+    const invoiceIdArray = invoiceIds.split(',');
+    
+    // Update invoice statuses to paid
+    const updateResult = await Invoice.updateMany(
+      {
+        _id: { $in: invoiceIdArray },
+        ownerId: userId,
+        status: 'pending'
+      },
+      {
+        $set: {
+          status: 'paid',
+          paidAt: new Date(),
+          paymentMethod: 'stripe',
+          stripeSessionId: session.id
+        }
+      }
+    );
+
+    console.log('✅ Updated invoices:', {
+      matchedCount: updateResult.matchedCount,
+      modifiedCount: updateResult.modifiedCount
+    });
+
+    // Create payment records for each invoice
+    const invoices = await Invoice.find({ _id: { $in: invoiceIdArray } });
+    
+    const paymentPromises = invoices.map(async (invoice) => {
+      const payment = new Payment({
+        invoiceId: invoice._id,
+        payerId: userId,
+        payeeId: null, // System payment
+        amount: invoice.total,
+        currency: invoice.currency || 'USD',
+        status: 'completed',
+        paymentMethod: 'stripe',
+        stripeSessionId: session.id,
+        type: 'subscription',
+        description: `Subscription payment for ${new Date(invoice.period.start).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`,
+        paidAt: new Date()
+      });
+      
+      return await payment.save();
+    });
+
+    const savedPayments = await Promise.all(paymentPromises);
+    
+    console.log('✅ Created payment records:', {
+      count: savedPayments.length,
+      paymentIds: savedPayments.map(p => p._id)
+    });
+
+    // Send notification to owner
+    try {
+      const owner = await User.findById(userId);
+      if (owner) {
+        await NotificationService.createNotification({
+          userId: userId,
+          type: 'payment_success',
+          title: 'Subscription Payment Successful',
+          message: `Your subscription payment of $${totalAmount} has been processed successfully.`,
+          data: {
+            sessionId: session.id,
+            invoiceCount: invoices.length,
+            totalAmount: totalAmount
+          }
+        });
+      }
+    } catch (notificationError) {
+      console.error('⚠️ Failed to send notification:', notificationError.message);
+    }
+
+    console.log('✅ Subscription payment processing completed successfully');
+    
+  } catch (error) {
+    console.error('❌ Error processing subscription payment success:', error);
+    throw error;
+  }
+};
+
+>>>>>>> Stashed changes
 const handlePaymentExpired = async (session) => {
   try {
     const { requestId } = session.metadata;
@@ -1061,5 +1472,11 @@ module.exports = {
   getPaymentStatus,
   uploadPaymentProof,
   updatePaymentStatus,
+<<<<<<< Updated upstream
   getReceipt
+=======
+  getReceipt,
+  createInvoicePaymentSession,
+  createSubscriptionPaymentSession
+>>>>>>> Stashed changes
 };

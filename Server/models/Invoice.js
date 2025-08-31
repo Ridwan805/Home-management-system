@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const INVOICE_STATUSES = ['draft', 'open', 'partially_paid', 'paid', 'void', 'overdue'];
 
 // Define valid line item types
-const LINE_ITEM_TYPES = ['rent', 'utility', 'fee', 'deposit', 'late_fee', 'deposit_deduction', 'other'];
+const LINE_ITEM_TYPES = ['rent', 'utility', 'fee', 'deposit', 'late_fee', 'deposit_deduction', 'subscription', 'other'];
 
 // Line item schema for invoice details
 const LineItemSchema = new mongoose.Schema({
@@ -159,7 +159,10 @@ const InvoiceSchema = new mongoose.Schema({
   propertyId: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'Property', 
-    required: true 
+    required: function() {
+      // propertyId is not required for admin subscription invoices
+      return !this.lineItems?.some(item => item.type === 'subscription' && this.billTo && this.billFrom && this.billTo.equals(this.billFrom));
+    }
   },
   
   // Billing information

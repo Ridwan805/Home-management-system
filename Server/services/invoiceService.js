@@ -348,7 +348,352 @@ class InvoiceService {
   }
   
   /**
+<<<<<<< Updated upstream
    * Initialize cron jobs for automatic invoice generation
+=======
+   * Generate subscription invoices for all property owners
+   * This should be run on the 1st of each month
+   */
+  static async generateMonthlySubscriptionInvoices() {
+    try {
+      console.log('🧾 Starting monthly subscription invoice generation...');
+      
+      // Get all property owners (users with role 'Owner' who have properties)
+      const owners = await User.find({ role: 'Owner' });
+      
+      console.log(`🧾 Found ${owners.length} owners for subscription invoicing`);
+      
+      const results = {
+        success: 0,
+        failed: 0,
+        skipped: 0,
+        errors: []
+      };
+      
+      const currentDate = new Date();
+      const billingPeriod = {
+        start: new Date(currentDate.getFullYear(), currentDate.getMonth(), 1),
+        end: new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+      };
+      
+      // Get a random admin to be the payee
+      const Admin = require('../models/Admin');
+      const admin = await Admin.findOne({ isActive: true });
+      if (!admin) {
+        throw new Error('No admin found to be the payee for subscription invoices');
+      }
+      
+      // Get a system property for subscription invoices (use any property as placeholder)
+      const Property = require('../models/Property');
+      let systemProperty = await Property.findOne().limit(1);
+      if (!systemProperty) {
+        // Create a system property if none exists
+        systemProperty = new Property({
+          title: 'System Property for Subscription Billing',
+          address: 'System Generated',
+          propertyType: 'Other',
+          listingType: 'For Rent',
+          description: 'System property used for subscription billing purposes',
+          ownerUserId: admin._id,
+          status: 'Not Available',
+          pricing: { rentAmount: 0, currency: 'BDT' },
+          specifications: { bedrooms: 0, bathrooms: 0, area: 0, areaUnit: 'sqft' },
+          location: { city: 'System', state: 'System', country: 'System' }
+        });
+        await systemProperty.save();
+      }
+      
+      for (const owner of owners) {
+        try {
+          // Check if subscription invoice already exists for this billing period
+          const existingInvoice = await Invoice.findOne({
+            billTo: owner._id,
+            billFrom: admin._id,
+            'period.start': billingPeriod.start,
+            'period.end': billingPeriod.end,
+            'lineItems.type': 'subscription'
+          });
+          
+          if (existingInvoice) {
+            console.log(`🧾 Subscription invoice already exists for owner ${owner._id} for current period`);
+            results.skipped++;
+            continue;
+          }
+          
+          // Generate subscription invoice
+          const subscriptionFee = 500; // Default subscription fee in BDT
+          
+          const invoiceData = {
+            propertyId: systemProperty._id,
+            billTo: owner._id,
+            billFrom: admin._id,
+            period: billingPeriod,
+            dueDate: this.calculateDueDate(currentDate, 15, 5), // Due on 15th with 5 days grace
+            lineItems: [{
+              type: 'subscription',
+              description: `Monthly subscription fee for ${billingPeriod.start.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`,
+              quantity: 1,
+              unitPrice: subscriptionFee,
+              amount: subscriptionFee,
+              taxable: false
+            }],
+            subtotal: subscriptionFee,
+            total: subscriptionFee,
+            balance: subscriptionFee,
+            currency: 'BDT',
+            status: 'open',
+            auto: {
+              generated: true,
+              source: 'system',
+              generatedAt: new Date()
+            }
+          };
+          
+          const invoice = new Invoice(invoiceData);
+          await invoice.save();
+          
+          // Create corresponding payment object
+          await PaymentService.createPaymentForInvoice(invoice);
+          
+          // Update user ledger summary
+          await this.updateUserLedgerSummary(owner._id, invoice.total, 'expense');
+          await this.updateUserLedgerSummary(admin._id, invoice.total, 'income');
+          
+          console.log(`🧾 Generated subscription invoice ${invoice.invoiceNo} for owner ${owner._id}`);
+          results.success++;
+          
+        } catch (error) {
+          console.error(`🧾 Error generating subscription invoice for owner ${owner._id}:`, error);
+          results.failed++;
+          results.errors.push({
+            ownerId: owner._id,
+            error: error.message
+          });
+        }
+      }
+      
+      console.log('🧾 Monthly subscription invoice generation completed:', results);
+      return results;
+      
+    } catch (error) {
+      console.error('🧾 Error in monthly subscription invoice generation:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Generate subscription invoice for a new owner
+   */
+  static async generateSubscriptionInvoiceForNewOwner(ownerId) {
+    try {
+      console.log(`🧾 Generating subscription invoice for new owner ${ownerId}...`);
+      
+      const owner = await User.findById(ownerId);
+      if (!owner || owner.role !== 'Owner') {
+        throw new Error('Owner not found or invalid role');
+      }
+      
+      // Get a random admin to be the payee
+      const Admin = require('../models/Admin');
+      const admin = await Admin.findOne({ isActive: true });
+      if (!admin) {
+        throw new Error('No admin found to be the payee for subscription invoice');
+      }
+      
+      // Get a system property for subscription invoices (use any property as placeholder)
+      const Property = require('../models/Property');
+      let systemProperty = await Property.findOne().limit(1);
+      if (!systemProperty) {
+        // Create a system property if none exists
+        systemProperty = new Property({
+          title: 'System Property for Subscription Billing',
+          address: 'System Generated',
+          propertyType: 'Other',
+          listingType: 'For Rent',
+          description: 'System property used for subscription billing purposes',
+          ownerUserId: admin._id,
+          status: 'Not Available',
+          pricing: { rentAmount: 0, currency: 'BDT' },
+          specifications: { bedrooms: 0, bathrooms: 0, area: 0, areaUnit: 'sqft' },
+          location: { city: 'System', state: 'System', country: 'System' }
+        });
+        await systemProperty.save();
+      }
+      
+      const currentDate = new Date();
+      const billingPeriod = {
+        start: new Date(currentDate.getFullYear(), currentDate.getMonth(), 1),
+        end: new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+      };
+      
+      // Check if subscription invoice already exists for this billing period
+      const existingInvoice = await Invoice.findOne({
+        billTo: owner._id,
+        billFrom: admin._id,
+        'period.start': billingPeriod.start,
+        'period.end': billingPeriod.end,
+        'lineItems.type': 'subscription'
+      });
+      
+      if (existingInvoice) {
+        console.log(`🧾 Subscription invoice already exists for owner ${ownerId} for current period`);
+        return existingInvoice;
+      }
+      
+      // Generate subscription invoice
+      const subscriptionFee = 500; // Default subscription fee in BDT
+      
+      const invoiceData = {
+        propertyId: systemProperty._id,
+        billTo: owner._id,
+        billFrom: admin._id,
+        period: billingPeriod,
+        dueDate: this.calculateDueDate(currentDate, 15, 5), // Due on 15th with 5 days grace
+        lineItems: [{
+          type: 'subscription',
+          description: `Monthly subscription fee for ${billingPeriod.start.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`,
+          quantity: 1,
+          unitPrice: subscriptionFee,
+          amount: subscriptionFee,
+          taxable: false
+        }],
+        subtotal: subscriptionFee,
+        total: subscriptionFee,
+        balance: subscriptionFee,
+        currency: 'BDT',
+        status: 'open',
+        auto: {
+          generated: true,
+          source: 'system',
+          generatedAt: new Date()
+        }
+      };
+      
+      const invoice = new Invoice(invoiceData);
+      await invoice.save();
+      
+      // Create corresponding payment object
+      await PaymentService.createPaymentForInvoice(invoice);
+      
+      // Update user ledger summary
+      await this.updateUserLedgerSummary(owner._id, invoice.total, 'expense');
+      await this.updateUserLedgerSummary(admin._id, invoice.total, 'income');
+      
+      console.log(`🧾 Generated subscription invoice ${invoice.invoiceNo} for new owner ${ownerId}`);
+      return invoice;
+      
+    } catch (error) {
+      console.error(`🧾 Error generating subscription invoice for new owner ${ownerId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate subscription invoices for all active admins
+   * Called by scheduled job on the 1st of each month
+   */
+  static async generateAdminSubscriptionInvoices() {
+    try {
+      console.log('🧾 Starting admin subscription invoice generation...');
+      
+      const Admin = require('../models/Admin');
+      
+      // Get current date for billing period
+      const currentDate = new Date();
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+      
+      // Calculate billing period (current month)
+      const periodStart = new Date(year, month, 1);
+      const periodEnd = new Date(year, month + 1, 0); // Last day of current month
+      
+      // Calculate due date (20th of current month)
+      const dueDate = new Date(year, month, 20);
+      
+      console.log(`🧾 Invoice period: ${periodStart.toDateString()} to ${periodEnd.toDateString()}`);
+      console.log(`🧾 Due date: ${dueDate.toDateString()}`);
+      
+      // Find all active admins
+      const admins = await Admin.find({ isActive: true });
+      console.log(`🧾 Found ${admins.length} active admins for subscription invoicing`);
+      
+      let successCount = 0;
+      let failedCount = 0;
+      let skippedCount = 0;
+      const errors = [];
+      
+      for (const admin of admins) {
+        try {
+          // Check if invoice already exists for this admin and period
+          const existingInvoice = await Invoice.findOne({
+            billTo: admin._id,
+            'billingPeriod.start': { $gte: periodStart, $lt: new Date(periodStart.getTime() + 24 * 60 * 60 * 1000) },
+            'lineItems.type': 'subscription'
+          });
+          
+          if (existingInvoice) {
+            console.log(`⏭️ Skipping admin ${admin.email} - invoice already exists`);
+            skippedCount++;
+            continue;
+          }
+          
+          // Generate unique invoice number
+          const invoiceNumber = `INV-${year}${String(month + 1).padStart(2, '0')}-${Math.floor(Math.random() * 900000) + 100000}`;
+          
+          // Create invoice for admin
+          const invoice = new Invoice({
+            invoiceNo: invoiceNumber,
+            billFrom: admin._id, // Admin bills themselves
+            billTo: admin._id,   // Admin is billed
+            propertyId: null,    // No property for admin subscriptions
+            amount: 50000,       // Admin subscription fee
+            status: 'draft',
+            dueDate: dueDate,
+            billingPeriod: {
+              start: periodStart,
+              end: periodEnd
+            },
+            lineItems: [{
+              description: 'Admin Subscription Fee',
+              amount: 50000,
+              quantity: 1,
+              type: 'subscription'
+            }],
+            notes: 'Monthly admin subscription fee for platform access and management tools',
+            createdAt: new Date(),
+            updatedAt: new Date()
+          });
+          
+          await invoice.save();
+          console.log(`✅ Created subscription invoice ${invoiceNumber} for admin ${admin.email}`);
+          successCount++;
+          
+        } catch (error) {
+          console.error(`❌ Failed to create invoice for admin ${admin.email}:`, error.message);
+          errors.push({ admin: admin.email, error: error.message });
+          failedCount++;
+        }
+      }
+      
+      const result = {
+        success: successCount,
+        failed: failedCount,
+        skipped: skippedCount,
+        errors: errors
+      };
+      
+      console.log(`🧾 Admin subscription invoice generation completed: ${JSON.stringify(result)}`);
+      return result;
+      
+    } catch (error) {
+      console.error('❌ Error in admin subscription invoice generation:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Initialize cron jobs for invoice-related tasks
+>>>>>>> Stashed changes
    */
   static initializeCronJobs() {
     // Generate monthly rent invoices on the 1st of each month at 00:01
@@ -361,7 +706,22 @@ class InvoiceService {
       }
     });
     
+<<<<<<< Updated upstream
     // Check for overdue invoices daily at 00:05
+=======
+    // Schedule monthly subscription invoice generation - Run on the 1st day of each month at 00:02 AM
+    cron.schedule('2 0 1 * *', async () => {
+      console.log('🧾 Running scheduled monthly subscription invoice generation...');
+      try {
+        await this.generateMonthlySubscriptionInvoices();
+        console.log('🧾 Scheduled monthly subscription invoice generation completed successfully');
+      } catch (error) {
+        console.error('🧾 Error in scheduled monthly subscription invoice generation:', error);
+      }
+    });
+    
+    // Schedule daily check for overdue invoices - Run every day at 00:05 AM
+>>>>>>> Stashed changes
     cron.schedule('5 0 * * *', async () => {
       console.log('🧾 Running overdue invoice check cron job...');
       try {
