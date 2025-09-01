@@ -310,6 +310,90 @@ const updateApplicationStatus = async (req, res) => {
       jobPost.hiredUserId = application.guardId;
       jobPost.hiredDate = new Date();
       await jobPost.save();
+      
+      // Automatically create monthly invoice and payment for security guard
+      if (application.salary && application.salary.amount > 0) {
+        try {
+          const Invoice = require('../models/Invoice');
+          const Payment = require('../models/Payment');
+          
+          // Calculate billing period (current month)
+          const now = new Date();
+          const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+          const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+          const dueDate = new Date(endOfMonth.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days after month end
+          
+          // Create invoice for security guard salary
+          const invoice = new Invoice({
+            propertyId: jobPost.propertyId,
+            billTo: application.guardId, // Security guard receives payment
+            billFrom: userId, // Property owner pays
+            dueDate: dueDate,
+            period: {
+              start: startOfMonth,
+              end: endOfMonth
+            },
+            lineItems: [{
+              type: 'other',
+              description: `Security Guard Salary - ${application.jobDetails?.title || 'Security Services'}`,
+              quantity: 1,
+              unitPrice: application.salary.amount,
+              amount: application.salary.amount,
+              taxable: false,
+              taxRate: 0,
+              taxAmount: 0
+            }],
+            subtotal: application.salary.amount,
+            total: application.salary.amount,
+            balance: application.salary.amount,
+            currency: application.salary.currency || 'USD',
+            status: 'open',
+            autoGeneration: {
+              generated: true,
+              source: 'system',
+              generatedAt: new Date(),
+              generatedBy: userId
+            }
+          });
+          
+          await invoice.save();
+          
+          // Create payment object with pending status
+          const payment = new Payment({
+            invoiceId: invoice._id,
+            type: 'security_guard_payment',
+            status: 'pending',
+            method: 'stripe',
+            amount: application.salary.amount,
+            currency: application.salary.currency || 'USD',
+            propertyId: jobPost.propertyId,
+            payerId: userId, // Property owner pays
+            payeeId: application.guardId, // Security guard receives
+            receiverId: application.guardId,
+            description: `Security Guard Salary Payment - ${application.jobDetails?.title || 'Security Services'}`,
+            dueDate: dueDate,
+            billingPeriod: {
+              startDate: startOfMonth,
+              endDate: endOfMonth,
+              isRecurring: true,
+              recurringFrequency: 'monthly'
+            },
+            history: [{
+              status: 'pending',
+              timestamp: new Date(),
+              note: 'Payment created automatically upon guard hiring',
+              updatedBy: userId
+            }]
+          });
+          
+          await payment.save();
+          
+          console.log(`Created invoice ${invoice.invoiceNo} and payment ${payment.paymentId} for hired security guard`);
+        } catch (invoiceError) {
+          console.error('Error creating invoice and payment for hired guard:', invoiceError);
+          // Don't fail the hiring process if invoice creation fails
+        }
+      }
     }
 
     await application.save();

@@ -8,6 +8,7 @@ const Payment = require('../models/Payment');
 const User = require('../models/User');
 const Property = require('../models/Property');
 const NotificationService = require('../services/notificationService');
+const { getHiredGuardsWithPaymentDetails, generateMonthlyInvoice, handlePaymentSuccess, getPaymentReceipt, getGuardPaymentNotifications } = require('../controllers/securityGuardPayment.controller');
 
 // Create payment session for security guard
 router.post('/create-payment-session', authMiddleware, authorizeRole(['Owner']), async (req, res) => {
@@ -237,5 +238,20 @@ router.put('/job-post/:jobPostId/payment-info', authMiddleware, authorizeRole(['
     });
   }
 });
+
+// Get hired security guards with payment details for owner's payments section
+router.get('/hired-guards', authMiddleware, authorizeRole(['Owner']), getHiredGuardsWithPaymentDetails);
+
+// Generate monthly invoice for security guard salary
+router.post('/generate-invoice/:guardJobId', authMiddleware, authorizeRole(['Owner']), generateMonthlyInvoice);
+
+// Handle successful payment and generate receipt
+router.post('/payment-success/:sessionId', authMiddleware, authorizeRole(['Owner']), handlePaymentSuccess);
+
+// Get payment receipt
+router.get('/receipt/:paymentId', authMiddleware, authorizeRole(['Owner', 'SecurityGuard']), getPaymentReceipt);
+
+// Get security guard payment notifications and receipts
+router.get('/guard/notifications', authMiddleware, authorizeRole(['SecurityGuard']), getGuardPaymentNotifications);
 
 module.exports = router;

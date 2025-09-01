@@ -123,18 +123,21 @@ Creates a Stripe checkout session for invoice payment.
 - **Pay Online Button**: Redirects to Stripe checkout
 - **Real-time Updates**: Automatically refreshes after payment success
 
-## Testing
+## Security Guard Payment System
 
-### Test Monthly Invoice Generation
-```bash
-node test-monthly-invoice-generation.js
-```
+### Automatic Payment Generation
+When a security guard is hired:
+1. Security guard job status is set to 'Hired' or 'Active'
+2. Monthly invoice is automatically created for their salary
+3. Payment object is created in payments schema with 'pending' status
+4. After payment is made, both invoice and payment status are updated
 
-This script tests:
-- Finding requests with completed advance payments
-- Generating first monthly invoices
-- Creating payment objects
-- Creating rent objects
+### Security Guard Payment Flow
+1. Owner hires security guard through job application system
+2. System automatically generates monthly salary invoice
+3. Payment object created with 'pending' status
+4. Owner can pay through Stripe integration
+5. Upon successful payment, statuses are updated to 'completed'
 
 ## Configuration
 

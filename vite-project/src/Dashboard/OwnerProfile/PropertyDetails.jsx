@@ -126,7 +126,15 @@ const PropertyDetails = () => {
     setUpdateError(null);
     
     try {
-      const token = localStorage.getItem('token');
+      const userData = localStorage.getItem('dwellSyncUser');
+        if (!userData) {
+          setError('No authentication token found');
+          setLoading(false);
+          return;
+        }
+        
+        const user = JSON.parse(userData);
+        const token = user.token;
       const formDataToSend = new FormData();
       
       Object.keys(formData).forEach(key => {
@@ -172,7 +180,14 @@ const PropertyDetails = () => {
 
   const handleDeleteProperty = async (propertyId) => {
     try {
-      const token = localStorage.getItem('token');
+      const userData = localStorage.getItem('dwellSyncUser');
+      if (!userData) {
+        alert('No authentication token found');
+        return;
+      }
+      
+      const user = JSON.parse(userData);
+      const token = user.token;
       const response = await fetch(API.getUrl(API.endpoints.propertyById(propertyId)), {
         method: 'DELETE',
         headers: {

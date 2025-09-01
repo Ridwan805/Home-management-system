@@ -8,6 +8,17 @@ const SecurityGuardProfile = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('profile');
+  
+  // Payment-related state
+  const [paymentData, setPaymentData] = useState({
+    summary: { totalEarnings: 0, pendingPayments: 0, completedPayments: 0, currency: 'USD' },
+    notifications: [],
+    activeJobs: []
+  });
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentReceipt, setPaymentReceipt] = useState(null);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [receiptLoading, setReceiptLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     firstName: '', lastName: '', email: '', name: '', phoneNumber: '', address: '', experience: '',
@@ -15,6 +26,69 @@ const SecurityGuardProfile = () => {
   });
 
   const [isEditing, setIsEditing] = useState(false);
+
+  // Fetch payment notifications and receipts
+  const fetchPaymentData = async () => {
+    try {
+      setPaymentLoading(true);
+      const saved = localStorage.getItem('dwellSyncUser');
+      if (!saved) throw new Error("User not logged in");
+      const token = JSON.parse(saved).token;
+
+      const response = await fetch(apiConfig.getUrl('api/security-guard-payments/guard/notifications'), {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch payment data');
+
+      const data = await response.json();
+      if (data.success) {
+        setPaymentData({
+          summary: data.summary,
+          notifications: data.notifications,
+          activeJobs: data.activeJobs
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching payment data:', err);
+      setError(err.message);
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  // Get payment receipt
+  const getPaymentReceipt = async (paymentId) => {
+    try {
+      setReceiptLoading(true);
+      const saved = localStorage.getItem('dwellSyncUser');
+      if (!saved) throw new Error("User not logged in");
+      const token = JSON.parse(saved).token;
+
+      const response = await fetch(apiConfig.getUrl(`api/security-guard-payments/receipt/${paymentId}`), {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch receipt');
+
+      const data = await response.json();
+      if (data.success) {
+        if (data.receiptUrl) {
+          // Open Stripe receipt URL in new tab
+          window.open(data.receiptUrl, '_blank');
+        } else {
+          // Show receipt modal with data
+          setPaymentReceipt(data);
+          setShowReceiptModal(true);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching receipt:', err);
+      setError(err.message);
+    } finally {
+      setReceiptLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -121,6 +195,17 @@ const SecurityGuardProfile = () => {
           onClick={() => setActiveTab('professional')}
         >
           Professional Details
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'payments' ? 'active' : ''}`}
+          onClick={() => {
+            setActiveTab('payments');
+            if (paymentData.notifications.length === 0) {
+              fetchPaymentData();
+            }
+          }}
+        >
+          Payments & Earnings
         </button>
       </div>
 
@@ -322,6 +407,229 @@ const SecurityGuardProfile = () => {
                   <span className="detail-value">{formatDate(currentJob.startDate)}</span>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payments & Earnings Tab */}
+      {activeTab === 'payments' && (
+        <div className="tab-content">
+          <div className="payments-section">
+            <h3>Payments & Earnings</h3>
+            
+            {paymentLoading ? (
+              <div className="loading">Loading payment data...</div>
+            ) : (
+              <>
+                {/* Earnings Summary */}
+                <div className="earnings-summary">
+                  <div className="summary-card">
+                    <div className="summary-item">
+                      <span className="summary-label">Total Earnings</span>
+                      <span className="summary-value">{paymentData.summary.currency} {paymentData.summary.totalEarnings.toLocaleString()}</span>
+                    </div>
+                    <div className="summary-item">
+                      <span className="summary-label">Completed Payments</span>
+                      <span className="summary-value">{paymentData.summary.completedPayments}</span>
+                    </div>
+                    <div className="summary-item">
+                      <span className="summary-label">Pending Payments</span>
+                      <span className="summary-value">{paymentData.summary.pendingPayments}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Active Jobs */}
+                {paymentData.activeJobs.length > 0 && (
+                  <div className="active-jobs-section">
+                    <h4>Active Employment</h4>
+                    <div className="jobs-grid">
+                      {paymentData.activeJobs.map(job => (
+                        <div key={job.id} className="job-card">
+                          <div className="job-header">
+                            <h5>{job.propertyTitle}</h5>
+                            <span className={`job-status ${job.status.toLowerCase()}`}>{job.status}</span>
+                          </div>
+                          <div className="job-details">
+                            <p><strong>Address:</strong> {job.propertyAddress}</p>
+                            <p><strong>Salary:</strong> {job.salary?.currency} {job.salary?.amount} / {job.salary?.paymentFrequency}</p>
+                            <p><strong>Hired Date:</strong> {new Date(job.hiredDate).toLocaleDateString()}</p>
+                            <p><strong>Owner:</strong> {job.owner.name}</p>
+                            <p><strong>Contact:</strong> {job.owner.email}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Payment History */}
+                <div className="payment-history-section">
+                  <h4>Payment History</h4>
+                  {paymentData.notifications.length === 0 ? (
+                    <div className="no-payments">
+                      <p>No payment history found.</p>
+                    </div>
+                  ) : (
+                    <div className="payments-table">
+                      <table className="payment-history-table">
+                        <thead>
+                          <tr>
+                            <th>Date</th>
+                            <th>Property</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {paymentData.notifications.map(payment => (
+                            <tr key={payment.id}>
+                              <td>{new Date(payment.createdAt).toLocaleDateString()}</td>
+                              <td>{payment.jobDetails?.propertyTitle || 'N/A'}</td>
+                              <td>{payment.currency} {payment.amount.toLocaleString()}</td>
+                              <td>
+                                <span className={`payment-status ${payment.status}`}>
+                                  {payment.status === 'completed' || payment.status === 'paid' ? 'Paid' :
+                                   payment.status === 'pending' ? 'Pending' :
+                                   payment.status === 'processing' ? 'Processing' : payment.status}
+                                </span>
+                              </td>
+                              <td>
+                                {(payment.status === 'completed' || payment.status === 'paid') && payment.hasReceipt && (
+                                  <button
+                                    className="receipt-button"
+                                    onClick={() => getPaymentReceipt(payment.id)}
+                                    disabled={receiptLoading}
+                                    title="View Receipt"
+                                  >
+                                    📄
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Receipt Modal */}
+      {showReceiptModal && paymentReceipt && (
+        <div className="receipt-modal-overlay">
+          <div className="receipt-modal">
+            <div className="receipt-modal-header">
+              <h3>Payment Receipt</h3>
+              <button
+                className="close-button"
+                onClick={() => setShowReceiptModal(false)}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="receipt-modal-body">
+              <div className="receipt-content">
+                <div className="receipt-header">
+                  <h3>Security Guard Payment Receipt</h3>
+                  <p className="receipt-id">Receipt ID: {paymentReceipt.receiptData?.receiptId || paymentReceipt.receiptData?.paymentId || 'N/A'}</p>
+                </div>
+                
+                <div className="receipt-details">
+                  <div className="detail-row">
+                    <span className="label">Amount Paid:</span>
+                    <span className="amount">{paymentReceipt.receiptData?.currency || '৳'} {paymentReceipt.receiptData?.amount?.toLocaleString() || 'N/A'}</span>
+                  </div>
+                  
+                  <div className="detail-row">
+                    <span className="label">Payment Date:</span>
+                    <span>{paymentReceipt.receiptData?.paidAt ? new Date(paymentReceipt.receiptData.paidAt).toLocaleDateString() : 'N/A'}</span>
+                  </div>
+                  
+                  <div className="detail-row">
+                    <span className="label">Payment Method:</span>
+                    <span>{paymentReceipt.receiptData?.paymentMethod || 'N/A'}</span>
+                  </div>
+                  
+                  <div className="detail-row">
+                    <span className="label">Transaction ID:</span>
+                    <span>{paymentReceipt.receiptData?.transactionId || 'N/A'}</span>
+                  </div>
+                  
+                  <div className="detail-row">
+                    <span className="label">Payment Status:</span>
+                    <span className="status-paid">{paymentReceipt.receiptData?.paymentStatus || 'Paid'}</span>
+                  </div>
+                  
+                  <div className="detail-row">
+                    <span className="label">Description:</span>
+                    <span>{paymentReceipt.receiptData?.description || 'Security Guard Payment'}</span>
+                  </div>
+                  
+                  {paymentReceipt.receiptData?.property && (
+                    <div className="section">
+                      <h4>Property Details</h4>
+                      <div className="detail-row">
+                        <span className="label">Property:</span>
+                        <span>{paymentReceipt.receiptData.property.name || 'N/A'}</span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="label">Address:</span>
+                        <span>{paymentReceipt.receiptData.property.address || 'N/A'}</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {paymentReceipt.receiptData?.owner && (
+                    <div className="section">
+                      <h4>Property Owner Details</h4>
+                      <div className="detail-row">
+                        <span className="label">Owner Name:</span>
+                        <span>{paymentReceipt.receiptData.owner.name || 'N/A'}</span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="label">Owner Email:</span>
+                        <span>{paymentReceipt.receiptData.owner.email || 'N/A'}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="receipt-footer">
+                  <p>This is an official receipt for the security guard payment made through our platform.</p>
+                  <p>Thank you for your service!</p>
+                </div>
+                
+                <div className="receipt-actions">
+                  {paymentReceipt.receiptUrl && (
+                    <button
+                      className="btn-primary"
+                      onClick={() => window.open(paymentReceipt.receiptUrl, '_blank')}
+                    >
+                      View Official Receipt
+                    </button>
+                  )}
+                  <button
+                    className="btn-secondary"
+                    onClick={() => window.print()}
+                  >
+                    Print Receipt
+                  </button>
+                  <button
+                    className="btn-secondary"
+                    onClick={() => setShowReceiptModal(false)}
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

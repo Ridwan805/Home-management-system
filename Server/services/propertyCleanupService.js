@@ -4,7 +4,7 @@
 const Request = require('../models/Request');
 const Property = require('../models/Property');
 const mongoose = require('mongoose');
-const propertyStatusLogger = require('../utils/propertyStatusLogger');
+// const propertyStatusLogger = require('../utils/propertyStatusLogger'); // Commented out - file doesn't exist
 
 class PropertyCleanupService {
   /**
@@ -80,19 +80,19 @@ class PropertyCleanupService {
               );
               
               // Log the status update
-              await propertyStatusLogger.logStatusUpdate({
-                propertyId: property._id.toString(),
-                previousStatus,
-                newStatus: 'Available',
-                trigger: 'orphaned-property-cleanup',
-                triggeredBy,
-                source: 'PropertyCleanupService.cleanupOrphanedProperties',
-                metadata: {
-                  listingType: property.listingType,
-                  address: `${property.address}, ${property.city}, ${property.state}`,
-                  dryRun: false
-                }
-              });
+              // await propertyStatusLogger.logStatusUpdate({
+              //   propertyId: property._id.toString(),
+              //   previousStatus,
+              //   newStatus: 'Available',
+              //   trigger: 'orphaned-property-cleanup',
+              //   triggeredBy,
+              //   source: 'PropertyCleanupService.cleanupOrphanedProperties',
+              //   metadata: {
+              //     listingType: property.listingType,
+              //     address: `${property.address}, ${property.city}, ${property.state}`,
+              //     dryRun: false
+              //   }
+              // });
               
               results.fixed++;
               
@@ -103,12 +103,12 @@ class PropertyCleanupService {
               });
               
               // Log the error
-              await propertyStatusLogger.logError({
-                propertyId: property._id.toString(),
-                operation: 'reset-orphaned-property',
-                error: error.message,
-                source: 'PropertyCleanupService.cleanupOrphanedProperties'
-              });
+              // await propertyStatusLogger.logError({
+              //   propertyId: property._id.toString(),
+              //   operation: 'reset-orphaned-property',
+              //   error: error.message,
+              //   source: 'PropertyCleanupService.cleanupOrphanedProperties'
+              // });
             }
           }
         }
@@ -201,29 +201,29 @@ class PropertyCleanupService {
       );
       
       // Log the status update
-      await propertyStatusLogger.logStatusUpdate({
-        propertyId: propertyId.toString(),
-        previousStatus,
-        newStatus: 'Available',
-        trigger: 'orphaned-property-reset',
-        triggeredBy,
-        source: 'PropertyCleanupService.resetOrphanedProperty',
-        metadata: {
-          listingType: property.listingType,
-          address: `${property.address}, ${property.city}, ${property.state}`
-        }
-      });
+      // await propertyStatusLogger.logStatusUpdate({
+      //   propertyId: propertyId.toString(),
+      //   previousStatus,
+      //   newStatus: 'Available',
+      //   trigger: 'orphaned-property-reset',
+      //   triggeredBy,
+      //   source: 'PropertyCleanupService.resetOrphanedProperty',
+      //   metadata: {
+      //     listingType: property.listingType,
+      //     address: `${property.address}, ${property.city}, ${property.state}`
+      //   }
+      // });
       
       return true;
       
     } catch (error) {
       // Log the error
-      await propertyStatusLogger.logError({
-        propertyId: propertyId.toString(),
-        operation: 'reset-orphaned-property',
-        error: error.message,
-        source: 'PropertyCleanupService.resetOrphanedProperty'
-      });
+      // await propertyStatusLogger.logError({
+      //   propertyId: propertyId.toString(),
+      //   operation: 'reset-orphaned-property',
+      //   error: error.message,
+      //   source: 'PropertyCleanupService.resetOrphanedProperty'
+      // });
       
       return false;
     }

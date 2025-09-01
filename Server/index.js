@@ -12,7 +12,7 @@ const InvoiceService = require('./services/invoiceService');
 // Scheduled jobs service for automated tasks
 const ScheduledJobsService = require('./services/scheduledJobs');
 // Periodic property cleanup service for orphaned properties
-const PeriodicPropertyCleanup = require('./utils/periodicPropertyCleanup');
+// const PeriodicPropertyCleanup = require('./utils/periodicPropertyCleanup');
 
 const app = express();
 
@@ -247,6 +247,6 @@ app.listen(PORT, () => {
   console.log('🧾 Invoice service cron jobs initialized');
   
   // Start periodic property cleanup (runs every 5 minutes)
-  PeriodicPropertyCleanup.start('*/5 * * * *');
-  console.log('🧹 Periodic property cleanup service started (every 5 minutes)');
+  // PeriodicPropertyCleanup.start('*/5 * * * *');
+  // console.log('🧹 Periodic property cleanup service started (every 5 minutes)');
 });

@@ -6,7 +6,7 @@ import './Payment.css';
 const Payment = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState('makePayment');
+  const [activeTab, setActiveTab] = useState('securityGuardPayments');
   const [loading, setLoading] = useState(false);
   const [guardPaymentLoading, setGuardPaymentLoading] = useState(false);
   const [hiredGuards, setHiredGuards] = useState([]);
@@ -15,7 +15,13 @@ const Payment = () => {
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentDescription, setPaymentDescription] = useState('');
   const [paymentFrequency, setPaymentFrequency] = useState('monthly');
+  const [refreshGuards, setRefreshGuards] = useState(0);
   const [paymentMessage, setPaymentMessage] = useState(null);
+  
+  // Receipt state
+  const [paymentReceipt, setPaymentReceipt] = useState(null);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [receiptLoading, setReceiptLoading] = useState(false);
 
   const [paymentHistory, setPaymentHistory] = useState([
     { id: 1, date: '2023-06-15', description: 'Monthly Rent', amount: '$1,200.00', status: 'Paid' },
@@ -36,10 +42,17 @@ const Payment = () => {
   useEffect(() => {
     const urlParams = new URLSearchParams(location.search);
     const paymentStatus = urlParams.get('payment');
+    const sessionId = urlParams.get('session_id');
     
     if (paymentStatus === 'success') {
       setPaymentMessage({ type: 'success', text: 'Payment completed successfully!' });
       setActiveTab('securityGuardPayments'); // Switch to security guard payments tab
+      
+      // If we have a session ID, handle the payment success and get receipt
+      if (sessionId) {
+        handlePaymentSuccess(sessionId);
+      }
+      
       // Clear URL parameters
       navigate('/owner/payments', { replace: true });
     } else if (paymentStatus === 'cancelled') {
@@ -55,22 +68,42 @@ const Payment = () => {
     }
   }, [location.search, navigate, paymentMessage]);
 
+  // Get auth token helper
+  const getAuthToken = () => {
+    const userData = localStorage.getItem('dwellSyncUser');
+    if (!userData) return null;
+    try {
+      const user = JSON.parse(userData);
+      return user.token;
+    } catch (e) {
+      return null;
+    }
+  };
+
   // Fetch hired guards and payment data
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch hired guards
-        const guardsResponse = await fetch(API.getUrl('/api/job-posts/owner/hired-guards'), {
+        const token = getAuthToken();
+        if (!token) {
+          console.error('No authentication token found');
+          return;
+        }
+        
+        // Fetch hired guards with payment details
+        const guardsResponse = await fetch(API.getUrl('/api/security-guard-payments/hired-guards'), {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Authorization': `Bearer ${token}`
           }
         });
         
         if (guardsResponse.ok) {
           const guardsData = await guardsResponse.json();
-          setHiredGuards(guardsData.jobPosts || []);
+          setHiredGuards(guardsData.guards || []);
+        } else {
+          console.error('API request failed:', guardsResponse.status, guardsResponse.statusText);
         }
         
         // Using sample data for regular payment history
@@ -81,16 +114,22 @@ const Payment = () => {
     };
     
     fetchData();
-  }, []);
+  }, [refreshGuards]);
 
   // Fetch guard payment history for selected guard
   const fetchGuardPaymentHistory = async (jobPostId) => {
     try {
+      const token = getAuthToken();
+      if (!token) {
+        console.error('No authentication token found');
+        return;
+      }
+      
       const response = await fetch(API.getUrl(`/api/security-guard-payments/job-post/${jobPostId}/payments`), {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         }
       });
       
@@ -114,24 +153,29 @@ const Payment = () => {
     try {
       setGuardPaymentLoading(true);
       
+      const token = getAuthToken();
+      if (!token) {
+        console.error('No authentication token found');
+        return;
+      }
+      
       const response = await fetch(API.getUrl('/api/security-guard-payments/create-payment-session'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          jobPostId: guard._id,
+          jobPostId: guard.jobPostId,
           amount: parseFloat(paymentAmount),
-          description: paymentDescription,
-          frequency: paymentFrequency
+          description: paymentDescription
         })
       });
       
       if (response.ok) {
         const data = await response.json();
-        if (data.sessionUrl) {
-          window.location.href = data.sessionUrl;
+        if (data.url) {
+          window.location.href = data.url;
         } else {
           alert('Payment session created successfully!');
         }
@@ -144,6 +188,111 @@ const Payment = () => {
       alert('Payment processing failed. Please try again.');
     } finally {
       setGuardPaymentLoading(false);
+    }
+  };
+
+  // Generate monthly invoice for a guard
+  const generateMonthlyInvoice = async (guard) => {
+    try {
+      setGuardPaymentLoading(true);
+      
+      const token = getAuthToken();
+      if (!token) {
+        console.error('No authentication token found');
+        return;
+      }
+      
+      const response = await fetch(API.getUrl(`/api/security-guard-payments/generate-invoice/${guard.guardJobId}`), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        alert('Monthly invoice generated successfully!');
+        setRefreshGuards(prev => prev + 1); // Refresh the guards list
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to generate invoice: ${errorData.message}`);
+      }
+    } catch (error) {
+      console.error('Error generating invoice:', error);
+      alert('Failed to generate invoice. Please try again.');
+    } finally {
+      setGuardPaymentLoading(false);
+    }
+  };
+
+  // Handle payment success and get receipt
+  const handlePaymentSuccess = async (sessionId) => {
+    try {
+      const response = await API.post(`/security-guard-payments/payment-success/${sessionId}`);
+      
+      if (response.data.success) {
+        setRefreshGuards(prev => prev + 1); // Refresh the guards list
+        
+        // Get the payment receipt
+        if (response.data.paymentId) {
+          await getPaymentReceipt(response.data.paymentId);
+        }
+      }
+    } catch (error) {
+      console.error('Error handling payment success:', error);
+    }
+  };
+
+  // Get payment receipt
+  const getPaymentReceipt = async (paymentId) => {
+    try {
+      setReceiptLoading(true);
+      
+      if (!paymentId) {
+        alert('Payment ID not found. Cannot retrieve receipt.');
+        return;
+      }
+
+      const token = getAuthToken();
+      if (!token) {
+        alert('Please log in to view receipt');
+        return;
+      }
+
+      const response = await fetch(API.getUrl(`/api/security-guard-payments/receipt/${paymentId}`), {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to retrieve receipt');
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setPaymentReceipt(data);
+        
+        // If there's a direct receipt URL from Stripe, open it in a new tab
+        if (data.receiptUrl) {
+          window.open(data.receiptUrl, '_blank');
+        } else if (data.receiptData) {
+          // Otherwise, display the receipt data in a modal
+          setShowReceiptModal(true);
+        }
+      } else {
+        alert(data.message || 'Failed to retrieve receipt');
+      }
+    } catch (err) {
+      console.error('Error retrieving receipt:', err);
+      alert('Failed to retrieve receipt. Please try again.');
+    } finally {
+      setReceiptLoading(false);
     }
   };
   
@@ -282,76 +431,103 @@ const Payment = () => {
             ) : (
               <div className="guards-payment-grid">
                 {hiredGuards.map(guard => (
-                  <div key={guard._id} className="guard-payment-card">
+                  <div key={guard.guardJobId} className="guard-payment-card">
                     <div className="guard-header">
-                      <div className="guard-avatar">
-                        <div className="avatar-placeholder">
-                          {guard.hiredUserId?.firstName?.[0]}{guard.hiredUserId?.lastName?.[0]}
+                      <div className="guard-info">
+                        <div className="guard-avatar">
+                          <div className="avatar-placeholder">
+                            {guard.guard?.firstName?.[0]}{guard.guard?.lastName?.[0]}
+                          </div>
+                        </div>
+                        <div className="guard-basic-info">
+                          <h4>{guard.guard?.firstName} {guard.guard?.lastName}</h4>
+                          <p className="guard-position">{guard.jobDetails?.title}</p>
+                          <p className="guard-property">{guard.property?.title} - {guard.property?.address}</p>
+                          <p className="guard-email">{guard.guard?.email}</p>
                         </div>
                       </div>
-                      <div className="guard-basic-info">
-                        <h4>{guard.hiredUserId?.firstName} {guard.hiredUserId?.lastName}</h4>
-                        <p className="guard-position">{guard.title}</p>
-                        <p className="guard-property">{guard.propertyId?.address || guard.propertyId?.name}</p>
+                      <div className="payment-status-badge">
+                        <span className={`status-indicator ${guard.paymentDetails?.status}`}>
+                          {guard.paymentDetails?.status === 'paid' ? 'Up to Date' : 
+                           guard.paymentDetails?.status === 'due' ? 'Payment Due' : 
+                           guard.paymentDetails?.status === 'processing' ? 'Processing' : 'Pending'}
+                        </span>
                       </div>
                     </div>
                     
-                    <div className="payment-form">
-                      <div className="form-group">
-                        <label>Payment Amount (৳)</label>
-                        <input
-                          type="number"
-                          value={selectedGuard === guard._id ? paymentAmount : ''}
-                          onChange={(e) => {
-                            setSelectedGuard(guard._id);
-                            setPaymentAmount(e.target.value);
-                          }}
-                          placeholder="Enter amount"
-                        />
+                    <div className="payment-summary">
+                      <div className="salary-info">
+                        <h5>Salary Information</h5>
+                        <p><strong>Amount:</strong> {guard.salary?.currency} {guard.salary?.amount}</p>
+                        <p><strong>Frequency:</strong> {guard.salary?.paymentFrequency}</p>
+                        <p><strong>Total Paid:</strong> {guard.salary?.currency} {guard.paymentDetails?.totalPaid || 0}</p>
+                        <p><strong>Payment Count:</strong> {guard.paymentDetails?.paymentCount || 0}</p>
                       </div>
                       
-                      <div className="form-group">
-                        <label>Description</label>
-                        <input
-                          type="text"
-                          value={selectedGuard === guard._id ? paymentDescription : ''}
-                          onChange={(e) => {
-                            setSelectedGuard(guard._id);
-                            setPaymentDescription(e.target.value);
-                          }}
-                          placeholder="Payment description"
-                        />
-                      </div>
-                      
-                      <div className="form-group">
-                        <label>Frequency</label>
-                        <select
-                          value={selectedGuard === guard._id ? paymentFrequency : 'monthly'}
-                          onChange={(e) => {
-                            setSelectedGuard(guard._id);
-                            setPaymentFrequency(e.target.value);
-                          }}
+                      {guard.paymentDetails?.latestPayment && (
+                        <div className="latest-payment">
+                          <h5>Latest Payment</h5>
+                          <p><strong>Amount:</strong> {guard.salary?.currency} {guard.paymentDetails.latestPayment.amount}</p>
+                          <p><strong>Date:</strong> {new Date(guard.paymentDetails.latestPayment.createdAt).toLocaleDateString()}</p>
+                          <p><strong>Status:</strong> {guard.paymentDetails.latestPayment.status}</p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="payment-actions">
+                      <div className="quick-actions">
+                        <button
+                          className="generate-invoice-button"
+                          onClick={() => generateMonthlyInvoice(guard)}
+                          disabled={guardPaymentLoading}
                         >
-                          <option value="one-time">One Time</option>
-                          <option value="weekly">Weekly</option>
-                          <option value="monthly">Monthly</option>
-                        </select>
+                          {guardPaymentLoading ? 'Processing...' : 'Generate Monthly Invoice'}
+                        </button>
+                        
+                        <button
+                          className="view-history-button"
+                          onClick={() => fetchGuardPaymentHistory(guard.jobPostId)}
+                        >
+                          View Payment History
+                        </button>
                       </div>
                       
-                      <button
-                        className="pay-guard-button"
-                        onClick={() => handleGuardPayment(guard)}
-                        disabled={guardPaymentLoading || selectedGuard !== guard._id || !paymentAmount || !paymentDescription}
-                      >
-                        {guardPaymentLoading && selectedGuard === guard._id ? 'Processing...' : 'Pay Guard'}
-                      </button>
-                      
-                      <button
-                        className="view-history-button"
-                        onClick={() => fetchGuardPaymentHistory(guard._id)}
-                      >
-                        View Payment History
-                      </button>
+                      <div className="custom-payment-form">
+                        <h5>Custom Payment</h5>
+                        <div className="form-group">
+                          <label>Payment Amount ({guard.salary?.currency})</label>
+                          <input
+                            type="number"
+                            value={selectedGuard === guard.guardJobId ? paymentAmount : ''}
+                            onChange={(e) => {
+                              setSelectedGuard(guard.guardJobId);
+                              setPaymentAmount(e.target.value);
+                            }}
+                            placeholder={`Enter amount (Suggested: ${guard.salary?.amount})`}
+                          />
+                        </div>
+                        
+                        <div className="form-group">
+                          <label>Description</label>
+                          <input
+                            type="text"
+                            value={selectedGuard === guard.guardJobId ? paymentDescription : ''}
+                            onChange={(e) => {
+                              setSelectedGuard(guard.guardJobId);
+                              setPaymentDescription(e.target.value);
+                            }}
+                            placeholder={`Payment for ${guard.guard?.firstName} ${guard.guard?.lastName}`}
+                          />
+                        </div>
+                        
+                        <button
+                          className="pay-guard-button"
+                          onClick={() => handleGuardPayment(guard)}
+                          disabled={guardPaymentLoading || selectedGuard !== guard.guardJobId || !paymentAmount || !paymentDescription}
+                        >
+                          {guardPaymentLoading && selectedGuard === guard.guardJobId ? 'Processing...' : 'Pay Now'}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -369,6 +545,7 @@ const Payment = () => {
                       <th>Amount</th>
                       <th>Description</th>
                       <th>Status</th>
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -382,6 +559,18 @@ const Payment = () => {
                           <span className={`payment-status ${payment.status.toLowerCase()}`}>
                             {payment.status}
                           </span>
+                        </td>
+                        <td>
+                          {payment.status === 'completed' && (
+                            <button
+                              className="receipt-button"
+                              onClick={() => getPaymentReceipt(payment._id)}
+                              disabled={receiptLoading}
+                              title="View Receipt"
+                            >
+                              {receiptLoading ? '...' : '📄'}
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -418,7 +607,150 @@ const Payment = () => {
             </table>
           </div>
         )}
+
       </div>
+      
+      {/* Receipt Modal */}
+      {showReceiptModal && paymentReceipt && (
+        <div className="modal-overlay" onClick={() => setShowReceiptModal(false)}>
+          <div className="receipt-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="receipt-modal-header">
+              <h2>Payment Receipt</h2>
+              <button
+                className="close-button"
+                onClick={() => setShowReceiptModal(false)}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="receipt-modal-body">
+              <div className="receipt-content">
+                <div className="receipt-header">
+                  <h3>Security Guard Payment Receipt</h3>
+                  <p className="receipt-id">Receipt ID: {paymentReceipt.receiptData?.receiptId || paymentReceipt.receiptData?.paymentId || 'N/A'}</p>
+                </div>
+                
+                <div className="receipt-details">
+                  <div className="detail-row">
+                    <span className="label">Amount Paid:</span>
+                    <span className="amount">{paymentReceipt.receiptData?.currency || '৳'} {paymentReceipt.receiptData?.amount?.toLocaleString() || 'N/A'}</span>
+                  </div>
+                  
+                  <div className="detail-row">
+                    <span className="label">Payment Date:</span>
+                    <span>{paymentReceipt.receiptData?.paidAt ? new Date(paymentReceipt.receiptData.paidAt).toLocaleDateString() : 'N/A'}</span>
+                  </div>
+                  
+                  <div className="detail-row">
+                    <span className="label">Payment Method:</span>
+                    <span>{paymentReceipt.receiptData?.paymentMethod || 'N/A'}</span>
+                  </div>
+                  
+                  <div className="detail-row">
+                    <span className="label">Transaction ID:</span>
+                    <span>{paymentReceipt.receiptData?.transactionId || 'N/A'}</span>
+                  </div>
+                  
+                  <div className="detail-row">
+                    <span className="label">Payment Status:</span>
+                    <span className="status-paid">{paymentReceipt.receiptData?.paymentStatus || 'Paid'}</span>
+                  </div>
+                  
+                  <div className="detail-row">
+                    <span className="label">Description:</span>
+                    <span>{paymentReceipt.receiptData?.description || 'Security Guard Payment'}</span>
+                  </div>
+                  
+                  {paymentReceipt.receiptData?.guard && (
+                    <div className="section">
+                      <h4>Security Guard Details</h4>
+                      <div className="detail-row">
+                        <span className="label">Guard Name:</span>
+                        <span>{paymentReceipt.receiptData.guard.name || 'N/A'}</span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="label">Guard Email:</span>
+                        <span>{paymentReceipt.receiptData.guard.email || 'N/A'}</span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="label">Position:</span>
+                        <span>{paymentReceipt.receiptData.guard.position || 'N/A'}</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {paymentReceipt.receiptData?.property && (
+                    <div className="section">
+                      <h4>Property Details</h4>
+                      <div className="detail-row">
+                        <span className="label">Property:</span>
+                        <span>{paymentReceipt.receiptData.property.title || 'N/A'}</span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="label">Address:</span>
+                        <span>{paymentReceipt.receiptData.property.address || 'N/A'}</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {paymentReceipt.receiptData?.owner && (
+                    <div className="section">
+                      <h4>Owner Details</h4>
+                      <div className="detail-row">
+                        <span className="label">Owner Name:</span>
+                        <span>{paymentReceipt.receiptData.owner.name || 'N/A'}</span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="label">Owner Email:</span>
+                        <span>{paymentReceipt.receiptData.owner.email || 'N/A'}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="receipt-footer">
+                  <p>This is an official receipt for the security guard payment made through our platform.</p>
+                  <p>Thank you for using our services!</p>
+                </div>
+                
+                <div className="receipt-actions">
+                  {paymentReceipt.receiptUrl && (
+                    <button
+                      className="action-btn view-btn"
+                      onClick={() => window.open(paymentReceipt.receiptUrl, '_blank')}
+                    >
+                      📄 View Official Receipt
+                    </button>
+                  )}
+                  
+                  <button
+                    className="action-btn print-btn"
+                    onClick={() => window.print()}
+                  >
+                    🖨️ Print Receipt
+                  </button>
+                  
+                  <button
+                    className="action-btn download-btn"
+                    onClick={() => {
+                      const element = document.createElement('a');
+                      const file = new Blob([document.querySelector('.receipt-content').outerHTML], {type: 'text/html'});
+                      element.href = URL.createObjectURL(file);
+                      element.download = `receipt-${paymentReceipt.receiptId}.html`;
+                      document.body.appendChild(element);
+                      element.click();
+                      document.body.removeChild(element);
+                    }}
+                  >
+                    💾 Download Receipt
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
