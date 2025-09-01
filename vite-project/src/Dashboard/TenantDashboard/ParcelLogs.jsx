@@ -172,13 +172,15 @@ const ParcelLogs = () => {
                     {parcel.collectedAt ? formatDate(parcel.collectedAt) : '-'}
                   </div>
                   <div className="col-actions">
-                    {parcel.status === 'Pending' && (
+                    {parcel.status === 'Pending' ? (
                       <button 
                         className="btn-collect" 
                         onClick={() => handleMarkAsCollected(parcel._id)}
                       >
                         Mark as Collected
                       </button>
+                    ) : (
+                      <span className="action-completed">Completed</span>
                     )}
                   </div>
                 </div>

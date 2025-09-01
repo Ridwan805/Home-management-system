@@ -40,7 +40,10 @@ router.get('/tenant',
 router.get('/:id', getParcelLogById);
 
 // Mark parcel as collected (Resident/Security Guard/Admin)
-router.patch('/:id/collect', markParcelCollected);
+router.patch('/:id/collect', 
+  authorizeRole(['Tenant', 'Security Guard', 'admin']), 
+  markParcelCollected
+);
 
 // Update parcel log (Security Guard/Admin only)
 router.put('/:id', 

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const auth = require('../middleware/auth');
+const auth = require('../middleware/authMiddleware');
 const {
   upload,
   createMaintenanceReport,
@@ -45,7 +45,7 @@ function authorizeRole(roles) {
 router.post(
   '/',
   auth,
-  authorizeRole(['tenant']),
+  authorizeRole(['Tenant']),
   upload.array('images', 5), // Allow up to 5 images
   createMaintenanceReport
 );
@@ -54,7 +54,7 @@ router.post(
 router.get(
   '/tenant',
   auth,
-  authorizeRole(['tenant']),
+  authorizeRole(['Tenant']),
   getTenantReports
 );
 
@@ -62,7 +62,7 @@ router.get(
 router.get(
   '/owner',
   auth,
-  authorizeRole(['owner']),
+  authorizeRole(['Owner']),
   getOwnerReports
 );
 
@@ -70,7 +70,7 @@ router.get(
 router.get(
   '/stats',
   auth,
-  authorizeRole(['owner']),
+  authorizeRole(['Owner']),
   getReportStats
 );
 
@@ -85,7 +85,7 @@ router.get(
 router.patch(
   '/:id/status',
   auth,
-  authorizeRole(['owner']),
+  authorizeRole(['Owner']),
   updateReportStatus
 );
 
@@ -93,7 +93,7 @@ router.patch(
 router.patch(
   '/:id/resolve',
   auth,
-  authorizeRole(['owner']),
+  authorizeRole(['Owner']),
   resolveReport
 );
 

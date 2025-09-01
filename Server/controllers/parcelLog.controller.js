@@ -156,7 +156,7 @@ const markParcelCollected = async (req, res) => {
     }
 
     // Check if user has permission to mark as collected
-    if (userRole !== 'admin' && userRole !== 'security_guard' && 
+    if (userRole !== 'admin' && userRole !== 'Security Guard' && 
         parcelLog.recipientId.toString() !== userId) {
       return res.status(403).json({ message: 'Access denied' });
     }
