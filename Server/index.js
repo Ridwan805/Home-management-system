@@ -134,6 +134,8 @@ const securityGuardApplicationRoutes = require('./routes/securityGuardApplicatio
 const securityGuardPaymentRoutes = require('./routes/securityGuardPayment.routes');
 const invoiceRoutes = require('./routes/invoice.routes');
 const paymentRoutes = require('./routes/payment.routes');
+const parcelLogRoutes = require('./routes/parcelLog.routes');
+const visitorLogRoutes = require('./routes/visitorLog.routes');
 
 
 let requestManagementRoutes;
@@ -176,6 +178,8 @@ app.use('/api/security-guard-applications', securityGuardApplicationRoutes);
 app.use('/api/security-guard-payments', securityGuardPaymentRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/parcel-logs', parcelLogRoutes);
+app.use('/api/visitor-logs', visitorLogRoutes);
 
 
 

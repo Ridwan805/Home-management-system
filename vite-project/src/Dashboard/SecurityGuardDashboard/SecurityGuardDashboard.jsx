@@ -5,6 +5,8 @@ import SecurityGuardProfile from './SecurityGuardProfile';
 import LookingForJob from './LookingForJob';
 import MyJob from './MyJob';
 import SalaryInput from './SalaryInput';
+import ParcelLogging from './ParcelLogging';
+import VisitorLogging from './VisitorLogging';
 import './SecurityGuardDashboard.css';
 
 const SecurityGuardDashboard = () => {
@@ -37,6 +39,8 @@ const SecurityGuardDashboard = () => {
           {activeSection === 'looking-for-job' && <LookingForJob />}
           {activeSection === 'my-job' && <MyJob />}
           {activeSection === 'salary-input' && <SalaryInput />}
+          {activeSection === 'parcel-logging' && <ParcelLogging />}
+          {activeSection === 'visitor-logging' && <VisitorLogging />}
         </div>
       </main>
     </div>

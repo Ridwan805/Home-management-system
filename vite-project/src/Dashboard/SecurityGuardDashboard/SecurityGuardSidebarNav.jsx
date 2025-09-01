@@ -8,6 +8,8 @@ const menuItems = [
   { key: 'looking-for-job', label: 'Looking for Job', description: 'Browse Available Positions' },
   { key: 'my-job', label: 'My Job', description: 'View Current Assignment Details' },
   { key: 'salary-input', label: 'Salary Input', description: 'Record Salary Information' },
+  { key: 'parcel-logging', label: 'Parcel Logging', description: 'Manage Package Deliveries' },
+  { key: 'visitor-logging', label: 'Visitor Logging', description: 'Manage Visitor Check-ins' },
 ];
 
 const SecurityGuardSidebarNav = ({ activeSection, setActiveSection }) => {
