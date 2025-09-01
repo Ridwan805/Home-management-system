@@ -1215,6 +1215,39 @@ const searchProperties = async (req, res) => {
   }
 };
 
+// Get properties where user is a tenant
+const getTenantProperties = async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.userId || req.user.id;
+    console.log('🔍 getTenantProperties called for user:', userId);
+    
+    // Find all active rents where user is a tenant (only rental properties, not owned)
+    const activeRents = await Rent.find({
+      tenants: userId,
+      status: 'Active'
+    }).populate('propertyId');
+    console.log('🏠 Found active rents:', activeRents.length);
+    
+    // Extract properties from active rents
+    const rentedProperties = activeRents.map(rent => rent.propertyId).filter(property => property);
+    console.log('🏘️ Extracted rented properties:', rentedProperties.length);
+    
+    console.log('✅ Total rental properties for tenant:', rentedProperties.length);
+    
+    res.json({
+      success: true,
+      count: rentedProperties.length,
+      properties: rentedProperties
+    });
+  } catch (err) {
+    console.error('❌ Error in getTenantProperties:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Server error: ' + err.message
+    });
+  }
+};
+
 module.exports = {
   getAllProperties,
   getTopProperties,
@@ -1231,5 +1264,6 @@ module.exports = {
   getPropertiesByFloor,
   getStandaloneProperties,
   searchProperties,
-  checkCombination
+  checkCombination,
+  getTenantProperties
 };

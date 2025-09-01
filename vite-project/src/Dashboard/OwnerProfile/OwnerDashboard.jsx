@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import SidebarNav from './SidebarNav';
 import OwnerProfile from './OwnerProfile';
+import MaintenanceReports from './MaintenanceReports';
 import API from '../../config/api';
 
 import './OwnerDashboard.css';
@@ -158,6 +159,7 @@ const OwnerDashboard = () => {
         else if (key === 'security-guard-info') navigate('/security-guard-info');
         else if (key === 'request-info') navigate('/request-info');
         else if (key === 'payments') navigate('/payments');
+        else if (key === 'maintenance-reports') setActiveSection('maintenance-reports');
       }} />
       <main className="dashboard-main">
         <div className="dashboard-content">
@@ -283,6 +285,7 @@ const OwnerDashboard = () => {
               </div>
             </>
           )}
+          {activeSection === 'maintenance-reports' && <MaintenanceReports />}
         </div>
       </main>
     </div>

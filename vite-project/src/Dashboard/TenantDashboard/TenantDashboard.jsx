@@ -10,6 +10,7 @@ import Wishlist from './Wishlist';
 import MyRequests from './MyRequests';
 import ParcelLogs from './ParcelLogs';
 import GuestPreApproval from './GuestPreApproval';
+import QuickDial from '../../components/QuickDial';
 import './TenantDashboard.css';
 
 const TenantDashboard = () => {
@@ -37,6 +38,7 @@ const TenantDashboard = () => {
         setActiveSection={handleSectionChange} 
       />
       <main className="dashboard-main">
+        <QuickDial userType="tenant" />
         <div className="dashboard-content">
           {activeSection === 'profile' && <TenantProfile />}
           {activeSection === 'payment' && <PaymentInfo />}

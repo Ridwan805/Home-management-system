@@ -20,7 +20,8 @@ const {
   getPropertiesByFloor,
   getStandaloneProperties,
   searchProperties,
-  checkCombination
+  checkCombination,
+  getTenantProperties
 } = require('../controllers/property.controller');
 
 // Simple role guard using decoded token placed by auth middleware
@@ -95,10 +96,18 @@ router.get('/assignments', auth, authorizeRole(['owner', 'admin']), getPropertyA
 // GET /api/properties/my-assignments - Get tenant's assigned properties
 router.get('/my-assignments', auth, authorizeRole(['tenant', 'admin']), getTenantAssignments);
 
+// GET /api/properties/tenant-properties - Get properties where user is a tenant
+router.get('/tenant-properties', auth, authorizeRole(['tenant', 'admin']), (req, res, next) => {
+  console.log('🔥 ROUTE DEBUG: /tenant-properties route hit!');
+  console.log('🔥 ROUTE DEBUG: User ID:', req.user?.id);
+  console.log('🔥 ROUTE DEBUG: User Role:', req.user?.role);
+  next();
+}, getTenantProperties);
+
 // GET /api/properties/tenant/:propertyId/details - Get detailed property info with ownership history for tenants
 router.get('/tenant/:propertyId/details', auth, authorizeRole(['tenant', 'admin']), getTenantPropertyDetails);
 
-// GET /api/properties/:id - Retrieve a single property by ID
+// GET /api/properties/:id - Retrieve a single property by ID (MUST be after specific routes)
 router.get('/:id', getPropertyById);
 
 // POST /api/properties - Create a new property (owner/admin only) with file uploads

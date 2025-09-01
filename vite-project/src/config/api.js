@@ -26,9 +26,22 @@ export const handleApiResponse = async (response, navigate = null) => {
   // First check if the response is ok
   if (response.ok) {
     try {
-      const data = await response.json();
-
-      return data;
+      // Check if response has content and is JSON
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const responseText = await response.text();
+        if (responseText.trim()) {
+          const data = JSON.parse(responseText);
+          return data;
+        } else {
+          // Empty JSON response, return empty object
+          return {};
+        }
+      } else {
+        // Non-JSON response, return as text or empty object for successful requests
+        const text = await response.text();
+        return text ? { message: text } : {};
+      }
     } catch (parseError) {
       console.error('❌ Failed to parse successful response:', parseError);
       throw new Error('Invalid response format');
@@ -40,11 +53,23 @@ export const handleApiResponse = async (response, navigate = null) => {
   // If not ok, parse the error response
   let errorData;
   try {
-    errorData = await response.json();
-    console.error('❌ Error response data:', errorData);
+    // Check if response has content and is JSON
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      const responseText = await response.text();
+      if (responseText.trim()) {
+        errorData = JSON.parse(responseText);
+        console.error('❌ Error response data:', errorData);
+      } else {
+        errorData = { message: `HTTP ${response.status}: ${response.statusText}` };
+      }
+    } else {
+      // Non-JSON response, use status text
+      errorData = { message: `HTTP ${response.status}: ${response.statusText}` };
+    }
   } catch (parseError) {
     console.error('❌ Failed to parse error response:', parseError);
-    errorData = { message: 'Unknown error' };
+    errorData = { message: `HTTP ${response.status}: ${response.statusText}` };
   }
   
   // Check if token has expired
@@ -204,6 +229,7 @@ export default {
     propertyStatus: (id) => `/api/properties/${id}/status`,
     userProperties: '/api/properties/user',
     tenantAssignments: '/api/properties/my-assignments',
+    tenantProperties: '/api/properties/tenant-properties',
     tenantPropertyDetails: (propertyId) => `/api/properties/tenant/${propertyId}/details`,
     
     // Request endpoints
@@ -269,10 +295,196 @@ export default {
     
     // Image serving endpoint
     image: (filename) => `/api/images/${filename}`,
+    
+    // Maintenance Reports endpoints
+    maintenanceReports: '/api/maintenance-reports',
+    tenantReports: '/api/maintenance-reports/tenant',
+    ownerReports: '/api/maintenance-reports/owner',
+    reportStats: '/api/maintenance-reports/stats',
   },
   
   // Helper function to get full URL for an endpoint
   getUrl: function(endpoint) {
     return `${this.baseUrl}${endpoint}`;
+  }
+};
+
+// Maintenance Report API Functions
+
+/**
+ * Create a new maintenance report (tenant only)
+ * @param {FormData} formData - Form data containing report details and images
+ * @returns {Promise<Object>} - API response
+ */
+export const createMaintenanceReport = async (formData) => {
+  try {
+    const user = JSON.parse(localStorage.getItem('dwellSyncUser'));
+    const token = user ? user.token : null;
+    
+    if (!token) {
+      throw new Error('Authentication required');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/maintenance-reports`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData, // FormData handles its own Content-Type
+    });
+
+    return await handleApiResponse(response);
+  } catch (error) {
+    console.error('Error creating maintenance report:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get maintenance reports for tenant
+ * @param {string} status - Optional status filter
+ * @returns {Promise<Object>} - API response with reports
+ */
+export const getTenantReports = async (status = null) => {
+  try {
+    let url = `${API_BASE_URL}/api/maintenance-reports/tenant`;
+    if (status) {
+      url += `?status=${status}`;
+    }
+    
+    const response = await authenticatedFetch(url);
+    return response;
+  } catch (error) {
+    console.error('Error fetching tenant reports:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get maintenance reports for owner
+ * @param {string} status - Optional status filter
+ * @returns {Promise<Object>} - API response with reports
+ */
+export const getOwnerReports = async (status = null) => {
+  try {
+    let url = `${API_BASE_URL}/api/maintenance-reports/owner`;
+    if (status) {
+      url += `?status=${status}`;
+    }
+    
+    const response = await authenticatedFetch(url);
+    return response;
+  } catch (error) {
+    console.error('Error fetching owner reports:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get a specific maintenance report by ID
+ * @param {string} reportId - The report ID
+ * @returns {Promise<Object>} - API response with report details
+ */
+export const getReportById = async (reportId) => {
+  try {
+    const response = await authenticatedFetch(`${API_BASE_URL}/api/maintenance-reports/${reportId}`);
+    return response;
+  } catch (error) {
+    console.error('Error fetching report:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update maintenance report status (owner only)
+ * @param {string} reportId - The report ID
+ * @param {Object} statusData - Object containing new status
+ * @returns {Promise<Object>} - API response
+ */
+export const updateReportStatus = async (reportId, statusData) => {
+  try {
+    const response = await authenticatedFetch(`${API_BASE_URL}/api/maintenance-reports/${reportId}/status`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(statusData),
+    });
+    return response;
+  } catch (error) {
+    console.error('Error updating report status:', error);
+    throw error;
+  }
+};
+
+/**
+ * Resolve a maintenance report (owner only)
+ * @param {string} reportId - The report ID
+ * @param {Object} resolutionData - Object containing resolution notes and cost
+ * @returns {Promise<Object>} - API response
+ */
+export const resolveReport = async (reportId, resolutionData) => {
+  try {
+    const response = await authenticatedFetch(`${API_BASE_URL}/api/maintenance-reports/${reportId}/resolve`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(resolutionData),
+    });
+    return response;
+  } catch (error) {
+    console.error('Error resolving report:', error);
+    throw error;
+  }
+};
+
+/**
+ * Add an update to a maintenance report
+ * @param {string} reportId - The report ID
+ * @param {Object} updateData - Object containing update message
+ * @returns {Promise<Object>} - API response
+ */
+export const addReportUpdate = async (reportId, updateData) => {
+  try {
+    const response = await authenticatedFetch(`${API_BASE_URL}/api/maintenance-reports/${reportId}/updates`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updateData),
+    });
+    return response;
+  } catch (error) {
+    console.error('Error adding report update:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get maintenance report statistics (owner only)
+ * @returns {Promise<Object>} - API response with statistics
+ */
+export const getReportStats = async () => {
+  try {
+    const response = await authenticatedFetch(`${API_BASE_URL}/api/maintenance-reports/stats`);
+    return response;
+  } catch (error) {
+    console.error('Error fetching report stats:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get properties where the authenticated user is a tenant
+ * @returns {Promise<Object>} - API response with tenant properties
+ */
+export const getTenantProperties = async () => {
+  try {
+    const response = await authenticatedFetch(`${API_BASE_URL}/api/properties/tenant-properties`);
+    return response;
+  } catch (error) {
+    console.error('Error fetching tenant properties:', error);
+    throw error;
   }
 };

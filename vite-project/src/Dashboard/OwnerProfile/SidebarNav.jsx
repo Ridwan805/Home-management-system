@@ -10,6 +10,7 @@ const menuItems = [
   { key: 'tenant-info', label: 'Tenant Info', description: 'Manage Tenants' },
   { key: 'security-guard-info', label: 'Security Guard Info', description: 'Manage Security Guards' },
   { key: 'request-info', label: 'Request Info', description: 'View Requests' },
+  { key: 'maintenance-reports', label: 'Maintenance Reports', description: 'View & Manage Reports' },
   { key: 'payments', label: 'Payments', description: 'Manage Payments' },
 ];
 

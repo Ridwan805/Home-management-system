@@ -7,6 +7,7 @@ import MyJob from './MyJob';
 import SalaryInput from './SalaryInput';
 import ParcelLogging from './ParcelLogging';
 import VisitorLogging from './VisitorLogging';
+import QuickDial from '../../components/QuickDial/QuickDial';
 import './SecurityGuardDashboard.css';
 
 const SecurityGuardDashboard = () => {
@@ -35,6 +36,7 @@ const SecurityGuardDashboard = () => {
       />
       <main className="dashboard-main">
         <div className="dashboard-content">
+          <QuickDial />
           {activeSection === 'profile' && <SecurityGuardProfile />}
           {activeSection === 'looking-for-job' && <LookingForJob />}
           {activeSection === 'my-job' && <MyJob />}

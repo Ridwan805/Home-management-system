@@ -136,6 +136,8 @@ const invoiceRoutes = require('./routes/invoice.routes');
 const paymentRoutes = require('./routes/payment.routes');
 const parcelLogRoutes = require('./routes/parcelLog.routes');
 const visitorLogRoutes = require('./routes/visitorLog.routes');
+const quickDialRoutes = require('./routes/quickDial.routes');
+const maintenanceReportRoutes = require('./routes/maintenanceReport.routes');
 
 
 let requestManagementRoutes;
@@ -180,6 +182,8 @@ app.use('/api/invoices', invoiceRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/parcel-logs', parcelLogRoutes);
 app.use('/api/visitor-logs', visitorLogRoutes);
+app.use('/api/quick-dial', quickDialRoutes);
+app.use('/api/maintenance-reports', maintenanceReportRoutes);
 
 
 
