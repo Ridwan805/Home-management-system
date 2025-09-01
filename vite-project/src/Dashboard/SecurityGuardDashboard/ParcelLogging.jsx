@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import './ParcelLogging.css';
 
 const ParcelLogging = () => {
+  const navigate = useNavigate();
   const [parcels, setParcels] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -24,10 +26,27 @@ const ParcelLogging = () => {
     fetchUsers();
   }, [filter]);
 
+  const getAuthToken = () => {
+    const userData = localStorage.getItem('dwellSyncUser');
+    if (!userData) return null;
+    try {
+      const user = JSON.parse(userData);
+      return user.token;
+    } catch (e) {
+      return null;
+    }
+  };
+
   const fetchParcels = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
+      if (!token) {
+        alert('Your session has expired. Please login again.');
+        localStorage.removeItem('dwellSyncUser');
+        navigate('/login');
+        return;
+      }
       const response = await axios.get('http://localhost:5001/api/parcel-logs', {
         headers: { Authorization: `Bearer ${token}` },
         params: filter
@@ -36,6 +55,12 @@ const ParcelLogging = () => {
       setPagination(response.data.pagination);
     } catch (error) {
       console.error('Error fetching parcels:', error);
+      if (error.response?.status === 401) {
+        alert('Your session has expired. Please login again.');
+        localStorage.removeItem('dwellSyncUser');
+        navigate('/login');
+        return;
+      }
       alert('Failed to fetch parcels');
     } finally {
       setLoading(false);
@@ -44,13 +69,32 @@ const ParcelLogging = () => {
 
   const fetchUsers = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5001/api/admin/users', {
+      const token = getAuthToken();
+      if (!token) {
+        alert('Your session has expired. Please login again.');
+        localStorage.removeItem('dwellSyncUser');
+        navigate('/login');
+        return;
+      }
+      const response = await axios.get('http://localhost:5001/api/admin/users/tenants-for-guard', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setUsers(response.data.users || []);
+      
+      if (response.data.success) {
+        setUsers(response.data.tenants || []);
+      } else {
+        console.log('No tenants found:', response.data.message);
+        setUsers([]);
+      }
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error('Error fetching tenants for security guard:', error);
+      if (error.response?.status === 401) {
+        alert('Your session has expired. Please login again.');
+        localStorage.removeItem('dwellSyncUser');
+        navigate('/login');
+        return;
+      }
+      setUsers([]);
     }
   };
 
@@ -58,7 +102,13 @@ const ParcelLogging = () => {
     e.preventDefault();
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
+      if (!token) {
+        alert('Your session has expired. Please login again.');
+        localStorage.removeItem('dwellSyncUser');
+        navigate('/login');
+        return;
+      }
       await axios.post('http://localhost:5001/api/parcel-logs', formData, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -68,6 +118,12 @@ const ParcelLogging = () => {
       fetchParcels();
     } catch (error) {
       console.error('Error logging parcel:', error);
+      if (error.response?.status === 401) {
+        alert('Your session has expired. Please login again.');
+        localStorage.removeItem('dwellSyncUser');
+        navigate('/login');
+        return;
+      }
       alert('Failed to log parcel');
     } finally {
       setLoading(false);

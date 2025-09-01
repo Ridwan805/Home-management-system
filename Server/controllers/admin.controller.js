@@ -184,6 +184,83 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
+// Get tenants for security guard's assigned property
+exports.getTenantsForSecurityGuard = async (req, res) => {
+  try {
+    console.log('🚀 TENANTS FOR GUARD: Function called');
+    console.log('🔍 TENANTS FOR GUARD: req.user:', req.user);
+    const guardId = req.user.id || req.user.userId || req.user._id;
+    console.log('🔍 TENANTS FOR GUARD: Guard ID:', guardId);
+    
+    const SecurityGuardJob = require('../models/securityguardjobs');
+    const Rent = require('../models/Rent');
+    
+    // Find the security guard's active job assignment
+    const activeJob = await SecurityGuardJob.findOne({
+      guardId: guardId,
+      isActive: true,
+      status: { $in: ['Hired', 'Active'] }
+    }).populate('propertyId');
+    
+    console.log('🔍 TENANTS FOR GUARD: Active job found:', activeJob ? 'Yes' : 'No');
+    if (activeJob) {
+      console.log('🔍 TENANTS FOR GUARD: Property ID:', activeJob.propertyId?._id);
+      console.log('🔍 TENANTS FOR GUARD: Property address:', activeJob.propertyId?.address);
+    }
+    
+    if (!activeJob || !activeJob.propertyId) {
+      console.log('🔍 TENANTS FOR GUARD: No active property assignment found');
+      return res.json({
+        success: true,
+        tenants: [],
+        message: 'No active property assignment found'
+      });
+    }
+    
+    // Find the current rent for this property
+    const currentRent = await Rent.findOne({
+      propertyId: activeJob.propertyId._id,
+      status: 'Active'
+    }).populate('tenants', 'name email role isBanned createdAt');
+    
+    console.log('🔍 TENANTS FOR GUARD: Current rent found:', currentRent ? 'Yes' : 'No');
+    if (currentRent) {
+      console.log('🔍 TENANTS FOR GUARD: Total tenants in rent:', currentRent.tenants?.length || 0);
+      console.log('🔍 TENANTS FOR GUARD: Tenants:', currentRent.tenants?.map(t => ({ name: t.name, email: t.email, role: t.role })));
+    }
+    
+    if (!currentRent || !currentRent.tenants || currentRent.tenants.length === 0) {
+      console.log('🔍 TENANTS FOR GUARD: No tenants found for assigned property');
+      return res.json({
+        success: true,
+        tenants: [],
+        message: 'No tenants found for assigned property'
+      });
+    }
+    
+    // Return only the tenants of the assigned property
+    const tenants = currentRent.tenants.filter(tenant => tenant.role === 'Tenant');
+    console.log('🔍 TENANTS FOR GUARD: Filtered tenants count:', tenants.length);
+    console.log('🔍 TENANTS FOR GUARD: Filtered tenants:', tenants.map(t => ({ name: t.name, email: t.email })));
+    
+    res.json({
+      success: true,
+      tenants: tenants,
+      propertyInfo: {
+        id: activeJob.propertyId._id,
+        address: activeJob.propertyId.address,
+        city: activeJob.propertyId.city
+      }
+    });
+  } catch (err) {
+    console.error('🔍 TENANTS FOR GUARD: Error fetching tenants for security guard:', err);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to fetch tenants for security guard' 
+    });
+  }
+};
+
 // Ban user
 exports.banUser = async (req, res) => {
   try {
@@ -468,5 +545,6 @@ module.exports = {
   escalateReport: exports.escalateReport,
   deleteRequest: exports.deleteRequest,
   getAllRequests: exports.getAllRequests,
-  cleanupOrphanedProperties: exports.cleanupOrphanedProperties
+  cleanupOrphanedProperties: exports.cleanupOrphanedProperties,
+  getTenantsForSecurityGuard: exports.getTenantsForSecurityGuard
 };

@@ -348,7 +348,7 @@ const updateApplicationStatus = async (req, res) => {
             balance: application.salary.amount,
             currency: application.salary.currency || 'USD',
             status: 'open',
-            autoGeneration: {
+            auto: {
               generated: true,
               source: 'system',
               generatedAt: new Date(),
@@ -358,12 +358,12 @@ const updateApplicationStatus = async (req, res) => {
           
           await invoice.save();
           
-          // Create payment object with pending status
+          // Create payment object with completed status (automatically paid upon hiring)
           const payment = new Payment({
             invoiceId: invoice._id,
             type: 'security_guard_payment',
-            status: 'pending',
-            method: 'stripe',
+            status: 'completed',
+            method: 'auto_payment',
             amount: application.salary.amount,
             currency: application.salary.currency || 'USD',
             propertyId: jobPost.propertyId,
@@ -372,6 +372,7 @@ const updateApplicationStatus = async (req, res) => {
             receiverId: application.guardId,
             description: `Security Guard Salary Payment - ${application.jobDetails?.title || 'Security Services'}`,
             dueDate: dueDate,
+            completedAt: new Date(),
             billingPeriod: {
               startDate: startOfMonth,
               endDate: endOfMonth,
@@ -383,12 +384,48 @@ const updateApplicationStatus = async (req, res) => {
               timestamp: new Date(),
               note: 'Payment created automatically upon guard hiring',
               updatedBy: userId
+            }, {
+              status: 'completed',
+              timestamp: new Date(),
+              note: 'Payment automatically completed upon guard hiring',
+              updatedBy: userId
             }]
           });
           
           await payment.save();
           
           console.log(`Created invoice ${invoice.invoiceNo} and payment ${payment.paymentId} for hired security guard`);
+          
+          // Send notifications about invoice and payment creation
+          try {
+            // Notify owner about invoice generation
+            await NotificationService.sendOwnerInvoiceNotification(
+              userId, // owner ID
+              invoice._id,
+              invoice.description,
+              invoice.totalAmount,
+              invoice.dueDate
+            );
+            
+            // Notify guard about invoice generation and welcome message
+            await NotificationService.sendGuardInvoiceGeneratedNotification(
+              application.guardId,
+              invoice._id,
+              invoice.totalAmount,
+              application.jobDetails?.title || 'Security Services',
+              jobPost.propertyId?.address || 'Unknown Property'
+            );
+            
+            // Notify guard about pending payment
+            await NotificationService.sendGuardPaymentPendingNotification(
+              application.guardId,
+              payment._id,
+              payment.amount,
+              payment.dueDate
+            );
+          } catch (notificationError) {
+            console.error('Error sending invoice/payment notifications:', notificationError);
+          }
         } catch (invoiceError) {
           console.error('Error creating invoice and payment for hired guard:', invoiceError);
           // Don't fail the hiring process if invoice creation fails

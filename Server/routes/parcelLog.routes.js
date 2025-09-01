@@ -17,17 +17,23 @@ router.use(authMiddleware);
 
 // Create parcel log (Security Guard only)
 router.post('/', 
-  authorizeRole(['security_guard', 'admin']), 
+  authorizeRole(['Security Guard', 'admin']), 
   createParcelLog
 );
 
 // Get all parcel logs (with role-based filtering)
 router.get('/', getParcelLogs);
 
-// Get overdue parcels (Security Guard/Admin only)
+// Get overdue parcels (Security Guard/Admin only) - Must come before /:id route
 router.get('/overdue', 
-  authorizeRole(['security_guard', 'admin']), 
+  authorizeRole(['Security Guard', 'admin']), 
   getOverdueParcels
+);
+
+// Get parcel logs for tenant - Must come before /:id route
+router.get('/tenant', 
+  authorizeRole(['Tenant', 'admin']), 
+  getParcelLogs
 );
 
 // Get parcel log by ID
@@ -38,7 +44,7 @@ router.patch('/:id/collect', markParcelCollected);
 
 // Update parcel log (Security Guard/Admin only)
 router.put('/:id', 
-  authorizeRole(['security_guard', 'admin']), 
+  authorizeRole(['Security Guard', 'admin']), 
   updateParcelLog
 );
 

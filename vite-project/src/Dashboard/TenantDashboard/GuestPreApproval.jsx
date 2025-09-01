@@ -8,6 +8,17 @@ const GuestPreApproval = () => {
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [activeTab, setActiveTab] = useState('pre-approved'); // 'pre-approved', 'visitor-logs'
+
+  const getAuthToken = () => {
+    const userData = localStorage.getItem('dwellSyncUser');
+    if (!userData) return null;
+    try {
+      const user = JSON.parse(userData);
+      return user.token;
+    } catch (e) {
+      return null;
+    }
+  };
   const [formData, setFormData] = useState({
     visitorName: '',
     expectedTime: '',
@@ -33,7 +44,13 @@ const GuestPreApproval = () => {
   const fetchPreApprovedGuests = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
+      if (!token) {
+        alert('Your session has expired. Please login again.');
+        localStorage.removeItem('dwellSyncUser');
+        window.location.href = '/login';
+        return;
+      }
       const response = await axios.get('http://localhost:5001/api/visitor-logs/pre-approved', {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -49,7 +66,13 @@ const GuestPreApproval = () => {
   const fetchVisitorLogs = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
+      if (!token) {
+        alert('Your session has expired. Please login again.');
+        localStorage.removeItem('dwellSyncUser');
+        window.location.href = '/login';
+        return;
+      }
       const response = await axios.get('http://localhost:5001/api/visitor-logs', {
         headers: { Authorization: `Bearer ${token}` },
         params: filter
@@ -68,7 +91,13 @@ const GuestPreApproval = () => {
     e.preventDefault();
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
+      if (!token) {
+        alert('Your session has expired. Please login again.');
+        localStorage.removeItem('dwellSyncUser');
+        window.location.href = '/login';
+        return;
+      }
       await axios.post('http://localhost:5001/api/visitor-logs/pre-approve', formData, {
         headers: { Authorization: `Bearer ${token}` }
       });

@@ -5,6 +5,18 @@ import './ParcelLogs.css';
 const ParcelLogs = () => {
   const [parcels, setParcels] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const getAuthToken = () => {
+    const userData = localStorage.getItem('dwellSyncUser');
+    if (!userData) return null;
+    try {
+      const user = JSON.parse(userData);
+      return user.token;
+    } catch (e) {
+      return null;
+    }
+  };
   const [filter, setFilter] = useState({
     status: '',
     page: 1,
@@ -19,10 +31,15 @@ const ParcelLogs = () => {
   const fetchParcels = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5001/api/parcel-logs', {
-        headers: { Authorization: `Bearer ${token}` },
-        params: filter
+      const token = getAuthToken();
+      if (!token) {
+        alert('Your session has expired. Please login again.');
+        localStorage.removeItem('dwellSyncUser');
+        window.location.href = '/login';
+        return;
+      }
+      const response = await axios.get('http://localhost:5001/api/parcel-logs/tenant', {
+        headers: { Authorization: `Bearer ${token}` }
       });
       setParcels(response.data.data);
       setPagination(response.data.pagination);
@@ -36,7 +53,13 @@ const ParcelLogs = () => {
 
   const handleMarkAsCollected = async (parcelId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
+      if (!token) {
+        alert('Your session has expired. Please login again.');
+        localStorage.removeItem('dwellSyncUser');
+        window.location.href = '/login';
+        return;
+      }
       await axios.patch(`http://localhost:5001/api/parcel-logs/${parcelId}/collect`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });

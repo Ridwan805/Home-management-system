@@ -35,10 +35,15 @@ module.exports = (allowedRoles) => {
           console.log('✅ AUTHORIZE ROLE: Access granted for role:', user.role);
           req.user = user;
           req.userType = 'user';
+          console.log('🔄 AUTHORIZE ROLE: Calling next() middleware');
           return next();
         } else {
           console.log('❌ AUTHORIZE ROLE: Role not allowed. User role:', user.role, 'Allowed:', allowedRoles);
+          return res.status(403).json({ message: 'Access denied. Role not allowed.' });
         }
+      } else {
+        console.log('❌ AUTHORIZE ROLE: User not found in database');
+        return res.status(404).json({ message: 'User not found.' });
       }
 
       return res.status(403).json({ message: 'Access denied. Insufficient permissions.' });

@@ -2,6 +2,8 @@
 const router = require('express').Router();
 const adminController = require('../controllers/admin.controller');
 const isAdmin = require('../middleware/isAdmin');
+const authMiddleware = require('../middleware/authMiddleware');
+const authorizeRole = require('../middleware/authorizeRole');
 
 // Admin authentication
 router.post('/login', adminController.adminLogin);
@@ -16,6 +18,15 @@ router.delete('/properties/:id', isAdmin, adminController.deleteProperty);
 
 // User management
 router.get('/users', isAdmin, adminController.getAllUsers);
+router.get('/users/tenants-for-guard', 
+  (req, res, next) => {
+    console.log('🔍 ADMIN ROUTE: tenants-for-guard route hit');
+    next();
+  },
+  authMiddleware, 
+  authorizeRole(['Security Guard']), 
+  adminController.getTenantsForSecurityGuard
+);
 router.put('/users/:id/ban', isAdmin, adminController.banUser);
 router.put('/users/:id/unban', isAdmin, adminController.unbanUser);
 router.delete('/users/:id', isAdmin, adminController.deleteUser);

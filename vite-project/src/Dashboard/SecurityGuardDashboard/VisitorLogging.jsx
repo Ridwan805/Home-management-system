@@ -9,6 +9,18 @@ const VisitorLogging = () => {
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [activeTab, setActiveTab] = useState('all'); // 'all', 'pre-approved'
+
+  const getAuthToken = () => {
+    const userData = localStorage.getItem('dwellSyncUser');
+    if (!userData) return null;
+    try {
+      const user = JSON.parse(userData);
+      return user.token;
+    } catch (e) {
+      return null;
+    }
+  };
+
   const [formData, setFormData] = useState({
     visitorName: '',
     unitId: '',
@@ -35,7 +47,13 @@ const VisitorLogging = () => {
   const fetchVisitors = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
+      if (!token) {
+        alert('Your session has expired. Please login again.');
+        localStorage.removeItem('dwellSyncUser');
+        window.location.href = '/login';
+        return;
+      }
       const response = await axios.get('http://localhost:5001/api/visitor-logs', {
         headers: { Authorization: `Bearer ${token}` },
         params: filter
@@ -52,7 +70,13 @@ const VisitorLogging = () => {
 
   const fetchPreApprovedGuests = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
+      if (!token) {
+        alert('Your session has expired. Please login again.');
+        localStorage.removeItem('dwellSyncUser');
+        window.location.href = '/login';
+        return;
+      }
       const response = await axios.get('http://localhost:5001/api/visitor-logs/pre-approved', {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -64,7 +88,13 @@ const VisitorLogging = () => {
 
   const fetchProperties = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
+      if (!token) {
+        alert('Your session has expired. Please login again.');
+        localStorage.removeItem('dwellSyncUser');
+        window.location.href = '/login';
+        return;
+      }
       const response = await axios.get('http://localhost:5001/api/properties', {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -78,7 +108,13 @@ const VisitorLogging = () => {
     e.preventDefault();
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
+      if (!token) {
+        alert('Your session has expired. Please login again.');
+        localStorage.removeItem('dwellSyncUser');
+        window.location.href = '/login';
+        return;
+      }
       await axios.post('http://localhost:5001/api/visitor-logs', formData, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -106,7 +142,13 @@ const VisitorLogging = () => {
 
   const handleCheckIn = async (visitorId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
+      if (!token) {
+        alert('Your session has expired. Please login again.');
+        localStorage.removeItem('dwellSyncUser');
+        window.location.href = '/login';
+        return;
+      }
       await axios.patch(`http://localhost:5001/api/visitor-logs/${visitorId}/checkin`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -123,7 +165,13 @@ const VisitorLogging = () => {
 
   const handleCheckOut = async (visitorId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
+      if (!token) {
+        alert('Your session has expired. Please login again.');
+        localStorage.removeItem('dwellSyncUser');
+        window.location.href = '/login';
+        return;
+      }
       await axios.patch(`http://localhost:5001/api/visitor-logs/${visitorId}/checkout`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });

@@ -152,6 +152,10 @@ try {
 // Global request logging middleware
 app.use((req, res, next) => {
   console.log('🌐 Incoming request:', req.method, req.url);
+  if (req.url.includes('tenants-for-guard')) {
+    console.log('🎯 TENANTS-FOR-GUARD REQUEST DETECTED:', req.method, req.url);
+    console.log('🎯 Headers:', req.headers);
+  }
   next();
 });
 

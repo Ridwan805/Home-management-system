@@ -3,11 +3,13 @@ const User = require('../models/User');
 const Property = require('../models/Property');
 const notificationService = require('../services/notificationService');
 
-// Create a new parcel log (Security Guard)
+// Create parcel log
 const createParcelLog = async (req, res) => {
   try {
+    console.log('🎯 PARCEL LOG: Creating parcel log with data:', req.body);
     const { recipientId, senderName, description } = req.body;
     const loggedBy = req.user.id; // Security guard ID from auth middleware
+    console.log('🎯 PARCEL LOG: Logged by user ID:', loggedBy);
 
     // Validate recipient exists
     const recipient = await User.findById(recipientId);
@@ -107,9 +109,19 @@ const getParcelLogById = async (req, res) => {
     const userRole = req.user.role;
     const userId = req.user.id;
 
+    console.log('🎯 PARCEL LOG BY ID: Requested ID:', id);
+    
+    // Validate ObjectId format
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      console.log('❌ PARCEL LOG BY ID: Invalid ObjectId format:', id);
+      return res.status(400).json({ message: 'Invalid parcel log ID format' });
+    }
+
     const parcelLog = await ParcelLog.findById(id)
       .populate('recipientId', 'name email phone')
       .populate('loggedBy', 'name');
+    
+    console.log('🎯 PARCEL LOG BY ID: Found parcel log:', !!parcelLog);
 
     if (!parcelLog) {
       return res.status(404).json({ message: 'Parcel log not found' });

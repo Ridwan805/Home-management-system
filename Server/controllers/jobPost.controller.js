@@ -573,6 +573,22 @@ const fireGuard = async (req, res) => {
     const jobTitle = jobPost.title;
     const propertyAddress = jobPost.propertyId?.address || 'Unknown Property';
 
+    // Find and terminate the security guard job record
+    const securityGuardJob = await SecurityGuardJob.findOne({
+      jobPostId: id,
+      guardId: firedGuardId,
+      isActive: true,
+      status: { $in: ['Hired', 'Active'] }
+    });
+
+    if (securityGuardJob) {
+      // Use the terminateJob method to properly update the security guard job
+      await securityGuardJob.terminateJob('fired', reason);
+      console.log(`Security guard job ${securityGuardJob._id} terminated for guard ${firedGuardId}`);
+    } else {
+      console.warn(`No active security guard job found for guard ${firedGuardId} and job post ${id}`);
+    }
+
     // Update job post - reopen the position
     jobPost.status = 'Open';
     jobPost.hiredUserId = null;
@@ -596,7 +612,14 @@ const fireGuard = async (req, res) => {
         _id: jobPost._id,
         status: jobPost.status,
         hiredUserId: jobPost.hiredUserId
-      }
+      },
+      securityGuardJob: securityGuardJob ? {
+        _id: securityGuardJob._id,
+        status: securityGuardJob.status,
+        isActive: securityGuardJob.isActive,
+        terminationDate: securityGuardJob.terminationDate,
+        sessionEndReason: securityGuardJob.sessionEndReason
+      } : null
     });
   } catch (error) {
     console.error('Error firing guard:', error);

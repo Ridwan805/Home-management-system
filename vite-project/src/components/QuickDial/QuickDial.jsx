@@ -7,6 +7,17 @@ const QuickDial = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const getAuthToken = () => {
+    const userData = localStorage.getItem('dwellSyncUser');
+    if (!userData) return null;
+    try {
+      const user = JSON.parse(userData);
+      return user.token;
+    } catch (e) {
+      return null;
+    }
+  };
+
   // Fetch contacts when component mounts or when panel opens
   useEffect(() => {
     if (isOpen && !contacts) {
@@ -19,7 +30,7 @@ const QuickDial = () => {
     setError(null);
     
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       if (!token) {
         throw new Error('Authentication required');
       }
@@ -49,7 +60,7 @@ const QuickDial = () => {
   const handleCall = async (phoneNumber, contactName, contactType) => {
     try {
       // Log the call attempt
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       if (token) {
         await fetch('/api/quick-dial/log-call', {
           method: 'POST',
