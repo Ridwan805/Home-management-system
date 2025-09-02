@@ -868,7 +868,7 @@ const handlePaymentSuccess = async (session) => {
       });
     }
     
-    // Automatically update property status based on listing type
+    // Automatically update property status and generate invoice for rental properties
     try {
       console.log('🏠 [WEBHOOK] Updating property status after advance payment...');
       const property = await Property.findById(request.propertyId);
@@ -896,10 +896,10 @@ const handlePaymentSuccess = async (session) => {
              });
              await property.save();
            } else if (newStatus === 'Rented') {
-             // Note: Rent objects are now created only when owner approves the request
-             // This webhook only updates the property status after advance payment
-             console.log('🏠 [WEBHOOK] Updating property status to Rented after advance payment...');
-             await property.rent(tenantId, null, `Property status updated to Rented after advance payment completion for request ${requestId}`);
+             // Note: Property status will be updated to 'Rented' only when owner approves the request
+             // This webhook should not change property status for rental properties
+             console.log('🏠 [WEBHOOK] Skipping property status update for rental - will be handled on owner approval');
+             // Do not update property status here for rentals
            }
           
           console.log('✅ [WEBHOOK] Property status updated successfully', {
@@ -921,22 +921,6 @@ const handlePaymentSuccess = async (session) => {
         requestId,
         propertyId: request.propertyId
       });
-    }
-    
-    // Generate first monthly invoice for rental properties
-    try {
-      if (request.propertyId?.listingType === 'For Rent') {
-        console.log('🧾 [WEBHOOK] Generating first monthly invoice after advance payment success...');
-        await InvoiceService.generateFirstMonthlyInvoiceAfterAdvance(requestId);
-        console.log('✅ [WEBHOOK] First monthly invoice generated successfully');
-      }
-    } catch (invoiceError) {
-      console.error('❌ [WEBHOOK] Failed to generate first monthly invoice:', {
-        error: invoiceError.message,
-        stack: invoiceError.stack,
-        requestId
-      });
-      // Don't throw the error to prevent webhook failure, but log it for investigation
     }
     
     console.log('Payment processed successfully for request:', requestId);

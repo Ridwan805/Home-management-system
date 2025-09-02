@@ -3,6 +3,7 @@ const Property = require('../models/Property');
 const User = require('../models/User');
 const Payment = require('../models/Payment');
 const Rent = require('../models/Rent');
+const InvoiceService = require('../services/invoiceService');
 
 // Get all requests for the authenticated tenant
 const getMyRequests = async (req, res) => {
@@ -290,6 +291,20 @@ const updateRequestStatus = async (req, res) => {
           
           console.log('✅ Rent object created successfully:', newRent._id);
           console.log('✅ Property status updated to Rented');
+          
+          // Generate first monthly invoice after owner approval
+          try {
+            console.log('🧾 Generating first monthly invoice after owner approval...');
+            await InvoiceService.generateFirstMonthlyInvoiceAfterAdvance(request._id);
+            console.log('✅ First monthly invoice generated successfully after owner approval');
+          } catch (invoiceError) {
+            console.error('❌ Failed to generate first monthly invoice after owner approval:', {
+              error: invoiceError.message,
+              stack: invoiceError.stack,
+              requestId: request._id
+            });
+            // Don't fail the whole operation if invoice generation fails
+          }
         }
       } catch (rentError) {
         console.error('❌ Error creating Rent object:', rentError);
