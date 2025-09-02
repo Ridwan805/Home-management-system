@@ -24,31 +24,87 @@ const getAllProperties = async (req, res) => {
       filter.listingType = req.query.listingType;
     }
 
-    // Add price range filters if provided
-    if (req.query.minPrice) {
-      filter.price = { ...filter.price, $gte: Number(req.query.minPrice) };
-    }
-    if (req.query.maxPrice) {
-      filter.price = { ...filter.price, $lte: Number(req.query.maxPrice) };
+    // Build additional filters using $and to combine multiple conditions properly
+    const additionalFilters = [];
+    
+    // Add price range filters if provided (check both pricing.rent and pricing.sale based on listingType)
+    if (req.query.minPrice || req.query.maxPrice) {
+      const priceFilter = {};
+      if (req.query.minPrice) priceFilter.$gte = Number(req.query.minPrice);
+      if (req.query.maxPrice) priceFilter.$lte = Number(req.query.maxPrice);
+      
+      // Apply to both pricing fields and legacy price field
+      additionalFilters.push({
+        $or: [
+          { 'pricing.rent': priceFilter },
+          { 'pricing.sale': priceFilter },
+          { price: priceFilter }
+        ]
+      });
     }
     
-    // Add bedroom filters if provided
-    if (req.query.minBedrooms) {
-      filter.bedrooms = { ...filter.bedrooms, $gte: Number(req.query.minBedrooms) };
-    }
-    if (req.query.maxBedrooms) {
-      filter.bedrooms = { ...filter.bedrooms, $lte: Number(req.query.maxBedrooms) };
+    // Add bedroom filters if provided (check both specifications.bedrooms and legacy bedrooms)
+    if (req.query.minBedrooms || req.query.maxBedrooms) {
+      const bedroomFilter = {};
+      if (req.query.minBedrooms) bedroomFilter.$gte = Number(req.query.minBedrooms);
+      if (req.query.maxBedrooms) bedroomFilter.$lte = Number(req.query.maxBedrooms);
+      
+      additionalFilters.push({
+        $or: [
+          { 'specifications.bedrooms': bedroomFilter },
+          { bedrooms: bedroomFilter }
+        ]
+      });
     }
     
-    // Add location filters if provided
+    // Add search functionality (search across address, city, state, zipCode)
+    if (req.query.search) {
+      const searchRegex = { $regex: new RegExp(req.query.search, 'i') };
+      additionalFilters.push({
+        $or: [
+          { address: searchRegex },
+          { 'location.city': searchRegex },
+          { city: searchRegex },
+          { 'location.state': searchRegex },
+          { state: searchRegex },
+          { 'location.zipCode': searchRegex },
+          { zipCode: searchRegex }
+        ]
+      });
+    }
+    
+    // Add location filters if provided (check both location.* and legacy fields)
     if (req.query.city) {
-      filter.city = { $regex: new RegExp(req.query.city, 'i') };
+      const cityRegex = { $regex: new RegExp(req.query.city, 'i') };
+      additionalFilters.push({
+        $or: [
+          { 'location.city': cityRegex },
+          { city: cityRegex }
+        ]
+      });
     }
     if (req.query.state) {
-      filter.state = { $regex: new RegExp(req.query.state, 'i') };
+      const stateRegex = { $regex: new RegExp(req.query.state, 'i') };
+      additionalFilters.push({
+        $or: [
+          { 'location.state': stateRegex },
+          { state: stateRegex }
+        ]
+      });
     }
     if (req.query.zipCode) {
-      filter.zipCode = { $regex: new RegExp(req.query.zipCode, 'i') };
+      const zipRegex = { $regex: new RegExp(req.query.zipCode, 'i') };
+      additionalFilters.push({
+        $or: [
+          { 'location.zipCode': zipRegex },
+          { zipCode: zipRegex }
+        ]
+      });
+    }
+    
+    // Combine all filters using $and if there are additional filters
+    if (additionalFilters.length > 0) {
+      filter.$and = additionalFilters;
     }
     
     const properties = await Property.find(filter)

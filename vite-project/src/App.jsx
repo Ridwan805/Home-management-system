@@ -125,24 +125,12 @@ function AppRoutes() {
       {popupMessage && <div className="popup-message">{popupMessage}</div>}
 
       <Routes>
-        <Route path="/" element={
-          <ProtectedRoute allowedRoles={['Owner', 'Tenant', 'admin']}>
-            <HomePage />
-          </ProtectedRoute>
-        } />
+        <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/properties" element={
-          <ProtectedRoute allowedRoles={['Owner', 'Tenant', 'admin']}>
-            <PropertyFilter />
-          </ProtectedRoute>
-        } />
-        <Route path="/properties/:propertyId" element={
-          <ProtectedRoute allowedRoles={['Owner', 'Tenant', 'admin']}>
-            <ViewDetails />
-          </ProtectedRoute>
-        } />
+        <Route path="/properties" element={<PropertyFilter />} />
+        <Route path="/properties/:propertyId" element={<ViewDetails />} />
         <Route path="/tenant/:section" element={
           <ProtectedRoute allowedRoles={['Tenant']}>
             <TenantDashboard />

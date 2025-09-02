@@ -30,11 +30,10 @@ const PropertyFilter = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Build query string from filters (excluding search)
+  // Build query string from filters (including search)
   const buildQueryString = (filters) => {
     const query = new URLSearchParams();
     Object.entries(filters).forEach(([key, value]) => {
-      if (key === 'search') return; // Don't send search as query param
       if (value !== '' && value !== undefined && value !== null && !(typeof value === 'boolean' && value === false)) {
         query.append(key, value);
       }
@@ -141,27 +140,9 @@ const PropertyFilter = () => {
     setFilters((prev) => ({ ...prev, search: e.target.value }));
   };
 
-  // Filter properties client-side by search bar and listingType
-  
   // Ensure only public statuses are shown even if backend misconfigures
   const publicStatuses = ['Available', 'Sold', 'Rented'];
-  const visibleProperties = properties.filter(p => publicStatuses.includes(p.status));
-  
-  const filteredProperties = visibleProperties.filter((p) => {
-    // Filter by search term if one exists
-    if (!filters.search) {
-      return true;
-    }
-    
-    const search = filters.search.toLowerCase();
-    const searchMatch = (
-      (p.address && p.address.toLowerCase().includes(search)) ||
-      (p.city && p.city.toLowerCase().includes(search)) ||
-      (p.zipCode && p.zipCode.toLowerCase().includes(search))
-    );
-    
-    return searchMatch;
-  });
+  const filteredProperties = properties.filter(p => publicStatuses.includes(p.status));
 
 
   return (
