@@ -229,7 +229,18 @@ const PropertySchema = new mongoose.Schema({
       latitude: { type: Number, min: -90, max: 90 },
       longitude: { type: Number, min: -180, max: 180 }
     },
-    neighborhood: String
+    neighborhood: String,
+    location_link: { 
+      type: String, 
+      trim: true,
+      validate: {
+        validator: function(v) {
+          if (!v) return true; // Allow empty values
+          return /^https?:\/\/(www\.)?(openstreetmap\.org|osm\.org)/.test(v);
+        },
+        message: 'Location link must be a valid OpenStreetMap URL'
+      }
+    }
   },
   
   // Legacy location fields (kept for backward compatibility)

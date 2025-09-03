@@ -292,6 +292,11 @@ const createProperty = async (req, res) => {
     const constraints = req.body.constraints ? JSON.parse(req.body.constraints) : {};
     const amenities = req.body.amenities ? JSON.parse(req.body.amenities) : [];
     
+    // Handle location_link separately if provided
+    if (req.body.location_link) {
+      locationData.location_link = req.body.location_link;
+    }
+    
     // Exclude 'state' from location to prevent conflict with Property model's state field
     const { state: locationState, ...location } = locationData;
     

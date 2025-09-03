@@ -11,8 +11,6 @@ const menuItems = [
   { key: 'report-problem', label: 'Report Problem', description: 'Report Issues' },
   { key: 'wishlist', label: 'Wishlist', description: 'Saved Properties' },
   { key: 'request-info', label: 'My Requests', description: 'View Request Status' },
-  { key: 'parcel-logs', label: 'Parcel Logs', description: 'View Package Deliveries' },
-  { key: 'guest-pre-approval', label: 'Guest Management', description: 'Pre-Approve Visitors' },
 ];
 
 const TenantSidebarNav = ({ activeSection, setActiveSection }) => {

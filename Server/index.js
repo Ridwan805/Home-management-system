@@ -134,10 +134,6 @@ const securityGuardApplicationRoutes = require('./routes/securityGuardApplicatio
 const securityGuardPaymentRoutes = require('./routes/securityGuardPayment.routes');
 const invoiceRoutes = require('./routes/invoice.routes');
 const paymentRoutes = require('./routes/payment.routes');
-const parcelLogRoutes = require('./routes/parcelLog.routes');
-const visitorLogRoutes = require('./routes/visitorLog.routes');
-const quickDialRoutes = require('./routes/quickDial.routes');
-const maintenanceReportRoutes = require('./routes/maintenanceReport.routes');
 
 
 let requestManagementRoutes;
@@ -152,10 +148,6 @@ try {
 // Global request logging middleware
 app.use((req, res, next) => {
   console.log('🌐 Incoming request:', req.method, req.url);
-  if (req.url.includes('tenants-for-guard')) {
-    console.log('🎯 TENANTS-FOR-GUARD REQUEST DETECTED:', req.method, req.url);
-    console.log('🎯 Headers:', req.headers);
-  }
   next();
 });
 
@@ -184,10 +176,6 @@ app.use('/api/security-guard-applications', securityGuardApplicationRoutes);
 app.use('/api/security-guard-payments', securityGuardPaymentRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/payments', paymentRoutes);
-app.use('/api/parcel-logs', parcelLogRoutes);
-app.use('/api/visitor-logs', visitorLogRoutes);
-app.use('/api/quick-dial', quickDialRoutes);
-app.use('/api/maintenance-reports', maintenanceReportRoutes);
 
 
 

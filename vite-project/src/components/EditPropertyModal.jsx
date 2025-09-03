@@ -18,6 +18,7 @@ const EditPropertyModal = ({ property, onClose, onUpdate }) => {
     city: property.city || '',
     state: property.state || '',
     zipCode: property.zipCode || '',
+    location_link: property.location?.location_link || '',
     images: property.images || []
   });
   
@@ -209,6 +210,22 @@ const EditPropertyModal = ({ property, onClose, onUpdate }) => {
                 onChange={handleInputChange}
               />
             </div>
+          </div>
+          
+          <div className="form-group full-width">
+            <label htmlFor="location_link">OpenStreetMap Location Link</label>
+            <input
+              type="url"
+              id="location_link"
+              name="location_link"
+              value={formData.location_link}
+              onChange={handleInputChange}
+              placeholder="https://www.openstreetmap.org/..."
+              title="Paste the OpenStreetMap URL for this property location"
+            />
+            <small style={{color: '#666', fontSize: '0.9em', marginTop: '4px', display: 'block'}}>
+              Optional: Visit OpenStreetMap, find your property location, and paste the URL here
+            </small>
           </div>
           
           <div className="form-row">

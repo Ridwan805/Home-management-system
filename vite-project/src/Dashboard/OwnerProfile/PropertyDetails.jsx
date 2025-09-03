@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../../config/api';
+import PropertyMap from '../../components/PropertyMap';
 import './PropertyDetails.css';
 
 const PropertyDetails = () => {
@@ -84,6 +85,7 @@ const PropertyDetails = () => {
       city: property.city || '',
       state: property.state || '',
       zipCode: property.zipCode || '',
+      location_link: property.location?.location_link || '',
       description: property.description || '',
       yearBuilt: property.yearBuilt || '',
       contactEmail: property.contactEmail || '',
@@ -323,6 +325,21 @@ const PropertyDetails = () => {
 
               {selectedProperty.yearBuilt && <div className="modal-detail-item"><strong>Year Built:</strong> <span>{selectedProperty.yearBuilt}</span></div>}
               {selectedProperty.city && <div className="modal-detail-item"><strong>Location:</strong> <span>{selectedProperty.city}, {selectedProperty.state} {selectedProperty.zipCode}</span></div>}
+              {selectedProperty.location?.location_link && (
+                <div className="modal-detail-item">
+                  <strong>Map Location:</strong> 
+                  <span>
+                    <a 
+                      href={selectedProperty.location.location_link} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      style={{color: '#007bff', textDecoration: 'underline'}}
+                    >
+                      View on OpenStreetMap
+                    </a>
+                  </span>
+                </div>
+              )}
               {selectedProperty.contactEmail && <div className="modal-detail-item"><strong>Contact Email:</strong> <span>{selectedProperty.contactEmail}</span></div>}
               {selectedProperty.contactPhone && <div className="modal-detail-item"><strong>Contact Phone:</strong> <span>{selectedProperty.contactPhone}</span></div>}
             </div>
@@ -344,6 +361,29 @@ const PropertyDetails = () => {
                 <p className="modal-description-full">{selectedProperty.description}</p>
               </div>
             )}
+
+            {/* Property Map Section */}
+            <div className="modal-map-section">
+              <h3>Location & Map</h3>
+              <div className="property-map-container">
+                <PropertyMap
+                  property={{
+                    ...selectedProperty,
+                    location: {
+                      address: selectedProperty.address,
+                      city: selectedProperty.city,
+                      state: selectedProperty.state,
+                      zipCode: selectedProperty.zipCode
+                    }
+                  }}
+                  showUserLocation={true}
+                  showNearbyAmenities={true}
+                  showRouting={true}
+                  showShareControls={true}
+                  height="400px"
+                />
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -477,6 +517,22 @@ const PropertyDetails = () => {
                   value={formData.zipCode || ''}
                   onChange={handleInputChange}
                 />
+              </div>
+              
+              <div className="form-group full-width">
+                <label htmlFor="location_link">OpenStreetMap Location Link</label>
+                <input
+                  type="url"
+                  id="location_link"
+                  name="location_link"
+                  value={formData.location_link || ''}
+                  onChange={handleInputChange}
+                  placeholder="https://www.openstreetmap.org/..."
+                  title="Paste the OpenStreetMap URL for this property location"
+                />
+                <small style={{color: '#666', fontSize: '0.9em', marginTop: '4px', display: 'block'}}>
+                  Optional: Visit OpenStreetMap, find your property location, and paste the URL here
+                </small>
               </div>
               
               <div className="form-group full-width">

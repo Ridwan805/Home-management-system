@@ -43,6 +43,7 @@ const initialState = {
   city: '',
   state: '',
   zipCode: '',
+  location_link: '',
   
   // Appliances
   airConditioning: false,
@@ -474,6 +475,11 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
       };
       formData.append('location', JSON.stringify(location));
       
+      // Location link (OpenStreetMap URL)
+      if (form.location_link) {
+        formData.append('location_link', form.location_link);
+      }
+      
       // Contact information
       const contactInfo = {
         email: form.contactEmail,
@@ -876,6 +882,19 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
       <div className="form-row">
         <label>Zip Code</label>
         <input name="zipCode" value={form.zipCode} onChange={handleChange} />
+      </div>
+      <div className="form-row">
+        <label>OpenStreetMap Location Link</label>
+        <input 
+          name="location_link" 
+          value={form.location_link} 
+          onChange={handleChange} 
+          placeholder="https://www.openstreetmap.org/..."
+          title="Paste the OpenStreetMap URL for this property location"
+        />
+        <small style={{color: '#666', fontSize: '0.9em', marginTop: '4px', display: 'block'}}>
+          Optional: Visit OpenStreetMap, find your property location, and paste the URL here
+        </small>
       </div>
 
       <h3>Appliances</h3>
