@@ -127,6 +127,7 @@ const requestRoutes = require('./routes/request.routes');
 const stripeRoutes = require('./routes/stripe.routes');
 const uploadRoutes = require('./routes/upload.routes');
 const notificationRoutes = require('./routes/notifications');
+const maintenanceReportRoutes = require('./routes/maintenanceReport.routes');
 
 const imageServingRoutes = require('./routes/imageServing.routes');
 const jobPostRoutes = require('./routes/jobPost.routes');
@@ -169,6 +170,7 @@ app.use('/api/requests', requestRoutes);
 app.use('/api/stripe', stripeRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/maintenance-reports', maintenanceReportRoutes);
 
 app.use('/api/images', imageServingRoutes);
 app.use('/api/job-posts', jobPostRoutes);

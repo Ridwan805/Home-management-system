@@ -26,6 +26,7 @@ const MaintenanceReports = () => {
       const response = await getOwnerReports();
       if (response.success) {
         setReports(response.data);
+        setError(''); // Clear any previous errors
       } else {
         setError(response.message || 'Failed to fetch reports');
       }
@@ -212,7 +213,7 @@ const MaintenanceReports = () => {
       {error && <div className="error-message">{error}</div>}
 
       <div className="reports-grid">
-        {filteredReports.length === 0 ? (
+        {!error && filteredReports.length === 0 ? (
           <div className="no-reports">
             <p>No maintenance reports found.</p>
           </div>
