@@ -5,6 +5,7 @@ import SecurityGuardProfile from './SecurityGuardProfile';
 import LookingForJob from './LookingForJob';
 import MyJob from './MyJob';
 import SalaryInput from './SalaryInput';
+import QuickDialButton from '../../components/QuickDialButton/QuickDialButton';
 import './SecurityGuardDashboard.css';
 
 const SecurityGuardDashboard = () => {
@@ -39,6 +40,7 @@ const SecurityGuardDashboard = () => {
           {activeSection === 'salary-input' && <SalaryInput />}
         </div>
       </main>
+      <QuickDialButton />
     </div>
   );
 };

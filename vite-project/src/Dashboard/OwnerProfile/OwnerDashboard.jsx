@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import SidebarNav from './SidebarNav';
 import OwnerProfile from './OwnerProfile';
 import MaintenanceReports from './MaintenanceReports';
+import QuickDialButton from '../../components/QuickDialButton/QuickDialButton';
 import API from '../../config/api';
 
 import './OwnerDashboard.css';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const OwnerDashboard = () => {
   const [activeSection, setActiveSection] = useState('profile');
@@ -15,6 +16,14 @@ const OwnerDashboard = () => {
   const [error, setError] = useState(null);
   const [isOwner, setIsOwner] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Check for section parameter in URL state
+  useEffect(() => {
+    if (location.state && location.state.section) {
+      setActiveSection(location.state.section);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     const userData = localStorage.getItem('dwellSyncUser');
@@ -288,6 +297,7 @@ const OwnerDashboard = () => {
           {activeSection === 'maintenance-reports' && <MaintenanceReports />}
         </div>
       </main>
+      <QuickDialButton />
     </div>
   );
 };

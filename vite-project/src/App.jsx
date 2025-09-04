@@ -18,6 +18,7 @@ import ViewDetails from './components/ViewDetails';
 import OwnerRequestsInbox from './Dashboard/OwnerProfile/OwnerRequestsInbox';
 import SidebarNav from './Dashboard/OwnerProfile/SidebarNav';
 import Payment from './Dashboard/OwnerProfile/Payment';
+import QuickDialButton from './components/QuickDialButton/QuickDialButton';
 import SecurityGuardDashboard from './Dashboard/SecurityGuardDashboard/SecurityGuardDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -70,6 +71,7 @@ function AppRoutes() {
             else if (key === 'security-guard-info') navigate('/security-guard-info');
             else if (key === 'request-info') navigate('/request-info');
             else if (key === 'payments') navigate('/payments');
+            else if (key === 'maintenance-reports') navigate('/dashboard', { state: { section: 'maintenance-reports' } });
           }}
         />
         <main className="dashboard-main">
@@ -77,6 +79,7 @@ function AppRoutes() {
             <CreateListingForm onSuccess={() => navigate('/dashboard')} onCancel={() => navigate('/dashboard')} />
           </div>
         </main>
+        <QuickDialButton />
       </div>
     );
   }
@@ -94,6 +97,7 @@ function AppRoutes() {
             else if (key === 'tenant-info') navigate('/tenant-info');
             else if (key === 'request-info') navigate('/request-info');
             else if (key === 'payments') navigate('/payments');
+            else if (key === 'maintenance-reports') navigate('/dashboard', { state: { section: 'maintenance-reports' } });
           }}
         />
         <main className="dashboard-main">
@@ -104,6 +108,7 @@ function AppRoutes() {
             <h2 style={{ color: '#2563eb', fontSize: '2rem' }}>Page under construction</h2>
           </div>
         </main>
+        <QuickDialButton />
       </div>
     );
   }
@@ -162,6 +167,7 @@ function AppRoutes() {
                     else if (key === 'security-guard-info') navigate('/security-guard-info');
                     else if (key === 'request-info') navigate('/request-info');
                     else if (key === 'payments') navigate('/payments');
+                    else if (key === 'maintenance-reports') navigate('/dashboard', { state: { section: 'maintenance-reports' } });
                   }}
                 />
                 <main className="dashboard-main">
@@ -169,6 +175,7 @@ function AppRoutes() {
                     <PropertyListing />
                   </div>
                 </main>
+                <QuickDialButton />
               </div>
             </ProtectedRoute>
           }
@@ -188,6 +195,7 @@ function AppRoutes() {
                     else if (key === 'security-guard-info') navigate('/security-guard-info');
                     else if (key === 'request-info') navigate('/request-info');
                     else if (key === 'payments') navigate('/payments');
+                    else if (key === 'maintenance-reports') navigate('/dashboard', { state: { section: 'maintenance-reports' } });
                   }}
                 />
                 <main className="dashboard-main">
@@ -195,6 +203,7 @@ function AppRoutes() {
                     <TenantInfo />
                   </div>
                 </main>
+                <QuickDialButton />
               </div>
             </ProtectedRoute>
           }
@@ -214,6 +223,7 @@ function AppRoutes() {
                     else if (key === 'security-guard-info') navigate('/security-guard-info');
                     else if (key === 'request-info') navigate('/request-info');
                     else if (key === 'payments') navigate('/payments');
+                    else if (key === 'maintenance-reports') navigate('/dashboard', { state: { section: 'maintenance-reports' } });
                   }}
                 />
                 <main className="dashboard-main">
@@ -221,6 +231,7 @@ function AppRoutes() {
                     <SecurityGuardInfo />
                   </div>
                 </main>
+                <QuickDialButton />
               </div>
             </ProtectedRoute>
           }
@@ -240,6 +251,7 @@ function AppRoutes() {
                     else if (key === 'security-guard-info') navigate('/security-guard-info');
                     else if (key === 'request-info') navigate('/request-info');
                     else if (key === 'payments') navigate('/payments');
+                    else if (key === 'maintenance-reports') navigate('/dashboard', { state: { section: 'maintenance-reports' } });
                   }}
                 />
                 <main className="dashboard-main">
@@ -247,6 +259,7 @@ function AppRoutes() {
                     <OwnerRequestsInbox />
                   </div>
                 </main>
+                <QuickDialButton />
               </div>
             </ProtectedRoute>
           }
@@ -266,6 +279,7 @@ function AppRoutes() {
                     else if (key === 'security-guard-info') navigate('/security-guard-info');
                     else if (key === 'request-info') navigate('/request-info');
                     else if (key === 'payments') navigate('/payments');
+                    else if (key === 'maintenance-reports') navigate('/dashboard', { state: { section: 'maintenance-reports' } });
                   }}
                 />
                 <main className="dashboard-main">
@@ -273,6 +287,7 @@ function AppRoutes() {
                     <Payment />
                   </div>
                 </main>
+                <QuickDialButton />
               </div>
             </ProtectedRoute>
           }

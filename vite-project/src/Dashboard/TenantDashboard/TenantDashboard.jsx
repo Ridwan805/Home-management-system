@@ -8,6 +8,7 @@ import TenantSecurityGuardInfo from './TenantSecurityGuardInfo';
 import ReportProblem from './ReportProblem';
 import Wishlist from './Wishlist';
 import MyRequests from './MyRequests';
+import QuickDialButton from '../../components/QuickDialButton/QuickDialButton';
 import './TenantDashboard.css';
 
 const TenantDashboard = () => {
@@ -45,6 +46,7 @@ const TenantDashboard = () => {
           {activeSection === 'request-info' && <MyRequests />}
         </div>
       </main>
+      <QuickDialButton />
     </div>
   );
 };

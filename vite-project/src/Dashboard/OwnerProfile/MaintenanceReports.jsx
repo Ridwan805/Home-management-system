@@ -17,24 +17,30 @@ const MaintenanceReports = () => {
   const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
+    console.log('MaintenanceReports component mounted, fetching reports...');
     fetchReports();
   }, []);
 
   const fetchReports = async () => {
     try {
+      console.log('Starting to fetch reports...');
       setLoading(true);
       const response = await getOwnerReports();
+      console.log('API response received:', response);
       if (response.success) {
+        console.log('Reports data:', response.data);
         setReports(response.data);
         setError(''); // Clear any previous errors
       } else {
+        console.log('API response failed:', response.message);
         setError(response.message || 'Failed to fetch reports');
       }
     } catch (err) {
-      setError('Error fetching maintenance reports');
-      console.error('Error:', err);
+      console.error('Error fetching maintenance reports:', err);
+      setError('Error fetching maintenance reports: ' + err.message);
     } finally {
       setLoading(false);
+      console.log('Fetch reports completed');
     }
   };
 

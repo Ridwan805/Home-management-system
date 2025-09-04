@@ -5,6 +5,7 @@ import DashboardOverview from './DashboardOverview';
 import PendingProperties from './PendingProperties';
 import ReportManagement from './ReportManagement';
 import UserModeration from './UserModeration';
+import QuickDialButton from '../../components/QuickDialButton/QuickDialButton';
 import './adminDashboard.css';
 
 const AdminDashboard = () => {
@@ -46,6 +47,7 @@ const AdminDashboard = () => {
           <Route path="*" element={<DashboardOverview />} />
         </Routes>
       </main>
+      <QuickDialButton />
     </div>
   );
 };
