@@ -48,7 +48,11 @@ const PropertyDetails = () => {
         }
 
         const data = await response.json();
+      if (data.success) {
         setProperties(data.properties || []);
+      } else {
+        setError(data.message || 'Failed to fetch properties');
+      }
       } catch (err) {
         console.error('Error fetching properties:', err);
         setError(err.message);
@@ -325,10 +329,10 @@ const PropertyDetails = () => {
 
               {selectedProperty.yearBuilt && <div className="modal-detail-item"><strong>Year Built:</strong> <span>{selectedProperty.yearBuilt}</span></div>}
               {selectedProperty.city && <div className="modal-detail-item"><strong>Location:</strong> <span>{selectedProperty.city}, {selectedProperty.state} {selectedProperty.zipCode}</span></div>}
-              {selectedProperty.location?.location_link && (
-                <div className="modal-detail-item">
-                  <strong>Map Location:</strong> 
-                  <span>
+              <div className="modal-detail-item">
+                <strong>Map Location:</strong> 
+                <span>
+                  {selectedProperty.location?.location_link ? (
                     <a 
                       href={selectedProperty.location.location_link} 
                       target="_blank" 
@@ -337,9 +341,11 @@ const PropertyDetails = () => {
                     >
                       View on OpenStreetMap
                     </a>
-                  </span>
-                </div>
-              )}
+                  ) : (
+                    <span style={{color: '#6b7280', fontStyle: 'italic'}}>Map link not available - Add one by editing this property</span>
+                  )}
+                </span>
+              </div>
               {selectedProperty.contactEmail && <div className="modal-detail-item"><strong>Contact Email:</strong> <span>{selectedProperty.contactEmail}</span></div>}
               {selectedProperty.contactPhone && <div className="modal-detail-item"><strong>Contact Phone:</strong> <span>{selectedProperty.contactPhone}</span></div>}
             </div>

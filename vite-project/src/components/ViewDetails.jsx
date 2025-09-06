@@ -298,6 +298,26 @@ const ViewDetails = () => {
             </p>
           </div>
 
+          {/* Map Location (OpenStreetMap link) */}
+          <div className="property-map-location-section" style={{ marginTop: '16px' }}>
+            <h3>Map Location</h3>
+            {property.location?.location_link ? (
+              <a
+                href={property.location.location_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="map-link"
+                style={{ color: '#007bff', textDecoration: 'none' }}
+              >
+                View on OpenStreetMap
+              </a>
+            ) : (
+              <p className="no-map-link" style={{ color: '#6c757d' }}>
+                Map link not available. Please contact the owner to add an OpenStreetMap link.
+              </p>
+            )}
+          </div>
+
           <div className="property-specs-section">
             <h3>Property Specifications</h3>
             <div className="property-specs-grid">

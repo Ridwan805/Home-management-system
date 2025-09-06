@@ -111,7 +111,37 @@ const PropertyMap = ({
   }, [checkLocationPermission]);
 
   // Geocode property address with retry logic
+  const extractCoordinatesFromOsmLink = (link) => {
+    try {
+      const url = new URL(link);
+      // Check for #map=zoom/lat/lon format
+      const hashMatch = url.hash.match(/#map=\d+\/([-\\d.]+)\/([-\\d.]+)/);
+      if (hashMatch && hashMatch.length === 3) {
+        return [parseFloat(hashMatch[1]), parseFloat(hashMatch[2])];
+      }
+      // Check for ?mlat=lat&mlon=lon format
+      const mlat = url.searchParams.get('mlat');
+      const mlon = url.searchParams.get('mlon');
+      if (mlat && mlon) {
+        return [parseFloat(mlat), parseFloat(mlon)];
+      }
+    } catch (e) {
+      console.error("Error parsing OpenStreetMap link:", e);
+    }
+    return null;
+  };
+
   const geocodeProperty = useCallback(async (retryAttempt = 0) => {
+    if (property?.location?.location_link) {
+      const coords = extractCoordinatesFromOsmLink(property.location.location_link);
+      if (coords) {
+        setMapCenter(coords);
+        setIsLoading(false);
+        setRetryCount(0);
+        return;
+      }
+    }
+
     if (!property?.address) {
       setError('Property address not available');
       setIsLoading(false);
@@ -184,7 +214,7 @@ const PropertyMap = ({
         setIsLoading(false);
       }
     }
-  }, [property?.address, property?.city, property?.state, isOffline]);
+  }, [property?.address, property?.city, property?.state, property?.location?.location_link, isOffline]);
 
   useEffect(() => {
     geocodeProperty();
@@ -403,6 +433,18 @@ const PropertyMap = ({
           </Marker>
         )}
       </MapContainer>
+      {mapCenter && (
+        <div style={{ marginTop: '10px', textAlign: 'center' }}>
+          <a
+            href={`https://www.openstreetmap.org/?mlat=${mapCenter[0]}&mlon=${mapCenter[1]}#map=17/${mapCenter[0]}/${mapCenter[1]}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: '#007bff', textDecoration: 'none' }}
+          >
+            View on OpenStreetMap
+          </a>
+        </div>
+      )}
     </div>
   );
 };

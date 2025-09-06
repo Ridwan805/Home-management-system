@@ -526,7 +526,15 @@ const updateProperty = async (req, res) => {
     }
 
     // Extract status from update data to handle separately
-    const { status, ...updateData } = req.body;
+    const { status, location_link, ...updateData } = req.body;
+    
+    // Handle location_link separately to ensure proper nesting
+    if (location_link !== undefined) {
+      if (!property.location) {
+        property.location = {};
+      }
+      property.location.location_link = location_link;
+    }
     
     // Update basic property fields
     Object.assign(property, updateData);
