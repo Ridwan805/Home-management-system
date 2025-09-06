@@ -41,6 +41,7 @@
   transform: scale(1, 1.1); /* Slightly stretch vertically */
   background: linear-gradient(180deg, #ffffff 0%, #f0f0f0 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }

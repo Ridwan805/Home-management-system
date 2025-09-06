@@ -407,7 +407,7 @@ const addLineItem = async (req, res) => {
 const processPayment = async (req, res) => {
   try {
     const { invoiceId } = req.params;
-    const { amount, paymentMethod } = req.body;
+    const { amount, paymentMethod, originUrl } = req.body;
     const userId = req.user.userId;
 
     const invoice = await Invoice.findById(invoiceId)
@@ -452,8 +452,8 @@ const processPayment = async (req, res) => {
         quantity: 1,
       }],
       mode: 'payment',
-      success_url: `${process.env.FRONTEND_URL}/tenant/payment?session_id={CHECKOUT_SESSION_ID}&status=success`,
-      cancel_url: `${process.env.FRONTEND_URL}/tenant/payment?status=cancelled`,
+      success_url: `${originUrl || process.env.FRONTEND_URL}/tenant/payment?session_id={CHECKOUT_SESSION_ID}&status=success`,
+      cancel_url: `${originUrl || process.env.FRONTEND_URL}/tenant/payment?status=cancelled`,
       metadata: {
         invoiceId: invoice._id.toString(),
         userId: userId,

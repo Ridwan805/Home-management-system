@@ -12,7 +12,7 @@ const getApiPort = () => {
 };
 
 // Base URL for API requests
-const API_BASE_URL = `http://localhost:${getApiPort()}`;
+const API_BASE_URL = 'https://home-management-system-8cmh.onrender.com';
 
 /**
  * Handles API responses and checks for token expiration

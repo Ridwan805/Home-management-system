@@ -8,7 +8,7 @@ const SecurityGuardJob = require('../models/securityguardjobs');
 // Create payment session for hired guard
 const createPaymentSession = async (req, res) => {
   try {
-    const { jobPostId, amount, description, currency = 'USD', frequency = 'monthly' } = req.body;
+    const { jobPostId, amount, description, originUrl, currency = 'USD', frequency = 'monthly' } = req.body;
     const ownerId = req.user._id || req.user.userId || req.user.id;
 
     // Input validation
@@ -69,8 +69,8 @@ const createPaymentSession = async (req, res) => {
         },
       ],
       mode: 'payment',
-      success_url: `${process.env.CLIENT_URL}/owner/payments?payment=success&session_id={CHECKOUT_SESSION_ID}&type=security_guard`,
-      cancel_url: `${process.env.CLIENT_URL}/owner/payments?payment=cancelled`,
+      success_url: `${originUrl || process.env.FRONTEND_URL}/owner/payments?payment=success&session_id={CHECKOUT_SESSION_ID}&type=security_guard`,
+      cancel_url: `${originUrl || process.env.FRONTEND_URL}/owner/payments?payment=cancelled`,
       metadata: {
         type: 'security_guard_payment',
         jobPostId: jobPostId,

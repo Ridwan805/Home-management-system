@@ -236,9 +236,10 @@ app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
 
-const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+const port = process.env.PORT || 5001; // Your local fallback port
+
+app.listen(port, () => {
+  console.log(`🚀 Server running on port ${port}`);
   
   // Start PaymentScheduler as guard layer (runs every 5 minutes)
   PaymentScheduler.start();

@@ -195,7 +195,10 @@ const PaymentInfo = () => {
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ paymentId })
+          body: JSON.stringify({ 
+            paymentId,
+            originUrl: window.location.origin 
+          })
         },
         navigate
       );

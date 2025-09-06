@@ -168,7 +168,8 @@ const Payment = () => {
         body: JSON.stringify({
           jobPostId: guard.jobPostId,
           amount: parseFloat(paymentAmount),
-          description: paymentDescription
+          description: paymentDescription,
+          originUrl: window.location.origin
         })
       });
       

@@ -40,7 +40,7 @@ const getPublishableKey = async (req, res) => {
 const createPaymentSession = async (req, res) => {
   try {
     const { requestId } = req.params;
-    const { amount: providedAmount, currency: providedCurrency = 'BDT' } = req.body;
+    const { amount: providedAmount, currency: providedCurrency = 'BDT', originUrl } = req.body;
     const userId = req.user.userId;
     console.log('🧭 createPaymentSession called', { requestId, userId, providedAmount, providedCurrency });
     
@@ -121,6 +121,21 @@ const createPaymentSession = async (req, res) => {
     const propertyAddress = request.propertyId?.address || 'Address not available';
     const displayName = `${propertyName} - ${propertyAddress}`;
     
+    // Use the originUrl from the request body if provided, otherwise fall back to FRONTEND_URL
+    const frontendUrl = originUrl || process.env.FRONTEND_URL;
+    
+    if (!frontendUrl) {
+      return res.status(500).json({
+        success: false,
+        error: 'FRONTEND_URL_NOT_CONFIGURED',
+        message: 'Frontend URL is not configured. Please set FRONTEND_URL environment variable.'
+      });
+    }
+    console.log('🔗 Using frontend URL for redirects:', frontendUrl);
+    
+    const successUrl = `${frontendUrl}/tenant/request-info?payment=success&session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `${frontendUrl}/tenant/request-info?payment=cancelled`;
+    
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -140,8 +155,8 @@ const createPaymentSession = async (req, res) => {
         },
       ],
       mode: 'payment',
-      success_url: `${process.env.FRONTEND_URL}/tenant/request-info?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.FRONTEND_URL}/tenant/request-info?payment=cancelled`,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
       metadata: {
         requestId: request._id.toString(),
         tenantId: userId.toString(),
@@ -1278,7 +1293,7 @@ const handleInvoicePaymentSuccess = async (session) => {
  */
 const createInvoicePaymentSession = async (req, res) => {
   try {
-    const { paymentId } = req.body;
+    const { paymentId, originUrl } = req.body;
     const userId = req.user?.userId;
 
     if (!paymentId) {
@@ -1330,6 +1345,21 @@ const createInvoicePaymentSession = async (req, res) => {
       });
     }
 
+    // Use the originUrl from the request body if provided, otherwise fall back to FRONTEND_URL
+    const frontendUrl = originUrl || process.env.FRONTEND_URL;
+    
+    if (!frontendUrl) {
+      return res.status(500).json({
+        success: false,
+        error: 'FRONTEND_URL_NOT_CONFIGURED',
+        message: 'Frontend URL is not configured. Please set FRONTEND_URL environment variable.'
+      });
+    }
+    console.log('🔗 Using frontend URL for invoice payment redirects:', frontendUrl);
+    
+    const successUrl = `${frontendUrl}/tenant/payment?session_id={CHECKOUT_SESSION_ID}&status=success&payment_id=${paymentId}`;
+    const cancelUrl = `${frontendUrl}/tenant/payment?status=cancelled&payment_id=${paymentId}`;
+
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -1345,8 +1375,8 @@ const createInvoicePaymentSession = async (req, res) => {
           quantity: 1
         }],
       mode: 'payment',
-      success_url: `${process.env.FRONTEND_URL}/tenant/payment?session_id={CHECKOUT_SESSION_ID}&status=success&payment_id=${paymentId}`,
-      cancel_url: `${process.env.FRONTEND_URL}/tenant/payment?status=cancelled&payment_id=${paymentId}`,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
       metadata: {
         paymentId: paymentId,
         userId: userId,

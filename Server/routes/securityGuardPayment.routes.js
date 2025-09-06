@@ -13,7 +13,7 @@ const { getHiredGuardsWithPaymentDetails, generateMonthlyInvoice, handlePaymentS
 // Create payment session for security guard
 router.post('/create-payment-session', authMiddleware, authorizeRole(['Owner']), async (req, res) => {
   try {
-    const { jobPostId, amount, description, frequency = 'monthly' } = req.body;
+    const { jobPostId, amount, description, frequency = 'monthly', originUrl } = req.body;
     const ownerId = req.user._id || req.user.userId || req.user.id;
 
     if (!jobPostId || !amount) {
@@ -85,8 +85,8 @@ router.post('/create-payment-session', authMiddleware, authorizeRole(['Owner']),
         quantity: 1
       }],
       mode: 'payment',
-      success_url: `${process.env.CLIENT_URL}/dashboard/owner/security-guards?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.CLIENT_URL}/dashboard/owner/security-guards?payment=cancelled`,
+      success_url: `${originUrl || process.env.CLIENT_URL}/dashboard/owner/security-guards?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${originUrl || process.env.CLIENT_URL}/dashboard/owner/security-guards?payment=cancelled`,
       metadata: {
         paymentId: payment._id.toString(),
         jobPostId: jobPost._id.toString(),
