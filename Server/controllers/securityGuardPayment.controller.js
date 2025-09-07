@@ -272,7 +272,7 @@ const generateMonthlyInvoice = async (req, res) => {
 
     // Find the security guard job
     const guardJob = await SecurityGuardJob.findById(guardJobId)
-      .populate('guardId', 'firstName lastName email phone')
+      .populate('guardId', 'firstName lastName email phoneNumber address')
       .populate('propertyId', 'title address')
       .populate('jobPostId', 'title description')
       .populate('ownerId', 'firstName lastName email');
@@ -663,7 +663,7 @@ const getHiredGuardsWithPaymentDetails = async (req, res) => {
       status: { $in: ['Hired', 'Active'] },
       isActive: true
     })
-    .populate('guardId', 'firstName lastName email phone profilePicture')
+    .populate('guardId', 'firstName lastName email phoneNumber address profilePicture')
     .populate('propertyId', 'title address')
     .populate('jobPostId', 'title description requirements')
     .sort({ hiredDate: -1 });

@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import SidebarNav from './SidebarNav';
 import OwnerProfile from './OwnerProfile';
-import MaintenanceReports from './MaintenanceReports';
-import QuickDialButton from '../../components/QuickDialButton/QuickDialButton';
 import API from '../../config/api';
 
 import './OwnerDashboard.css';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const OwnerDashboard = () => {
   const [activeSection, setActiveSection] = useState('profile');
@@ -16,14 +14,6 @@ const OwnerDashboard = () => {
   const [error, setError] = useState(null);
   const [isOwner, setIsOwner] = useState(null);
   const navigate = useNavigate();
-  const location = useLocation();
-
-  // Check for section parameter in URL state
-  useEffect(() => {
-    if (location.state && location.state.section) {
-      setActiveSection(location.state.section);
-    }
-  }, [location.state]);
 
   useEffect(() => {
     const userData = localStorage.getItem('dwellSyncUser');
@@ -77,11 +67,20 @@ const OwnerDashboard = () => {
           throw new Error(errorData.message || 'Failed to fetch properties');
         }
         const data = await response.json();
-        if (!data.success || !Array.isArray(data.properties)) {
+        console.log('Raw response data:', data);
+        
+        // Handle the response structure from the backend
+        let propertiesArray;
+        if (data.success && Array.isArray(data.properties)) {
+          propertiesArray = data.properties;
+        } else if (Array.isArray(data)) {
+          propertiesArray = data;
+        } else {
           throw new Error('Invalid data received from server');
         }
-
-        setProperties(data.properties);
+        
+        console.log('Properties fetched:', propertiesArray.length);
+        setProperties(propertiesArray);
         setLoading(false);
       } catch (err) {
         console.error('Error fetching properties:', err);
@@ -168,7 +167,7 @@ const OwnerDashboard = () => {
         else if (key === 'security-guard-info') navigate('/security-guard-info');
         else if (key === 'request-info') navigate('/request-info');
         else if (key === 'payments') navigate('/payments');
-        else if (key === 'maintenance-reports') setActiveSection('maintenance-reports');
+        else if (key === 'maintenance-reports') navigate('/maintenance-reports');
       }} />
       <main className="dashboard-main">
         <div className="dashboard-content">
@@ -205,7 +204,9 @@ const OwnerDashboard = () => {
                             ) : (
                               <div className="property-placeholder">No Image Available</div>
                             )}
-
+                            <span className={`status-badge ${property.status?.toLowerCase()}`}>
+                              {property.status}
+                            </span>
                           </div>
                           <div className="property-details">
                             <h3>৳{property.price?.toLocaleString()}</h3>
@@ -294,10 +295,8 @@ const OwnerDashboard = () => {
               </div>
             </>
           )}
-          {activeSection === 'maintenance-reports' && <MaintenanceReports />}
         </div>
       </main>
-      <QuickDialButton />
     </div>
   );
 };

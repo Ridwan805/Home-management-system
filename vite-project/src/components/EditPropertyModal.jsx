@@ -5,19 +5,19 @@ const EditPropertyModal = ({ property, onClose, onUpdate }) => {
   const [formData, setFormData] = useState({
     address: property.address || '',
     propertyType: property.propertyType || '',
-    bedrooms: property.bedrooms || '',
-    bathrooms: property.bathrooms || '',
-    squareFootage: property.squareFootage || '',
-    price: property.price || '',
+    bedrooms: property.specifications?.bedrooms || property.bedrooms || '',
+    bathrooms: property.specifications?.bathrooms || property.bathrooms || '',
+    squareFootage: property.specifications?.squareFootage || property.squareFootage || '',
+    price: property.pricing?.rent || property.pricing?.sale || property.price || '',
     description: property.description || '',
     status: property.status || 'Available',
     yearBuilt: property.yearBuilt || '',
-    contactEmail: property.contactEmail || '',
-    contactPhone: property.contactPhone || '',
+    contactEmail: property.contactInfo?.email || property.contactEmail || '',
+    contactPhone: property.contactInfo?.phone || property.contactPhone || '',
     listingType: property.listingType || '',
-    city: property.city || '',
-    state: property.state || '',
-    zipCode: property.zipCode || '',
+    city: property.location?.city || property.city || '',
+    state: property.location?.state || property.state || '',
+    zipCode: property.location?.zipCode || property.zipCode || '',
     location_link: property.location?.location_link || '',
     images: property.images || []
   });
@@ -170,9 +170,11 @@ const EditPropertyModal = ({ property, onClose, onUpdate }) => {
                 required
               >
                 <option value="Available">Available</option>
-                <option value="Not Available">Not Available</option>
-                <option value="Sold">Sold</option>
+                <option value="Unavailable">Unavailable</option>
+                <option value="Reserved">Reserved</option>
                 <option value="Rented">Rented</option>
+                <option value="Sold">Sold</option>
+                <option value="pending">Pending</option>
               </select>
             </div>
           </div>

@@ -84,7 +84,7 @@ const getJobPosts = async (req, res) => {
       .populate('postedById', 'firstName lastName email')
       .populate({
         path: 'hiredUserId',
-        select: 'firstName lastName email phoneNumber'
+        select: 'firstName lastName email phoneNumber address'
       })
       .sort({ createdAt: -1 });
 
@@ -125,7 +125,7 @@ const getJobPostById = async (req, res) => {
     const jobPost = await JobPost.findById(id)
       .populate('propertyId')
       .populate('postedById', 'firstName lastName email')
-      .populate('hiredUserId', 'firstName lastName email')
+      .populate('hiredUserId', 'firstName lastName email phoneNumber address')
       .populate({
         path: 'applications',
         populate: {
@@ -169,7 +169,11 @@ const updateJobPost = async (req, res) => {
     if (status) jobPost.status = status;
 
     await jobPost.save();
-    await jobPost.populate('propertyId postedById hiredUserId');
+    await jobPost.populate('propertyId postedById');
+     await jobPost.populate({
+       path: 'hiredUserId',
+       select: 'firstName lastName email phoneNumber address'
+     });
 
     res.json({
       message: 'Job post updated successfully',
@@ -338,8 +342,11 @@ const hireGuard = async (req, res) => {
     }
 
     // Populate the response
-    await jobPost.populate('hiredUserId', 'firstName lastName email');
-    await acceptedApplication.populate('guardId', 'firstName lastName email');
+    await jobPost.populate({
+        path: 'hiredUserId',
+        select: 'firstName lastName email phoneNumber address'
+      });
+    await acceptedApplication.populate('guardId', 'firstName lastName email phoneNumber address');
 
     console.log('🎯 HIRE GUARD: Sending success response');
     res.json({
@@ -458,7 +465,7 @@ const getTenantAssignedGuards = async (req, res) => {
       isActive: true,
       status: { $in: ['Hired', 'Active'] }
     })
-    .populate('guardId', 'firstName lastName email phoneNumber profilePicture experience certifications specialSkills emergencyContact availability')
+    .populate('guardId', 'firstName lastName email phoneNumber address profilePicture experience certifications specialSkills emergencyContact availability')
     .populate('propertyId', 'address city state propertyType specifications location')
     .populate('jobPostId', 'title requirements')
     .populate('ownerId', 'firstName lastName email phoneNumber')
@@ -552,7 +559,7 @@ const fireGuard = async (req, res) => {
 
     // Find the job post
     const jobPost = await JobPost.findById(id)
-      .populate('hiredUserId', 'firstName lastName email')
+      .populate('hiredUserId', 'firstName lastName email phoneNumber address')
       .populate('propertyId', 'address');
     
     if (!jobPost) {

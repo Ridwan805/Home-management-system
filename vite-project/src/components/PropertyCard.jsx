@@ -33,12 +33,16 @@ const PropertyCard = ({ property, onEdit, onViewDetails, onDelete }) => {
       <div className="property-info">
         <h3>৳{property.price?.toLocaleString()}</h3>
         <p className="property-address">{property.address}</p>
-        <p className="property-location">{property.city}, {property.state} {property.zipCode}</p>
+        <p className="property-location">
+          {(property.location?.city || property.city) && `${property.location?.city || property.city}`}
+          {(property.location?.state || property.state) && `, ${property.location?.state || property.state}`}
+          {(property.location?.zipCode || property.zipCode) && ` ${property.location?.zipCode || property.zipCode}`}
+        </p>
         
         <div className="property-specs">
-          <span>🛏️ {property.bedrooms} bd</span>
-          <span>🚿 {property.bathrooms} ba</span>
-          <span>📏 {property.squareFootage} sqft</span>
+          <span>🛏️ {property.specifications?.bedrooms || property.bedrooms || 'N/A'} bd</span>
+          <span>🚿 {property.specifications?.bathrooms || property.bathrooms || 'N/A'} ba</span>
+          <span>📏 {property.specifications?.squareFootage || property.squareFootage || 'N/A'} sqft</span>
         </div>
         
         <div className="property-type-info">

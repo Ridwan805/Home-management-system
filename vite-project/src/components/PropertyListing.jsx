@@ -44,10 +44,8 @@ const PropertyListing = () => {
         }
         
         const data = await response.json();
-        if (!data.success || !Array.isArray(data.properties)) {
-          throw new Error('Invalid data received from server');
-        }
-        setProperties(data.properties);
+        // Extract properties array from the response object
+        setProperties(data.properties || data);
       } catch (err) {
         console.error('Error fetching properties:', err);
         setError(err.message);
@@ -110,14 +108,15 @@ const PropertyListing = () => {
         }
       }
       
-      const updatedProperty = await response.json();
+      const data = await response.json();
+      const updatedProperty = data.property || data;
       
       // Update the properties list with the updated property
       setProperties(properties.map(prop => 
         prop._id === propertyId ? updatedProperty : prop
       ));
       
-      
+      console.log('Property updated successfully:', updatedProperty);
       
       // Close the edit modal
       setEditingProperty(null);
@@ -136,7 +135,7 @@ const PropertyListing = () => {
       }
       
       const user = JSON.parse(userData);
-      const response = await fetch(API.getUrl(API.endpoints.propertyById(propertyId)), {
+      const response = await fetch(`${API_BASE}/${propertyId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${user.token}`,
@@ -157,7 +156,45 @@ const PropertyListing = () => {
     }
   };
 
+  // Handle status update
+  const handleStatusUpdate = async (propertyId, newStatus) => {
+    try {
+      const userData = localStorage.getItem('dwellSyncUser');
+      if (!userData) {
+        throw new Error('User not authenticated');
+      }
+      
+      const user = JSON.parse(userData);
+      const response = await fetch(API.baseUrl + API.endpoints.propertyStatus(propertyId), {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${user.token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update property status');
+      }
+      
+      const updatedProperty = await response.json();
+      
+      // Update the properties list with the updated property
+      setProperties(properties.map(prop => 
+        prop._id === propertyId ? {
+          ...prop,
+          status: newStatus
+        } : prop
+      ));
 
+      console.log('Status updated successfully to:', newStatus);
+    } catch (err) {
+      console.error('Error updating property status:', err);
+      setError(err.message);
+    }
+  };
 
   const isUserView = true; // Always in user view mode since we removed filter page
 
@@ -191,6 +228,7 @@ const PropertyListing = () => {
               key={property._id} 
               property={property} 
               onEdit={isUserView ? handleEditClick : null}
+              onStatusChange={isUserView ? handleStatusUpdate : null}
               onViewDetails={handleViewDetails}
               onDelete={handleDeleteProperty}
             />
@@ -217,7 +255,7 @@ const PropertyListing = () => {
             {selectedProperty.images && selectedProperty.images.length > 0 && (
               <div className="modal-image-gallery">
                 {selectedProperty.images.map((image, index) => (
-                  <img key={index} src={`${apiConfig.baseUrl}/api/images/${image.replace('/uploads/', '')}`} alt={`Property ${index + 1}`} />
+                  <img key={index} src={`http://localhost:5001${image}`} alt={`Property ${index + 1}`} />
                 ))}
               </div>
             )}
@@ -225,20 +263,29 @@ const PropertyListing = () => {
             <div className="modal-details-grid">
               <div className="modal-detail-item"><strong>Price:</strong> <span>৳{selectedProperty.price?.toLocaleString()}</span></div>
               <div className="modal-detail-item"><strong>Type:</strong> <span>{selectedProperty.propertyType}</span></div>
-              <div className="modal-detail-item"><strong>Bedrooms:</strong> <span>{selectedProperty.bedrooms}</span></div>
-              <div className="modal-detail-item"><strong>Bathrooms:</strong> <span>{selectedProperty.bathrooms}</span></div>
-              <div className="modal-detail-item"><strong>Square Footage:</strong> <span>{selectedProperty.squareFootage} sqft</span></div>
+              <div className="modal-detail-item"><strong>Bedrooms:</strong> <span>{selectedProperty.specifications?.bedrooms || selectedProperty.bedrooms || 'N/A'}</span></div>
+              <div className="modal-detail-item"><strong>Bathrooms:</strong> <span>{selectedProperty.specifications?.bathrooms || selectedProperty.bathrooms || 'N/A'}</span></div>
+              <div className="modal-detail-item"><strong>Square Footage:</strong> <span>{selectedProperty.specifications?.squareFootage || selectedProperty.squareFootage || 'N/A'} sqft</span></div>
               <div className="modal-detail-item"><strong>Listing Type:</strong> <span>{selectedProperty.listingType}</span></div>
               <div className="modal-detail-item"><strong>Status:</strong> <span>{selectedProperty.status}</span></div>
               {selectedProperty.yearBuilt && <div className="modal-detail-item"><strong>Year Built:</strong> <span>{selectedProperty.yearBuilt}</span></div>}
-              {selectedProperty.city && <div className="modal-detail-item"><strong>Location:</strong> <span>{selectedProperty.city}, {selectedProperty.state} {selectedProperty.zipCode}</span></div>}
+              {(selectedProperty.location?.city || selectedProperty.city) && (
+                <div className="modal-detail-item">
+                  <strong>Location:</strong> 
+                  <span>
+                    {selectedProperty.location?.city || selectedProperty.city}
+                    {(selectedProperty.location?.state || selectedProperty.state) && `, ${selectedProperty.location?.state || selectedProperty.state}`}
+                    {(selectedProperty.location?.zipCode || selectedProperty.zipCode) && ` ${selectedProperty.location?.zipCode || selectedProperty.zipCode}`}
+                  </span>
+                </div>
+              )}
               {selectedProperty.contactEmail && <div className="modal-detail-item"><strong>Contact Email:</strong> <span>{selectedProperty.contactEmail}</span></div>}
               {selectedProperty.contactPhone && <div className="modal-detail-item"><strong>Contact Phone:</strong> <span>{selectedProperty.contactPhone}</span></div>}
             </div>
 
             {selectedProperty.amenities && selectedProperty.amenities.length > 0 && (
               <div className="modal-amenities">
-                <h3>Amenities:</h3>
+                <h3>Amenities</h3>
                 <div className="modal-amenities-list">
                   {selectedProperty.amenities.map((amenity, index) => (
                     <span key={index} className="modal-amenity-item">{amenity}</span>
@@ -249,7 +296,7 @@ const PropertyListing = () => {
 
             {selectedProperty.description && (
               <div className="modal-description">
-                <h3>Description:</h3>
+                <h3>Description</h3>
                 <p className="modal-description-full">{selectedProperty.description}</p>
               </div>
             )}

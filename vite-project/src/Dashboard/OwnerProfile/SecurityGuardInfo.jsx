@@ -388,27 +388,27 @@ const SecurityGuardInfo = () => {
                         <div className="detail-grid">
                           <div className="detail-item">
                             <span className="label">Experience:</span>
-                            <span className="value">{job.hiredGuardApplication?.details?.experience || job.hiredUserId.experience || 'Not specified'}</span>
+                            <span className="value">{job.hiredGuardApplication?.applicationDetails?.experience || job.hiredUserId.experience || 'Not specified'}</span>
                           </div>
                           <div className="detail-item">
                             <span className="label">License:</span>
-                            <span className="value">{job.hiredGuardApplication?.details?.license || 'Not specified'}</span>
+                            <span className="value">{job.hiredGuardApplication?.applicationDetails?.license || 'Not specified'}</span>
                           </div>
                           <div className="detail-item">
                             <span className="label">Certifications:</span>
-                            <span className="value">{job.hiredGuardApplication?.details?.certifications || 'Not specified'}</span>
+                            <span className="value">{job.hiredGuardApplication?.applicationDetails?.certifications || 'Not specified'}</span>
                           </div>
                           <div className="detail-item">
                             <span className="label">Skills:</span>
-                            <span className="value">{job.hiredGuardApplication?.details?.skills || 'Not specified'}</span>
+                            <span className="value">{job.hiredGuardApplication?.applicationDetails?.skills || 'Not specified'}</span>
                           </div>
                           <div className="detail-item">
                             <span className="label">Availability:</span>
-                            <span className="value">{job.hiredGuardApplication?.details?.availability || 'Not specified'}</span>
+                            <span className="value">{job.hiredGuardApplication?.applicationDetails?.availability || 'Not specified'}</span>
                           </div>
                           <div className="detail-item">
                             <span className="label">Previous Work:</span>
-                            <span className="value">{job.hiredGuardApplication?.details?.previousWork || 'Not specified'}</span>
+                            <span className="value">{job.hiredGuardApplication?.applicationDetails?.previousWork || 'Not specified'}</span>
                           </div>
                         </div>
                       </div>

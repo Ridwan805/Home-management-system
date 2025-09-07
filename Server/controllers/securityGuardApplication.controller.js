@@ -528,12 +528,18 @@ const getApplicationsByJobPost = async (req, res) => {
 
     // Get applications for this job post
     const applications = await SecurityGuardJob.find({ jobPostId })
-      .populate('guardId', 'firstName lastName email phone profilePicture')
-      .sort({ createdAt: -1 });
+      .populate('guardId', 'firstName lastName email phoneNumber address profilePicture')
+      .sort({ applicationDate: -1 });
+
+    // Transform applications to match frontend expectations
+    const transformedApplications = applications.map(app => ({
+      ...app.toObject(),
+      details: app.applicationDetails // Map applicationDetails to details for frontend compatibility
+    }));
 
     res.status(200).json({
       success: true,
-      applications
+      applications: transformedApplications
     });
   } catch (error) {
     console.error('Error fetching applications by job post:', error);

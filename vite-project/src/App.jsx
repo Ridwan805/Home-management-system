@@ -24,6 +24,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 // ✅ ADD THIS IMPORT
 import AdminDashboard from './Dashboard/AdminDashboard/AdminDashboard';
+import MaintenanceReports from './Dashboard/OwnerProfile/MaintenanceReports';
 
  
 
@@ -71,7 +72,7 @@ function AppRoutes() {
             else if (key === 'security-guard-info') navigate('/security-guard-info');
             else if (key === 'request-info') navigate('/request-info');
             else if (key === 'payments') navigate('/payments');
-            else if (key === 'maintenance-reports') navigate('/dashboard', { state: { section: 'maintenance-reports' } });
+            else if (key === 'maintenance-reports') navigate('/maintenance-reports');
           }}
         />
         <main className="dashboard-main">
@@ -97,7 +98,7 @@ function AppRoutes() {
             else if (key === 'tenant-info') navigate('/tenant-info');
             else if (key === 'request-info') navigate('/request-info');
             else if (key === 'payments') navigate('/payments');
-            else if (key === 'maintenance-reports') navigate('/dashboard', { state: { section: 'maintenance-reports' } });
+            else if (key === 'maintenance-reports') navigate('/maintenance-reports');
           }}
         />
         <main className="dashboard-main">
@@ -167,7 +168,7 @@ function AppRoutes() {
                     else if (key === 'security-guard-info') navigate('/security-guard-info');
                     else if (key === 'request-info') navigate('/request-info');
                     else if (key === 'payments') navigate('/payments');
-                    else if (key === 'maintenance-reports') navigate('/dashboard', { state: { section: 'maintenance-reports' } });
+                    else if (key === 'maintenance-reports') navigate('/maintenance-reports');
                   }}
                 />
                 <main className="dashboard-main">
@@ -195,7 +196,7 @@ function AppRoutes() {
                     else if (key === 'security-guard-info') navigate('/security-guard-info');
                     else if (key === 'request-info') navigate('/request-info');
                     else if (key === 'payments') navigate('/payments');
-                    else if (key === 'maintenance-reports') navigate('/dashboard', { state: { section: 'maintenance-reports' } });
+                    else if (key === 'maintenance-reports') navigate('/maintenance-reports');
                   }}
                 />
                 <main className="dashboard-main">
@@ -223,7 +224,7 @@ function AppRoutes() {
                     else if (key === 'security-guard-info') navigate('/security-guard-info');
                     else if (key === 'request-info') navigate('/request-info');
                     else if (key === 'payments') navigate('/payments');
-                    else if (key === 'maintenance-reports') navigate('/dashboard', { state: { section: 'maintenance-reports' } });
+                    else if (key === 'maintenance-reports') navigate('/maintenance-reports');
                   }}
                 />
                 <main className="dashboard-main">
@@ -251,7 +252,7 @@ function AppRoutes() {
                     else if (key === 'security-guard-info') navigate('/security-guard-info');
                     else if (key === 'request-info') navigate('/request-info');
                     else if (key === 'payments') navigate('/payments');
-                    else if (key === 'maintenance-reports') navigate('/dashboard', { state: { section: 'maintenance-reports' } });
+                    else if (key === 'maintenance-reports') navigate('/maintenance-reports');
                   }}
                 />
                 <main className="dashboard-main">
@@ -279,7 +280,7 @@ function AppRoutes() {
                     else if (key === 'security-guard-info') navigate('/security-guard-info');
                     else if (key === 'request-info') navigate('/request-info');
                     else if (key === 'payments') navigate('/payments');
-                    else if (key === 'maintenance-reports') navigate('/dashboard', { state: { section: 'maintenance-reports' } });
+                    else if (key === 'maintenance-reports') navigate('/maintenance-reports');
                   }}
                 />
                 <main className="dashboard-main">
@@ -289,6 +290,14 @@ function AppRoutes() {
                 </main>
                 <QuickDialButton />
               </div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/maintenance-reports"
+          element={
+            <ProtectedRoute allowedRoles={['Owner']}>
+              <MaintenanceReports />
             </ProtectedRoute>
           }
         />

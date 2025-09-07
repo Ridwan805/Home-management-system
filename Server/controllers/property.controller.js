@@ -525,8 +525,8 @@ const updateProperty = async (req, res) => {
       });
     }
 
-    // Extract status from update data to handle separately
-    const { status, location_link, ...updateData } = req.body;
+    // Extract location_link from update data to handle separately
+    const { location_link, ...updateData } = req.body;
     
     // Handle location_link separately to ensure proper nesting
     if (location_link !== undefined) {
@@ -536,16 +536,30 @@ const updateProperty = async (req, res) => {
       property.location.location_link = location_link;
     }
     
-    // Update basic property fields
+    // Update basic property fields (including status)
     Object.assign(property, updateData);
     
-    // Add history entry for the update
-    property.history.push({
-      event: 'Property details updated',
-      actor: userId,
-      timestamp: new Date(),
-      details: updateData
-    });
+    // Ensure status has a valid default if not provided
+    if (!property.status) {
+      property.status = 'Available';
+    }
+    
+    // Add state history entry for the update only if status is valid
+    if (!property.stateHistory) {
+      property.stateHistory = [];
+    }
+    
+    // Only add to state history if status is a valid enum value
+    const validStatuses = ['pending', 'Available', 'Reserved', 'Rented', 'Sold', 'Unavailable', 'rejected'];
+    if (property.status && validStatuses.includes(property.status)) {
+      property.stateHistory.push({
+        state: property.status,
+        timestamp: new Date(),
+        triggeredBy: userId,
+        reason: 'Property details updated',
+        metadata: updateData
+      });
+    }
     
     await property.save();
     

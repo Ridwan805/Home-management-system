@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../../config/api';
-import PropertyMap from '../../components/PropertyMap';
 import './PropertyDetails.css';
 
 const PropertyDetails = () => {
@@ -15,20 +14,14 @@ const PropertyDetails = () => {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState(null);
+  const [showStatusDropdown, setShowStatusDropdown] = useState(null);
 
+  const statusOptions = ['Available', 'Not Available', 'Sold', 'Rented'];
 
   useEffect(() => {
     const fetchProperties = async () => {
       try {
-        const userData = localStorage.getItem('dwellSyncUser');
-        if (!userData) {
-          setError('No authentication token found');
-          setLoading(false);
-          return;
-        }
-        
-        const user = JSON.parse(userData);
-        const token = user.token;
+        const token = localStorage.getItem('token');
         if (!token) {
           setError('No authentication token found');
           setLoading(false);
@@ -48,11 +41,7 @@ const PropertyDetails = () => {
         }
 
         const data = await response.json();
-      if (data.success) {
         setProperties(data.properties || []);
-      } else {
-        setError(data.message || 'Failed to fetch properties');
-      }
       } catch (err) {
         console.error('Error fetching properties:', err);
         setError(err.message);
@@ -64,7 +53,19 @@ const PropertyDetails = () => {
     fetchProperties();
   }, []);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.status-action')) {
+        setShowStatusDropdown(null);
+      }
+    };
 
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const handleViewDetails = (property) => {
     setSelectedProperty(property);
@@ -86,10 +87,10 @@ const PropertyDetails = () => {
       squareFootage: property.squareFootage || '',
       price: property.price || '',
       listingType: property.listingType || '',
+      status: property.status || '',
       city: property.city || '',
       state: property.state || '',
       zipCode: property.zipCode || '',
-      location_link: property.location?.location_link || '',
       description: property.description || '',
       yearBuilt: property.yearBuilt || '',
       contactEmail: property.contactEmail || '',
@@ -132,15 +133,7 @@ const PropertyDetails = () => {
     setUpdateError(null);
     
     try {
-      const userData = localStorage.getItem('dwellSyncUser');
-        if (!userData) {
-          setError('No authentication token found');
-          setLoading(false);
-          return;
-        }
-        
-        const user = JSON.parse(userData);
-        const token = user.token;
+      const token = localStorage.getItem('token');
       const formDataToSend = new FormData();
       
       Object.keys(formData).forEach(key => {
@@ -186,14 +179,7 @@ const PropertyDetails = () => {
 
   const handleDeleteProperty = async (propertyId) => {
     try {
-      const userData = localStorage.getItem('dwellSyncUser');
-      if (!userData) {
-        alert('No authentication token found');
-        return;
-      }
-      
-      const user = JSON.parse(userData);
-      const token = user.token;
+      const token = localStorage.getItem('token');
       const response = await fetch(API.getUrl(API.endpoints.propertyById(propertyId)), {
         method: 'DELETE',
         headers: {
@@ -214,7 +200,33 @@ const PropertyDetails = () => {
     }
   };
 
+  const handleStatusUpdate = async (propertyId, newStatus) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(API.getUrl(API.endpoints.propertyStatus(propertyId)), {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
 
+      if (!response.ok) {
+        throw new Error('Failed to update status');
+      }
+
+      const updatedProperty = await response.json();
+      setProperties(prev => prev.map(prop => 
+        prop._id === propertyId ? { ...prop, status: newStatus } : prop
+      ));
+      
+      setShowStatusDropdown(null);
+    } catch (err) {
+      console.error('Error updating status:', err);
+      setError(err.message);
+    }
+  };
 
   return (
     <div className="property-details-container">
@@ -240,10 +252,13 @@ const PropertyDetails = () => {
             <div key={property._id} className="property-card">
               <div className="property-image">
                 {property.images && property.images.length > 0 ? (
-                  <img src={`${API.baseUrl}/api/images/${property.images[0].replace('/uploads/', '')}`} alt="Property" />
+                  <img src={`${API.baseUrl}${property.images[0]}`} alt="Property" />
                 ) : (
                   <div className="property-placeholder">No Image Available</div>
                 )}
+                <span className={`status-badge ${property.status?.toLowerCase().replace(/ /g, '-')}`}>
+                  {property.status}
+                </span>
               </div>
               
               <div className="property-info">
@@ -270,6 +285,33 @@ const PropertyDetails = () => {
                   <button className="view-details-btn" onClick={() => handleViewDetails(property)}>View Details</button>
                   <button className="edit-btn" onClick={() => handleEditClick(property)} disabled={property.status === 'pending'}>Edit</button>
                   
+                  <div className="status-action">
+                    <button
+                      className={`status-btn status-dropdown-btn ${property.status?.toLowerCase().replace(/ /g, '-')}`}
+                      onClick={() => property.status === 'pending' ? null : setShowStatusDropdown(showStatusDropdown === property._id ? null : property._id)}
+                      disabled={property.status === 'pending'}
+                    >
+                      Status: {property.status} <span style={{marginLeft: 6, fontSize: 12}}>▼</span>
+                    </button>
+                    {showStatusDropdown === property._id && property.status !== 'pending' && (
+                      <ul className="status-dropdown-menu">
+                        {statusOptions.map(option => (
+                          <li key={option}>
+                            <button
+                              className="status-dropdown-option"
+                              onClick={() => {
+                                handleStatusUpdate(property._id, option);
+                                setShowStatusDropdown(null);
+                              }}
+                            >
+                              {option}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
                   {deleteConfirm === property._id ? (
                     <div className="delete-confirm">
                       <p>Are you sure?</p>
@@ -326,26 +368,9 @@ const PropertyDetails = () => {
               <div className="modal-detail-item"><strong>Bathrooms:</strong> <span>{selectedProperty.bathrooms}</span></div>
               <div className="modal-detail-item"><strong>Square Footage:</strong> <span>{selectedProperty.squareFootage} sqft</span></div>
               <div className="modal-detail-item"><strong>Listing Type:</strong> <span>{selectedProperty.listingType}</span></div>
-
+              <div className="modal-detail-item"><strong>Status:</strong> <span>{selectedProperty.status}</span></div>
               {selectedProperty.yearBuilt && <div className="modal-detail-item"><strong>Year Built:</strong> <span>{selectedProperty.yearBuilt}</span></div>}
               {selectedProperty.city && <div className="modal-detail-item"><strong>Location:</strong> <span>{selectedProperty.city}, {selectedProperty.state} {selectedProperty.zipCode}</span></div>}
-              <div className="modal-detail-item">
-                <strong>Map Location:</strong> 
-                <span>
-                  {selectedProperty.location?.location_link ? (
-                    <a 
-                      href={selectedProperty.location.location_link} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      style={{color: '#007bff', textDecoration: 'underline'}}
-                    >
-                      View on OpenStreetMap
-                    </a>
-                  ) : (
-                    <span style={{color: '#6b7280', fontStyle: 'italic'}}>Map link not available - Add one by editing this property</span>
-                  )}
-                </span>
-              </div>
               {selectedProperty.contactEmail && <div className="modal-detail-item"><strong>Contact Email:</strong> <span>{selectedProperty.contactEmail}</span></div>}
               {selectedProperty.contactPhone && <div className="modal-detail-item"><strong>Contact Phone:</strong> <span>{selectedProperty.contactPhone}</span></div>}
             </div>
@@ -367,29 +392,6 @@ const PropertyDetails = () => {
                 <p className="modal-description-full">{selectedProperty.description}</p>
               </div>
             )}
-
-            {/* Property Map Section */}
-            <div className="modal-map-section">
-              <h3>Location & Map</h3>
-              <div className="property-map-container">
-                <PropertyMap
-                  property={{
-                    ...selectedProperty,
-                    location: {
-                      address: selectedProperty.address,
-                      city: selectedProperty.city,
-                      state: selectedProperty.state,
-                      zipCode: selectedProperty.zipCode
-                    }
-                  }}
-                  showUserLocation={true}
-                  showNearbyAmenities={true}
-                  showRouting={true}
-                  showShareControls={true}
-                  height="400px"
-                />
-              </div>
-            </div>
           </div>
         </div>
       )}
@@ -490,7 +492,20 @@ const PropertyDetails = () => {
                 </select>
               </div>
               
-
+              <div className="form-group">
+                <label htmlFor="status">Status</label>
+                <select
+                  id="status"
+                  name="status"
+                  value={formData.status || ''}
+                  onChange={handleInputChange}
+                  required
+                >
+                  {statusOptions.map(option => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+              </div>
               
               <div className="form-group">
                 <label htmlFor="city">City</label>
@@ -523,22 +538,6 @@ const PropertyDetails = () => {
                   value={formData.zipCode || ''}
                   onChange={handleInputChange}
                 />
-              </div>
-              
-              <div className="form-group full-width">
-                <label htmlFor="location_link">OpenStreetMap Location Link</label>
-                <input
-                  type="url"
-                  id="location_link"
-                  name="location_link"
-                  value={formData.location_link || ''}
-                  onChange={handleInputChange}
-                  placeholder="https://www.openstreetmap.org/..."
-                  title="Paste the OpenStreetMap URL for this property location"
-                />
-                <small style={{color: '#666', fontSize: '0.9em', marginTop: '4px', display: 'block'}}>
-                  Optional: Visit OpenStreetMap, find your property location, and paste the URL here
-                </small>
               </div>
               
               <div className="form-group full-width">
