@@ -25,6 +25,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 // ✅ ADD THIS IMPORT
 import AdminDashboard from './Dashboard/AdminDashboard/AdminDashboard';
 import MaintenanceReports from './Dashboard/OwnerProfile/MaintenanceReports';
+import Footer from './components/layout/Footer';
 
  
 
@@ -116,19 +117,22 @@ function AppRoutes() {
 
   return (
     <AuthContext.Provider value={{ isLoggedIn, login, logout, setPopupMessage, userRole }}>
-      {!(location.pathname.startsWith('/dashboard') ||
-        location.pathname.startsWith('/admin') || // ✅ ADDED: hide navbar on admin routes
-        location.pathname === '/create-listing' ||
-        location.pathname === '/property-details' ||
-        location.pathname === '/tenant-info' ||
-        location.pathname === '/security-guard-info' ||
-        location.pathname === '/request-info' ||
-        location.pathname === '/payments' ||
-        location.pathname.startsWith('/tenant') ||
-        location.pathname.startsWith('/security-guard')
-      ) && <Navbar />}
+      <div className="app-wrapper">
+        {!(location.pathname.startsWith('/dashboard') ||
+          location.pathname.startsWith('/admin') || // ✅ ADDED: hide navbar on admin routes
+          location.pathname === '/create-listing' ||
+          location.pathname === '/property-details' ||
+          location.pathname === '/tenant-info' ||
+          location.pathname === '/security-guard-info' ||
+          location.pathname === '/request-info' ||
+          location.pathname === '/payments' ||
+          location.pathname.startsWith('/tenant') ||
+          location.pathname.startsWith('/security-guard')
+        ) && <Navbar />}
 
-      {popupMessage && <div className="popup-message">{popupMessage}</div>}
+        {popupMessage && <div className="popup-message">{popupMessage}</div>}
+
+        <main className="main-content">
 
       <Routes>
         <Route path="/" element={<HomePage />} />
@@ -337,6 +341,25 @@ function AppRoutes() {
           </ProtectedRoute>
         } />
       </Routes>
+        </main>
+        
+        {/* Footer - exclude from login, register, and dashboard pages */}
+        {!(location.pathname === '/login' || 
+          location.pathname === '/register' || 
+          location.pathname === '/forgot-password' ||
+          location.pathname.startsWith('/dashboard') ||
+          location.pathname.startsWith('/admin') ||
+          location.pathname === '/create-listing' ||
+          location.pathname === '/property-details' ||
+          location.pathname === '/tenant-info' ||
+          location.pathname === '/security-guard-info' ||
+          location.pathname === '/request-info' ||
+          location.pathname === '/payments' ||
+          location.pathname === '/maintenance-reports' ||
+          location.pathname.startsWith('/tenant') ||
+          location.pathname.startsWith('/security-guard')
+        ) && <Footer />}
+      </div>
     </AuthContext.Provider>
   );
 }
