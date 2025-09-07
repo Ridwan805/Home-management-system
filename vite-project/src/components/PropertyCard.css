@@ -1,9 +1,9 @@
 .property-card {
-  border: 1px solid #e5e7eb;
+  border: 1px solid #ffa69e;
   border-radius: 0.5rem;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   transition: transform 0.3s, box-shadow 0.3s;
-  background-color: white;
+  background-color: #ffa69e;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -113,8 +113,8 @@
 }
 
 .property-type, .listing-type {
-  background-color: #e5e7eb;
-  color: #4b5563;
+  background-color: #ffe0dd;
+  color: #ff6b5b;
   padding: 0.25rem 0.5rem;
   border-radius: 0.25rem;
   font-size: 0.75rem;
@@ -152,12 +152,12 @@
 }
 
 .edit-btn {
-  background-color: #2563eb;
+  background-color: #ffa69e;
   color: white;
 }
 
 .edit-btn:hover {
-  background-color: #1d4ed8;
+  background-color: #ff8a80;
 }
 
 .delete-btn, .remove-btn {
@@ -170,12 +170,12 @@
 }
 
 .view-details-btn {
-  background-color: #0ea5e9;
+  background-color: #ffa69e;
   color: white;
 }
 
 .view-details-btn:hover {
-  background-color: #0284c7;
+  background-color: #ff8a80;
 }
 
 
@@ -223,7 +223,7 @@
 }
 
 .modal-content h2 {
-  color: #2563eb;
+  color: #ffa69e;
   margin-bottom: 1.5rem;
   font-size: 2rem;
 }
@@ -265,8 +265,8 @@
 }
 
 .modal-amenity-item {
-  background-color: #e0f2fe;
-  color: #0284c7;
+  background-color: #ffe0dd;
+  color: #ff6b5b;
   padding: 0.3rem 0.7rem;
   border-radius: 0.25rem;
   font-size: 0.9rem;

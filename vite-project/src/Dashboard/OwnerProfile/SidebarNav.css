@@ -1,6 +1,6 @@
 .sidebar-nav {
   width: 260px;
-  background: linear-gradient(180deg, #23395d 0%, #406080 100%);
+  background: #aac0aa;
   color: #fff;
   min-height: 100vh;
   padding: 2rem 1rem 1rem 1rem;
@@ -38,7 +38,7 @@
   transition: background 0.2s;
 }
 .sidebar-menu-item.active, .sidebar-menu-item:hover {
-  background: #2e4a6f;
+  background: #aac0aa;
 }
 .menu-label {
   font-weight: 600;
@@ -51,7 +51,7 @@
 
 .sidebar-footer {
   padding: 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(127, 17, 224, 1);
 }
 
 .sidebar-title {
@@ -125,4 +125,4 @@
 
 .sidebar-menu::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.5);
-} 
+}

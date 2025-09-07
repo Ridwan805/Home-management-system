@@ -13,6 +13,12 @@
 
 .main-content {
   flex: 1;
+  background-color: #faf3dd;
+}
+
+/* Remove background color for dashboard pages */
+.main-content.dashboard-page {
+  background-color: transparent;
 }
 
 .auth-sections {

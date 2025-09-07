@@ -58,7 +58,7 @@
 .loading {
   text-align: center;
   padding: 40px;
-  background-color: #fff;
+  background-color: #eed2cc;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   color: #666;
@@ -256,7 +256,7 @@
 }
 
 .modal-content {
-  background-color: white;
+  background-color: #eed2cc;
   border-radius: 12px;
   max-width: 600px;
   width: 100%;

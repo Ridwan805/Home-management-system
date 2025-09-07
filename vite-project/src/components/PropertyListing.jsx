@@ -15,6 +15,8 @@ const PropertyListing = () => {
   const [editingProperty, setEditingProperty] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState(null);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   
   // Fetch user properties
   useEffect(() => {
@@ -135,7 +137,7 @@ const PropertyListing = () => {
       }
       
       const user = JSON.parse(userData);
-      const response = await fetch(`${API_BASE}/${propertyId}`, {
+      const response = await fetch(`${API.baseUrl}${API.endpoints.properties}/${propertyId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${user.token}`,
@@ -152,7 +154,8 @@ const PropertyListing = () => {
       setProperties(properties.filter(prop => prop._id !== propertyId));
     } catch (err) {
       console.error('Error deleting property:', err);
-      setError(err.message);
+      setErrorMessage(err.message);
+      setShowErrorModal(true);
     }
   };
 
@@ -192,7 +195,8 @@ const PropertyListing = () => {
       console.log('Status updated successfully to:', newStatus);
     } catch (err) {
       console.error('Error updating property status:', err);
-      setError(err.message);
+      setErrorMessage(err.message);
+      setShowErrorModal(true);
     }
   };
 
@@ -210,7 +214,7 @@ const PropertyListing = () => {
       
       {loading && <div className="loading-state">Loading properties...</div>}
       
-      {error && <div className="error-state">Error: {error}</div>}
+
       
       {!loading && !error && properties.length === 0 && (
         <div className="no-properties">
@@ -300,6 +304,24 @@ const PropertyListing = () => {
                 <p className="modal-description-full">{selectedProperty.description}</p>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Error Modal */}
+      {showErrorModal && (
+        <div className="modal-overlay" onClick={() => setShowErrorModal(false)}>
+          <div className="modal-content error-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Error</h2>
+              <button className="modal-close" onClick={() => setShowErrorModal(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <p>{errorMessage}</p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-primary" onClick={() => setShowErrorModal(false)}>OK</button>
+            </div>
           </div>
         </div>
       )}

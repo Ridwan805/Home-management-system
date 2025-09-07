@@ -37,17 +37,32 @@ const Navbar = () => {
       </div>
       <ul className="navbar-links">
         <li>
-          <button onClick={() => navigate('/properties')} className="nav-link">Properties</button>
+          <button 
+            onClick={() => navigate('/properties')} 
+            className={`nav-link ${location.pathname === '/properties' && !location.search ? 'active' : ''}`}
+          >
+            Properties
+          </button>
         </li>
         <li>
-          <button onClick={() => navigate('/properties?listingType=For%20Sale')} className="nav-link">Buy</button>
+          <button 
+            onClick={() => navigate('/properties?listingType=For%20Sale')} 
+            className={`nav-link ${location.pathname === '/properties' && location.search.includes('listingType=For%20Sale') ? 'active' : ''}`}
+          >
+            Buy
+          </button>
         </li>
         <li>
-          <button onClick={() => navigate('/properties?listingType=For%20Rent')} className="nav-link">Rent</button>
+          <button 
+            onClick={() => navigate('/properties?listingType=For%20Rent')} 
+            className={`nav-link ${location.pathname === '/properties' && location.search.includes('listingType=For%20Rent') ? 'active' : ''}`}
+          >
+            Rent
+          </button>
         </li>
 
-        <li><Link to="/advertise">Advertise</Link></li>
-        <li><Link to="/help">Help</Link></li>
+        <li><Link to="/advertise" className={location.pathname === '/advertise' ? 'active-link' : ''}>Advertise</Link></li>
+        <li><Link to="/help" className={location.pathname === '/help' ? 'active-link' : ''}>Help</Link></li>
         {isLoggedIn ? (
           <>
             <li><button className="navbar-signin" onClick={handleLogout}>Logout</button></li>

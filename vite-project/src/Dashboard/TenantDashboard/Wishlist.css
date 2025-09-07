@@ -59,7 +59,7 @@
   border-radius: 8px;
   overflow: hidden;
   transition: transform 0.2s, box-shadow 0.2s;
-  background-color: white;
+  background-color: #eed2cc;
 }
 
 .wishlist-item:hover {

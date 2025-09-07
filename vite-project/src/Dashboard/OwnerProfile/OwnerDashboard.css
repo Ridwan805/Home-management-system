@@ -1,17 +1,19 @@
 .owner-dashboard {
   display: flex;
   min-height: 100vh;
-  background: #f7fafd;
+  background: #fcdfa6;
 }
 
 .dashboard-main {
   flex: 1;
   padding: 2rem 2rem 2rem 0;
+  
 }
 
 .dashboard-content {
   max-width: 900px;
   margin: 0 auto;
+  
 }
 
 .dashboard-grid {
@@ -21,7 +23,7 @@
 }
 
 .dashboard-section {
-  background: white;
+  background: #faf3dd;
   border-radius: 12px;
   padding: 1.5rem;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
@@ -71,7 +73,7 @@
 }
 
 .property-card {
-  background: white;
+  background: #faf3dd;
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -375,7 +377,7 @@
 }
 
 .create-listing-form {
-  background: #fff;
+  background: #faf3dd;
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.08);
   padding: 2rem 2.5rem;

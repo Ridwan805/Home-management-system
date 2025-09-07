@@ -33,13 +33,59 @@ import Footer from './components/layout/Footer';
 export const AuthContext = React.createContext();
 
 function AppRoutes() {
-  const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('dwellSyncUser'));
-  const [userRole, setUserRole] = useState(() =>
-    localStorage.getItem('dwellSyncUser') ? JSON.parse(localStorage.getItem('dwellSyncUser')).role : null
-  );
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userRole, setUserRole] = useState(null);
   const [popupMessage, setPopupMessage] = useState('');
+  const [authLoading, setAuthLoading] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Validate token on app initialization
+  useEffect(() => {
+    const validateToken = async () => {
+      try {
+        const userData = localStorage.getItem('dwellSyncUser');
+        if (!userData) {
+          setAuthLoading(false);
+          return;
+        }
+
+        const user = JSON.parse(userData);
+        const token = user.token;
+        if (!token) {
+          localStorage.removeItem('dwellSyncUser');
+          setAuthLoading(false);
+          return;
+        }
+
+        // Validate token with backend
+        const response = await fetch('http://localhost:5001/api/auth/me', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          setIsLoggedIn(true);
+          setUserRole(user.role);
+        } else {
+          // Token is invalid, clear localStorage
+          localStorage.removeItem('dwellSyncUser');
+          setIsLoggedIn(false);
+          setUserRole(null);
+        }
+      } catch (error) {
+        console.error('Token validation error:', error);
+        localStorage.removeItem('dwellSyncUser');
+        setIsLoggedIn(false);
+        setUserRole(null);
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+
+    validateToken();
+  }, []);
 
   useEffect(() => {
     if (location.pathname === '/login' && isLoggedIn) {
@@ -115,6 +161,21 @@ function AppRoutes() {
     );
   }
 
+  // Show loading screen while validating authentication
+  if (authLoading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh', 
+        fontSize: '1.2rem' 
+      }}>
+        Loading...
+      </div>
+    );
+  }
+
   return (
     <AuthContext.Provider value={{ isLoggedIn, login, logout, setPopupMessage, userRole }}>
       <div className="app-wrapper">
@@ -132,27 +193,28 @@ function AppRoutes() {
 
         {popupMessage && <div className="popup-message">{popupMessage}</div>}
 
-        <main className="main-content">
+        <main className={`main-content ${
+          (location.pathname.startsWith('/dashboard') ||
+           location.pathname.startsWith('/admin') ||
+           location.pathname === '/create-listing' ||
+           location.pathname === '/property-details' ||
+           location.pathname === '/tenant-info' ||
+           location.pathname === '/security-guard-info' ||
+           location.pathname === '/request-info' ||
+           location.pathname === '/payments' ||
+           location.pathname === '/maintenance-reports' ||
+           location.pathname.startsWith('/tenant') ||
+           location.pathname.startsWith('/security-guard'))
+          ? 'dashboard-page' : ''
+        }`}>
 
       <Routes>
-        <Route path="/" element={
-          <ProtectedRoute allowedRoles={['Owner', 'Tenant']}>
-            <HomePage />
-          </ProtectedRoute>
-        } />
+        <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/properties" element={
-          <ProtectedRoute allowedRoles={['Owner', 'Tenant']}>
-            <PropertyFilter />
-          </ProtectedRoute>
-        } />
-        <Route path="/properties/:propertyId" element={
-          <ProtectedRoute allowedRoles={['Owner', 'Tenant']}>
-            <ViewDetails />
-          </ProtectedRoute>
-        } />
+        <Route path="/properties" element={<PropertyFilter />} />
+        <Route path="/properties/:propertyId" element={<ViewDetails />} />
         <Route path="/tenant/:section" element={
           <ProtectedRoute allowedRoles={['Tenant']}>
             <TenantDashboard />
