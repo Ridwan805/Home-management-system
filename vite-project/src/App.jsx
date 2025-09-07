@@ -135,12 +135,24 @@ function AppRoutes() {
         <main className="main-content">
 
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={
+          <ProtectedRoute allowedRoles={['Owner', 'Tenant']}>
+            <HomePage />
+          </ProtectedRoute>
+        } />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/properties" element={<PropertyFilter />} />
-        <Route path="/properties/:propertyId" element={<ViewDetails />} />
+        <Route path="/properties" element={
+          <ProtectedRoute allowedRoles={['Owner', 'Tenant']}>
+            <PropertyFilter />
+          </ProtectedRoute>
+        } />
+        <Route path="/properties/:propertyId" element={
+          <ProtectedRoute allowedRoles={['Owner', 'Tenant']}>
+            <ViewDetails />
+          </ProtectedRoute>
+        } />
         <Route path="/tenant/:section" element={
           <ProtectedRoute allowedRoles={['Tenant']}>
             <TenantDashboard />
