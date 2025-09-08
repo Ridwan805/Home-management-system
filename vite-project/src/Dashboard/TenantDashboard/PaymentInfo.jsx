@@ -362,7 +362,13 @@ const PaymentInfo = () => {
           className={`tab-btn ${activeTab === 'history' ? 'active' : ''}`}
           onClick={() => setActiveTab('history')}
         >
+        
           Payment History
+          {loadingHistory ? (
+            <span style={{ fontSize: '0.8rem', color: '#6b7280', marginLeft: '0.5rem' }}>(Loading...)</span>
+          ) : (
+            <span style={{ fontSize: '0.9rem', color: '#374151', marginLeft: '0.5rem' }}>({paymentHistory.length})</span>
+          )}
         </button>
         <button
           className="refresh-btn"
@@ -434,7 +440,13 @@ const PaymentInfo = () => {
       {/* Payment History Tab */}
       {activeTab === 'history' && (
         <div className="bills-container">
-          <h3>Payment History {loadingHistory && <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>(Loading...)</span>}</h3>
+          <h3>
+            Payment History {loadingHistory ? (
+              <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>(Loading...)</span>
+            ) : (
+              <span style={{ fontSize: '0.9rem', color: '#374151' }}>({paymentHistory.length})</span>
+            )}
+          </h3>
           {loadingHistory ? (
             <div style={{ textAlign: 'center', padding: '2rem' }}>
               <LoadingSpinner />
