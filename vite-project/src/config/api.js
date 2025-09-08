@@ -292,6 +292,14 @@ export default {
     updateApplication: (id) => `/api/security-guard-applications/${id}`,
     withdrawApplication: (id) => `/api/security-guard-applications/${id}/withdraw`,
     updateApplicationStatus: (id) => `/api/security-guard-applications/${id}/status`,
+
+    // Parcel Logging endpoints
+    parcelLogs: '/api/parcel-logs',
+    logParcel: '/api/parcel-logs/log',
+    parcelLogById: (id) => `/api/parcel-logs/${id}`,
+    parcelLogStatus: (id) => `/api/parcel-logs/${id}/status`,
+    updateParcelLog: (id) => `/api/parcel-logs/${id}`,
+    deleteParcelLog: (id) => `/api/parcel-logs/${id}`,
     
     // Image serving endpoint
     image: (filename) => `/api/images/${filename}`,
