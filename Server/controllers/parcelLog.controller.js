@@ -8,8 +8,15 @@ const createParcelLog = async (req, res) => {
   try {
     console.log('🎯 PARCEL LOG: Creating parcel log with data:', req.body);
     const { recipientId, senderName, description } = req.body;
-    const loggedBy = req.user.id; // Security guard ID from auth middleware
+    // Security guard ID from auth/authorize middleware
+    const loggedBy = req.user?.id || req.user?._id || req.user?.userId;
     console.log('🎯 PARCEL LOG: Logged by user ID:', loggedBy);
+    // Additional debug info about authenticated user
+    try {
+      console.log('🎯 PARCEL LOG: Authenticated user role/id:', req.user?.role, req.user?._id, req.user?.id);
+    } catch (dbgErr) {
+      console.log('🎯 PARCEL LOG: Failed to stringify req.user for debug:', dbgErr);
+    }
 
     // Validate recipient exists
     const recipient = await User.findById(recipientId);
@@ -56,14 +63,16 @@ const createParcelLog = async (req, res) => {
 // Get all parcel logs (Security Guard - all, Resident - own only)
 const getParcelLogs = async (req, res) => {
   try {
-    const { page = 1, limit = 10, status, recipientId } = req.query;
-    const userRole = req.user.role;
-    const userId = req.user.id;
+  const { page = 1, limit = 10, status, recipientId } = req.query;
+  // Normalize role and user id to handle different token/user shapes
+  const rawRole = req.user?.role || req.user?.roleName || '';
+  const userRole = String(rawRole).toLowerCase().replace(/\s+/g, '_');
+  const userId = req.user?.id || req.user?._id?.toString() || req.user?.userId;
 
     let filter = {};
 
     // If user is not admin/security guard, only show their own parcels
-    if (userRole !== 'admin' && userRole !== 'security_guard') {
+  if (userRole !== 'admin' && userRole !== 'security_guard') {
       filter.recipientId = userId;
     } else if (recipientId) {
       filter.recipientId = recipientId;
@@ -106,8 +115,9 @@ const getParcelLogs = async (req, res) => {
 const getParcelLogById = async (req, res) => {
   try {
     const { id } = req.params;
-    const userRole = req.user.role;
-    const userId = req.user.id;
+  const rawRole = req.user?.role || req.user?.roleName || '';
+  const userRole = String(rawRole).toLowerCase().replace(/\s+/g, '_');
+  const userId = req.user?.id || req.user?._id?.toString() || req.user?.userId;
 
     console.log('🎯 PARCEL LOG BY ID: Requested ID:', id);
     
@@ -127,9 +137,9 @@ const getParcelLogById = async (req, res) => {
       return res.status(404).json({ message: 'Parcel log not found' });
     }
 
-    // Check if user has permission to view this parcel
-    if (userRole !== 'admin' && userRole !== 'security_guard' && 
-        parcelLog.recipientId._id.toString() !== userId) {
+  // Check if user has permission to view this parcel
+  if (userRole !== 'admin' && userRole !== 'security_guard' && 
+    parcelLog.recipientId._id.toString() !== userId) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -147,17 +157,18 @@ const getParcelLogById = async (req, res) => {
 const markParcelCollected = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
-    const userRole = req.user.role;
+  const userId = req.user?.id || req.user?._id?.toString() || req.user?.userId;
+  const rawRole = req.user?.role || req.user?.roleName || '';
+  const userRole = String(rawRole).toLowerCase().replace(/\s+/g, '_');
 
     const parcelLog = await ParcelLog.findById(id);
     if (!parcelLog) {
       return res.status(404).json({ message: 'Parcel log not found' });
     }
 
-    // Check if user has permission to mark as collected
-    if (userRole !== 'admin' && userRole !== 'Security Guard' && 
-        parcelLog.recipientId.toString() !== userId) {
+  // Check if user has permission to mark as collected
+  if (userRole !== 'admin' && userRole !== 'security_guard' && 
+    parcelLog.recipientId.toString() !== userId) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -219,7 +230,8 @@ const updateParcelLog = async (req, res) => {
   try {
     const { id } = req.params;
     const { senderName, description } = req.body;
-    const userRole = req.user.role;
+  const rawRole = req.user?.role || req.user?.roleName || '';
+  const userRole = String(rawRole).toLowerCase().replace(/\s+/g, '_');
 
     if (userRole !== 'admin' && userRole !== 'security_guard') {
       return res.status(403).json({ message: 'Access denied' });

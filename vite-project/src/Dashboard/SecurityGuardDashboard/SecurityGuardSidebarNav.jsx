@@ -8,6 +8,7 @@ const menuItems = [
   { key: 'looking-for-job', label: 'Looking for Job', description: 'Browse Available Positions' },
   { key: 'my-job', label: 'My Job', description: 'View Current Assignment Details' },
   { key: 'salary-input', label: 'Salary Input', description: 'Record Salary Information' },
+  { key: 'parcel-logging', label: 'Parcel Logging', description: 'Manage Parcels' },
 ];
 
 const SecurityGuardSidebarNav = ({ activeSection, setActiveSection }) => {

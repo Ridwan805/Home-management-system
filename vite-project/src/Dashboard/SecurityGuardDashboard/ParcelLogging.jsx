@@ -109,9 +109,11 @@ const ParcelLogging = () => {
         navigate('/login');
         return;
       }
-      await axios.post('http://localhost:5001/api/parcel-logs', formData, {
+      console.log('📤 PARCEL LOG POST: token present?', !!token, 'payload:', formData);
+      const resp = await axios.post('http://localhost:5001/api/parcel-logs', formData, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      console.log('📥 PARCEL LOG POST: response:', resp.status, resp.data);
       alert('Parcel logged successfully!');
       setFormData({ recipientId: '', senderName: '', description: '' });
       setShowForm(false);

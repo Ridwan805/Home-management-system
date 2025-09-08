@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import SecurityGuardSidebarNav from './SecurityGuardSidebarNav';
 import SecurityGuardProfile from './SecurityGuardProfile';
 import LookingForJob from './LookingForJob';
+import ParcelLogging from './ParcelLogging';
 import MyJob from './MyJob';
 import SalaryInput from './SalaryInput';
 import QuickDialButton from '../../components/QuickDialButton/QuickDialButton';
@@ -38,6 +39,7 @@ const SecurityGuardDashboard = () => {
           {activeSection === 'looking-for-job' && <LookingForJob />}
           {activeSection === 'my-job' && <MyJob />}
           {activeSection === 'salary-input' && <SalaryInput />}
+          {activeSection === 'parcel-logging' && <ParcelLogging />}
         </div>
       </main>
       <QuickDialButton />
