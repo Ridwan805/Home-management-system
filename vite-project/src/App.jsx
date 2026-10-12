@@ -26,6 +26,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AdminDashboard from './Dashboard/AdminDashboard/AdminDashboard';
 import MaintenanceReports from './Dashboard/OwnerProfile/MaintenanceReports';
 import Footer from './components/layout/Footer';
+import API from './config/api';
 
  
 
@@ -59,7 +60,7 @@ function AppRoutes() {
         }
 
         // Validate token with backend
-        const response = await fetch('http://localhost:5001/api/auth/me', {
+        const response = await fetch(`${API.baseUrl}${API.endpoints.profile}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }

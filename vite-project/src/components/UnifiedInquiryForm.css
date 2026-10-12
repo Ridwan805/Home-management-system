@@ -256,7 +256,7 @@ input[type="search"]::-webkit-search-results-decoration {
 }
 
 /* File Input Styling */
-input[type="file"] {
+.unified-inquiry-modal input[type="file"] {
   padding: 12px;
   border: 2px dashed #d1d5db;
   border-radius: 8px;
@@ -265,7 +265,7 @@ input[type="file"] {
   transition: all 0.2s;
 }
 
-input[type="file"]:hover {
+.unified-inquiry-modal input[type="file"]:hover {
   border-color: #667eea;
   background: #eff6ff;
 }

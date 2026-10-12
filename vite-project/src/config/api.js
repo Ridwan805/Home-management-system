@@ -11,8 +11,8 @@ const getApiPort = () => {
   return 5001;
 };
 
-// Base URL for API requests
-const API_BASE_URL = 'http://localhost:5001';
+// Base URL for API requests. Use Vite env var when available.
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
 
 /**
  * Handles API responses and checks for token expiration
@@ -210,9 +210,29 @@ export const authenticatedAxios = async (axiosInstance, config, navigate = null)
   }
 };
 
+/**
+ * Resolves an image path/filename to a full URL pointing to backend image endpoint
+ * @param {string|object} imagePath - image filename, path, or object with url property
+ * @returns {string} - full URL to image
+ */
+export const getImageUrl = (imagePath) => {
+  if (!imagePath) return '';
+  if (typeof imagePath === 'object' && imagePath.url) {
+    imagePath = imagePath.url;
+  }
+  if (typeof imagePath !== 'string') return '';
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://') || imagePath.startsWith('data:')) {
+    return imagePath;
+  }
+  const cleanFilename = imagePath.replace(/^\/?uploads\//, '').replace(/^\/?api\/images\//, '');
+  const base = API_BASE_URL.replace(/\/+$/, '');
+  return `${base}/api/images/${cleanFilename}`;
+};
+
 // Export the base URL and other API-related configurations
 export default {
   baseUrl: API_BASE_URL,
+  getImageUrl,
   endpoints: {
     // Auth endpoints
     login: '/api/auth/login',
@@ -313,7 +333,10 @@ export default {
   
   // Helper function to get full URL for an endpoint
   getUrl: function(endpoint) {
-    return `${this.baseUrl}${endpoint}`;
+    if (!endpoint) return this.baseUrl;
+    const base = this.baseUrl.replace(/\/+$/, '');
+    const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    return `${base}${path}`;
   }
 };
 

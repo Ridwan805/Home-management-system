@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../../config/api';
 import './GuestPreApproval.css';
 
 const GuestPreApproval = () => {
@@ -51,7 +52,7 @@ const GuestPreApproval = () => {
         window.location.href = '/login';
         return;
       }
-      const response = await axios.get('http://localhost:5001/api/visitor-logs/pre-approved', {
+      const response = await axios.get(`${API_BASE_URL}/api/visitor-logs/pre-approved`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setGuests(response.data.data);
@@ -73,7 +74,7 @@ const GuestPreApproval = () => {
         window.location.href = '/login';
         return;
       }
-      const response = await axios.get('http://localhost:5001/api/visitor-logs', {
+      const response = await axios.get(`${API_BASE_URL}/api/visitor-logs`, {
         headers: { Authorization: `Bearer ${token}` },
         params: filter
       });
@@ -98,7 +99,7 @@ const GuestPreApproval = () => {
         window.location.href = '/login';
         return;
       }
-      await axios.post('http://localhost:5001/api/visitor-logs/pre-approve', formData, {
+      await axios.post(`${API_BASE_URL}/api/visitor-logs/pre-approve`, formData, {
         headers: { Authorization: `Bearer ${token}` }
       });
       alert('Guest pre-approved successfully!');

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../../config/api';
 import { useNavigate } from 'react-router-dom';
 import './ParcelLogging.css';
 
@@ -47,7 +48,7 @@ const ParcelLogging = () => {
         navigate('/login');
         return;
       }
-      const response = await axios.get('http://localhost:5001/api/parcel-logs', {
+      const response = await axios.get(`${API_BASE_URL}/api/parcel-logs`, {
         headers: { Authorization: `Bearer ${token}` },
         params: filter
       });
@@ -76,7 +77,7 @@ const ParcelLogging = () => {
         navigate('/login');
         return;
       }
-      const response = await axios.get('http://localhost:5001/api/admin/users/tenants-for-guard', {
+      const response = await axios.get(`${API_BASE_URL}/api/admin/users/tenants-for-guard`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -110,7 +111,7 @@ const ParcelLogging = () => {
         return;
       }
       console.log('📤 PARCEL LOG POST: token present?', !!token, 'payload:', formData);
-      const resp = await axios.post('http://localhost:5001/api/parcel-logs', formData, {
+      const resp = await axios.post(`${API_BASE_URL}/api/parcel-logs`, formData, {
         headers: { Authorization: `Bearer ${token}` }
       });
       console.log('📥 PARCEL LOG POST: response:', resp.status, resp.data);

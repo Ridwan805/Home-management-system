@@ -115,6 +115,37 @@ class NotificationService {
   }
 
   /**
+   * Get unread notifications count for a user
+   * @param {string} userId - The user ID
+   * @returns {Promise<number>} Unread count
+   */
+  static async getUnreadCount(userId) {
+    try {
+      return await Notification.countDocuments({ userId, isRead: false });
+    } catch (error) {
+      console.error('Error getting unread count:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mark all notifications as read for a user
+   * @param {string} userId - The user ID
+   * @returns {Promise<Object>} Update result
+   */
+  static async markAllAsRead(userId) {
+    try {
+      return await Notification.updateMany(
+        { userId, isRead: false },
+        { isRead: true, readAt: new Date() }
+      );
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Send request status notification
    * @param {string} userId - The user ID to notify
    * @param {string} requestId - The request ID

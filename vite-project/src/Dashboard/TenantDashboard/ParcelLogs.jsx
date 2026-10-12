@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../../config/api';
 import './ParcelLogs.css';
 
 const ParcelLogs = () => {
@@ -38,7 +39,7 @@ const ParcelLogs = () => {
         window.location.href = '/login';
         return;
       }
-      const response = await axios.get('http://localhost:5001/api/parcel-logs/tenant', {
+      const response = await axios.get(`${API_BASE_URL}/api/parcel-logs/tenant`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setParcels(response.data.data);
@@ -60,7 +61,7 @@ const ParcelLogs = () => {
         window.location.href = '/login';
         return;
       }
-      await axios.patch(`http://localhost:5001/api/parcel-logs/${parcelId}/collect`, {}, {
+      await axios.patch(`${API_BASE_URL}/api/parcel-logs/${parcelId}/collect`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       alert('Parcel marked as collected successfully!');

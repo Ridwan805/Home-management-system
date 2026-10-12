@@ -253,19 +253,19 @@ const ViewDetails = () => {
 
       {/* Property Images */}
       <div className="property-images-section">
-        {property.images && property.images.length > 0 ? (
+        {(property.images?.length > 0 || property.media?.images?.length > 0) ? (
           <div className="property-image-gallery">
             <img 
-              src={`${apiConfig.baseUrl}/api/images/${property.images[0].replace('/uploads/', '')}`} 
+              src={apiConfig.getImageUrl(property.images?.[0] || property.media?.images?.[0]?.url)} 
               alt="Property" 
               className="main-property-image"
             />
-            {property.images.length > 1 && (
+            {((property.images?.length > 1) || (property.media?.images?.length > 1)) && (
               <div className="property-image-thumbnails">
-                {property.images.slice(1).map((image, index) => (
+                {(property.images?.length > 1 ? property.images.slice(1) : property.media.images.slice(1)).map((image, index) => (
                   <img 
                     key={index} 
-                    src={`${apiConfig.baseUrl}/api/images/${image.replace('/uploads/', '')}`} 
+                    src={apiConfig.getImageUrl(image)} 
                     alt={`Property ${index + 2}`} 
                     className="property-thumbnail"
                   />

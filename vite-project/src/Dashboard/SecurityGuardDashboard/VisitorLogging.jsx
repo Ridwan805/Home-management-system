@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../../config/api';
 import './VisitorLogging.css';
 
 const VisitorLogging = () => {
@@ -54,7 +55,7 @@ const VisitorLogging = () => {
         window.location.href = '/login';
         return;
       }
-      const response = await axios.get('http://localhost:5001/api/visitor-logs', {
+      const response = await axios.get(`${API_BASE_URL}/api/visitor-logs`, {
         headers: { Authorization: `Bearer ${token}` },
         params: filter
       });
@@ -77,7 +78,7 @@ const VisitorLogging = () => {
         window.location.href = '/login';
         return;
       }
-      const response = await axios.get('http://localhost:5001/api/visitor-logs/pre-approved', {
+      const response = await axios.get(`${API_BASE_URL}/api/visitor-logs/pre-approved`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setPreApprovedGuests(response.data.data);
@@ -95,7 +96,7 @@ const VisitorLogging = () => {
         window.location.href = '/login';
         return;
       }
-      const response = await axios.get('http://localhost:5001/api/properties', {
+      const response = await axios.get(`${API_BASE_URL}/api/properties`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setProperties(response.data.properties || []);
@@ -115,7 +116,7 @@ const VisitorLogging = () => {
         window.location.href = '/login';
         return;
       }
-      await axios.post('http://localhost:5001/api/visitor-logs', formData, {
+      await axios.post(`${API_BASE_URL}/api/visitor-logs`, formData, {
         headers: { Authorization: `Bearer ${token}` }
       });
       alert('Visitor logged successfully!');
@@ -149,7 +150,7 @@ const VisitorLogging = () => {
         window.location.href = '/login';
         return;
       }
-      await axios.patch(`http://localhost:5001/api/visitor-logs/${visitorId}/checkin`, {}, {
+      await axios.patch(`${API_BASE_URL}/api/visitor-logs/${visitorId}/checkin`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       alert('Visitor checked in successfully!');
@@ -172,7 +173,7 @@ const VisitorLogging = () => {
         window.location.href = '/login';
         return;
       }
-      await axios.patch(`http://localhost:5001/api/visitor-logs/${visitorId}/checkout`, {}, {
+      await axios.patch(`${API_BASE_URL}/api/visitor-logs/${visitorId}/checkout`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       alert('Visitor checked out successfully!');

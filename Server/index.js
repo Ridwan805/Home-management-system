@@ -1,3 +1,7 @@
+const dns = require('dns');
+// Use public DNS to reliably resolve MongoDB Atlas SRV records on Windows networks
+dns.setServers(['8.8.8.8', '1.1.1.1']);
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -16,9 +20,20 @@ const ScheduledJobsService = require('./services/scheduledJobs');
 
 const app = express();
 
-// Configure CORS to allow any origin from any port
+// Configure CORS to allow specific origins from environment variables
+const FRONTEND_URL = process.env.FRONTEND_URL;
+const CLIENT_URL = process.env.CLIENT_URL;
+const defaultLocal = 'http://localhost:5173'; // Vite dev default
+const allowedOrigins = [FRONTEND_URL, CLIENT_URL, defaultLocal].filter(Boolean);
+
 app.use(cors({
-  origin: true, // Allow all origins
+  origin: (origin, callback) => {
+    // Allow requests with no origin (e.g., server-to-server, mobile clients, curl)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    // Otherwise reject
+    return callback(new Error('CORS policy: origin not allowed'));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With', 'Cache-Control'],
@@ -136,6 +151,8 @@ const securityGuardPaymentRoutes = require('./routes/securityGuardPayment.routes
 const invoiceRoutes = require('./routes/invoice.routes');
 const paymentRoutes = require('./routes/payment.routes');
 const parcelLogRoutes = require('./routes/parcelLog.routes');
+const visitorLogRoutes = require('./routes/visitorLog.routes');
+const quickDialRoutes = require('./routes/quickDial.routes');
 
 
 let requestManagementRoutes;
@@ -156,7 +173,18 @@ app.use((req, res, next) => {
 // Simple root route for testing
 app.get('/', (req, res) => {
   console.log('🏠 Root route hit!');
+  const clientBuildPath = path.resolve(__dirname, '..', 'vite-project', 'dist');
+  console.log('NODE_ENV=', process.env.NODE_ENV, 'distExists=', fs.existsSync(clientBuildPath), 'clientBuildPath=', clientBuildPath);
+  if (process.env.NODE_ENV === 'production' && fs.existsSync(clientBuildPath)) {
+    console.log('Serving index.html from build');
+    return res.sendFile(path.join(clientBuildPath, 'index.html'));
+  }
   res.json({ message: 'Server is working!', timestamp: new Date().toISOString() });
+});
+
+// Health check route
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok' });
 });
 
 // Special route for Stripe webhook that needs raw body
@@ -181,6 +209,10 @@ app.use('/api/invoices', invoiceRoutes);
 app.use('/api/payments', paymentRoutes);
 // Parcel log routes for parcel logging by security guards and tenants
 app.use('/api/parcel-logs', parcelLogRoutes);
+// Visitor log routes
+app.use('/api/visitor-logs', visitorLogRoutes);
+// Quick dial routes
+app.use('/api/quick-dial', quickDialRoutes);
 
 
 
@@ -191,6 +223,8 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 app.use('/uploads', express.static(uploadsDir));
+// Fallback for missing uploads: serve placeholder through imageServingRoutes
+app.use('/uploads', imageServingRoutes);
 
 // Ensure tenant_pics directory exists and serve it statically
 const tenantPicsDir = path.resolve(__dirname, 'tenant_pics');
@@ -206,7 +240,18 @@ app.use('/tenant_pics', (req, res, next) => {
 });
 app.use('/tenant_pics', express.static(tenantPicsDir));
 
+// Serve frontend build in production (Vite build output)
+const clientBuildPath = path.resolve(__dirname, '..', 'vite-project', 'dist');
+if (process.env.NODE_ENV === 'production' && fs.existsSync(clientBuildPath)) {
+  console.log('📦 Serving frontend from', clientBuildPath);
+  app.use(express.static(clientBuildPath));
 
+  app.get('*', (req, res, next) => {
+    // Let API routes be handled normally
+    if (req.path.startsWith('/api')) return next();
+    res.sendFile(path.join(clientBuildPath, 'index.html'));
+  });
+}
 
 app.use('/api/admin', adminRoutes);
 

@@ -7,8 +7,8 @@ const getUserNotifications = async (req, res) => {
     const userId = req.user.userId;
     const { limit = 20 } = req.query;
     
-    const notifications = NotificationService.getUserNotifications(userId, parseInt(limit));
-    const unreadCount = NotificationService.getUnreadCount(userId);
+    const notifications = await NotificationService.getUserNotifications(userId, { limit: parseInt(limit), includeRead: true });
+    const unreadCount = await NotificationService.getUnreadCount(userId);
     
     res.json({
       success: true,
@@ -30,7 +30,7 @@ const markNotificationAsRead = async (req, res) => {
     const userId = req.user.userId;
     const { notificationId } = req.params;
     
-    const notification = NotificationService.markAsRead(userId, notificationId);
+    const notification = await NotificationService.markAsRead(userId, notificationId);
     
     if (!notification) {
       return res.status(404).json({
@@ -58,12 +58,12 @@ const markAllNotificationsAsRead = async (req, res) => {
   try {
     const userId = req.user.userId;
     
-    const notifications = NotificationService.markAllAsRead(userId);
+    const result = await NotificationService.markAllAsRead(userId);
     
     res.json({
       success: true,
       message: 'All notifications marked as read',
-      count: notifications.length
+      count: result?.modifiedCount || 0
     });
   } catch (error) {
     console.error('Error marking all notifications as read:', error);
@@ -78,7 +78,7 @@ const markAllNotificationsAsRead = async (req, res) => {
 const getUnreadCount = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const unreadCount = NotificationService.getUnreadCount(userId);
+    const unreadCount = await NotificationService.getUnreadCount(userId);
     
     res.json({
       success: true,

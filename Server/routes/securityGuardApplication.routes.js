@@ -21,7 +21,7 @@ router.post('/apply',
 );
 
 // Get my applications (Security Guard only)
-router.get('/my-applications', 
+router.get(['/my-applications', '/guard'], 
   authMiddleware, 
   authorizeRole(['Security Guard']), 
   getMyApplications

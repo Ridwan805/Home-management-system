@@ -6,7 +6,17 @@ const Payment = require('../models/Payment');
 const User = require('../models/User');
 const InvoiceService = require('../services/invoiceService');
 const mongoose = require('mongoose');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+let stripe = null;
+if (process.env.STRIPE_SECRET_KEY) {
+  try {
+    stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+  } catch (e) {
+    console.error('❌ Failed to initialize Stripe client in invoice.controller:', e && e.message ? e.message : e);
+    stripe = null;
+  }
+} else {
+  console.warn('⚠️ STRIPE_SECRET_KEY not set. Stripe features are disabled in invoice.controller.');
+}
 
 // Create a new invoice
 const createInvoice = async (req, res) => {

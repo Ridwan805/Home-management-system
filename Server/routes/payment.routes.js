@@ -14,7 +14,7 @@ router.get('/tenant/:tenantId/payment-history', authMiddleware, PaymentControlle
 router.get('/tenant/:tenantId/all', authMiddleware, PaymentController.getAllPayments);
 
 // Get all payment data for the authenticated user (no tenantId required)
-router.get('/my-payments', authMiddleware, PaymentController.getMyPayments);
+router.get(['/my-payments', '/history'], authMiddleware, PaymentController.getMyPayments);
 
 // Get payment details by ID
 router.get('/:paymentId', authMiddleware, PaymentController.getPaymentById);

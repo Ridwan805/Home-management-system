@@ -271,9 +271,9 @@ const PropertyFilter = () => {
           <div key={property._id} className="property-card">
             {/* Property Image */}
             <div className="property-images">
-              {property.images && property.images.length > 0 ? (
+              {(property.images?.length > 0 || property.media?.images?.length > 0) ? (
                 <img 
-                  src={apiConfig.getUrl(`api/images/${property.images[0].replace('/uploads/', '')}`)} 
+                  src={apiConfig.getImageUrl(property.images?.[0] || property.media?.images?.[0]?.url)} 
                   alt="Property" 
                   className="property-image"
                 />

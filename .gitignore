@@ -1,0 +1,22 @@
+# Node
+node_modules/
+
+# Env
+.env
+Server/.env
+vite-project/.env
+
+# Vite build
+vite-project/dist/
+
+# Logs
+logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/

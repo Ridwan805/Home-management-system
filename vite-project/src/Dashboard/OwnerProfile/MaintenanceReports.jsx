@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './MaintenanceReports.css';
-import { getOwnerReports, updateReportStatus, resolveReport, addReportUpdate } from '../../config/api';
+import { getOwnerReports, updateReportStatus, resolveReport, addReportUpdate, API_BASE_URL } from '../../config/api';
 
 const MaintenanceReports = () => {
   const [reports, setReports] = useState([]);
@@ -281,10 +281,10 @@ const MaintenanceReports = () => {
                     {report.images.map((image, index) => (
                       <img 
                         key={index} 
-                        src={`http://localhost:5001${image.url}`} 
+                        src={`${API_BASE_URL}${image.url}`} 
                         alt={`Report image ${index + 1}`}
                         className="report-image"
-                        onClick={() => window.open(`http://localhost:5001${image.url}`, '_blank')}
+                        onClick={() => window.open(`${API_BASE_URL}${image.url}`, '_blank')}
                       />
                     ))}
                   </div>

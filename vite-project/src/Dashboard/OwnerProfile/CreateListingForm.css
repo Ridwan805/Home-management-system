@@ -17,19 +17,19 @@
   margin-bottom: 15px;
 }
 
-label {
+.create-listing-form label {
   display: block;
   margin-bottom: 5px;
   font-weight: 500;
   color: #555;
 }
 
-input[type="text"],
-input[type="number"],
-input[type="email"],
-input[type="tel"],
-select,
-textarea {
+.create-listing-form input[type="text"],
+.create-listing-form input[type="number"],
+.create-listing-form input[type="email"],
+.create-listing-form input[type="tel"],
+.create-listing-form select,
+.create-listing-form textarea {
   width: 100%;
   padding: 10px;
   border: 1px solid #ddd;
@@ -37,7 +37,7 @@ textarea {
   font-size: 16px;
 }
 
-textarea {
+.create-listing-form textarea {
   min-height: 100px;
   resize: vertical;
 }

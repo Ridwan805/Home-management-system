@@ -1,4 +1,14 @@
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+let stripe = null;
+if (process.env.STRIPE_SECRET_KEY) {
+  try {
+    stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+  } catch (e) {
+    console.error('❌ Failed to initialize Stripe client in securityGuardPayment.controller:', e && e.message ? e.message : e);
+    stripe = null;
+  }
+} else {
+  console.warn('⚠️ STRIPE_SECRET_KEY not set. Stripe features are disabled in securityGuardPayment.controller.');
+}
 const JobPost = require('../models/JobPost');
 const Payment = require('../models/Payment');
 const User = require('../models/User');
@@ -50,6 +60,12 @@ const createPaymentSession = async (req, res) => {
     const hiredGuard = await User.findById(jobPost.hiredUserId);
     if (!hiredGuard) {
       return res.status(404).json({ message: 'Hired guard not found' });
+    }
+
+    // Ensure Stripe is configured
+    if (!stripe) {
+      console.warn('⚠️ Stripe client not available when creating guard payment session');
+      return res.status(500).json({ success: false, message: 'Stripe not configured' });
     }
 
     // Create Stripe checkout session

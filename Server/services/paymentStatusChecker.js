@@ -2,7 +2,17 @@
 // Reason: Serves as fallback when webhooks fail or are delayed
 // Date: Reactivated for redundancy and reliability
 
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+let stripe = null;
+if (process.env.STRIPE_SECRET_KEY) {
+  try {
+    stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+  } catch (e) {
+    console.error('❌ Failed to initialize Stripe client in paymentStatusChecker:', e && e.message ? e.message : e);
+    stripe = null;
+  }
+} else {
+  console.warn('⚠️ STRIPE_SECRET_KEY not set. Stripe features are disabled in paymentStatusChecker.');
+}
 const Request = require('../models/Request');
 const Payment = require('../models/Payment');
 const Property = require('../models/Property');
@@ -65,6 +75,10 @@ class PaymentStatusChecker {
       console.log(`Checking ${paymentType} payment status for session: ${sessionId}`);
       
       // Retrieve the session from Stripe
+      if (!stripe) {
+        console.warn('⚠️ Stripe client not available when checking session status for', sessionId);
+        return;
+      }
       const session = await stripe.checkout.sessions.retrieve(sessionId);
       
       console.log(`Session status: ${session.payment_status} for ${paymentType} payment of request ${request.requestId}`);

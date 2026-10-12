@@ -879,12 +879,12 @@
   padding: 0 32px 24px 32px;
 }
 
-.form-group {
+.modal-body .form-group {
   margin-bottom: 24px;
   position: relative;
 }
 
-.form-group label {
+.modal-body .form-group label {
   display: block;
   margin-bottom: 10px;
   color: #1a202c;
@@ -895,13 +895,13 @@
   gap: 8px;
 }
 
-.form-group label::before {
+.modal-body .form-group label::before {
   content: '📝';
   font-size: 14px;
 }
 
-.form-group textarea,
-.form-group input {
+.modal-body .form-group textarea,
+.modal-body .form-group input {
   width: 100%;
   padding: 16px;
   border: 2px solid #e2e8f0;
@@ -913,8 +913,8 @@
   background: #f8fafc;
 }
 
-.form-group textarea:focus,
-.form-group input:focus {
+.modal-body .form-group textarea:focus,
+.modal-body .form-group input:focus {
   outline: none;
   border-color: #3b82f6;
   background: white;
@@ -922,7 +922,7 @@
   transform: translateY(-1px);
 }
 
-.form-group textarea {
+.modal-body .form-group textarea {
   resize: vertical;
   min-height: 120px;
   line-height: 1.6;

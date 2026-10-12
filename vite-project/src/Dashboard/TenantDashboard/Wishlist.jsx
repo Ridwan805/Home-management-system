@@ -121,8 +121,8 @@ const Wishlist = () => {
           {wishlistItems.map(property => (
             <div key={property._id} className="wishlist-item">
               <div className="wishlist-item-image">
-                {property.images && property.images.length > 0 ? (
-                  <img src={`${apiConfig.baseUrl}/api/images/${property.images[0].replace('/uploads/', '')}`} alt={property.address} />
+                {(property.images?.length > 0 || property.media?.images?.length > 0) ? (
+                  <img src={apiConfig.getImageUrl(property.images?.[0] || property.media?.images?.[0]?.url)} alt={property.address} />
                 ) : (
                   <div className="no-image">No Image Available</div>
                 )}

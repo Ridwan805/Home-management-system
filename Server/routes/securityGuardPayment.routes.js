@@ -2,7 +2,17 @@ const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/authMiddleware');
 const authorizeRole = require('../middleware/authorizeRole');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+let stripe = null;
+if (process.env.STRIPE_SECRET_KEY) {
+  try {
+    stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+  } catch (e) {
+    console.error('❌ Failed to initialize Stripe client in securityGuardPayment.routes:', e && e.message ? e.message : e);
+    stripe = null;
+  }
+} else {
+  console.warn('⚠️ STRIPE_SECRET_KEY not set. Stripe features are disabled in securityGuardPayment.routes.');
+}
 const JobPost = require('../models/JobPost');
 const Payment = require('../models/Payment');
 const User = require('../models/User');
@@ -69,6 +79,12 @@ router.post('/create-payment-session', authMiddleware, authorizeRole(['Owner']),
     });
 
     await payment.save();
+
+    // Ensure Stripe is configured
+    if (!stripe) {
+      console.warn('⚠️ Stripe client not available when creating guard payment session (routes)');
+      return res.status(500).json({ success: false, message: 'Stripe not configured' });
+    }
 
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({

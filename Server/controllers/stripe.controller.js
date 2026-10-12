@@ -1,4 +1,14 @@
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+let stripe = null;
+if (process.env.STRIPE_SECRET_KEY) {
+  try {
+    stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+  } catch (e) {
+    console.error('❌ Failed to initialize Stripe client:', e && e.message ? e.message : e);
+    stripe = null;
+  }
+} else {
+  console.warn('⚠️ STRIPE_SECRET_KEY not set. Stripe features are disabled.');
+}
 const Request = require('../models/Request');
 const User = require('../models/User');
 const Property = require('../models/Property');
@@ -14,14 +24,18 @@ const InvoiceService = require('../services/invoiceService');
 // Get Stripe publishable key
 const getPublishableKey = async (req, res) => {
   try {
+    if (!stripe) {
+      console.warn('⚠️ Stripe client not initialized when requesting publishable key');
+      return res.status(500).json({ success: false, message: 'Stripe not configured' });
+    }
+
     console.log('🔑 Stripe Secret Key exists:', !!process.env.STRIPE_SECRET_KEY);
     console.log('🔑 Stripe Publishable Key exists:', !!process.env.STRIPE_PUBLISHABLE_KEY);
-  
-    
+
     // Test Stripe connection
     const testProduct = await stripe.products.list({ limit: 1 });
     console.log('✅ Stripe connection successful');
-    
+
     res.status(200).json({
       success: true,
       publishableKey: process.env.STRIPE_PUBLISHABLE_KEY
@@ -39,6 +53,10 @@ const getPublishableKey = async (req, res) => {
 // Create Stripe checkout session for advance payment
 const createPaymentSession = async (req, res) => {
   try {
+    if (!stripe) {
+      console.warn('⚠️ Stripe client not available when creating payment session');
+      return res.status(500).json({ success: false, message: 'Stripe not configured' });
+    }
     const { requestId } = req.params;
     const { amount: providedAmount, currency: providedCurrency = 'BDT', originUrl } = req.body;
     const userId = req.user.userId;

@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const MaintenanceReport = require('../models/MaintenanceReport');
 const Property = require('../models/Property');
 const User = require('../models/User');
@@ -493,8 +494,10 @@ const getReportStats = async (req, res) => {
   try {
     const ownerId = req.user.userId;
 
+    const ownerObjectId = new mongoose.Types.ObjectId(ownerId);
+
     const stats = await MaintenanceReport.aggregate([
-      { $match: { ownerId: require('mongoose').Types.ObjectId(ownerId) } },
+      { $match: { ownerId: ownerObjectId } },
       {
         $group: {
           _id: '$status',
@@ -504,7 +507,7 @@ const getReportStats = async (req, res) => {
     ]);
 
     const priorityStats = await MaintenanceReport.aggregate([
-      { $match: { ownerId: require('mongoose').Types.ObjectId(ownerId), status: { $ne: 'resolved' } } },
+      { $match: { ownerId: ownerObjectId, status: { $ne: 'resolved' } } },
       {
         $group: {
           _id: '$priority',
@@ -514,7 +517,7 @@ const getReportStats = async (req, res) => {
     ]);
 
     const issueTypeStats = await MaintenanceReport.aggregate([
-      { $match: { ownerId: require('mongoose').Types.ObjectId(ownerId) } },
+      { $match: { ownerId: ownerObjectId } },
       {
         $group: {
           _id: '$issueType',
