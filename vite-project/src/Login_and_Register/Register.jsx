@@ -85,22 +85,22 @@ export default function Register() {
           <div className="form-row">
             <div className="form-group">
               <label>Username</label>
-              <input type="text" name="name" value={formData.name} onChange={handleChange} required />
+              <input type="text" name="name" autoComplete="username" value={formData.name} onChange={handleChange} required />
             </div>
             <div className="form-group">
               <label>Email</label>
-              <input type="email" name="email" value={formData.email} onChange={handleChange} required />
+              <input type="email" name="email" autoComplete="email" value={formData.email} onChange={handleChange} required />
             </div>
           </div>
 
           <div className="form-row">
             <div className="form-group">
               <label>Password</label>
-              <input type="password" name="password" value={formData.password} onChange={handleChange} required />
+              <input type="password" name="password" autoComplete="new-password" value={formData.password} onChange={handleChange} required />
             </div>
             <div className="form-group">
               <label>Confirm Password</label>
-              <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} required />
+              <input type="password" name="confirmPassword" autoComplete="new-password" value={formData.confirmPassword} onChange={handleChange} required />
             </div>
           </div>
 

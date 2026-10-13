@@ -94,6 +94,7 @@ export default function Login() {
             <input
               type="text"
               name="userName"
+              autoComplete="username"
               value={formData.userName}
               onChange={handleChange}
               placeholder="User Name/Email"
@@ -106,6 +107,7 @@ export default function Login() {
             <input
               type="password"
               name="password"
+              autoComplete="current-password"
               value={formData.password}
               onChange={handleChange}
               placeholder="Password"
