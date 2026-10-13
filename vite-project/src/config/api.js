@@ -20,8 +20,13 @@ export const getApiBaseUrl = () => {
   // 1. Explicit environment variables (VITE_API_URL takes precedence, then VITE_API_BASE_URL)
   const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
   if (envUrl && typeof envUrl === 'string' && envUrl.trim()) {
-    const trimmed = envUrl.trim().replace(/\/+$/, '');
+    let trimmed = envUrl.trim().replace(/\/+$/, '');
     
+    // Auto-correct spelling mismatch between dwellsync and active dewllsync on Render
+    if (trimmed.includes('dwellsync-backend.onrender.com')) {
+      trimmed = trimmed.replace('dwellsync-backend.onrender.com', 'dewllsync-backend.onrender.com');
+    }
+
     // Safety check: If deployed on HTTPS, never allow a misconfigured http://localhost
     const isPublicHttps = typeof window !== 'undefined' && 
       window.location.protocol === 'https:' && 
