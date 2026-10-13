@@ -11,25 +11,43 @@ const HomePage = () => {
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => {
-    const fetchTopProperties = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(apiConfig.getUrl(apiConfig.endpoints.topProperties));
-        if (!response.ok) {
-          throw new Error('Failed to fetch properties');
-        }
-        const data = await response.json();
-        setRecommended(data);
-      } catch (err) {
-        console.error('Error fetching properties:', err);
-        setError(err.message);
-        setRecommended([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchTopProperties = async () => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15-second timeout
 
+    try {
+      setLoading(true);
+      setError(null);
+      const url = apiConfig.getUrl(apiConfig.endpoints.topProperties);
+      const response = await fetch(url, {
+        signal: controller.signal,
+        headers: { 'Accept': 'application/json' }
+      });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`Failed to load properties (${response.status}: ${response.statusText})`);
+      }
+      const data = await response.json();
+      const list = Array.isArray(data) ? data : (data?.properties || data?.data || []);
+      setRecommended(list);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching properties:', err);
+      const isTimeout = err.name === 'AbortError';
+      setError(
+        isTimeout
+          ? 'Connecting to cloud service took longer than expected. Please retry.'
+          : (err.message || 'Unable to load properties at this time.')
+      );
+      setRecommended([]);
+    } finally {
+      clearTimeout(timeoutId);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchTopProperties();
   }, []);
 
@@ -83,7 +101,15 @@ const HomePage = () => {
             </div>
           ) : error ? (
             <div className="error-container">
-              <p>Error: {error}</p>
+              <p style={{ margin: '0 0 1rem 0', fontWeight: 500 }}>⚠️ {error}</p>
+              <button 
+                type="button"
+                className="browse-all-button"
+                onClick={() => fetchTopProperties()}
+                style={{ padding: '0.6rem 1.5rem', fontSize: '0.95rem' }}
+              >
+                Try Again
+              </button>
             </div>
           ) : recommended.length > 0 ? (
             <div className="property-cards">

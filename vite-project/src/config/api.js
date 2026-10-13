@@ -3,16 +3,52 @@
  * This file contains the base URL for API requests and authentication utilities
  */
 
-// Function to get a free port (for demonstration, we'll use a fixed port for now)
-// In a real application, you might want to implement a more sophisticated port detection mechanism
-const getApiPort = () => {
-  // You can implement logic to find a free port here if needed
-  // For now, we'll use 5001 as the default port
-  return 5001;
+// Production Render backend URLs
+const DEFAULT_PROD_URL = 'https://dwellsync-backend.onrender.com';
+const FALLBACK_PROD_URL = 'https://dewllsync-backend.onrender.com';
+const LOCAL_DEV_URL = 'http://localhost:5001';
+
+/**
+ * Determine API base URL dynamically.
+ * Priority:
+ * 1. import.meta.env.VITE_API_URL
+ * 2. import.meta.env.VITE_API_BASE_URL
+ * 3. Localhost (ONLY when in local development on a local hostname)
+ * 4. Production HTTPS URL on Render (default for any deployed environment)
+ */
+export const getApiBaseUrl = () => {
+  // 1. Explicit environment variables (VITE_API_URL takes precedence, then VITE_API_BASE_URL)
+  const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
+  if (envUrl && typeof envUrl === 'string' && envUrl.trim()) {
+    const trimmed = envUrl.trim().replace(/\/+$/, '');
+    
+    // Safety check: If deployed on HTTPS, never allow a misconfigured http://localhost
+    const isPublicHttps = typeof window !== 'undefined' && 
+      window.location.protocol === 'https:' && 
+      !['localhost', '127.0.0.1', '0.0.0.0'].includes(window.location.hostname);
+    
+    if (isPublicHttps && (trimmed.includes('localhost') || trimmed.includes('127.0.0.1'))) {
+      console.warn('⚠️ Disallowing localhost API URL on public HTTPS origin to prevent Chrome Local Network Access blocks.');
+      return FALLBACK_PROD_URL;
+    }
+    return trimmed;
+  }
+
+  // 2. Local development check (must be running locally in dev mode)
+  const isLocalHost = typeof window !== 'undefined' &&
+    ['localhost', '127.0.0.1', '0.0.0.0'].includes(window.location.hostname);
+
+  if (import.meta.env.DEV && isLocalHost) {
+    return LOCAL_DEV_URL;
+  }
+
+  // 3. Fallback for deployed environments (Vercel, etc.)
+  // Use the verified active Render backend instance
+  return FALLBACK_PROD_URL;
 };
 
-// Base URL for API requests. Use Vite env var when available.
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
+// Base URL for API requests
+export const API_BASE_URL = getApiBaseUrl();
 
 /**
  * Handles API responses and checks for token expiration
@@ -222,6 +258,13 @@ export const getImageUrl = (imagePath) => {
   }
   if (typeof imagePath !== 'string') return '';
   if (imagePath.startsWith('http://') || imagePath.startsWith('https://') || imagePath.startsWith('data:')) {
+    // If an image URL contains localhost or 127.0.0.1 on a public host, rewrite to API_BASE_URL
+    if (imagePath.includes('localhost:') || imagePath.includes('127.0.0.1:')) {
+      const isLocalHost = typeof window !== 'undefined' && ['localhost', '127.0.0.1', '0.0.0.0'].includes(window.location.hostname);
+      if (!isLocalHost) {
+        return imagePath.replace(/http:\/\/(?:localhost|127\.0\.0\.1):\d+/, API_BASE_URL);
+      }
+    }
     return imagePath;
   }
   const cleanFilename = imagePath.replace(/^\/?uploads\//, '').replace(/^\/?api\/images\//, '');

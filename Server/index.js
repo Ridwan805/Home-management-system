@@ -38,10 +38,27 @@ app.use(cors({
     // Allow requests with no origin (e.g., server-to-server, mobile clients, curl)
     if (!origin) return callback(null, true);
     
-    // Check if origin matches allowed origins, localhost, or any vercel.app deployment
-    const isAllowed = allowedOrigins.includes(origin) ||
-      origin.includes('localhost') ||
-      /https:\/\/.*\.vercel\.app$/.test(origin);
+    let isAllowed = false;
+    try {
+      if (allowedOrigins.includes(origin)) {
+        isAllowed = true;
+      } else {
+        const url = new URL(origin);
+        const host = url.hostname;
+        if (
+          host === 'localhost' ||
+          host === '127.0.0.1' ||
+          host === '0.0.0.0' ||
+          host.endsWith('.vercel.app') ||
+          host === 'vercel.app' ||
+          host.endsWith('.onrender.com')
+        ) {
+          isAllowed = true;
+        }
+      }
+    } catch (e) {
+      isAllowed = allowedOrigins.includes(origin);
+    }
 
     if (isAllowed) return callback(null, true);
     // Otherwise reject
@@ -49,19 +66,19 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With', 'Cache-Control'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With', 'Cache-Control', 'Access-Control-Request-Private-Network'],
   exposedHeaders: ['Content-Type', 'Content-Length']
 }));
 
 // Add preflight handling for all routes
-app.options('*', cors());
-
-// Add specific preflight handling for API routes
-app.options('/api/*', (req, res) => {
+app.options('*', (req, res, next) => {
   res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Access-Control-Request-Private-Network');
   res.header('Access-Control-Allow-Credentials', 'true');
+  if (req.headers['access-control-request-private-network']) {
+    res.header('Access-Control-Allow-Private-Network', 'true');
+  }
   res.sendStatus(200);
 });
 
