@@ -411,7 +411,7 @@ PropertySchema.index(
     } 
   }
 );
-PropertySchema.index({ 'location.coordinates': '2dsphere' });
+PropertySchema.index({ 'location.latitude': 1, 'location.longitude': 1 }, { sparse: true });
 
 // Legacy indexes (kept for backward compatibility)
 PropertySchema.index({ city: 1, status: 1 });
@@ -881,6 +881,28 @@ PropertySchema.set('toJSON', { virtuals: true });
 PropertySchema.set('toObject', { virtuals: true });
 
 const Property = mongoose.model('Property', PropertySchema, 'Properties');
+
+// Drop conflicting legacy 2dsphere index on non-GeoJSON coordinates if it exists on collection
+const dropLegacyGeoIndex = async () => {
+  try {
+    const collection = mongoose.connection.db?.collection('Properties');
+    if (!collection) return;
+    const indexes = await collection.indexes();
+    const geoIdx = indexes.find(i => i.name.includes('coordinates') || (i.key && i.key['location.coordinates']));
+    if (geoIdx) {
+      console.log('🗑️ Dropping conflicting legacy index:', geoIdx.name);
+      await collection.dropIndex(geoIdx.name);
+      console.log('✅ Successfully dropped legacy index:', geoIdx.name);
+    }
+  } catch (err) {
+    // Safely ignore if index doesn't exist
+  }
+};
+
+mongoose.connection.on('open', dropLegacyGeoIndex);
+if (mongoose.connection.readyState === 1) {
+  dropLegacyGeoIndex();
+}
 
 // Export the model and constants
 module.exports = Property;

@@ -227,7 +227,7 @@ function AppRoutes() {
           </ProtectedRoute>
         } />
         <Route path="/create-listing" element={
-          <ProtectedRoute allowedRoles={['Owner']}>
+          <ProtectedRoute allowedRoles={['Owner', 'Admin', 'admin']}>
             <CreateListingPage />
           </ProtectedRoute>
         } />
