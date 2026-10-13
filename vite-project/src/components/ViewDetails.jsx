@@ -4,6 +4,7 @@ import './ViewDetails.css';
 import { toast } from 'react-toastify';
 import UnifiedInquiryForm from './UnifiedInquiryForm';
 import apiConfig from '../config/api';
+import LocationViewerMap from './LocationViewerMap';
 
 const ViewDetails = () => {
   const { propertyId } = useParams();
@@ -298,25 +299,12 @@ const ViewDetails = () => {
             </p>
           </div>
 
-          {/* Map Location (OpenStreetMap link) */}
-          <div className="property-map-location-section" style={{ marginTop: '16px' }}>
-            <h3>Map Location</h3>
-            {property.location?.location_link ? (
-              <a
-                href={property.location.location_link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="map-link"
-                style={{ color: '#007bff', textDecoration: 'none' }}
-              >
-                View on OpenStreetMap
-              </a>
-            ) : (
-              <p className="no-map-link" style={{ color: '#6c757d' }}>
-                Map link not available. Please contact the owner to add an OpenStreetMap link.
-              </p>
-            )}
-          </div>
+          {/* Property Location Map Section */}
+          <LocationViewerMap
+            location={property.location}
+            address={property.address ? `${property.address}${property.city ? `, ${property.city}` : ''}${property.state ? `, ${property.state}` : ''}` : ''}
+            title="Property Location"
+          />
 
           <div className="property-specs-section">
             <h3>Property Specifications</h3>

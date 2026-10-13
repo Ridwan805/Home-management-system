@@ -221,6 +221,17 @@ const PropertySchema = new mongoose.Schema({
   
   // Location details (for standalone properties or additional info)
   location: {
+    latitude: { 
+      type: Number, 
+      min: [-90, 'Latitude must be between -90 and 90'], 
+      max: [90, 'Latitude must be between -90 and 90'] 
+    },
+    longitude: { 
+      type: Number, 
+      min: [-180, 'Longitude must be between -180 and 180'], 
+      max: [180, 'Longitude must be between -180 and 180'] 
+    },
+    address: { type: String, trim: true },
     city: { type: String },
     state: { type: String },
     zipCode: { type: String },

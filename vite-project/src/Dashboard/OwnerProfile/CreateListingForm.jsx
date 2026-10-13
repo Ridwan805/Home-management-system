@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../../config/api';
+import LocationPickerMap from '../../components/LocationPickerMap';
 import './CreateListingForm.css';
 
 const initialState = {
@@ -104,7 +105,11 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
-  // Property location state
+  // Property map location state
+  const [locationCoordinates, setLocationCoordinates] = useState({ latitude: null, longitude: null });
+  const [isLocationConfirmed, setIsLocationConfirmed] = useState(false);
+  
+  // Property location state (standalone vs building)
   const [propertyLocation, setPropertyLocation] = useState('standalone'); // 'standalone' or 'building'
   const [selectedBuilding, setSelectedBuilding] = useState('');
   const [showCreateBuilding, setShowCreateBuilding] = useState(false);
@@ -253,6 +258,13 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
     if (!form.city.trim()) errors.push('City is required');
     if (!form.state.trim()) errors.push('State is required');
     if (!form.zipCode.trim()) errors.push('Zip code is required');
+
+    // Map Location validation (required and confirmed)
+    if (!locationCoordinates?.latitude || !locationCoordinates?.longitude) {
+      errors.push('Please select a property location on the map');
+    } else if (!isLocationConfirmed) {
+      errors.push('Please click "Confirm Location" on the map to confirm your property location');
+    }
     
     // Floor and unit validation (only required for building properties)
     if (propertyLocation === 'building') {
@@ -468,6 +480,13 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
       
       // Location
       const location = {
+        latitude: locationCoordinates.latitude,
+        longitude: locationCoordinates.longitude,
+        coordinates: {
+          latitude: locationCoordinates.latitude,
+          longitude: locationCoordinates.longitude
+        },
+        address: form.address,
         city: form.city,
         state: form.state,
         zipCode: form.zipCode,
@@ -768,6 +787,23 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
             </div>
           </>
         )}
+
+        {/* Interactive Property Location Selection Map */}
+        <LocationPickerMap
+          initialLocation={locationCoordinates.latitude ? locationCoordinates : null}
+          onLocationChange={({ latitude, longitude, isConfirmed }) => {
+            setLocationCoordinates({ latitude, longitude });
+            setIsLocationConfirmed(isConfirmed);
+            setError('');
+          }}
+          isConfirmed={isLocationConfirmed}
+          onConfirmChange={(confirmed) => {
+            setIsLocationConfirmed(confirmed);
+            setError('');
+          }}
+          required={true}
+          title="Property Location"
+        />
       <div className="form-row">
         <label>Bedrooms*</label>
         <input name="bedrooms" type="number" value={form.bedrooms} onChange={handleChange} required />

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../../config/api';
+import LocationPickerMap from '../../components/LocationPickerMap';
+import LocationViewerMap from '../../components/LocationViewerMap';
 import './PropertyDetails.css';
 
 const PropertyDetails = () => {
@@ -9,6 +11,8 @@ const PropertyDetails = () => {
   const [error, setError] = useState(null);
   const [editingProperty, setEditingProperty] = useState(null);
   const [formData, setFormData] = useState({});
+  const [editLocation, setEditLocation] = useState({ latitude: null, longitude: null });
+  const [isEditLocationConfirmed, setIsEditLocationConfirmed] = useState(false);
   const [updateSuccess, setUpdateSuccess] = useState(false);
   const [updateError, setUpdateError] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -79,6 +83,14 @@ const PropertyDetails = () => {
 
   const handleEditClick = (property) => {
     setEditingProperty(property);
+    const existingLat = property.location?.latitude ?? property.location?.coordinates?.latitude ?? null;
+    const existingLng = property.location?.longitude ?? property.location?.coordinates?.longitude ?? null;
+    setEditLocation({
+      latitude: existingLat !== null && !isNaN(Number(existingLat)) ? Number(existingLat) : null,
+      longitude: existingLng !== null && !isNaN(Number(existingLng)) ? Number(existingLng) : null
+    });
+    setIsEditLocationConfirmed(existingLat !== null && existingLng !== null);
+
     setFormData({
       address: property.address || '',
       propertyType: property.propertyType || '',
@@ -104,6 +116,8 @@ const PropertyDetails = () => {
   const handleCancelEdit = () => {
     setEditingProperty(null);
     setFormData({});
+    setEditLocation({ latitude: null, longitude: null });
+    setIsEditLocationConfirmed(false);
     setUpdateSuccess(false);
     setUpdateError(null);
   };
@@ -133,7 +147,7 @@ const PropertyDetails = () => {
     setUpdateError(null);
     
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('token') || JSON.parse(localStorage.getItem('dwellSyncUser') || '{}')?.token;
       const formDataToSend = new FormData();
       
       Object.keys(formData).forEach(key => {
@@ -147,6 +161,24 @@ const PropertyDetails = () => {
           formDataToSend.append(key, formData[key]);
         }
       });
+
+      // Append location data if coordinates exist
+      if (editLocation.latitude !== null && editLocation.longitude !== null) {
+        const locationData = {
+          latitude: editLocation.latitude,
+          longitude: editLocation.longitude,
+          coordinates: {
+            latitude: editLocation.latitude,
+            longitude: editLocation.longitude
+          },
+          address: formData.address || editingProperty.address,
+          city: formData.city || editingProperty.city,
+          state: formData.state || editingProperty.state,
+          zipCode: formData.zipCode || editingProperty.zipCode,
+          country: editingProperty.location?.country || 'Bangladesh'
+        };
+        formDataToSend.append('location', JSON.stringify(locationData));
+      }
 
       const response = await fetch(API.getUrl(API.endpoints.propertyById(editingProperty._id)), {
         method: 'PUT',
@@ -392,6 +424,15 @@ const PropertyDetails = () => {
                 <p className="modal-description-full">{selectedProperty.description}</p>
               </div>
             )}
+
+            {/* Property Location Map */}
+            <div className="modal-map-section">
+              <LocationViewerMap
+                location={selectedProperty.location}
+                address={selectedProperty.address}
+                title="Property Location"
+              />
+            </div>
           </div>
         </div>
       )}
@@ -540,6 +581,20 @@ const PropertyDetails = () => {
                 />
               </div>
               
+              <div className="form-group full-width">
+                <LocationPickerMap
+                  initialLocation={editLocation.latitude !== null ? editLocation : null}
+                  onLocationChange={({ latitude, longitude, isConfirmed }) => {
+                    setEditLocation({ latitude, longitude });
+                    setIsEditLocationConfirmed(isConfirmed);
+                  }}
+                  isConfirmed={isEditLocationConfirmed}
+                  onConfirmChange={(confirmed) => setIsEditLocationConfirmed(confirmed)}
+                  required={false}
+                  title="Property Location"
+                />
+              </div>
+
               <div className="form-group full-width">
                 <label htmlFor="description">Description*</label>
                 <textarea

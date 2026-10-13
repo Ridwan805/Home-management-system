@@ -119,8 +119,9 @@ router.post(
   createProperty
 );
 
-// PATCH /api/properties/:id - Update property (owner/admin only)
-router.patch('/:id', auth, authorizeRole(['owner', 'admin']), updateProperty);
+// PUT & PATCH /api/properties/:id - Update property (owner/admin only)
+router.put('/:id', auth, authorizeRole(['owner', 'admin']), upload.array('images', 10), updateProperty);
+router.patch('/:id', auth, authorizeRole(['owner', 'admin']), upload.array('images', 10), updateProperty);
 
 // PUT /api/properties/:id/status - Update property status (owner/admin only)
 router.put('/:id/status', auth, authorizeRole(['owner', 'admin']), updatePropertyStatus);

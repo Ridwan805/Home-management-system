@@ -309,6 +309,37 @@ const createProperty = async (req, res) => {
       locationData.location_link = req.body.location_link;
     }
     
+    // Validate coordinate ranges
+    let latitude = locationData.latitude !== undefined && locationData.latitude !== null && locationData.latitude !== ''
+      ? Number(locationData.latitude)
+      : (locationData.coordinates?.latitude !== undefined && locationData.coordinates?.latitude !== null && locationData.coordinates?.latitude !== ''
+          ? Number(locationData.coordinates.latitude)
+          : undefined);
+
+    let longitude = locationData.longitude !== undefined && locationData.longitude !== null && locationData.longitude !== ''
+      ? Number(locationData.longitude)
+      : (locationData.coordinates?.longitude !== undefined && locationData.coordinates?.longitude !== null && locationData.coordinates?.longitude !== ''
+          ? Number(locationData.coordinates.longitude)
+          : undefined);
+
+    if (latitude !== undefined) {
+      if (isNaN(latitude) || latitude < -90 || latitude > 90) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid latitude. Latitude must be between -90 and 90 degrees.'
+        });
+      }
+    }
+
+    if (longitude !== undefined) {
+      if (isNaN(longitude) || longitude < -180 || longitude > 180) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid longitude. Longitude must be between -180 and 180 degrees.'
+        });
+      }
+    }
+
     // Exclude 'state' from location to prevent conflict with Property model's state field
     const { state: locationState, ...location } = locationData;
     
@@ -319,6 +350,28 @@ const createProperty = async (req, res) => {
     // Check if this is a standalone property
     const isStandaloneProperty = req.body.propertyType === 'house' || req.body.propertyType === 'land' || req.body.propertyType === 'commercial' || req.body.propertyType === 'other';
     
+    const structuredLocation = {
+      ...location,
+      locationState: locationState,
+      country: location.country || 'Bangladesh'
+    };
+
+    if (latitude !== undefined) {
+      structuredLocation.latitude = latitude;
+    }
+    if (longitude !== undefined) {
+      structuredLocation.longitude = longitude;
+    }
+    if (latitude !== undefined && longitude !== undefined) {
+      structuredLocation.coordinates = {
+        latitude,
+        longitude
+      };
+    }
+    if (locationData.address || req.body.address) {
+      structuredLocation.address = (locationData.address || req.body.address || '').trim();
+    }
+
     const propertyData = {
       ownerUserId: userId,
       owner: userId, // Keep for backward compatibility
@@ -336,10 +389,7 @@ const createProperty = async (req, res) => {
       // Structured data
       specifications,
       pricing,
-      location: {
-        ...location,
-        locationState: locationState // Use different field name to avoid Property model conflict
-      },
+      location: structuredLocation,
       contactInfo,
       constraints,
       amenities,
@@ -537,18 +587,132 @@ const updateProperty = async (req, res) => {
       });
     }
 
-    // Extract location_link from update data to handle separately
-    const { location_link, ...updateData } = req.body;
+    // Extract location, location_link, and special fields from update data
+    let { location: rawLocation, location_link, ...updateData } = req.body;
     
-    // Handle location_link separately to ensure proper nesting
-    if (location_link !== undefined) {
+    // Parse location if provided as string
+    let locationObj = null;
+    if (rawLocation) {
+      try {
+        locationObj = typeof rawLocation === 'string' ? JSON.parse(rawLocation) : rawLocation;
+      } catch (e) {
+        console.warn('Failed to parse location JSON in updateProperty:', e.message);
+      }
+    }
+
+    // Determine coordinates from location object or top-level body
+    let latitude = undefined;
+    let longitude = undefined;
+
+    if (locationObj) {
+      if (locationObj.latitude !== undefined && locationObj.latitude !== null && locationObj.latitude !== '') {
+        latitude = Number(locationObj.latitude);
+      } else if (locationObj.coordinates?.latitude !== undefined && locationObj.coordinates?.latitude !== null && locationObj.coordinates?.latitude !== '') {
+        latitude = Number(locationObj.coordinates.latitude);
+      }
+      
+      if (locationObj.longitude !== undefined && locationObj.longitude !== null && locationObj.longitude !== '') {
+        longitude = Number(locationObj.longitude);
+      } else if (locationObj.coordinates?.longitude !== undefined && locationObj.coordinates?.longitude !== null && locationObj.coordinates?.longitude !== '') {
+        longitude = Number(locationObj.coordinates.longitude);
+      }
+    }
+
+    if (latitude === undefined && req.body.latitude !== undefined && req.body.latitude !== null && req.body.latitude !== '') {
+      latitude = Number(req.body.latitude);
+    }
+    if (longitude === undefined && req.body.longitude !== undefined && req.body.longitude !== null && req.body.longitude !== '') {
+      longitude = Number(req.body.longitude);
+    }
+
+    // Validate coordinate ranges
+    if (latitude !== undefined) {
+      if (isNaN(latitude) || latitude < -90 || latitude > 90) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid latitude. Latitude must be between -90 and 90 degrees.'
+        });
+      }
+    }
+
+    if (longitude !== undefined) {
+      if (isNaN(longitude) || longitude < -180 || longitude > 180) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid longitude. Longitude must be between -180 and 180 degrees.'
+        });
+      }
+    }
+
+    // Parse other potential JSON strings from multipart requests
+    if (typeof updateData.specifications === 'string') {
+      try { updateData.specifications = JSON.parse(updateData.specifications); } catch (e) {}
+    }
+    if (typeof updateData.pricing === 'string') {
+      try { updateData.pricing = JSON.parse(updateData.pricing); } catch (e) {}
+    }
+    if (typeof updateData.amenities === 'string') {
+      try { updateData.amenities = JSON.parse(updateData.amenities); } catch (e) {}
+    }
+    if (typeof updateData.contactInfo === 'string') {
+      try { updateData.contactInfo = JSON.parse(updateData.contactInfo); } catch (e) {}
+    }
+
+    // Handle new uploaded images if any
+    if (req.files && req.files.length > 0) {
+      if (!property.media) property.media = { images: [] };
+      if (!property.media.images) property.media.images = [];
+      req.files.forEach((file, index) => {
+        property.media.images.push({
+          url: `/uploads/${file.filename}`,
+          caption: file.originalname,
+          isPrimary: property.media.images.length === 0 && index === 0,
+          order: property.media.images.length + index
+        });
+      });
+      property.markModified('media');
+    }
+
+    // Apply location updates to property
+    if (locationObj || latitude !== undefined || longitude !== undefined || location_link !== undefined) {
       if (!property.location) {
         property.location = {};
       }
-      property.location.location_link = location_link;
+      if (latitude !== undefined) {
+        property.location.latitude = latitude;
+      }
+      if (longitude !== undefined) {
+        property.location.longitude = longitude;
+      }
+      if (latitude !== undefined && longitude !== undefined) {
+        property.location.coordinates = { latitude, longitude };
+      }
+      if (locationObj?.address) {
+        property.location.address = locationObj.address.trim();
+      } else if (req.body.address) {
+        property.location.address = req.body.address.trim();
+      }
+      if (locationObj?.city || req.body.city) {
+        property.location.city = locationObj?.city || req.body.city;
+      }
+      if (locationObj?.state || req.body.state) {
+        property.location.state = locationObj?.state || req.body.state;
+      }
+      if (locationObj?.zipCode || req.body.zipCode) {
+        property.location.zipCode = locationObj?.zipCode || req.body.zipCode;
+      }
+      if (locationObj?.country || req.body.country) {
+        property.location.country = locationObj?.country || req.body.country || 'Bangladesh';
+      }
+      if (location_link !== undefined) {
+        property.location.location_link = location_link;
+      } else if (locationObj?.location_link !== undefined) {
+        property.location.location_link = locationObj.location_link;
+      }
+      property.markModified('location');
     }
-    
-    // Update basic property fields (including status)
+
+    // Update basic property fields (excluding location which was merged)
     Object.assign(property, updateData);
     
     // Ensure status has a valid default if not provided

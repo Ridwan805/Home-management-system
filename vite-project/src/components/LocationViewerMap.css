@@ -1,0 +1,132 @@
+/* LocationViewerMap.css */
+.location-viewer-card {
+  margin: 1.5rem 0;
+  padding: 1.25rem;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+}
+
+.location-viewer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.location-viewer-title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.location-viewer-address {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  color: #475569;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  background: #f8fafc;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.location-viewer-address .address-icon {
+  font-size: 1.1rem;
+  color: #3b82f6;
+}
+
+.location-viewer-map-wrapper {
+  position: relative;
+  width: 100%;
+  height: 380px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.location-viewer-map {
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.location-viewer-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+.location-viewer-coords {
+  font-size: 0.85rem;
+  color: #64748b;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.btn-open-google-maps {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background-color: #ffffff;
+  color: #2563eb;
+  border: 1.5px solid #2563eb;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 6px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-open-google-maps:hover {
+  background-color: #2563eb;
+  color: #ffffff;
+  text-decoration: none;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+}
+
+.location-viewer-empty {
+  padding: 2rem 1.5rem;
+  text-align: center;
+  background: #f8fafc;
+  border-radius: 10px;
+  border: 1px dashed #cbd5e1;
+  color: #64748b;
+}
+
+.location-viewer-empty p {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.95rem;
+}
+
+@media (max-width: 640px) {
+  .location-viewer-map-wrapper {
+    height: 280px;
+  }
+  
+  .location-viewer-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn-open-google-maps {
+    justify-content: center;
+  }
+}
