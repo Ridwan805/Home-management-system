@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const { validateEmail } = require('../services/emailValidationService');
 
 const updateUser = async (req, res) => {
   try {
@@ -9,6 +10,15 @@ const updateUser = async (req, res) => {
     if (!firstName || !lastName || !email) {
       return res.status(400).json({ 
         message: 'First name, last name, and email are required' 
+      });
+    }
+
+    // Validate email format and validity with ZeroBounce
+    const emailValidation = await validateEmail(email);
+    if (!emailValidation.isValid) {
+      return res.status(400).json({ 
+        message: emailValidation.reason,
+        field: 'email'
       });
     }
 

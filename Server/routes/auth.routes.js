@@ -9,7 +9,12 @@ const Admin = require('../models/Admin');
 const register = require('../controllers/register.controller');
 const getMe = require('../controllers/getMe.controller');
 const updateUser = require('../controllers/updateUser.controller');
-const { getSecurityQuestion, resetPassword } = require('../controllers/forgotPassword.controller');
+const { 
+  getSecurityQuestion, 
+  resetPassword,
+  sendResetEmail,
+  verifyResetCode
+} = require('../controllers/forgotPassword.controller');
 const authMiddleware = require('../middleware/auth');
 
 // ✅ Custom login route handling both users and admins
@@ -71,8 +76,16 @@ router.post('/login', async (req, res) => {
 router.post('/register', register); //  goes to register.controller.js end point Register route for users from vite-project/src/Login_and_Register/Register.jsx
 router.post('/admin/register', register); // Register route for admins
 router.get('/me', authMiddleware, getMe);
+router.get('/profile', authMiddleware, getMe);
 router.put('/update', authMiddleware, updateUser); // Update user profile route
 router.post('/forgot-password/question', getSecurityQuestion);
 router.post('/forgot-password/reset', resetPassword);
+router.post('/forgot-password/send-code', sendResetEmail);
+router.post('/forgot-password/verify-code', verifyResetCode);
+router.post('/validate-email', async (req, res) => {
+  const { validateEmail } = require('../services/emailValidationService');
+  const result = await validateEmail(req.body.email);
+  return res.json(result);
+});
 
 module.exports = router;

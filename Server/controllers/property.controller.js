@@ -284,13 +284,25 @@ const createProperty = async (req, res) => {
 
     console.log('Raw req.body:', req.body);
     
-    // Parse JSON fields
-    const specifications = req.body.specifications ? JSON.parse(req.body.specifications) : {};
-    const pricing = req.body.pricing ? JSON.parse(req.body.pricing) : {};
-    const locationData = req.body.location ? JSON.parse(req.body.location) : {};
-    const contactInfo = req.body.contactInfo ? JSON.parse(req.body.contactInfo) : {};
-    const constraints = req.body.constraints ? JSON.parse(req.body.constraints) : {};
-    const amenities = req.body.amenities ? JSON.parse(req.body.amenities) : [];
+    // Parse JSON fields safely (handles both JSON request bodies and multipart FormData strings)
+    const specifications = req.body.specifications 
+      ? (typeof req.body.specifications === 'string' ? JSON.parse(req.body.specifications) : req.body.specifications) 
+      : {};
+    const pricing = req.body.pricing 
+      ? (typeof req.body.pricing === 'string' ? JSON.parse(req.body.pricing) : req.body.pricing) 
+      : {};
+    const locationData = req.body.location 
+      ? (typeof req.body.location === 'string' ? JSON.parse(req.body.location) : req.body.location) 
+      : {};
+    const contactInfo = req.body.contactInfo 
+      ? (typeof req.body.contactInfo === 'string' ? JSON.parse(req.body.contactInfo) : req.body.contactInfo) 
+      : {};
+    const constraints = req.body.constraints 
+      ? (typeof req.body.constraints === 'string' ? JSON.parse(req.body.constraints) : req.body.constraints) 
+      : {};
+    const amenities = req.body.amenities 
+      ? (typeof req.body.amenities === 'string' ? JSON.parse(req.body.amenities) : req.body.amenities) 
+      : [];
     
     // Handle location_link separately if provided
     if (req.body.location_link) {

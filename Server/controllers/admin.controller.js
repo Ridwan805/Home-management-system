@@ -4,6 +4,11 @@ const Property = require('../models/Property');
 const User = require('../models/User');
 const Report = require('../models/Report');
 const Request = require('../models/Request');
+const Rent = require('../models/Rent');
+const Payment = require('../models/Payment');
+const MaintenanceReport = require('../models/MaintenanceReport');
+const VisitorLog = require('../models/VisitorLog');
+const ParcelLog = require('../models/ParcelLog');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
@@ -31,7 +36,7 @@ exports.adminLogin = async (req, res) => {
 
     // Generate JWT token
     const token = jwt.sign(
-      { id: admin._id, role: 'admin', permissions: admin.permissions },
+      { id: admin._id, userId: admin._id, role: 'admin', permissions: admin.permissions },
       process.env.JWT_SECRET,
       { expiresIn: '1d' }
     );
@@ -171,16 +176,165 @@ exports.approveProperty = async (req, res) => {
   }
 };
 
-// Get all users
+// Get all users with full detail and activity counters
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.find()
-      .select('name email role isBanned createdAt')
-      .sort({ createdAt: -1 }); // Sort by newest first
-    res.json(users);
+      .select('-password -securityAnswer')
+      .sort({ createdAt: -1 });
+
+    // Aggregate activity summary stats for each user in parallel
+    const usersWithStats = await Promise.all(
+      users.map(async (u) => {
+        const [propertyCount, rentCount, requestCount, paymentCount, maintenanceCount] = await Promise.all([
+          Property.countDocuments({ owner: u._id }).catch(() => 0),
+          Rent.countDocuments({ $or: [{ tenants: u._id }, { owner: u._id }] }).catch(() => 0),
+          Request.countDocuments({ $or: [{ sender: u._id }, { receiver: u._id }, { user: u._id }] }).catch(() => 0),
+          Payment.countDocuments({ $or: [{ user: u._id }, { tenant: u._id }] }).catch(() => 0),
+          MaintenanceReport.countDocuments({ $or: [{ submittedBy: u._id }, { tenant: u._id }] }).catch(() => 0)
+        ]);
+
+        return {
+          ...u.toObject(),
+          stats: {
+            properties: propertyCount,
+            rents: rentCount,
+            requests: requestCount,
+            payments: paymentCount,
+            maintenanceReports: maintenanceCount
+          }
+        };
+      })
+    );
+
+    res.json(usersWithStats);
   } catch (err) {
     console.error('Error fetching users:', err);
     res.status(500).json({ message: 'Failed to fetch users' });
+  }
+};
+
+// Get complete 360-degree activity dossier for a specific user
+exports.getUserActivity = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(id).select('-password -securityAnswer');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const [
+      properties,
+      rents,
+      requests,
+      payments,
+      maintenanceReports,
+      visitorLogs,
+      parcelLogs
+    ] = await Promise.all([
+      Property.find({ owner: id }).sort({ createdAt: -1 }).catch(() => []),
+      Rent.find({ $or: [{ tenants: id }, { owner: id }] }).populate('propertyId').sort({ createdAt: -1 }).catch(() => []),
+      Request.find({ $or: [{ sender: id }, { receiver: id }, { user: id }] }).sort({ createdAt: -1 }).catch(() => []),
+      Payment.find({ $or: [{ user: id }, { tenant: id }] }).sort({ createdAt: -1 }).catch(() => []),
+      MaintenanceReport.find({ $or: [{ submittedBy: id }, { tenant: id }] }).sort({ createdAt: -1 }).catch(() => []),
+      VisitorLog.find({ tenantId: id }).sort({ createdAt: -1 }).limit(10).catch(() => []),
+      ParcelLog.find({ tenantId: id }).sort({ createdAt: -1 }).limit(10).catch(() => [])
+    ]);
+
+    res.json({
+      user,
+      activity: {
+        properties,
+        rents,
+        requests,
+        payments,
+        maintenanceReports,
+        visitorLogs,
+        parcelLogs
+      }
+    });
+  } catch (err) {
+    console.error('Error fetching user activity:', err);
+    res.status(500).json({ message: 'Failed to fetch user activity' });
+  }
+};
+
+// Update user details by Admin (profile, role, status)
+exports.updateUserByAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { firstName, lastName, name, email, role, phoneNumber, address, isBanned } = req.body;
+
+    const updateFields = {};
+    if (firstName !== undefined) updateFields.firstName = firstName;
+    if (lastName !== undefined) updateFields.lastName = lastName;
+    if (name !== undefined) updateFields.name = name;
+    if (email !== undefined) updateFields.email = email.toLowerCase().trim();
+    if (role !== undefined) updateFields.role = role;
+    if (phoneNumber !== undefined) updateFields.phoneNumber = phoneNumber;
+    if (address !== undefined) updateFields.address = address;
+    if (isBanned !== undefined) updateFields.isBanned = Boolean(isBanned);
+
+    const updatedUser = await User.findByIdAndUpdate(
+      id,
+      updateFields,
+      { new: true, runValidators: true }
+    ).select('-password -securityAnswer');
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({ message: 'User profile updated successfully', user: updatedUser });
+  } catch (err) {
+    console.error('Error updating user by admin:', err);
+    res.status(500).json({ message: 'Failed to update user: ' + err.message });
+  }
+};
+
+// Directly reset a user's password by Admin
+exports.adminResetUserPassword = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const user = await User.findByIdAndUpdate(id, { password: hashedPassword }, { new: true });
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({ message: `Password for user "${user.name}" has been reset successfully` });
+  } catch (err) {
+    console.error('Error resetting password by admin:', err);
+    res.status(500).json({ message: 'Failed to reset password' });
+  }
+};
+
+// Get recent platform activities across all modules for Admin Dashboard
+exports.getRecentSystemActivity = async (req, res) => {
+  try {
+    const [recentUsers, recentProperties, recentPayments, recentReports] = await Promise.all([
+      User.find().select('name email role isBanned createdAt').sort({ createdAt: -1 }).limit(6).catch(() => []),
+      Property.find().select('title address rent status createdAt owner').populate('owner', 'name email').sort({ createdAt: -1 }).limit(6).catch(() => []),
+      Payment.find().select('amount status paymentMethod createdAt user').populate('user', 'name email').sort({ createdAt: -1 }).limit(6).catch(() => []),
+      MaintenanceReport.find().select('title category status priority createdAt submittedBy').populate('submittedBy', 'name email').sort({ createdAt: -1 }).limit(6).catch(() => [])
+    ]);
+
+    res.json({
+      recentUsers,
+      recentProperties,
+      recentPayments,
+      recentReports
+    });
+  } catch (err) {
+    console.error('Error fetching recent system activity:', err);
+    res.status(500).json({ message: 'Failed to fetch recent system activity' });
   }
 };
 
@@ -546,5 +700,9 @@ module.exports = {
   deleteRequest: exports.deleteRequest,
   getAllRequests: exports.getAllRequests,
   cleanupOrphanedProperties: exports.cleanupOrphanedProperties,
-  getTenantsForSecurityGuard: exports.getTenantsForSecurityGuard
+  getTenantsForSecurityGuard: exports.getTenantsForSecurityGuard,
+  getUserActivity: exports.getUserActivity,
+  updateUserByAdmin: exports.updateUserByAdmin,
+  adminResetUserPassword: exports.adminResetUserPassword,
+  getRecentSystemActivity: exports.getRecentSystemActivity
 };

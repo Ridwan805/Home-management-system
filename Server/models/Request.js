@@ -572,7 +572,7 @@ RequestSchema.post('deleteMany', async function() {
 RequestSchema.index({ propertyId: 1, tenantId: 1 });
 RequestSchema.index({ ownerId: 1, status: 1 });
 RequestSchema.index({ status: 1, createdAt: -1 });
-RequestSchema.index({ requestId: 1 }, { unique: true });
+// (requestId unique index is defined on field)
 RequestSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 RequestSchema.index({ rentId: 1 });
 RequestSchema.index({ ownershipTransferId: 1 });

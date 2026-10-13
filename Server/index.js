@@ -1,6 +1,13 @@
-const dns = require('dns');
-// Use public DNS to reliably resolve MongoDB Atlas SRV records on Windows networks
-dns.setServers(['8.8.8.8', '1.1.1.1']);
+// Use public DNS only on Windows machines where local ISP DNS may fail MongoDB Atlas SRV lookups
+// In cloud environments (Linux/Render/Docker), let the OS system resolver handle DNS.
+if (process.platform === 'win32' && process.env.NODE_ENV !== 'production') {
+  try {
+    const dns = require('dns');
+    dns.setServers(['8.8.8.8', '1.1.1.1']);
+  } catch (dnsErr) {
+    console.warn('⚠️ Could not set custom DNS servers:', dnsErr.message);
+  }
+}
 
 const express = require('express');
 const mongoose = require('mongoose');
@@ -30,9 +37,15 @@ app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (e.g., server-to-server, mobile clients, curl)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
+    
+    // Check if origin matches allowed origins, localhost, or any vercel.app deployment
+    const isAllowed = allowedOrigins.includes(origin) ||
+      origin.includes('localhost') ||
+      /https:\/\/.*\.vercel\.app$/.test(origin);
+
+    if (isAllowed) return callback(null, true);
     // Otherwise reject
-    return callback(new Error('CORS policy: origin not allowed'));
+    return callback(new Error(`CORS policy: origin ${origin} not allowed`));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -115,21 +128,31 @@ app.use((req, res, next) => {
   next();
 });
 
-// MongoDB connection with fallback
-const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/dwellsync';
+// MongoDB connection with fallback and robust cloud sanitization
+let rawMongoUrl = (process.env.MONGO_URL || '').trim();
+if (rawMongoUrl.startsWith('MONGO_URL=')) {
+  rawMongoUrl = rawMongoUrl.replace(/^MONGO_URL=/, '').trim();
+}
+rawMongoUrl = rawMongoUrl.replace(/^["']+|["']+$/g, '').trim();
 
-mongoose.connect(mongoUrl)
+const mongoUrl = rawMongoUrl || 'mongodb://localhost:27017/dwellsync';
+
+const maskedUrl = mongoUrl.replace(/:\/\/([^:]+):([^@]+)@/, '://$1:****@');
+console.log(`🔌 Connecting to MongoDB: ${maskedUrl}`);
+
+mongoose.connect(mongoUrl, {
+  serverSelectionTimeoutMS: 10000, // Timeout after 10s instead of hanging indefinitely
+})
   .then(() => {
     console.log('✅ MongoDB connected successfully');
-    console.log('Database:', mongoose.connection.db.databaseName);
-    console.log('Connection URL:', mongoUrl);
+    console.log('Database:', mongoose.connection.db ? mongoose.connection.db.databaseName : 'connected');
     PaymentScheduler.start();
     InvoiceService.initializeCronJobs();
     ScheduledJobsService.init();
   })
   .catch(err => {
-    console.error('❌ MongoDB connection error:', err);
-    console.log('💡 Please make sure MongoDB is running or check your connection string');
+    console.error('❌ MongoDB connection error:', err.message);
+    console.error('💡 Hint: Check MongoDB Atlas IP Access List (Whitelist 0.0.0.0/0 on cloud hosts like Render) and verify MONGO_URL in Render environment settings.');
   });
 
 // Import routes

@@ -10,6 +10,7 @@ router.post('/login', adminController.adminLogin);
 
 // Dashboard
 router.get('/dashboard/stats', isAdmin, adminController.getDashboardMetrics);
+router.get('/dashboard/recent-activity', isAdmin, adminController.getRecentSystemActivity);
 
 // Property management
 router.get('/properties/pending', isAdmin, adminController.getPendingProperties);
@@ -18,6 +19,9 @@ router.delete('/properties/:id', isAdmin, adminController.deleteProperty);
 
 // User management
 router.get('/users', isAdmin, adminController.getAllUsers);
+router.get('/users/:id/activity', isAdmin, adminController.getUserActivity);
+router.put('/users/:id', isAdmin, adminController.updateUserByAdmin);
+router.put('/users/:id/reset-password', isAdmin, adminController.adminResetUserPassword);
 router.get('/users/tenants-for-guard', 
   (req, res, next) => {
     console.log('🔍 ADMIN ROUTE: tenants-for-guard route hit');

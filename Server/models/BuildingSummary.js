@@ -284,8 +284,7 @@ const BuildingSummarySchema = new mongoose.Schema({
   collection: 'buildingsummaries'
 });
 
-// Indexes for performance
-BuildingSummarySchema.index({ buildingId: 1 }, { unique: true });
+// Indexes for performance (buildingId unique index is defined on field)
 BuildingSummarySchema.index({ 'counts.availableUnits': -1 });
 BuildingSummarySchema.index({ 'counts.availableFloors': -1 });
 BuildingSummarySchema.index({ 'pricing.rent.min': 1, 'pricing.rent.max': 1 });

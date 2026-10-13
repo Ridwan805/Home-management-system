@@ -219,8 +219,7 @@ const RentBalanceSchema = new mongoose.Schema({
   collection: 'RentBalances'
 });
 
-// Indexes for better query performance
-RentBalanceSchema.index({ rentId: 1 }, { unique: true });
+// Indexes for better query performance (rentId unique index is defined on field)
 RentBalanceSchema.index({ propertyId: 1 });
 RentBalanceSchema.index({ ownerId: 1 });
 RentBalanceSchema.index({ tenantIds: 1 });

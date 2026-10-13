@@ -9,7 +9,9 @@ const adminSchema = new mongoose.Schema({
   permissions: {
     type: [String],
     default: ['manage_users', 'manage_properties', 'handle_reports', 'all_user_functions']
-  }
+  },
+  resetOtp: { type: String, default: null },
+  resetOtpExpires: { type: Date, default: null }
 });
 
 module.exports = mongoose.model('Admin', adminSchema);

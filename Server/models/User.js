@@ -17,7 +17,9 @@ const userSchema = new mongoose.Schema({
   securityQuestion: { type: String, required: true },
   securityAnswer: { type: String, required: true },
   experience: { type: String, default: '' }, // For Security Guards
-  wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Property' }]
+  wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Property' }],
+  resetOtp: { type: String, default: null },
+  resetOtpExpires: { type: Date, default: null }
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

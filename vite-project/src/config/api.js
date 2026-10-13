@@ -286,7 +286,11 @@ export default {
     
     // Admin endpoints
     adminStats: '/api/admin/dashboard/stats',
+    adminRecentActivity: '/api/admin/dashboard/recent-activity',
     adminUsers: '/api/admin/users',
+    adminUserActivity: (id) => `/api/admin/users/${id}/activity`,
+    updateUserByAdmin: (id) => `/api/admin/users/${id}`,
+    resetUserPasswordByAdmin: (id) => `/api/admin/users/${id}/reset-password`,
     banUser: (id) => `/api/admin/users/${id}/ban`,
     unbanUser: (id) => `/api/admin/users/${id}/unban`,
     deleteUser: (id) => `/api/admin/users/${id}`,

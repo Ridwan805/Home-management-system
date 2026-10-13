@@ -316,8 +316,7 @@ const InvoiceSchema = new mongoose.Schema({
   collection: 'Invoices'
 });
 
-// Indexes for better query performance
-InvoiceSchema.index({ invoiceNo: 1 }, { unique: true });
+// Indexes for better query performance (invoiceNo unique index is defined on field)
 InvoiceSchema.index({ billTo: 1, status: 1, dueDate: 1 });
 InvoiceSchema.index({ rentId: 1, dueDate: 1 });
 InvoiceSchema.index({ propertyId: 1, status: 1 });

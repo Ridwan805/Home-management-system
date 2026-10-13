@@ -21,17 +21,18 @@ export default function Login() {
     e.preventDefault();
     try {
       // Check if this is an admin login attempt
-      const isAdminLogin = formData.userName === 'admin@dwell.com' || 
-                          formData.userName === 'admin1@dwell.com' || 
-                          formData.userName === 'admin2@dwell.com';
+      const trimmedName = (formData.userName || '').trim();
+      const isAdminLogin = trimmedName.toLowerCase() === 'admin@dwell.com' || 
+                          trimmedName.toLowerCase() === 'admin1@dwell.com' || 
+                          trimmedName.toLowerCase() === 'admin2@dwell.com';
       
       const loginEndpoint = isAdminLogin ? 
         apiConfig.getUrl('/api/admin/login') :
         apiConfig.getUrl('/api/auth/login');
       
       const requestBody = isAdminLogin ? 
-        { email: formData.userName, password: formData.password } :
-        { name: formData.userName, password: formData.password };
+        { email: trimmedName, password: formData.password } :
+        { name: trimmedName, password: formData.password };
       
       const res = await fetch(loginEndpoint, {
         method: 'POST',

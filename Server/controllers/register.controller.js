@@ -1,10 +1,17 @@
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
+const { validateEmail } = require('../services/emailValidationService');
 
 const register = async (req, res) => {
   const { firstName, lastName, email, name, password, role, securityQuestion, securityAnswer, phoneNumber, address, experience } = req.body;
 
   try {
+    // Validate email format and validity with ZeroBounce
+    const emailValidation = await validateEmail(email);
+    if (!emailValidation.isValid) {
+      return res.status(400).json({ message: emailValidation.reason });
+    }
+
     const existingEmail = await User.findOne({ email });
     if (existingEmail) {
       return res.status(409).json({ message: 'Email already exists' });

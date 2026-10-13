@@ -169,8 +169,7 @@ const UserLedgerSummarySchema = new mongoose.Schema({
   collection: 'UserLedgerSummaries'
 });
 
-// Indexes for better query performance
-UserLedgerSummarySchema.index({ userId: 1 }, { unique: true });
+// Indexes for better query performance (userId unique index is defined on field)
 UserLedgerSummarySchema.index({ lastCalculatedAt: 1 });
 UserLedgerSummarySchema.index({ totalOutstanding: -1 });
 UserLedgerSummarySchema.index({ totalOverdue: -1 });

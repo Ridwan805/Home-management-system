@@ -255,8 +255,7 @@ const PaymentSchema = new mongoose.Schema({
   collection: 'Payments'
 });
 
-// Indexes for better query performance
-PaymentSchema.index({ paymentId: 1 }, { unique: true });
+// Indexes for better query performance (paymentId unique index is defined on field)
 PaymentSchema.index({ invoiceId: 1, status: 1 });
 PaymentSchema.index({ payerId: 1, createdAt: -1 });
 PaymentSchema.index({ rentId: 1, createdAt: -1 });
