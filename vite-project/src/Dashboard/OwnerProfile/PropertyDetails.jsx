@@ -107,6 +107,7 @@ const PropertyDetails = () => {
       yearBuilt: property.yearBuilt || '',
       contactEmail: property.contactEmail || '',
       contactPhone: property.contactPhone || '',
+      location_link: property.location?.location_link || '',
       amenities: property.amenities || []
     });
     setUpdateSuccess(false);
@@ -175,7 +176,8 @@ const PropertyDetails = () => {
           city: formData.city || editingProperty.city,
           state: formData.state || editingProperty.state,
           zipCode: formData.zipCode || editingProperty.zipCode,
-          country: editingProperty.location?.country || 'Bangladesh'
+          country: editingProperty.location?.country || 'Bangladesh',
+          location_link: formData.location_link || editingProperty.location?.location_link || ''
         };
         formDataToSend.append('location', JSON.stringify(locationData));
       }
@@ -283,8 +285,8 @@ const PropertyDetails = () => {
           {properties.map(property => (
             <div key={property._id} className="property-card">
               <div className="property-image">
-                {property.images && property.images.length > 0 ? (
-                  <img src={`${API.baseUrl}${property.images[0]}`} alt="Property" />
+                {(property.images?.length > 0 || property.media?.images?.length > 0) ? (
+                  <img src={API.getImageUrl(property.images?.[0] || property.media?.images?.[0]?.url)} alt="Property" />
                 ) : (
                   <div className="property-placeholder">No Image Available</div>
                 )}
@@ -388,7 +390,7 @@ const PropertyDetails = () => {
             {selectedProperty.images && selectedProperty.images.length > 0 && (
               <div className="modal-image-gallery">
                 {selectedProperty.images.map((image, index) => (
-                  <img key={index} src={`${API.baseUrl}${image}`} alt={`Property ${index + 1}`} />
+                  <img key={index} src={API.getImageUrl(image)} alt={`Property ${index + 1}`} />
                 ))}
               </div>
             )}
@@ -584,12 +586,19 @@ const PropertyDetails = () => {
               <div className="form-group full-width">
                 <LocationPickerMap
                   initialLocation={editLocation.latitude !== null ? editLocation : null}
-                  onLocationChange={({ latitude, longitude, isConfirmed }) => {
+                  onLocationChange={({ latitude, longitude, location_link, isConfirmed }) => {
                     setEditLocation({ latitude, longitude });
                     setIsEditLocationConfirmed(isConfirmed);
+                    if (location_link) {
+                      setFormData(prev => ({ ...prev, location_link }));
+                    }
                   }}
                   isConfirmed={isEditLocationConfirmed}
                   onConfirmChange={(confirmed) => setIsEditLocationConfirmed(confirmed)}
+                  locationLink={formData.location_link || ''}
+                  onLocationLinkChange={(newLink) => {
+                    setFormData(prev => ({ ...prev, location_link: newLink }));
+                  }}
                   required={false}
                   title="Property Location"
                 />

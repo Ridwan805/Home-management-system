@@ -788,18 +788,34 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
           </>
         )}
 
-        {/* Interactive Property Location Selection Map */}
+        {/* Interactive Property Location Selection Map & OpenStreetMap Link */}
         <LocationPickerMap
           initialLocation={locationCoordinates.latitude ? locationCoordinates : null}
-          onLocationChange={({ latitude, longitude, isConfirmed }) => {
+          onLocationChange={({ latitude, longitude, location_link, isConfirmed }) => {
             setLocationCoordinates({ latitude, longitude });
             setIsLocationConfirmed(isConfirmed);
+            if (location_link) {
+              setForm(prev => ({ ...prev, location_link }));
+            }
             setError('');
           }}
           isConfirmed={isLocationConfirmed}
           onConfirmChange={(confirmed) => {
             setIsLocationConfirmed(confirmed);
             setError('');
+          }}
+          locationLink={form.location_link}
+          onLocationLinkChange={(newLink) => {
+            setForm(prev => ({ ...prev, location_link: newLink }));
+          }}
+          onAddressSelect={({ address, city, state, zipCode }) => {
+            setForm(prev => ({
+              ...prev,
+              address: address || prev.address,
+              city: city || prev.city,
+              state: state || prev.state,
+              zipCode: zipCode || prev.zipCode
+            }));
           }}
           required={true}
           title="Property Location"
@@ -918,19 +934,6 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
       <div className="form-row">
         <label>Zip Code</label>
         <input name="zipCode" value={form.zipCode} onChange={handleChange} />
-      </div>
-      <div className="form-row">
-        <label>OpenStreetMap Location Link</label>
-        <input 
-          name="location_link" 
-          value={form.location_link} 
-          onChange={handleChange} 
-          placeholder="https://www.openstreetmap.org/..."
-          title="Paste the OpenStreetMap URL for this property location"
-        />
-        <small style={{color: '#666', fontSize: '0.9em', marginTop: '4px', display: 'block'}}>
-          Optional: Visit OpenStreetMap, find your property location, and paste the URL here
-        </small>
       </div>
 
       <h3>Appliances</h3>

@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import './PropertyFilter.css';
 import { FaFilter } from 'react-icons/fa';
 import apiConfig from '../config/api';
+import PropertyCard from './PropertyCard';
 
 const PropertyFilter = () => {
   // Add a visible element to the page to confirm rendering
@@ -259,95 +260,43 @@ const PropertyFilter = () => {
         </div>
       )}
 
+      {/* Page Results Header */}
+      <div className="properties-results-header">
+        <div className="results-header-container">
+          <div className="results-title-group">
+            <h1 className="results-main-title">
+              {filters.listingType === 'For Rent' 
+                ? 'Properties for Rent' 
+                : filters.listingType === 'For Sale' 
+                ? 'Properties for Sale' 
+                : 'Browse Properties'}
+            </h1>
+            <p className="results-subtitle">
+              {filters.city ? `Explore verified properties in ${filters.city}` : 'Discover premium, verified homes and residences across Bangladesh'}
+            </p>
+          </div>
+          <div className="results-count-badge">
+            <span className="count-number">{filteredProperties.length}</span>
+            <span className="count-label">{filteredProperties.length === 1 ? 'Property' : 'Properties'}</span>
+          </div>
+        </div>
+      </div>
+
       {/* Grid view for properties */}
       <div className="property-list">
         {(!loading && !error && filteredProperties.length === 0) && (
           <div className="no-properties">
-            No properties found matching your criteria.
+            <div className="no-props-icon">🏠</div>
+            <h3>No properties found</h3>
+            <p>We couldn't find any properties matching your current filter criteria.</p>
+            <button className="filter-button filter-button-primary" onClick={handleClear} style={{ marginTop: '16px' }}>
+              Reset Filters
+            </button>
           </div>
         )}
         
         {filteredProperties.map((property) => (
-          <div key={property._id} className="property-card">
-            {/* Property Image */}
-            <div className="property-images">
-              {(property.images?.length > 0 || property.media?.images?.length > 0) ? (
-                <img 
-                  src={apiConfig.getImageUrl(property.images?.[0] || property.media?.images?.[0]?.url)} 
-                  alt="Property" 
-                  className="property-image"
-                />
-              ) : (
-                <div className="property-image-placeholder">
-                  No Image Available
-                </div>
-              )}
-              
-              {/* Status Badge */}
-              <div className={`status-badge ${property.status === 'Available' ? 'available' : 'unavailable'}`}>
-                {property.status}
-              </div>
-            </div>
-
-            {/* Property Information */}
-            <div className="property-info">
-              {/* Price */}
-              <div className="property-price">
-                ৳{property.price?.toLocaleString()}
-              </div>
-
-              {/* Type and Listing Type */}
-              <div className="property-type">
-                {property.propertyType} - {property.listingType}
-              </div>
-
-              {/* Address */}
-              <div className="property-address">
-                {property.address}, {property.city}, {property.state} {property.zipCode}
-              </div>
-
-              {/* Property Details */}
-              <div className="property-details">
-                <span>🛏️ {property.bedrooms} bd</span>
-                <span>🚿 {property.bathrooms} ba</span>
-                <span>📏 {property.squareFootage} sqft</span>
-              </div>
-
-              {/* Year Built */}
-              {property.yearBuilt && (
-                <div className="property-year">
-                  🏗️ Built in {property.yearBuilt}
-                </div>
-              )}
-
-              {/* Amenities */}
-              {property.amenities && property.amenities.length > 0 && (
-                <div className="property-amenities">
-                  🏊 {property.amenities.join(', ')}
-                </div>
-              )}
-
-              {/* Contact Information */}
-              <div className="property-contact">
-                <div>
-                  📧 {property.contactEmail}
-                </div>
-                <div>
-                  📞 {property.contactPhone}
-                </div>
-              </div>
-
-              {/* View Details Button */}
-              <div className="property-actions">
-                <button 
-                  onClick={() => navigate(`/properties/${property._id}`)}
-                  className="view-details-btn"
-                >
-                  View Details
-                </button>
-              </div>
-            </div>
-          </div>
+          <PropertyCard key={property._id} property={property} />
         ))}
       </div>
     </div>

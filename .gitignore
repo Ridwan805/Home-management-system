@@ -20,3 +20,7 @@ Thumbs.db
 # Editor
 .vscode/
 .idea/
+
+# Local credentials documents
+USER_CREDENTIALS.md
+*.credentials.md

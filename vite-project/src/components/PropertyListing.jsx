@@ -256,10 +256,10 @@ const PropertyListing = () => {
             <button className="modal-close-btn" onClick={handleCloseDetailsModal}>&times;</button>
             <h2>{selectedProperty.address}</h2>
             
-                {selectedProperty.images && selectedProperty.images.length > 0 && (
+            {selectedProperty.images && selectedProperty.images.length > 0 && (
               <div className="modal-image-gallery">
                 {selectedProperty.images.map((image, index) => (
-                  <img key={index} src={`${API.baseUrl}${image}`} alt={`Property ${index + 1}`} />
+                  <img key={index} src={API.getImageUrl(image)} alt={`Property ${index + 1}`} />
                 ))}
               </div>
             )}

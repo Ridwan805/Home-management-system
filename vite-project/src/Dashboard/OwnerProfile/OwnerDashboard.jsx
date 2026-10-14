@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import SidebarNav from './SidebarNav';
 import OwnerProfile from './OwnerProfile';
 import API from '../../config/api';
+import PropertyCard from '../../components/PropertyCard';
 
 import './OwnerDashboard.css';
 import { useNavigate } from 'react-router-dom';
@@ -195,30 +196,14 @@ const OwnerDashboard = () => {
                     ) : error ? (
                       <div className="error-state">{error}</div>
                     ) : properties.length > 0 ? (
-                      // Show only top 3 properties
+                      // Show only top 3 properties with modern card component
                       properties.slice(0, 3).map(property => (
-                        <div key={property._id} className="property-card">
-                          <div className="property-image">
-                            {property.images?.length > 0 ? (
-                              <img src={`${API.baseUrl}${property.images[0]}`} alt="Property" />
-                            ) : (
-                              <div className="property-placeholder">No Image Available</div>
-                            )}
-                            <span className={`status-badge ${property.status?.toLowerCase()}`}>
-                              {property.status}
-                            </span>
-                          </div>
-                          <div className="property-details">
-                            <h3>৳{property.price?.toLocaleString()}</h3>
-                            <p className="property-address">{property.address}</p>
-                            <div className="property-specs">
-                              <span>🛏️ {property.bedrooms} bd</span>
-                              <span>🚿 {property.bathrooms} ba</span>
-                              <span>📏 {property.squareFootage} sqft</span>
-                            </div>
-                            <span className="listing-type">{property.listingType}</span>
-                          </div>
-                        </div>
+                        <PropertyCard 
+                          key={property._id} 
+                          property={property} 
+                          onViewDetails={() => navigate(`/properties/${property._id}`)}
+                          onEdit={() => navigate('/property-details')}
+                        />
                       ))
                     ) : (
                       <div className="no-properties">

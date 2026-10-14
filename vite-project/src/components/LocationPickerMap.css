@@ -14,7 +14,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 0.75rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
 .location-picker-title {
@@ -61,10 +61,390 @@
   border: 1px solid #fde68a;
 }
 
+/* ==========================================================================
+   Google Maps Style Landmark & Location Search Bar
+   ========================================================================== */
+.location-search-wrapper {
+  position: relative;
+  margin-bottom: 1rem;
+  background: #f8fafc;
+  padding: 0.85rem;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.location-search-form {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.search-input-group {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 0.85rem;
+  font-size: 1rem;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.location-search-input {
+  width: 100%;
+  padding: 0.7rem 2.4rem 0.7rem 2.4rem;
+  font-size: 0.92rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1e293b;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.location-search-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.search-input-spinner {
+  position: absolute;
+  right: 0.85rem;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #cbd5e1;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.search-clear-btn {
+  position: absolute;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0.25rem 0.4rem;
+  border-radius: 50%;
+  line-height: 1;
+}
+
+.search-clear-btn:hover {
+  color: #475569;
+  background: #e2e8f0;
+}
+
+.btn-search-location {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  padding: 0.7rem 1.35rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.btn-search-location:hover:not(:disabled) {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.btn-search-location:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* ==========================================================================
+   Landmark & Area Tabs / Quick Chips
+   ========================================================================== */
+.landmark-chips-section {
+  margin-top: 0.75rem;
+}
+
+.chips-tab-row {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.45rem;
+}
+
+.chips-tab-btn {
+  background: none;
+  border: none;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.chips-tab-btn:hover {
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+.chips-tab-btn.active {
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.location-quick-chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.quick-chip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.quick-chip-btn:hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.landmark-chip {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.landmark-chip:hover {
+  background: #fdf4ff;
+  border-color: #f0abfc;
+  color: #9333ea;
+}
+
+/* ==========================================================================
+   Google Maps Style Autocomplete Dropdown
+   ========================================================================== */
+.location-search-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.18), 0 8px 12px -6px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.search-dropdown-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.9rem 1.1rem;
+  font-size: 0.88rem;
+  color: #64748b;
+}
+
+.search-spinner {
+  width: 15px;
+  height: 15px;
+  border: 2px solid #cbd5e1;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.search-dropdown-error {
+  padding: 0.85rem 1.1rem;
+  font-size: 0.88rem;
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
+.search-dropdown-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.search-dropdown-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 1.1rem;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.search-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.search-dropdown-item:hover {
+  background: #eff6ff;
+}
+
+.search-item-badge-icon {
+  font-size: 1.25rem;
+  padding: 0.35rem;
+  background: #f1f5f9;
+  border-radius: 8px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-dropdown-item:hover .search-item-badge-icon {
+  background: #dbeafe;
+}
+
+.search-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  overflow: hidden;
+  flex: 1;
+}
+
+.search-item-header-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.search-item-title {
+  font-size: 0.94rem;
+  color: #0f172a;
+}
+
+.search-landmark-category-tag {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  padding: 0.1rem 0.45rem;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+.search-item-address {
+  font-size: 0.8rem;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ==========================================================================
+   Selected Landmark Hint Banner
+   ========================================================================== */
+.selected-landmark-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+  padding: 0.65rem 0.9rem;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.landmark-banner-info {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: #1e3a8a;
+}
+
+.landmark-banner-icon {
+  font-size: 1.2rem;
+}
+
+.landmark-banner-sub {
+  font-size: 0.78rem;
+  color: #3b82f6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 450px;
+}
+
+.landmark-banner-tip {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #059669;
+  background: #ecfdf5;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid #a7f3d0;
+}
+
+.landmark-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.btn-use-landmark-address {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.3rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.2);
+}
+
+.btn-use-landmark-address:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   Map Container
+   ========================================================================== */
 .location-map-wrapper {
   position: relative;
   width: 100%;
-  height: 380px;
+  height: 390px;
   border-radius: 10px;
   overflow: hidden;
   border: 2px solid #e2e8f0;
@@ -81,6 +461,143 @@
   z-index: 1;
 }
 
+/* ==========================================================================
+   OpenStreetMap Location Link Integration Section
+   ========================================================================== */
+.osm-link-integration-card {
+  margin-top: 1rem;
+  padding: 0.85rem 1rem;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+}
+
+.osm-link-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.osm-link-label {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #166534;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.osm-link-auto-tag {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #15803d;
+  background: #dcfce7;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  border: 1px solid #86efac;
+}
+
+.osm-link-input-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.osm-link-input {
+  flex: 1;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.86rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  background: #ffffff;
+  border: 1px solid #86efac;
+  border-radius: 6px;
+  color: #14532d;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.osm-link-input:focus {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+}
+
+.osm-link-input:disabled {
+  background: #f8fafc;
+  color: #64748b;
+  border-color: #e2e8f0;
+}
+
+.osm-link-button-group {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.btn-copy-osm-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  background: #ffffff;
+  color: #166534;
+  border: 1px solid #86efac;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-copy-osm-link:hover:not(:disabled) {
+  background: #dcfce7;
+  border-color: #4ade80;
+}
+
+.btn-copy-osm-link.copied {
+  background: #16a34a;
+  color: #ffffff;
+  border-color: #16a34a;
+}
+
+.btn-copy-osm-link:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-preview-osm-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  background: #15803d;
+  color: #ffffff;
+  text-decoration: none;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-preview-osm-link:hover {
+  background: #166534;
+  transform: translateY(-1px);
+}
+
+.osm-link-helper-text {
+  display: block;
+  font-size: 0.8rem;
+  color: #4b5563;
+  margin-top: 0.5rem;
+  line-height: 1.35;
+}
+
+/* ==========================================================================
+   Bottom Coordinates Bar & Confirmation Actions
+   ========================================================================== */
 .location-picker-info-bar {
   display: flex;
   justify-content: space-between;
@@ -177,21 +694,47 @@
   border: none;
 }
 
-/* Responsive styles */
+/* ==========================================================================
+   Responsive styles
+   ========================================================================== */
 @media (max-width: 640px) {
   .location-map-wrapper {
     height: 300px;
   }
-  
+
+  .location-search-form {
+    flex-direction: column;
+  }
+
+  .btn-search-location {
+    width: 100%;
+  }
+
+  .osm-link-input-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .osm-link-button-group {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .btn-copy-osm-link,
+  .btn-preview-osm-link {
+    flex: 1;
+    justify-content: center;
+  }
+
   .location-picker-info-bar {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .location-picker-actions {
     width: 100%;
   }
-  
+
   .btn-confirm-location,
   .btn-edit-location {
     width: 100%;
