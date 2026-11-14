@@ -1,128 +1,214 @@
+/* ==========================================================================
+   Modern Professional Sidebar Navigation - DwellSync Owner Dashboard
+   ========================================================================== */
+
 .sidebar-nav {
-  width: 260px;
-  background: #aac0aa;
-  color: #fff;
-  min-height: 100vh;
-  padding: 2rem 1rem 1rem 1rem;
-  box-shadow: 2px 0 8px rgba(0,0,0,0.04);
+  width: 280px;
+  background: #0f172a;
+  color: #ffffff;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  padding: 1.75rem 1.25rem 1.5rem 1.25rem;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.12);
   display: flex;
   flex-direction: column;
-  position: relative;
+  flex-shrink: 0;
+  z-index: 50;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  overflow-x: hidden !important;
+  box-sizing: border-box;
 }
+
 .sidebar-header {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  width: 100%;
+}
+
+.sidebar-brand-row {
+  display: flex;
   align-items: center;
-  margin-bottom: 2.2rem;
-  
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 0.35rem;
 }
-.sidebar-header h2 {
-  margin: 0;
-  font-size: 1.5rem;
+
+.sidebar-title {
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.5px;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sidebar-title span {
+  color: #3b82f6;
+}
+
+.sidebar-role-badge {
+  font-size: 0.72rem;
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  background: rgba(59, 130, 246, 0.18);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  padding: 3px 8px;
+  border-radius: 9999px;
 }
+
 .sidebar-subtitle {
-  font-size: 0.95rem;
-  color: #b0c4de;
+  font-size: 0.82rem;
+  color: #94a3b8;
+  font-weight: 500;
+  letter-spacing: 0.2px;
 }
+
+.sidebar-nav .sidebar-menu,
 .sidebar-menu {
   list-style: none;
   padding: 0;
   margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  flex: 1;
+  overflow-x: hidden !important;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  width: 100%;
 }
+
+.sidebar-nav .sidebar-menu::-webkit-scrollbar,
+.sidebar-menu::-webkit-scrollbar {
+  display: none;
+}
+
+.sidebar-nav .sidebar-menu-item,
 .sidebar-menu-item {
-  padding: 1rem 1rem 0.5rem 1rem;
-  border-radius: 8px;
-  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  color: #94a3b8;
+  border: 1px solid transparent;
+  user-select: none;
+  overflow: hidden;
+  box-sizing: border-box;
+  width: 100%;
 }
-.sidebar-menu-item.active, .sidebar-menu-item:hover {
-  background: #aac0aa;
+
+.sidebar-nav .sidebar-menu-item:hover,
+.sidebar-menu-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #f1f5f9;
 }
+
+.sidebar-nav .sidebar-menu-item.active,
+.sidebar-menu-item.active {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.9) 0%, rgba(29, 78, 216, 0.9) 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+  border-color: rgba(96, 165, 250, 0.4);
+}
+
+.menu-item-icon {
+  font-size: 1.15rem;
+  width: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.menu-item-content {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+  flex: 1;
+}
+
 .menu-label {
   font-weight: 600;
-  font-size: 1.1rem;
+  font-size: 0.92rem;
+  color: inherit;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+
 .menu-description {
-  font-size: 0.9rem;
-  color: #b0c4de;
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.2s ease;
 }
 
-.sidebar-footer {
-  padding: 20px;
-  border-top: 1px solid rgba(127, 17, 224, 1);
+.sidebar-nav .sidebar-menu-item.active .menu-description,
+.sidebar-menu-item.active .menu-description {
+  color: rgba(255, 255, 255, 0.78);
 }
 
-.sidebar-title {
-  font-size: 2.3rem;
-  font-weight: bold;
-  background: linear-gradient(90deg, #eaffd6 50%, #ccfd59 50%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-fill-color: transparent;
-  text-align: center;
-  margin-bottom: 0.4rem;
-  letter-spacing: 1.5px;
-  text-shadow: 0 2px 8px rgba(60,60,120,0.08);
+.sidebar-nav .sidebar-menu-item:hover .menu-description,
+.sidebar-menu-item:hover .menu-description {
+  color: #94a3b8;
 }
 
 .sidebar-logout {
-  position: absolute;
-  bottom: 2rem;
-  left: 0;
+  margin-top: auto;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   width: 100%;
-  display: flex;
-  justify-content: center;
 }
 
 .logout-btn {
-  background: #dc2626;
-  color: #fff;
-  border: none;
-  padding: 0.7rem 2rem;
-  border-radius: 6px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  padding: 0.7rem 1.25rem;
+  border-radius: 8px;
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 0.9rem;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
 }
 
 .logout-btn:hover {
-  background: #b91c1c;
+  background: #dc2626;
+  color: #ffffff;
+  border-color: #dc2626;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+  transform: translateY(-1px);
 }
 
 /* Responsive design */
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .sidebar-nav {
-    transform: translateX(-100%);
-    transition: transform 0.3s ease;
+    width: 240px;
+    padding: 1.25rem 0.85rem;
   }
-  
-  .sidebar-nav.open {
-    transform: translateX(0);
-  }
-  
-  .dashboard-main {
-    margin-left: 0;
-  }
-}
-
-/* Scrollbar styling */
-.sidebar-menu::-webkit-scrollbar {
-  width: 4px;
-}
-
-.sidebar-menu::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.sidebar-menu::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 2px;
-}
-
-.sidebar-menu::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.5);
 }

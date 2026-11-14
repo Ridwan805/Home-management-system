@@ -10,6 +10,20 @@
   font-weight: 400;
 }
 
+/* Universal Form Input Readability - Guarantees dark text on light dashboards without overriding dark themes */
+:not(.auth-page) input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]),
+:not(.auth-page) select,
+:not(.auth-page) textarea {
+  color: #0f172a;
+  -webkit-text-fill-color: #0f172a;
+}
+
+:not(.auth-page) input::placeholder,
+:not(.auth-page) textarea::placeholder {
+  color: #94a3b8;
+  -webkit-text-fill-color: #94a3b8;
+}
+
 body {
   margin: 0;
   min-height: 100vh;

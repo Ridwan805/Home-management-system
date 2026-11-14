@@ -1,20 +1,22 @@
 .tenant-sidebar-nav {
   width: 280px;
-  background-color: #a18276;
+  background-color: #0f172a;
   color: white;
   display: flex;
   flex-direction: column;
   height: 100vh;
   position: sticky;
   top: 0;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
-.sidebar-header {
+.tenant-sidebar-nav .sidebar-header {
   padding: 1.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.sidebar-title {
+.tenant-sidebar-nav .sidebar-title {
   font-size: 1.5rem;
   font-weight: 700;
   color: white;
@@ -22,48 +24,47 @@
   display: block;
 }
 
-
-
-.sidebar-menu {
+.tenant-sidebar-nav .sidebar-menu {
   list-style: none;
   padding: 0;
   margin: 0;
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
-.sidebar-menu-item {
+.tenant-sidebar-nav .sidebar-menu-item {
   padding: 1rem 1.5rem;
   cursor: pointer;
   transition: background-color 0.2s;
   border-left: 3px solid transparent;
 }
 
-.sidebar-menu-item:hover {
+.tenant-sidebar-nav .sidebar-menu-item:hover {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
-.sidebar-menu-item.active {
+.tenant-sidebar-nav .sidebar-menu-item.active {
   background-color: rgba(255, 255, 255, 0.1);
   border-left-color: #60a5fa;
 }
 
-.menu-label {
+.tenant-sidebar-nav .menu-label {
   font-weight: 500;
   margin-bottom: 0.25rem;
 }
 
-.menu-description {
+.tenant-sidebar-nav .menu-description {
   font-size: 0.75rem;
   color: rgba(255, 255, 255, 0.7);
 }
 
-.sidebar-logout {
+.tenant-sidebar-nav .sidebar-logout {
   padding: 1.5rem;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.logout-btn {
+.tenant-sidebar-nav .logout-btn {
   width: 100%;
   padding: 0.75rem;
   background-color: rgba(255, 255, 255, 0.1);
@@ -75,6 +76,6 @@
   font-weight: 500;
 }
 
-.logout-btn:hover {
+.tenant-sidebar-nav .logout-btn:hover {
   background-color: rgba(255, 255, 255, 0.2);
 }

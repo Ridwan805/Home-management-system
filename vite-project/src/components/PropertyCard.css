@@ -325,35 +325,56 @@
 
 /* Specs Bar (Beds, Baths, Sqft) */
 .property-card-specs {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background-color: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 10px 14px;
-  margin-bottom: 14px;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  background-color: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  padding: 8px 10px !important;
+  margin-bottom: 14px !important;
+  gap: 4px !important;
 }
 
-.spec-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.82rem;
+.pcard-spec-item,
+.property-card .spec-item {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+  white-space: nowrap !important;
+  flex: 1 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+.pcard-spec-icon,
+.property-card .spec-icon {
+  color: #2563eb !important;
+  font-size: 0.95rem !important;
+  flex-shrink: 0 !important;
+  margin: 0 !important;
+}
+
+.pcard-spec-val {
+  color: #1e293b;
+  font-size: 0.8rem;
   font-weight: 600;
-  color: #334155;
   white-space: nowrap;
 }
 
-.spec-icon {
-  color: #2563eb;
-  font-size: 0.92rem;
-}
-
-.spec-divider {
-  width: 1px;
-  height: 18px;
-  background-color: #cbd5e1;
+.pcard-spec-divider,
+.property-card .spec-divider {
+  width: 1px !important;
+  height: 16px !important;
+  background-color: #cbd5e1 !important;
+  flex-shrink: 0 !important;
 }
 
 /* Amenities Chips */

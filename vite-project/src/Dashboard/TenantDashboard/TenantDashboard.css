@@ -1,72 +1,81 @@
 .tenant-dashboard {
   display: flex;
   min-height: 100vh;
-  background-color: #eed2cc;
+  background-color: #f8fafc;
+  color: #0f172a;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-.dashboard-main {
+.tenant-dashboard .dashboard-main {
   flex: 1;
-  padding: 2rem;
+  padding: 2rem 2.5rem;
   overflow-y: auto;
+  background-color: #f8fafc;
 }
 
-.dashboard-content {
+.tenant-dashboard .dashboard-content {
   width: 100%;
-  background-color: #eed2cc;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  max-width: 1400px;
+  margin: 0 auto;
+  background-color: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   padding: 2rem;
 }
 
-.section-title {
-  color: #2563eb;
+.tenant-dashboard .section-title {
+  color: #0f172a;
   font-size: 1.5rem;
+  font-weight: 700;
   margin-bottom: 1.5rem;
-  border-bottom: 2px solid #e5e7eb;
+  border-bottom: 2px solid #e2e8f0;
   padding-bottom: 0.5rem;
 }
 
-.card {
-  background-color: #eed2cc;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+.tenant-dashboard .card {
+  background-color: #ffffff;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   padding: 1.5rem;
   margin-bottom: 1.5rem;
 }
 
-.card-title {
+.tenant-dashboard .card-title {
   font-size: 1.25rem;
   font-weight: 600;
   margin-bottom: 1rem;
   color: #1e40af;
 }
 
-.btn-primary {
+.tenant-dashboard .btn-primary {
   background-color: #2563eb;
   color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 0.25rem;
+  padding: 0.5rem 1.25rem;
+  border-radius: 6px;
   border: none;
   cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.2s;
+  font-weight: 600;
+  transition: all 0.2s;
 }
 
-.btn-primary:hover {
+.tenant-dashboard .btn-primary:hover {
   background-color: #1d4ed8;
 }
 
-.btn-secondary {
-  background-color: #e5e7eb;
-  color: #4b5563;
-  padding: 0.5rem 1rem;
-  border-radius: 0.25rem;
-  border: none;
+.tenant-dashboard .btn-secondary {
+  background-color: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  padding: 0.5rem 1.25rem;
+  border-radius: 6px;
   cursor: pointer;
   font-weight: 500;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
 }
 
-.btn-secondary:hover {
-  background-color: #d1d5db;
+.tenant-dashboard .btn-secondary:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
 }

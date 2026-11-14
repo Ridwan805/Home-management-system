@@ -142,9 +142,12 @@
   display: none !important;
 }
 
-.form-group input,
-.form-group select,
-.form-group textarea {
+.auth-page .form-group input,
+.auth-page .form-group select,
+.auth-page .form-group textarea,
+.auth-page input,
+.auth-page select,
+.auth-page textarea {
   width: 100%;
   padding: 0.8rem 1rem !important;
   border: 1px solid rgba(255, 255, 255, 0.18) !important;
@@ -160,14 +163,28 @@
   -webkit-box-shadow: none !important;
 }
 
-.form-group input::placeholder,
-.form-group textarea::placeholder {
-  color: #64748b !important;
+/* Chrome/Edge Autofill fix for Auth Pages - Prevent white background with white text */
+.auth-page input:-webkit-autofill,
+.auth-page input:-webkit-autofill:hover, 
+.auth-page input:-webkit-autofill:focus, 
+.auth-page input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #0b1120 inset !important;
+  box-shadow: 0 0 0 1000px #0b1120 inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  color: #ffffff !important;
+  caret-color: #ffffff !important;
+  transition: background-color 5000s ease-in-out 0s;
 }
 
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
+.auth-page .form-group input::placeholder,
+.auth-page .form-group textarea::placeholder {
+  color: #94a3b8 !important;
+  -webkit-text-fill-color: #94a3b8 !important;
+}
+
+.auth-page .form-group input:focus,
+.auth-page .form-group select:focus,
+.auth-page .form-group textarea:focus {
   outline: none;
   border-color: #006aff !important;
   background-color: rgba(2, 6, 23, 0.9) !important;
@@ -175,7 +192,7 @@
   -webkit-box-shadow: 0 0 0 3px rgba(0, 106, 255, 0.25) !important;
 }
 
-.form-group select option {
+.auth-page .form-group select option {
   background-color: #0f172a;
   color: #ffffff;
   padding: 0.5rem;

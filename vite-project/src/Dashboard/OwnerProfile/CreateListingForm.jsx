@@ -90,7 +90,19 @@ const PROPERTY_TYPE_LABELS = {
 };
 
 const AMENITIES = [
-  'Parking', 'Gym', 'Swimming Pool', 'Garden', 'Balcony', 'Security', 'Elevator', 'Playground', 'Pet Friendly', 'Furnished', 'Air Conditioning', 'Laundry Room', 'Fireplace', 'Wheelchair Accessible', 'WiFi'
+  'Parking', 'Gym', 'Swimming Pool', 'Garden', 'Balcony', 'Security', 'Elevator', 
+  'Playground', 'Pet Friendly', 'Furnished', 'Air Conditioning', 'Laundry Room', 
+  'Fireplace', 'Wheelchair Accessible', 'WiFi'
+];
+
+const APPLIANCES_LIST = [
+  { key: 'airConditioning', label: 'Air Conditioning' },
+  { key: 'heating', label: 'Heating System' },
+  { key: 'refrigerator', label: 'Refrigerator' },
+  { key: 'washingMachine', label: 'Washing Machine' },
+  { key: 'dishwasher', label: 'Dishwasher' },
+  { key: 'microwave', label: 'Microwave' },
+  { key: 'oven', label: 'Oven' }
 ];
 
 const FACING_DIRECTIONS = ['North', 'South', 'East', 'West', 'Northeast', 'Northwest', 'Southeast', 'Southwest'];
@@ -130,7 +142,7 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
   // Fetch owner's buildings on component mount and clear any errors
   useEffect(() => {
     fetchOwnerBuildings();
-    setError(''); // Clear any persisting error messages on component mount
+    setError('');
   }, []);
   
   const fetchOwnerBuildings = async () => {
@@ -147,14 +159,13 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
       });
       if (response.ok) {
         const data = await response.json();
-        // Handle the response structure from the backend
         setOwnerBuildings(data.buildings || data || []);
       } else {
         console.error('Failed to fetch owner buildings:', response.status);
         setOwnerBuildings([]);
       }
-    } catch (error) {
-      console.error('Error fetching owner buildings:', error);
+    } catch (err) {
+      console.error('Error fetching owner buildings:', err);
       setOwnerBuildings([]);
     }
   };
@@ -162,13 +173,12 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
   const handlePropertyLocationChange = (e) => {
     const value = e.target.value;
     setPropertyLocation(value);
-    setError(''); // Clear any existing error messages
+    setError('');
     if (value === 'standalone') {
       setForm(prev => ({ ...prev, buildingId: null }));
       setSelectedBuilding('');
       setShowCreateBuilding(false);
     } else {
-      // Reset buildingId when switching to building mode
       setForm(prev => ({ ...prev, buildingId: null }));
     }
   };
@@ -176,7 +186,7 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
   const handleBuildingSelection = (e) => {
     const value = e.target.value;
     setSelectedBuilding(value);
-    setError(''); // Clear any existing error messages
+    setError('');
     
     if (value === 'create_new') {
       setShowCreateBuilding(true);
@@ -205,12 +215,10 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
       setBuildingForm(prev => ({ ...prev, [name]: value }));
     }
   };
-  
-
 
   const handleChange = e => {
     const { name, value, type, checked } = e.target;
-    setError(''); // Clear any existing error messages when user makes changes
+    setError('');
     if (type === 'checkbox') {
       if (name === 'amenities') {
         setForm(prev => ({
@@ -227,18 +235,18 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
     }
   };
 
-
-
   const handleFileChange = e => {
     setImageFiles([...e.target.files]);
   };
 
-  const handleAmenityChange = e => {
-    const { value, checked } = e.target;
+  const handleAmenityChange = (amenity) => {
     setForm(f => {
       const amenities = new Set(f.amenities);
-      if (checked) amenities.add(value);
-      else amenities.delete(value);
+      if (amenities.has(amenity)) {
+        amenities.delete(amenity);
+      } else {
+        amenities.add(amenity);
+      }
       return { ...f, amenities: Array.from(amenities) };
     });
   };
@@ -254,19 +262,19 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
     if (!form.description.trim()) errors.push('Description is required');
     
     // Address validation
-    if (!form.address.trim()) errors.push('Address is required');
+    if (!form.address.trim()) errors.push('Street address is required');
     if (!form.city.trim()) errors.push('City is required');
     if (!form.state.trim()) errors.push('State is required');
     if (!form.zipCode.trim()) errors.push('Zip code is required');
 
-    // Map Location validation (required and confirmed)
+    // Map Location validation
     if (!locationCoordinates?.latitude || !locationCoordinates?.longitude) {
-      errors.push('Please select a property location on the map');
+      errors.push('Please pinpoint a property location on the map');
     } else if (!isLocationConfirmed) {
-      errors.push('Please click "Confirm Location" on the map to confirm your property location');
+      errors.push('Please click "Confirm Location" on the map to confirm your coordinates');
     }
     
-    // Floor and unit validation (only required for building properties)
+    // Floor and unit validation for buildings
     if (propertyLocation === 'building') {
       if (!form.floorNumber || form.floorNumber < 0) {
         errors.push('Floor number is required for building properties');
@@ -287,13 +295,11 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
     if (!form.contactEmail.trim()) errors.push('Contact email is required');
     if (!form.contactPhone.trim()) errors.push('Contact phone is required');
     
-    // Email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (form.contactEmail && !emailRegex.test(form.contactEmail)) {
       errors.push('Please enter a valid email address');
     }
     
-    // Phone format validation (basic)
     const phoneRegex = /^[\d\s\-\+\(\)]+$/;
     if (form.contactPhone && !phoneRegex.test(form.contactPhone)) {
       errors.push('Please enter a valid phone number');
@@ -323,25 +329,23 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
     return errors;
   };
 
-
-
   const handleSubmit = async e => {
     e.preventDefault();
     setLoading(true);
     setError('');
     
-    // Validate form
     const validationErrors = validateForm();
     if (validationErrors.length > 0) {
       setError(validationErrors.join('. '));
       setLoading(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
     
-    // Additional validation for building selection
     if (propertyLocation === 'building' && !selectedBuilding && !showCreateBuilding) {
       setError('Please select a building or choose to create a new one.');
       setLoading(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
     
@@ -350,6 +354,7 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
           !buildingForm.address.city.trim() || !buildingForm.address.state.trim()) {
         setError('Please fill in all required building information.');
         setLoading(false);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         return;
       }
     }
@@ -359,14 +364,10 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
       if (!token) throw new Error('No authentication token found');
       
       let buildingId = null;
-      
-      // For building properties, use selectedBuilding if available
       if (propertyLocation === 'building' && selectedBuilding && selectedBuilding !== 'create_new') {
         buildingId = selectedBuilding;
       }
-      // For standalone properties, buildingId remains null
       
-      // Create new building if needed
       if (showCreateBuilding) {
         const newBuildingData = {
           ...buildingForm,
@@ -375,7 +376,7 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
             fullAddress: `${buildingForm.address.street}, ${buildingForm.address.city}, ${buildingForm.address.state} ${buildingForm.address.zipCode}`.trim()
           },
           status: 'Active',
-          approvalStatus: 'Pending' // Requires admin approval
+          approvalStatus: 'Pending'
         };
         
         const buildingResponse = await fetch(API.getUrl(API.endpoints.buildings), {
@@ -397,33 +398,23 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
       }
       
       const formData = new FormData();
-      
-      // Basic property information
       formData.append('propertyType', form.propertyType);
       formData.append('listingType', form.listingType);
       formData.append('description', form.description);
       
-      // Building relationship - only append buildingId if it exists (for building properties)
       if (buildingId) {
         formData.append('buildingId', buildingId);
-      }
-      
-      // Floor and unit information - only for building properties
-      if (buildingId) {
         if (form.floorNumber) formData.append('floorNumber', form.floorNumber);
         if (form.unitNumber) formData.append('unitNumber', form.unitNumber);
       }
       
-      // Always append address field (required by backend validation, even if empty for building properties)
       formData.append('address', form.address ? form.address.trim() : '');
       
-      // Specifications object
       const specifications = {
         squareFootage: parseInt(form.squareFootage),
         furnishing: form.furnishing
       };
       
-      // Add bedrooms/bathrooms for residential properties
       const residentialTypes = ['apartment_unit', 'house', 'condo', 'townhouse', 'villa', 'studio', 'duplex', 'penthouse'];
       if (residentialTypes.includes(form.propertyType)) {
         specifications.bedrooms = parseInt(form.bedrooms);
@@ -432,7 +423,6 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
       
       if (form.facing) specifications.facing = form.facing;
       
-      // Balcony information
       if (form.hasBalcony) {
         specifications.balcony = {
           hasBalcony: true,
@@ -440,7 +430,6 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
         };
       }
       
-      // Appliances
       specifications.appliances = {
         airConditioning: form.airConditioning,
         heating: form.heating,
@@ -451,7 +440,6 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
         oven: form.oven
       };
       
-      // Parking and storage
       specifications.parkingSpots = parseInt(form.parkingSpots) || 0;
       if (form.hasStorage) {
         specifications.storage = {
@@ -462,7 +450,6 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
       
       formData.append('specifications', JSON.stringify(specifications));
       
-      // Pricing object
       const pricing = {
         deposit: form.deposit ? parseFloat(form.deposit) : 0,
         utilities: {
@@ -478,7 +465,6 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
       
       formData.append('pricing', JSON.stringify(pricing));
       
-      // Location
       const location = {
         latitude: locationCoordinates.latitude,
         longitude: locationCoordinates.longitude,
@@ -494,12 +480,10 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
       };
       formData.append('location', JSON.stringify(location));
       
-      // Location link (OpenStreetMap URL)
       if (form.location_link) {
         formData.append('location_link', form.location_link);
       }
       
-      // Contact information
       const contactInfo = {
         email: form.contactEmail,
         phone: form.contactPhone,
@@ -507,7 +491,6 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
       };
       formData.append('contactInfo', JSON.stringify(contactInfo));
       
-      // Constraints (policies)
       const constraints = {
         petPolicy: {
           allowed: form.petsAllowed
@@ -525,24 +508,18 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
       
       formData.append('constraints', JSON.stringify(constraints));
       
-      // Other fields
       if (form.yearBuilt) formData.append('yearBuilt', form.yearBuilt);
       if (form.threeDModelUrl) formData.append('threeDModelUrl', form.threeDModelUrl);
       
-      // Amenities
       formData.append('amenities', JSON.stringify(form.amenities));
-      
-      // Images
       imageFiles.forEach(file => formData.append('images', file));
       
-      // Legacy fields for backward compatibility
       formData.append('price', form.price);
       formData.append('bedrooms', form.bedrooms || '0');
       formData.append('bathrooms', form.bathrooms || '0');
       formData.append('squareFootage', form.squareFootage);
       formData.append('contactEmail', form.contactEmail);
       formData.append('contactPhone', form.contactPhone);
-      // Removed city and state fields to prevent conflict with Property model fields
       formData.append('zipCode', form.zipCode);
       
       const res = await fetch(API.getUrl(API.endpoints.properties), {
@@ -554,10 +531,7 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
       });
       const data = await res.json();
       if (!res.ok) {
-        // Handle specific error messages from backend
         let errorMessage = data.message || 'Failed to create property';
-        
-        // Check for duplicate key errors and provide user-friendly messages
         if (errorMessage.includes('duplicate key') || errorMessage.includes('E11000')) {
           if (errorMessage.includes('unitNumber') || errorMessage.includes('buildingId_1_unitNumber_1')) {
             errorMessage = 'A property with this unit number already exists in the selected building. Please choose a different unit number.';
@@ -565,36 +539,325 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
             errorMessage = 'This property information already exists. Please check your input and try again.';
           }
         }
-        
         throw new Error(errorMessage);
       }
       onSuccess();
     } catch (err) {
-      // Enhanced error handling for network and other errors
       let displayError = err.message;
-      
       if (err.name === 'TypeError' && err.message.includes('fetch')) {
         displayError = 'Network error. Please check your connection and try again.';
       } else if (err.message.includes('JSON')) {
         displayError = 'Server response error. Please try again.';
       }
-      
       setError(displayError);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form className="create-listing-form" onSubmit={handleSubmit}>
-      <h2>Create New Property Listing</h2>
-        {error && <div className="form-error">{error}</div>}
-        
-        {/* Property Location Section */}
-        <div className="form-row">
-          <label>Property Location*</label>
-          <div className="radio-group">
-            <label>
+    <div className="clf-container">
+      {/* Header */}
+      <div className="clf-header">
+        <h1 className="clf-header-title">Create New Property Listing</h1>
+        <p className="clf-header-subtitle">
+          Fill in the details below to list your property. Fields are organized logically for quick completion.
+        </p>
+      </div>
+
+      {error && (
+        <div className="clf-error-banner">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <div>{error}</div>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit}>
+        {/* SECTION 1: Category & Pricing */}
+        <div className="clf-card">
+          <div className="clf-card-header">
+            <div className="clf-card-icon">🏷️</div>
+            <div>
+              <h2 className="clf-card-title">Category & Pricing</h2>
+              <p className="clf-card-desc">Define the transaction type, property category, and financial terms.</p>
+            </div>
+          </div>
+
+          <div className="clf-grid-2">
+            <div className="clf-field">
+              <label className="clf-label">
+                Listing Type <span className="clf-required">*</span>
+              </label>
+              <select 
+                className="clf-select" 
+                name="listingType" 
+                value={form.listingType} 
+                onChange={handleChange} 
+                required
+              >
+                <option value="">Select Listing Type</option>
+                <option value="For Rent">For Rent</option>
+                <option value="For Sale">For Sale</option>
+              </select>
+            </div>
+
+            <div className="clf-field">
+              <label className="clf-label">
+                Property Type <span className="clf-required">*</span>
+              </label>
+              <select 
+                className="clf-select" 
+                name="propertyType" 
+                value={form.propertyType} 
+                onChange={handleChange} 
+                required
+              >
+                <option value="">Select Property Type</option>
+                {PROPERTY_TYPES.map(type => (
+                  <option key={type} value={type}>
+                    {PROPERTY_TYPE_LABELS[type] || type}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="clf-grid-3" style={{ marginTop: '1.25rem' }}>
+            <div className="clf-field">
+              <label className="clf-label">
+                {form.listingType === 'For Sale' ? 'Sale Price (৳)' : 'Monthly Rent (৳)'} <span className="clf-required">*</span>
+              </label>
+              <div className="clf-input-prefix-wrapper">
+                <span className="clf-input-prefix">৳</span>
+                <input 
+                  className="clf-input" 
+                  name="price" 
+                  type="number" 
+                  value={form.price} 
+                  onChange={handleChange} 
+                  placeholder="e.g. 45000" 
+                  required 
+                  min="0"
+                />
+              </div>
+            </div>
+
+            <div className="clf-field">
+              <label className="clf-label">Security Deposit (৳)</label>
+              <div className="clf-input-prefix-wrapper">
+                <span className="clf-input-prefix">৳</span>
+                <input 
+                  className="clf-input" 
+                  name="deposit" 
+                  type="number" 
+                  value={form.deposit} 
+                  onChange={handleChange} 
+                  placeholder="Optional deposit" 
+                  min="0"
+                />
+              </div>
+            </div>
+
+            <div className="clf-field" style={{ justifyContent: 'flex-end' }}>
+              <label className={`clf-toggle-card ${form.utilitiesIncluded ? 'active' : ''}`} style={{ height: '42px', boxSizing: 'border-box' }}>
+                <input
+                  type="checkbox"
+                  name="utilitiesIncluded"
+                  checked={form.utilitiesIncluded}
+                  onChange={handleChange}
+                />
+                <span className="clf-toggle-text">Utilities Included in Rent</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {/* SECTION 2: Space Specifications */}
+        <div className="clf-card">
+          <div className="clf-card-header">
+            <div className="clf-card-icon">📐</div>
+            <div>
+              <h2 className="clf-card-title">Property Dimensions & Features</h2>
+              <p className="clf-card-desc">Bedrooms, bathrooms, square footage, and facing orientation.</p>
+            </div>
+          </div>
+
+          <div className="clf-grid-4">
+            <div className="clf-field">
+              <label className="clf-label">
+                Bedrooms <span className="clf-required">*</span>
+              </label>
+              <input 
+                className="clf-input" 
+                name="bedrooms" 
+                type="number" 
+                value={form.bedrooms} 
+                onChange={handleChange} 
+                placeholder="e.g. 3" 
+                min="0"
+                required 
+              />
+            </div>
+
+            <div className="clf-field">
+              <label className="clf-label">
+                Bathrooms <span className="clf-required">*</span>
+              </label>
+              <input 
+                className="clf-input" 
+                name="bathrooms" 
+                type="number" 
+                value={form.bathrooms} 
+                onChange={handleChange} 
+                placeholder="e.g. 3" 
+                min="0"
+                required 
+              />
+            </div>
+
+            <div className="clf-field">
+              <label className="clf-label">
+                Square Footage (sq ft) <span className="clf-required">*</span>
+              </label>
+              <input 
+                className="clf-input" 
+                name="squareFootage" 
+                type="number" 
+                value={form.squareFootage} 
+                onChange={handleChange} 
+                placeholder="e.g. 1850" 
+                min="1"
+                required 
+              />
+            </div>
+
+            <div className="clf-field">
+              <label className="clf-label">Furnishing Status</label>
+              <select className="clf-select" name="furnishing" value={form.furnishing} onChange={handleChange}>
+                {FURNISHING_OPTIONS.map(opt => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="clf-grid-4" style={{ marginTop: '1.25rem' }}>
+            <div className="clf-field">
+              <label className="clf-label">Facing Orientation</label>
+              <select className="clf-select" name="facing" value={form.facing} onChange={handleChange}>
+                <option value="">Select Facing Direction</option>
+                {FACING_DIRECTIONS.map(dir => (
+                  <option key={dir} value={dir}>{dir}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="clf-field">
+              <label className="clf-label">Year Built</label>
+              <input 
+                className="clf-input" 
+                name="yearBuilt" 
+                type="number" 
+                value={form.yearBuilt} 
+                onChange={handleChange} 
+                placeholder="e.g. 2021" 
+              />
+            </div>
+
+            <div className="clf-field">
+              <label className="clf-label">Parking Spots</label>
+              <input 
+                className="clf-input" 
+                name="parkingSpots" 
+                type="number" 
+                value={form.parkingSpots} 
+                onChange={handleChange} 
+                min="0" 
+                placeholder="0"
+              />
+            </div>
+
+            <div className="clf-field" style={{ justifyContent: 'flex-end' }}>
+              <label className={`clf-toggle-card ${form.hasBalcony ? 'active' : ''}`} style={{ height: '42px', boxSizing: 'border-box' }}>
+                <input
+                  type="checkbox"
+                  name="hasBalcony"
+                  checked={form.hasBalcony}
+                  onChange={handleChange}
+                />
+                <span className="clf-toggle-text">Has Balcony</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Conditional Balcony and Storage sizes */}
+          <div className="clf-grid-2" style={{ marginTop: (form.hasBalcony || form.hasStorage) ? '1.25rem' : '0' }}>
+            {form.hasBalcony && (
+              <div className="clf-field">
+                <label className="clf-label">
+                  Balcony Size (sq ft) <span className="clf-required">*</span>
+                </label>
+                <input 
+                  className="clf-input" 
+                  name="balconySize" 
+                  type="number" 
+                  value={form.balconySize} 
+                  onChange={handleChange} 
+                  placeholder="e.g. 75" 
+                  min="1"
+                  required
+                />
+              </div>
+            )}
+
+            <div className="clf-field">
+              <label className={`clf-toggle-card ${form.hasStorage ? 'active' : ''}`} style={{ marginTop: form.hasBalcony ? '1.5rem' : '0' }}>
+                <input
+                  type="checkbox"
+                  name="hasStorage"
+                  checked={form.hasStorage}
+                  onChange={handleChange}
+                />
+                <span className="clf-toggle-text">Dedicated Storage Space</span>
+              </label>
+              {form.hasStorage && (
+                <div style={{ marginTop: '0.5rem' }}>
+                  <input 
+                    className="clf-input" 
+                    name="storageSize" 
+                    type="number" 
+                    value={form.storageSize} 
+                    onChange={handleChange} 
+                    placeholder="Storage Size (sq ft)" 
+                    min="1"
+                    required
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* SECTION 3: Location, Address & Map (Everything Location-Related Together!) */}
+        <div className="clf-card">
+          <div className="clf-card-header">
+            <div className="clf-card-icon">📍</div>
+            <div>
+              <h2 className="clf-card-title">Location, Address & Map Pin</h2>
+              <p className="clf-card-desc">
+                Everything for location in one place: street address, city details, and interactive map pinpointing.
+              </p>
+            </div>
+          </div>
+
+          {/* Standalone vs Building Switch */}
+          <div className="clf-radio-tabs">
+            <label className={`clf-radio-tab ${propertyLocation === 'standalone' ? 'active' : ''}`}>
               <input
                 type="radio"
                 name="propertyLocation"
@@ -602,9 +865,9 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
                 checked={propertyLocation === 'standalone'}
                 onChange={handlePropertyLocationChange}
               />
-              Standalone Property (Individual Address)
+              🏡 Standalone Property (Individual House / Villa / Land)
             </label>
-            <label>
+            <label className={`clf-radio-tab ${propertyLocation === 'building' ? 'active' : ''}`}>
               <input
                 type="radio"
                 name="propertyLocation"
@@ -612,498 +875,486 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
                 checked={propertyLocation === 'building'}
                 onChange={handlePropertyLocationChange}
               />
-              Part of Building/Complex
+              🏢 Part of Building / Complex (Apartment / Floor)
             </label>
           </div>
-        </div>
-        
-        {/* Building Selection */}
-        {propertyLocation === 'building' && (
-          <div className="form-row">
-            <label>Select Building*</label>
-            <select value={selectedBuilding} onChange={handleBuildingSelection} required>
-              <option value="">Select Building</option>
-              {ownerBuildings && ownerBuildings.length > 0 ? (
-                ownerBuildings.map(building => (
-                  <option key={building._id} value={building._id}>
-                    {building.name} - {building.address?.fullAddress || building.address?.street}
-                  </option>
-                ))
-              ) : (
-                <option disabled>No buildings found</option>
+
+          {/* Building Selection if building */}
+          {propertyLocation === 'building' && (
+            <div style={{ marginBottom: '1.25rem' }}>
+              <div className="clf-grid-3">
+                <div className="clf-field">
+                  <label className="clf-label">
+                    Select Building <span className="clf-required">*</span>
+                  </label>
+                  <select 
+                    className="clf-select" 
+                    value={selectedBuilding} 
+                    onChange={handleBuildingSelection} 
+                    required
+                  >
+                    <option value="">Select Existing Building</option>
+                    {ownerBuildings && ownerBuildings.length > 0 ? (
+                      ownerBuildings.map(b => (
+                        <option key={b._id} value={b._id}>
+                          {b.name} - {b.address?.fullAddress || b.address?.street}
+                        </option>
+                      ))
+                    ) : (
+                      <option disabled>No saved buildings found</option>
+                    )}
+                    <option value="create_new">+ Create New Building</option>
+                  </select>
+                </div>
+
+                <div className="clf-field">
+                  <label className="clf-label">
+                    Floor Number <span className="clf-required">*</span>
+                  </label>
+                  <input
+                    className="clf-input"
+                    type="number"
+                    name="floorNumber"
+                    value={form.floorNumber}
+                    onChange={handleChange}
+                    min="0"
+                    placeholder="e.g. 5"
+                    required
+                  />
+                </div>
+
+                <div className="clf-field">
+                  <label className="clf-label">
+                    Unit Number <span className="clf-required">*</span>
+                  </label>
+                  <input
+                    className="clf-input"
+                    type="text"
+                    name="unitNumber"
+                    value={form.unitNumber}
+                    onChange={handleChange}
+                    placeholder="e.g. Flat 5-B"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Inline Building Creator */}
+              {showCreateBuilding && (
+                <div className="clf-inline-building-box" style={{ marginTop: '1.25rem' }}>
+                  <h4 className="clf-inline-building-title">🏢 Create New Building Profile</h4>
+                  <div className="clf-grid-2">
+                    <div className="clf-field">
+                      <label className="clf-label">Building Name <span className="clf-required">*</span></label>
+                      <input
+                        className="clf-input"
+                        type="text"
+                        name="name"
+                        value={buildingForm.name}
+                        onChange={handleBuildingFormChange}
+                        placeholder="e.g. Green Valley Residence"
+                        required
+                      />
+                    </div>
+                    <div className="clf-field">
+                      <label className="clf-label">Street Address <span className="clf-required">*</span></label>
+                      <input
+                        className="clf-input"
+                        type="text"
+                        name="address.street"
+                        value={buildingForm.address.street}
+                        onChange={handleBuildingFormChange}
+                        placeholder="e.g. Road 12, Sector 4, Uttara"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="clf-grid-3" style={{ marginTop: '0.75rem' }}>
+                    <div className="clf-field">
+                      <label className="clf-label">City <span className="clf-required">*</span></label>
+                      <input
+                        className="clf-input"
+                        type="text"
+                        name="address.city"
+                        value={buildingForm.address.city}
+                        onChange={handleBuildingFormChange}
+                        placeholder="Dhaka"
+                        required
+                      />
+                    </div>
+                    <div className="clf-field">
+                      <label className="clf-label">State <span className="clf-required">*</span></label>
+                      <input
+                        className="clf-input"
+                        type="text"
+                        name="address.state"
+                        value={buildingForm.address.state}
+                        onChange={handleBuildingFormChange}
+                        placeholder="Dhaka Division"
+                        required
+                      />
+                    </div>
+                    <div className="clf-field">
+                      <label className="clf-label">Zip Code <span className="clf-required">*</span></label>
+                      <input
+                        className="clf-input"
+                        type="text"
+                        name="address.zipCode"
+                        value={buildingForm.address.zipCode}
+                        onChange={handleBuildingFormChange}
+                        placeholder="1230"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="clf-grid-2" style={{ marginTop: '0.75rem' }}>
+                    <div className="clf-field">
+                      <label className="clf-label">Total Floors</label>
+                      <input
+                        className="clf-input"
+                        type="number"
+                        name="totalFloors"
+                        value={buildingForm.totalFloors}
+                        onChange={handleBuildingFormChange}
+                        min="1"
+                        placeholder="e.g. 10"
+                      />
+                    </div>
+                    <div className="clf-field">
+                      <label className="clf-label">Year Built</label>
+                      <input
+                        className="clf-input"
+                        type="number"
+                        name="yearBuilt"
+                        value={buildingForm.yearBuilt}
+                        onChange={handleBuildingFormChange}
+                        placeholder="e.g. 2020"
+                      />
+                    </div>
+                  </div>
+                  <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
+                    <button
+                      type="button"
+                      className="clf-btn clf-btn-secondary"
+                      onClick={() => {
+                        setShowCreateBuilding(false);
+                        setSelectedBuilding('');
+                      }}
+                    >
+                      Cancel New Building
+                    </button>
+                  </div>
+                </div>
               )}
-              <option value="create_new">Create New Building</option>
-            </select>
+            </div>
+          )}
+
+          {/* Address Fields Together */}
+          <div className="clf-field" style={{ marginBottom: '1rem' }}>
+            <label className="clf-label">
+              Street Address <span className="clf-required">*</span>
+            </label>
+            <input 
+              className="clf-input" 
+              name="address" 
+              value={form.address} 
+              onChange={handleChange} 
+              placeholder="e.g. House 24, Road 8A, Dhanmondi, Dhaka"
+              required
+            />
           </div>
-        )}
-        
-        {/* Create New Building Form */}
-        {showCreateBuilding && (
-          <div className="create-building-section">
-            <h4>Create New Building</h4>
-            <div className="form-row">
-              <label>Building Name*</label>
-              <input
-                type="text"
-                name="name"
-                value={buildingForm.name}
-                onChange={handleBuildingFormChange}
-                placeholder="e.g., Sunrise Apartments"
-                required
+
+          <div className="clf-grid-3" style={{ marginBottom: '1.5rem' }}>
+            <div className="clf-field">
+              <label className="clf-label">
+                City <span className="clf-required">*</span>
+              </label>
+              <input 
+                className="clf-input" 
+                name="city" 
+                value={form.city} 
+                onChange={handleChange} 
+                placeholder="e.g. Dhaka" 
+                required 
               />
             </div>
-            <div className="form-row">
-              <label>Street Address*</label>
-              <input
-                type="text"
-                name="address.street"
-                value={buildingForm.address.street}
-                onChange={handleBuildingFormChange}
-                placeholder="e.g., 123 Main Street"
-                required
+
+            <div className="clf-field">
+              <label className="clf-label">
+                State / Division <span className="clf-required">*</span>
+              </label>
+              <input 
+                className="clf-input" 
+                name="state" 
+                value={form.state} 
+                onChange={handleChange} 
+                placeholder="e.g. Dhaka Division" 
+                required 
               />
             </div>
-            <div className="form-row">
-              <label>City*</label>
-              <input
-                type="text"
-                name="address.city"
-                value={buildingForm.address.city}
-                onChange={handleBuildingFormChange}
-                required
+
+            <div className="clf-field">
+              <label className="clf-label">
+                Zip Code <span className="clf-required">*</span>
+              </label>
+              <input 
+                className="clf-input" 
+                name="zipCode" 
+                value={form.zipCode} 
+                onChange={handleChange} 
+                placeholder="e.g. 1209" 
+                required 
               />
-            </div>
-            <div className="form-row">
-              <label>State*</label>
-              <input
-                type="text"
-                name="address.state"
-                value={buildingForm.address.state}
-                onChange={handleBuildingFormChange}
-                required
-              />
-            </div>
-            <div className="form-row">
-              <label>Zip Code*</label>
-              <input
-                type="text"
-                name="address.zipCode"
-                value={buildingForm.address.zipCode}
-                onChange={handleBuildingFormChange}
-                required
-              />
-            </div>
-            <div className="form-row">
-              <label>Year Built</label>
-              <input
-                type="number"
-                name="yearBuilt"
-                value={buildingForm.yearBuilt}
-                onChange={handleBuildingFormChange}
-              />
-            </div>
-            <div className="form-row">
-              <label>Total Floors</label>
-              <input
-                type="number"
-                name="totalFloors"
-                value={buildingForm.totalFloors}
-                onChange={handleBuildingFormChange}
-                min="1"
-              />
-            </div>
-            <div className="form-row">
-              <label>Building Description</label>
-              <textarea
-                name="description"
-                value={buildingForm.description}
-                onChange={handleBuildingFormChange}
-                placeholder="Brief description of the building..."
-                rows="3"
-              />
-            </div>
-            <div className="form-row">
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={() => {
-                  setShowCreateBuilding(false);
-                  setSelectedBuilding('');
-                }}
-              >
-                Cancel
-              </button>
             </div>
           </div>
-        )}
-        
-        <div className="form-row">
-          <label>Property Type*</label>
-          <select name="propertyType" value={form.propertyType} onChange={handleChange} required>
-            <option value="">Select Property Type</option>
-            {PROPERTY_TYPES.map(type => (
-              <option key={type} value={type}>
-                {PROPERTY_TYPE_LABELS[type] || type}
-              </option>
-            ))}
-          </select>
+
+          {/* Interactive Map directly under Address fields */}
+          <div style={{ marginTop: '1rem' }}>
+            <LocationPickerMap
+              initialLocation={locationCoordinates.latitude ? locationCoordinates : null}
+              onLocationChange={({ latitude, longitude, location_link, isConfirmed }) => {
+                setLocationCoordinates({ latitude, longitude });
+                setIsLocationConfirmed(isConfirmed);
+                if (location_link) {
+                  setForm(prev => ({ ...prev, location_link }));
+                }
+                setError('');
+              }}
+              isConfirmed={isLocationConfirmed}
+              onConfirmChange={(confirmed) => {
+                setIsLocationConfirmed(confirmed);
+                setError('');
+              }}
+              locationLink={form.location_link}
+              onLocationLinkChange={(newLink) => {
+                setForm(prev => ({ ...prev, location_link: newLink }));
+              }}
+              onAddressSelect={({ address, city, state, zipCode }) => {
+                setForm(prev => ({
+                  ...prev,
+                  address: address || prev.address,
+                  city: city || prev.city,
+                  state: state || prev.state,
+                  zipCode: zipCode || prev.zipCode
+                }));
+              }}
+              required={true}
+              title="Pinpoint Exact Location on Map"
+            />
+          </div>
         </div>
- 
-        <div className="form-row">
-          <label>Address*</label>
-          <input 
-            name="address" 
-            value={form.address} 
-            onChange={handleChange} 
-            placeholder="e.g., 1234 Elm Street Apt 5B Springfield, IL 62704 United States"
-            required
-          />
-        </div>
 
-        {propertyLocation === 'building' && (
-          <>
-            <div className="form-row">
-              <label>Floor Number*</label>
-              <input
-                type="number"
-                name="floorNumber"
-                value={form.floorNumber}
-                onChange={handleChange}
-                min="0"
-                placeholder="e.g., 5"
-                required
-              />
+        {/* SECTION 4: Amenities & Appliances */}
+        <div className="clf-card">
+          <div className="clf-card-header">
+            <div className="clf-card-icon">✨</div>
+            <div>
+              <h2 className="clf-card-title">Amenities & Appliances</h2>
+              <p className="clf-card-desc">Select available property facilities, in-unit appliances, and living policies.</p>
             </div>
-            <div className="form-row">
-              <label>Unit Number*</label>
-              <input
-                type="text"
-                name="unitNumber"
-                value={form.unitNumber}
-                onChange={handleChange}
-                placeholder="e.g., 5A, 501, etc."
-                required
-              />
+          </div>
+
+          <div style={{ marginBottom: '1.25rem' }}>
+            <label className="clf-label" style={{ marginBottom: '0.65rem' }}>Community & Building Amenities</label>
+            <div className="clf-pills-grid">
+              {AMENITIES.map(amenity => {
+                const isSelected = form.amenities.includes(amenity);
+                return (
+                  <label key={amenity} className={`clf-pill-label ${isSelected ? 'active' : ''}`}>
+                    <input
+                      type="checkbox"
+                      value={amenity}
+                      checked={isSelected}
+                      onChange={() => handleAmenityChange(amenity)}
+                    />
+                    <span>{amenity}</span>
+                  </label>
+                );
+              })}
             </div>
-          </>
-        )}
+          </div>
 
-        {/* Interactive Property Location Selection Map & OpenStreetMap Link */}
-        <LocationPickerMap
-          initialLocation={locationCoordinates.latitude ? locationCoordinates : null}
-          onLocationChange={({ latitude, longitude, location_link, isConfirmed }) => {
-            setLocationCoordinates({ latitude, longitude });
-            setIsLocationConfirmed(isConfirmed);
-            if (location_link) {
-              setForm(prev => ({ ...prev, location_link }));
-            }
-            setError('');
-          }}
-          isConfirmed={isLocationConfirmed}
-          onConfirmChange={(confirmed) => {
-            setIsLocationConfirmed(confirmed);
-            setError('');
-          }}
-          locationLink={form.location_link}
-          onLocationLinkChange={(newLink) => {
-            setForm(prev => ({ ...prev, location_link: newLink }));
-          }}
-          onAddressSelect={({ address, city, state, zipCode }) => {
-            setForm(prev => ({
-              ...prev,
-              address: address || prev.address,
-              city: city || prev.city,
-              state: state || prev.state,
-              zipCode: zipCode || prev.zipCode
-            }));
-          }}
-          required={true}
-          title="Property Location"
-        />
-      <div className="form-row">
-        <label>Bedrooms*</label>
-        <input name="bedrooms" type="number" value={form.bedrooms} onChange={handleChange} required />
-      </div>
-      <div className="form-row">
-        <label>Bathrooms*</label>
-        <input name="bathrooms" type="number" value={form.bathrooms} onChange={handleChange} required />
-      </div>
-      <div className="form-row">
-        <label>Square Footage*</label>
-        <input name="squareFootage" type="number" value={form.squareFootage} onChange={handleChange} required />
-      </div>
+          <div style={{ marginBottom: '1.25rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9' }}>
+            <label className="clf-label" style={{ marginBottom: '0.65rem' }}>Appliances Included</label>
+            <div className="clf-pills-grid">
+              {APPLIANCES_LIST.map(({ key, label }) => {
+                const isChecked = !!form[key];
+                return (
+                  <label key={key} className={`clf-pill-label ${isChecked ? 'active' : ''}`}>
+                    <input
+                      type="checkbox"
+                      name={key}
+                      checked={isChecked}
+                      onChange={handleChange}
+                    />
+                    <span>{label}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
 
-      <div className="form-row">
-        <label>Facing Direction</label>
-        <select name="facing" value={form.facing} onChange={handleChange}>
-          <option value="">Select Direction</option>
-          {FACING_DIRECTIONS.map(direction => (
-            <option key={direction} value={direction}>{direction}</option>
-          ))}
-        </select>
-      </div>
-
-      <div className="form-row">
-        <label>Furnishing</label>
-        <select name="furnishing" value={form.furnishing} onChange={handleChange}>
-          {FURNISHING_OPTIONS.map(option => (
-            <option key={option} value={option}>{option}</option>
-          ))}
-        </select>
-      </div>
-      <div className="form-row">
-        <label>Price*</label>
-        <input name="price" type="number" value={form.price} onChange={handleChange} required />
-      </div>
-
-      <div className="form-row">
-        <label>Deposit</label>
-        <input name="deposit" type="number" value={form.deposit} onChange={handleChange} placeholder="Security deposit amount" />
-      </div>
-
-      <div className="form-row">
-        <label>
-          <input
-            type="checkbox"
-            name="utilitiesIncluded"
-            checked={form.utilitiesIncluded}
-            onChange={handleChange}
-          />
-          Utilities Included
-        </label>
-      </div>
-      <div className="form-row">
-        <label>Description*</label>
-        <textarea name="description" value={form.description} onChange={handleChange} required placeholder="Describe the property, highlights, nearby facilities, etc." />
-      </div>
-      <div className="form-row">
-        <label>Amenities</label>
-        <ul className="amenities-list" style={{listStyle: 'none', padding: 0, margin: 0}}>
-          {AMENITIES.map(amenity => (
-            <li key={amenity} style={{marginBottom: '0.5rem'}}>
-              <label>
+          <div style={{ paddingTop: '1rem', borderTop: '1px solid #f1f5f9' }}>
+            <label className="clf-label" style={{ marginBottom: '0.65rem' }}>Policies & Occupancy</label>
+            <div className="clf-grid-3">
+              <label className={`clf-toggle-card ${form.petsAllowed ? 'active' : ''}`}>
                 <input
                   type="checkbox"
-                  value={amenity}
-                  checked={form.amenities.includes(amenity)}
-                  onChange={handleAmenityChange}
-                  style={{marginRight: '0.5rem'}}
+                  name="petsAllowed"
+                  checked={form.petsAllowed}
+                  onChange={handleChange}
                 />
-                {amenity}
+                <span className="clf-toggle-text">🐾 Pets Allowed</span>
               </label>
-            </li>
-          ))}
-        </ul>
-      </div>
-      <div className="form-row">
-        <label>Images (upload one or more)</label>
-        <input name="images" type="file" multiple accept="image/*" onChange={handleFileChange} />
-      </div>
-      <div className="form-row">
-        <label>Year Built</label>
-        <input name="yearBuilt" type="number" value={form.yearBuilt} onChange={handleChange} />
-      </div>
-      <div className="form-row">
-        <label>Contact Email</label>
-        <input name="contactEmail" type="email" value={form.contactEmail} onChange={handleChange} />
-      </div>
-      <div className="form-row">
-        <label>Contact Phone</label>
-        <input name="contactPhone" value={form.contactPhone} onChange={handleChange} />
-      </div>
-      <div className="form-row">
-        <label>3D Model URL</label>
-        <input name="threeDModelUrl" value={form.threeDModelUrl} onChange={handleChange} />
-      </div>
-      <div className="form-row">
-        <label>Listing Type*</label>
-        <select name="listingType" value={form.listingType} onChange={handleChange} required>
-          <option value="">Select</option>
-          <option value="For Sale">For Sale</option>
-          <option value="For Rent">For Rent</option>
-        </select>
-      </div>
-      <div className="form-row">
-        <label>City</label>
-        <input name="city" value={form.city} onChange={handleChange} />
-      </div>
-      <div className="form-row">
-        <label>State</label>
-        <input name="state" value={form.state} onChange={handleChange} />
-      </div>
-      <div className="form-row">
-        <label>Zip Code</label>
-        <input name="zipCode" value={form.zipCode} onChange={handleChange} />
-      </div>
 
-      <h3>Appliances</h3>
-      <div className="form-row checkbox-group">
-        <label>
-          <input type="checkbox" name="airConditioning" checked={form.airConditioning} onChange={handleChange} />
-          Air Conditioning
-        </label>
-        <label>
-          <input type="checkbox" name="heating" checked={form.heating} onChange={handleChange} />
-          Heating
-        </label>
-        <label>
-          <input type="checkbox" name="refrigerator" checked={form.refrigerator} onChange={handleChange} />
-          Refrigerator
-        </label>
-        <label>
-          <input type="checkbox" name="washingMachine" checked={form.washingMachine} onChange={handleChange} />
-          Washing Machine
-        </label>
-        <label>
-          <input type="checkbox" name="dishwasher" checked={form.dishwasher} onChange={handleChange} />
-          Dishwasher
-        </label>
-        <label>
-          <input type="checkbox" name="microwave" checked={form.microwave} onChange={handleChange} />
-          Microwave
-        </label>
-        <label>
-          <input type="checkbox" name="oven" checked={form.oven} onChange={handleChange} />
-          Oven
-        </label>
-      </div>
+              <label className={`clf-toggle-card ${form.smokingAllowed ? 'active' : ''}`}>
+                <input
+                  type="checkbox"
+                  name="smokingAllowed"
+                  checked={form.smokingAllowed}
+                  onChange={handleChange}
+                />
+                <span className="clf-toggle-text">🚬 Smoking Allowed</span>
+              </label>
 
-      <h3>Additional Features</h3>
-      <div className="form-row">
-        <label>
-          <input type="checkbox" name="hasBalcony" checked={form.hasBalcony} onChange={handleChange} />
-          Has Balcony
-        </label>
-      </div>
-      {form.hasBalcony && (
-        <div className="form-row">
-          <label>Balcony Size (sq ft)</label>
-          <input name="balconySize" type="number" value={form.balconySize} onChange={handleChange} />
+              <div className="clf-field">
+                <input 
+                  className="clf-input" 
+                  name="maxOccupants" 
+                  type="number" 
+                  value={form.maxOccupants} 
+                  onChange={handleChange} 
+                  placeholder="Max Occupants (e.g. 5)" 
+                  min="1"
+                />
+              </div>
+            </div>
+          </div>
         </div>
-      )}
 
-      <div className="form-row">
-        <label>Parking Spots</label>
-        <input name="parkingSpots" type="number" value={form.parkingSpots} onChange={handleChange} min="0" />
-      </div>
+        {/* SECTION 5: Description, Media & Contact Info */}
+        <div className="clf-card">
+          <div className="clf-card-header">
+            <div className="clf-card-icon">📷</div>
+            <div>
+              <h2 className="clf-card-title">Description, Photos & Contact</h2>
+              <p className="clf-card-desc">Add property description, high-resolution photos, and owner contact details.</p>
+            </div>
+          </div>
 
-      <div className="form-row">
-        <label>
-          <input type="checkbox" name="hasStorage" checked={form.hasStorage} onChange={handleChange} />
-          Has Storage
-        </label>
-      </div>
-      {form.hasStorage && (
-        <div className="form-row">
-          <label>Storage Size (sq ft)</label>
-          <input name="storageSize" type="number" value={form.storageSize} onChange={handleChange} />
+          <div className="clf-field" style={{ marginBottom: '1.25rem' }}>
+            <label className="clf-label">
+              Detailed Property Description <span className="clf-required">*</span>
+            </label>
+            <textarea 
+              className="clf-textarea" 
+              name="description" 
+              value={form.description} 
+              onChange={handleChange} 
+              required 
+              placeholder="Describe what makes this property special: spacious layout, natural ventilation, proximity to schools, security features..." 
+              rows="4"
+            />
+          </div>
+
+          <div className="clf-field" style={{ marginBottom: '1.25rem' }}>
+            <label className="clf-label">Property Photos</label>
+            <div className="clf-upload-dropzone">
+              <input 
+                className="clf-upload-input"
+                name="images" 
+                type="file" 
+                multiple 
+                accept="image/*" 
+                onChange={handleFileChange} 
+              />
+              <div className="clf-upload-icon">📸</div>
+              <p className="clf-upload-text">Click or drag images here to upload</p>
+              <p className="clf-upload-hint">Upload one or multiple photos (PNG, JPG, WebP)</p>
+            </div>
+            {imageFiles.length > 0 && (
+              <div className="clf-file-list-preview">
+                {imageFiles.map((file, idx) => (
+                  <span key={idx} className="clf-file-badge">
+                    🖼️ {file.name}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="clf-field" style={{ marginBottom: '1.25rem' }}>
+            <label className="clf-label">3D Virtual Tour / Model URL</label>
+            <input 
+              className="clf-input" 
+              name="threeDModelUrl" 
+              value={form.threeDModelUrl} 
+              onChange={handleChange} 
+              placeholder="https://my.matterport.com/show/?m=... (optional)" 
+            />
+          </div>
+
+          <div className="clf-grid-2">
+            <div className="clf-field">
+              <label className="clf-label">
+                Contact Email <span className="clf-required">*</span>
+              </label>
+              <input 
+                className="clf-input" 
+                name="contactEmail" 
+                type="email" 
+                value={form.contactEmail} 
+                onChange={handleChange} 
+                placeholder="owner@dwellsync.com" 
+                required 
+              />
+            </div>
+
+            <div className="clf-field">
+              <label className="clf-label">
+                Contact Phone <span className="clf-required">*</span>
+              </label>
+              <input 
+                className="clf-input" 
+                name="contactPhone" 
+                value={form.contactPhone} 
+                onChange={handleChange} 
+                placeholder="+880 1712-345678" 
+                required 
+              />
+            </div>
+          </div>
         </div>
-      )}
 
-      <h3>Policies</h3>
-      <div className="form-row">
-        <label>
-          <input type="checkbox" name="petsAllowed" checked={form.petsAllowed} onChange={handleChange} />
-          Pets Allowed
-        </label>
-      </div>
-      <div className="form-row">
-        <label>
-          <input type="checkbox" name="smokingAllowed" checked={form.smokingAllowed} onChange={handleChange} />
-          Smoking Allowed
-        </label>
-      </div>
-      <div className="form-row">
-        <label>Maximum Occupants</label>
-        <input name="maxOccupants" type="number" value={form.maxOccupants} onChange={handleChange} min="1" />
-      </div>
-      <div className="form-actions">
-        <button type="submit" disabled={loading}>{loading ? 'Creating...' : 'Create Listing'}</button>
-        <button type="button" onClick={onCancel} disabled={loading}>Cancel</button>
-      </div>
-      
-      <style jsx>{`
-        .radio-group {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-        
-        .radio-group label {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          cursor: pointer;
-        }
-        
-        .checkbox-group {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 12px;
-        }
-        
-        .checkbox-group label {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          cursor: pointer;
-        }
-        
-        .create-building-section {
-          background: #f8f9fa;
-          padding: 20px;
-          border-radius: 8px;
-          margin: 16px 0;
-          border: 1px solid #e9ecef;
-        }
-        
-        .create-building-section h4 {
-          margin: 0 0 16px 0;
-          color: #495057;
-        }
-        
-        .btn-secondary {
-          background: #6c757d;
-          color: white;
-          border: none;
-          padding: 8px 16px;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 14px;
-        }
-        
-        .btn-secondary:hover {
-          background: #5a6268;
-        }
-        
-        .btn-primary {
-          background: #007bff;
-          color: white;
-          border: none;
-          padding: 8px 16px;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 14px;
-        }
-        
-        .btn-primary:hover {
-          background: #0056b3;
-        }
-        
-        .btn-primary:disabled {
-          background: #6c757d;
-          cursor: not-allowed;
-        }
-        
-        .form-error {
-          background: #f8d7da;
-          color: #721c24;
-          padding: 12px;
-          border-radius: 4px;
-          margin-bottom: 16px;
-          border: 1px solid #f5c6cb;
-        }
-      `}</style>
-    </form>
+        {/* SECTION 6: Sticky Action Footer */}
+        <div className="clf-actions-bar">
+          <button 
+            type="button" 
+            className="clf-btn clf-btn-secondary" 
+            onClick={onCancel} 
+            disabled={loading}
+          >
+            Cancel
+          </button>
+          <button 
+            type="submit" 
+            className="clf-btn clf-btn-primary" 
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite' }}>
+                  <circle cx="12" cy="12" r="10" strokeOpacity="0.25" />
+                  <path d="M12 2a10 10 0 0 1 10 10" />
+                </svg>
+                Publishing Listing...
+              </>
+            ) : (
+              'Publish Property Listing'
+            )}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }

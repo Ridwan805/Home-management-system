@@ -16,9 +16,9 @@
   background-color: #faf3dd;
 }
 
-/* Remove background color for dashboard pages */
+/* Clean modern background for dashboard pages */
 .main-content.dashboard-page {
-  background-color: transparent;
+  background-color: #f8fafc;
 }
 
 .auth-sections {

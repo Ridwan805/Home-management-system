@@ -188,6 +188,7 @@ function AppRoutes() {
           location.pathname === '/security-guard-info' ||
           location.pathname === '/request-info' ||
           location.pathname === '/payments' ||
+          location.pathname === '/maintenance-reports' ||
           location.pathname.startsWith('/tenant') ||
           location.pathname.startsWith('/security-guard')
         ) && <Navbar />}
@@ -376,7 +377,27 @@ function AppRoutes() {
           path="/maintenance-reports"
           element={
             <ProtectedRoute allowedRoles={['Owner']}>
-              <MaintenanceReports />
+              <div className="owner-dashboard">
+                <SidebarNav
+                  activeSection="maintenance-reports"
+                  setActiveSection={(key) => {
+                    if (key === 'profile') navigate('/dashboard');
+                    else if (key === 'create-listing') navigate('/create-listing');
+                    else if (key === 'property-details') navigate('/property-details');
+                    else if (key === 'tenant-info') navigate('/tenant-info');
+                    else if (key === 'security-guard-info') navigate('/security-guard-info');
+                    else if (key === 'request-info') navigate('/request-info');
+                    else if (key === 'payments') navigate('/payments');
+                    else if (key === 'maintenance-reports') navigate('/maintenance-reports');
+                  }}
+                />
+                <main className="dashboard-main">
+                  <div className="dashboard-content">
+                    <MaintenanceReports />
+                  </div>
+                </main>
+                <QuickDialButton />
+              </div>
             </ProtectedRoute>
           }
         />

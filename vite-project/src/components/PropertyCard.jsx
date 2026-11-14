@@ -207,28 +207,29 @@ const PropertyCard = ({ property, onEdit, onViewDetails, onDelete, onStatusChang
         </div>
 
         {/* Specs Highlights (Beds, Baths, Sqft) */}
+        {/* Specs Highlights (Beds, Baths, Sqft) */}
         <div className="property-card-specs">
-          <div className="spec-item" title="Bedrooms">
-            <FaBed className="spec-icon" />
-            <span className="spec-val">
+          <div className="pcard-spec-item" title="Bedrooms">
+            <FaBed className="pcard-spec-icon" />
+            <span className="pcard-spec-val">
               {bedrooms !== undefined && bedrooms !== null && bedrooms !== '' 
                 ? `${bedrooms} ${Number(bedrooms) === 1 ? 'Bed' : 'Beds'}` 
                 : '—'}
             </span>
           </div>
-          <div className="spec-divider" />
-          <div className="spec-item" title="Bathrooms">
-            <FaBath className="spec-icon" />
-            <span className="spec-val">
+          <div className="pcard-spec-divider" />
+          <div className="pcard-spec-item" title="Bathrooms">
+            <FaBath className="pcard-spec-icon" />
+            <span className="pcard-spec-val">
               {bathrooms !== undefined && bathrooms !== null && bathrooms !== '' 
                 ? `${bathrooms} ${Number(bathrooms) === 1 ? 'Bath' : 'Baths'}` 
                 : '—'}
             </span>
           </div>
-          <div className="spec-divider" />
-          <div className="spec-item" title="Square Footage">
-            <FaRulerCombined className="spec-icon" />
-            <span className="spec-val">
+          <div className="pcard-spec-divider" />
+          <div className="pcard-spec-item" title="Square Footage">
+            <FaRulerCombined className="pcard-spec-icon" />
+            <span className="pcard-spec-val">
               {sqft ? `${Number(sqft).toLocaleString()} sqft` : '—'}
             </span>
           </div>

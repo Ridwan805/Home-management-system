@@ -4,67 +4,312 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import './LocationPickerMap.css';
 
-// Default tile URL and attribution
+// Default tile URL and attribution (100% Free OpenStreetMap)
 const DEFAULT_TILE_URL = import.meta.env.VITE_MAP_TILE_URL || 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 const MAP_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors';
 
 // Default center: Dhaka, Bangladesh
 const DHAKA_COORDINATES = [23.8103, 90.4125];
 
-// Popular quick search suggestion chips in Dhaka
-const QUICK_AREAS = ['Dhanmondi', 'Gulshan 1', 'Gulshan 2', 'Banani', 'Uttara', 'Mirpur'];
-
-// Famous landmark shortcuts (like Google Maps POIs)
-const FAMOUS_LANDMARKS = [
-  { name: 'Jamuna Future Park', icon: '🛍️', label: 'Jamuna Future Park' },
-  { name: 'Bashundhara City', icon: '🛍️', label: 'Bashundhara City' },
-  { name: 'Square Hospital', icon: '🏥', label: 'Square Hospital' },
-  { name: 'Evercare Hospital', icon: '🏥', label: 'Evercare Hospital' },
-  { name: 'Lalbagh Fort', icon: '🏛️', label: 'Lalbagh Fort' },
-  { name: 'Hatirjheel Lake', icon: '🌊', label: 'Hatirjheel' },
-  { name: 'Dhanmondi Lake', icon: '🌳', label: 'Dhanmondi Lake' },
-  { name: 'BRAC University', icon: '🎓', label: 'BRAC University' }
+// ============================================================================
+// Google Maps Style Category Quick Filters
+// ============================================================================
+export const GOOGLE_MAP_CATEGORIES = [
+  { id: 'transit', label: 'Transit / Bus', icon: '🚏', query: 'bus stop' },
+  { id: 'dining', label: 'Restaurants', icon: '🍽️', query: 'restaurant' },
+  { id: 'hospital', label: 'Hospitals', icon: '🏥', query: 'hospital' },
+  { id: 'shopping', label: 'Shopping', icon: '🛍️', query: 'shopping mall' },
+  { id: 'education', label: 'Schools', icon: '🎓', query: 'school college university' },
+  { id: 'park', label: 'Parks & Lakes', icon: '🌳', query: 'park lake' },
+  { id: 'mosque', label: 'Mosques', icon: '🕌', query: 'mosque' },
 ];
 
-// Helper to identify landmark category, icon, and label like Google Maps
-export function getLandmarkMeta(item) {
-  const c = item.class || '';
-  const t = item.type || '';
+// ============================================================================
+// Curated Fast-Lookup Database for Famous Dhaka Landmarks, Roads & Blocks
+// (Instant offline-grade search fallback that matches Google Maps colloquial searches)
+// ============================================================================
+export const DHAKA_LANDMARKS_DB = [
+  {
+    name: 'Dhanmondi 27 Bus Stop',
+    subtitle: 'Mirpur Road, Sobhanbag, Dhanmondi, Dhaka',
+    road: 'Mirpur Road (Old 27)',
+    block: 'Dhanmondi',
+    city: 'Dhaka',
+    state: 'Dhaka Division',
+    zipCode: '1209',
+    lat: 23.756032,
+    lng: 90.375721,
+    category: 'Bus Stop / Transit',
+    icon: '🚏',
+    keywords: ['dhanmondi 27', 'old 27', '27 bus stop', 'sobhanbag 27', '27 stand', 'dhanmondi 27 no']
+  },
+  {
+    name: 'Dhanmondi 27 Police Box',
+    subtitle: 'Old 27 Crossing, Mirpur Road, Dhanmondi, Dhaka',
+    road: 'Old 27 (Road 16)',
+    block: 'Dhanmondi',
+    city: 'Dhaka',
+    state: 'Dhaka Division',
+    zipCode: '1209',
+    lat: 23.756200,
+    lng: 90.375500,
+    category: 'Police Box / Landmark',
+    icon: '🏛️',
+    keywords: ['dhanmondi 27', 'police box 27', '27 police', 'dhanmondi 27 police box']
+  },
+  {
+    name: 'Road 27 (Old) / Road 16',
+    subtitle: 'Dhanmondi Residential Area, Dhaka 1209',
+    road: 'Road 16 (Old 27)',
+    block: 'Dhanmondi R/A',
+    city: 'Dhaka',
+    state: 'Dhaka Division',
+    zipCode: '1209',
+    lat: 23.755800,
+    lng: 90.374200,
+    category: 'Road / Street',
+    icon: '🛣️',
+    keywords: ['dhanmondi 27', 'road 27', 'road 16', 'dhanmondi road 27', 'road 27 old']
+  },
+  {
+    name: '27 Dhanmondi Lake Walkway & Park',
+    subtitle: 'Dhanmondi Lake West Side, Dhanmondi, Dhaka',
+    road: 'Lake West Road',
+    block: 'Dhanmondi',
+    city: 'Dhaka',
+    state: 'Dhaka Division',
+    zipCode: '1209',
+    lat: 23.754800,
+    lng: 90.372900,
+    category: 'Park / Lake / Nature',
+    icon: '🌳',
+    keywords: ['dhanmondi 27', '27 lake', 'dhanmondi 27 lake', 'lake road 27']
+  },
+  {
+    name: 'Dhanmondi 32 Memorial & Lake',
+    subtitle: 'Road 32, Dhanmondi Residential Area, Dhaka',
+    road: 'Road 32',
+    block: 'Dhanmondi R/A',
+    city: 'Dhaka',
+    state: 'Dhaka Division',
+    zipCode: '1209',
+    lat: 23.751300,
+    lng: 90.377700,
+    category: 'Landmark / Heritage',
+    icon: '🏛️',
+    keywords: ['dhanmondi 32', 'road 32', '32 museum', 'bangabandhu museum', '32 lake']
+  },
+  {
+    name: 'Dhanmondi 32 Bus Stop',
+    subtitle: 'Mirpur Road, Sukrabad / Dhanmondi 32, Dhaka',
+    road: 'Mirpur Road',
+    block: 'Dhanmondi / Sukrabad',
+    city: 'Dhaka',
+    state: 'Dhaka Division',
+    zipCode: '1209',
+    lat: 23.751900,
+    lng: 90.378900,
+    category: 'Bus Stop / Transit',
+    icon: '🚏',
+    keywords: ['dhanmondi 32 bus stop', '32 bus stop', 'dhanmondi 32 stand']
+  },
+  {
+    name: 'Road 8A Dhanmondi',
+    subtitle: 'Dhanmondi Residential Area, Dhaka 1209',
+    road: 'Road 8A',
+    block: 'Dhanmondi R/A',
+    city: 'Dhaka',
+    state: 'Dhaka Division',
+    zipCode: '1209',
+    lat: 23.748300,
+    lng: 90.372500,
+    category: 'Road / Street',
+    icon: '🛣️',
+    keywords: ['road 8a', 'dhanmondi 8a', '8a dhanmondi', 'road 8a dhanmondi']
+  },
+  {
+    name: 'Dhanmondi 15 Bus Stop / Staff Quarter',
+    subtitle: 'Satmasjid Road / Road 8A, Dhanmondi, Dhaka',
+    road: 'Satmasjid Road',
+    block: 'Dhanmondi',
+    city: 'Dhaka',
+    state: 'Dhaka Division',
+    zipCode: '1209',
+    lat: 23.746500,
+    lng: 90.371200,
+    category: 'Bus Stop / Transit',
+    icon: '🚏',
+    keywords: ['dhanmondi 15', '15 bus stop', 'road 15', '15 stand']
+  },
+  {
+    name: 'Dhanmondi 4 / Kalabagan',
+    subtitle: 'Road 4, Dhanmondi / Kalabagan, Dhaka',
+    road: 'Road 4',
+    block: 'Dhanmondi / Kalabagan',
+    city: 'Dhaka',
+    state: 'Dhaka Division',
+    zipCode: '1205',
+    lat: 23.744100,
+    lng: 90.381200,
+    category: 'Road / Street',
+    icon: '🛣️',
+    keywords: ['dhanmondi 4', 'road 4', 'dhanmondi road 4']
+  },
+  {
+    name: 'Dhanmondi Lake Park & Rabindra Sarobar',
+    subtitle: 'Road 8, Dhanmondi R/A, Dhaka 1205',
+    road: 'Road 8',
+    block: 'Dhanmondi R/A',
+    city: 'Dhaka',
+    state: 'Dhaka Division',
+    zipCode: '1205',
+    lat: 23.747800,
+    lng: 90.378900,
+    category: 'Park / Lake / Culture',
+    icon: '🌳',
+    keywords: ['rabindra sarobar', 'dhanmondi lake', 'lake park', 'road 8 lake']
+  },
+  {
+    name: 'Gulshan 2 Circle',
+    subtitle: 'Gulshan 2, Gulshan Avenue, Dhaka 1212',
+    road: 'Gulshan Avenue',
+    block: 'Gulshan 2',
+    city: 'Dhaka',
+    state: 'Dhaka Division',
+    zipCode: '1212',
+    lat: 23.792500,
+    lng: 90.415000,
+    category: 'Commercial / Circle',
+    icon: '🏢',
+    keywords: ['gulshan 2', 'gulshan 2 circle', 'gulshan golchokkor']
+  },
+  {
+    name: 'Gulshan 1 Circle',
+    subtitle: 'Gulshan 1, Gulshan Avenue, Dhaka 1212',
+    road: 'Gulshan Avenue',
+    block: 'Gulshan 1',
+    city: 'Dhaka',
+    state: 'Dhaka Division',
+    zipCode: '1212',
+    lat: 23.778800,
+    lng: 90.417200,
+    category: 'Commercial / Circle',
+    icon: '🏢',
+    keywords: ['gulshan 1', 'gulshan 1 circle', 'gulshan 1 golchokkor']
+  },
+  {
+    name: 'Banani 11 Commercial Hub',
+    subtitle: 'Road 11, Banani, Dhaka 1213',
+    road: 'Road 11',
+    block: 'Banani',
+    city: 'Dhaka',
+    state: 'Dhaka Division',
+    zipCode: '1213',
+    lat: 23.793700,
+    lng: 90.404500,
+    category: 'Shopping & Dining',
+    icon: '🛍️',
+    keywords: ['banani 11', 'road 11 banani', 'banani road 11']
+  },
+  {
+    name: 'Uttara Sector 3',
+    subtitle: 'Sector 3, Uttara Model Town, Dhaka 1230',
+    road: 'Rabindra Sarani / Road 2',
+    block: 'Sector 3, Uttara',
+    city: 'Dhaka',
+    state: 'Dhaka Division',
+    zipCode: '1230',
+    lat: 23.868700,
+    lng: 90.398600,
+    category: 'Block / Sector',
+    icon: '🏘️',
+    keywords: ['uttara sector 3', 'sector 3 uttara', 'uttara 3']
+  },
+  {
+    name: 'Bashundhara Block C',
+    subtitle: 'Block C, Bashundhara Residential Area, Dhaka',
+    road: 'Main Avenue, Block C',
+    block: 'Block C, Bashundhara R/A',
+    city: 'Dhaka',
+    state: 'Dhaka Division',
+    zipCode: '1229',
+    lat: 23.816400,
+    lng: 90.428500,
+    category: 'Block / Sector',
+    icon: '🏘️',
+    keywords: ['bashundhara block c', 'block c bashundhara', 'bashundhara c block']
+  },
+  {
+    name: 'Mirpur 10 Circle & Metro Station',
+    subtitle: 'Begum Rokeya Sarani, Mirpur 10, Dhaka 1216',
+    road: 'Begum Rokeya Sarani',
+    block: 'Mirpur 10',
+    city: 'Dhaka',
+    state: 'Dhaka Division',
+    zipCode: '1216',
+    lat: 23.807000,
+    lng: 90.368500,
+    category: 'Metro / Transit Station',
+    icon: '🚊',
+    keywords: ['mirpur 10', 'mirpur 10 circle', 'mirpur 10 metro', 'mirpur 10 golchokkor']
+  }
+];
 
+// Helper to identify categories, icons, and tags for roads, blocks, areas, and buildings
+export function getLandmarkMeta(item) {
+  const c = item.class || item.osm_key || '';
+  const t = item.type || item.osm_value || '';
+  const addr = item.address || item.properties || {};
+
+  // Transit
+  if (c === 'highway' && (t === 'bus_stop' || t === 'station') || t === 'bus_stop' || t === 'station' || t === 'subway_entrance' || t === 'halt') {
+    return { icon: '🚏', tag: 'Bus Stop / Transit' };
+  }
+  // Dining
+  if ((c === 'amenity' || c === 'tourism') && (t === 'restaurant' || t === 'cafe' || t === 'fast_food' || t === 'food_court' || t === 'bar')) {
+    return { icon: '🍽️', tag: 'Restaurant / Dining' };
+  }
+  // Healthcare
   if (c === 'amenity' && (t === 'hospital' || t === 'clinic' || t === 'pharmacy' || t === 'doctors')) {
     return { icon: '🏥', tag: 'Hospital / Healthcare' };
   }
+  // Shopping / Commercial
   if (c === 'shop' || t === 'mall' || t === 'supermarket' || t === 'department_store' || t === 'marketplace') {
-    return { icon: '🛍️', tag: 'Shopping Mall / Retail' };
+    return { icon: '🛍️', tag: 'Shopping / Retail' };
   }
-  if (c === 'amenity' && (t === 'university' || t === 'college' || t === 'school' || t === 'research_institute')) {
+  // Education
+  if (c === 'amenity' && (t === 'university' || t === 'college' || t === 'school' || t === 'kindergarten' || t === 'research_institute')) {
     return { icon: '🎓', tag: 'Education / Campus' };
   }
-  if (c === 'historic' || c === 'tourism' || t === 'museum' || t === 'monument' || t === 'memorial' || t === 'fort' || t === 'attraction') {
-    return { icon: '🏛️', tag: 'Historic Landmark / Museum' };
+  // Historic / Tourism / Government
+  if (c === 'historic' || c === 'tourism' || t === 'museum' || t === 'monument' || t === 'police' || t === 'townhall' || t === 'government') {
+    return { icon: '🏛️', tag: 'Landmark / Government' };
   }
-  if (c === 'leisure' || c === 'water' || t === 'park' || t === 'garden' || t === 'lake' || t === 'water' || t === 'stadium' || t === 'sports_centre') {
+  // Parks & Nature
+  if (c === 'leisure' || c === 'water' || t === 'park' || t === 'garden' || t === 'lake' || t === 'stadium' || t === 'sports_centre') {
     return { icon: '🌳', tag: 'Park / Lake / Nature' };
   }
-  if (c === 'tourism' && (t === 'hotel' || t === 'motel' || t === 'guest_house')) {
-    return { icon: '🏨', tag: 'Hotel / Hospitality' };
-  }
-  if (c === 'aeroway' || t === 'airport' || t === 'terminal') {
-    return { icon: '✈️', tag: 'Airport' };
-  }
-  if (c === 'building' || c === 'office' || t === 'commercial' || t === 'government') {
-    return { icon: '🏢', tag: 'Commercial / Landmark' };
-  }
+  // Worship
   if (c === 'amenity' && (t === 'place_of_worship' || t === 'mosque' || t === 'temple' || t === 'church')) {
     return { icon: '🕌', tag: 'Place of Worship' };
   }
-  if (c === 'amenity' && (t === 'restaurant' || t === 'cafe' || t === 'fast_food')) {
-    return { icon: '🍴', tag: 'Restaurant / Dining' };
+  // Roads and Streets
+  if (c === 'highway' || t === 'road' || t === 'residential' || t === 'primary' || t === 'secondary' || t === 'tertiary' || t === 'living_street' || t === 'street') {
+    return { icon: '🛣️', tag: 'Road / Street' };
   }
-  if (c === 'highway' || t === 'station' || t === 'bus_stop' || t === 'subway_entrance') {
-    return { icon: '🚏', tag: 'Transit / Station' };
+  // Blocks, Sectors, and Neighborhoods
+  if (t === 'suburb' || t === 'neighbourhood' || t === 'quarter' || t === 'block' || t === 'sector' || c === 'place') {
+    return { icon: '🏘️', tag: 'Block / Sector / Area' };
   }
-  return { icon: '📍', tag: 'Address / Area' };
+  // Buildings / Offices
+  if (c === 'building' || c === 'office' || t === 'commercial') {
+    return { icon: '🏢', tag: 'Building / Complex' };
+  }
+  // Default to Road if road address detail exists
+  if (addr.road || addr.street) {
+    return { icon: '🛣️', tag: 'Road / Street' };
+  }
+  return { icon: '📍', tag: 'Address / Location' };
 }
 
 // Helper to generate an OpenStreetMap location link from lat/lng
@@ -98,30 +343,12 @@ export function parseOsmCoordinates(text) {
     // If not a full URL, fallback to regex search
   }
 
-  const mlatMatch = trimmed.match(/mlat=([-\d.]+)/);
-  const mlonMatch = trimmed.match(/mlon=([-\d.]+)/);
-  if (mlatMatch && mlonMatch) {
-    const lat = Number(mlatMatch[1]);
-    const lng = Number(mlonMatch[1]);
-    if (!isNaN(lat) && !isNaN(lng)) {
-      return { lat: Number(lat.toFixed(6)), lng: Number(lng.toFixed(6)) };
-    }
-  }
-
-  const mapHashMatch = trimmed.match(/#map=\d+\/([-\d.]+)\/([-\d.]+)/);
-  if (mapHashMatch) {
-    const lat = Number(mapHashMatch[1]);
-    const lng = Number(mapHashMatch[2]);
-    if (!isNaN(lat) && !isNaN(lng)) {
-      return { lat: Number(lat.toFixed(6)), lng: Number(lng.toFixed(6)) };
-    }
-  }
-
-  const commaMatch = trimmed.match(/^([-\d.]+)\s*,\s*([-\d.]+)$/);
-  if (commaMatch) {
-    const lat = Number(commaMatch[1]);
-    const lng = Number(commaMatch[2]);
-    if (!isNaN(lat) && !isNaN(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) {
+  const coordRegex = /(-?\d{1,3}\.\d+)[,\s]+(-?\d{1,3}\.\d+)/;
+  const match = trimmed.match(coordRegex);
+  if (match && match.length === 3) {
+    const lat = parseFloat(match[1]);
+    const lng = parseFloat(match[2]);
+    if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
       return { lat: Number(lat.toFixed(6)), lng: Number(lng.toFixed(6)) };
     }
   }
@@ -129,38 +356,66 @@ export function parseOsmCoordinates(text) {
   return null;
 }
 
-// Custom Leaflet marker icon using inline SVG
-const createMarkerIcon = (color = '#2563eb') => {
+// Custom modern SVG map marker (Google Maps style pin)
+function createMarkerIcon(color = '#2563eb') {
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 44" width="34" height="46">
+      <defs>
+        <filter id="shadow" x="-20%" y="-10%" width="140%" height="130%">
+          <feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="#000000" flood-opacity="0.35"/>
+        </filter>
+      </defs>
+      <path d="M16 2 C8.268 2 2 8.268 2 16 C2 26 16 42 16 42 C16 42 30 26 30 16 C30 8.268 23.732 2 16 2 Z"
+            fill="${color}" stroke="#ffffff" stroke-width="2" filter="url(#shadow)" />
+      <circle cx="16" cy="15" r="5.5" fill="#ffffff"/>
+      <circle cx="16" cy="15" r="2.5" fill="${color}"/>
+    </svg>
+  `;
   return L.divIcon({
-    className: 'custom-leaflet-marker',
-    html: `
-      <div style="position: relative; width: 34px; height: 44px; transform: translate(-50%, -100%); cursor: pointer;">
-        <svg viewBox="0 0 384 512" width="34" height="44" style="filter: drop-shadow(0 3px 6px rgba(0,0,0,0.45));">
-          <path fill="${color}" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0z"/>
-          <circle cx="192" cy="192" r="75" fill="#ffffff"/>
-        </svg>
-      </div>
-    `,
-    iconSize: [0, 0],
-    iconAnchor: [0, 0],
-    popupAnchor: [0, -42]
+    html: svg,
+    className: 'custom-leaflet-marker-pin',
+    iconSize: [34, 46],
+    iconAnchor: [17, 46],
+    popupAnchor: [0, -44],
   });
-};
+}
 
+// Leaflet click handler component
 function MapClickHandler({ onSelectLocation, isLocked }) {
   useMapEvents({
     click(e) {
-      if (!isLocked) {
-        onSelectLocation({
-          lat: Number(e.latlng.lat.toFixed(6)),
-          lng: Number(e.latlng.lng.toFixed(6))
-        });
-      }
-    }
+      if (isLocked) return;
+      onSelectLocation({ lat: e.latlng.lat, lng: e.latlng.lng });
+    },
   });
   return null;
 }
 
+// Smooth Google Maps Style FlyTo Controller
+function MapFlyController({ position, zoom }) {
+  const map = useMap();
+  const prevPositionRef = useRef(null);
+
+  useEffect(() => {
+    if (position) {
+      const [lat, lng] = position;
+      const prev = prevPositionRef.current;
+      
+      // If position actually changed, execute smooth Google Maps flyTo
+      if (!prev || prev[0] !== lat || prev[1] !== lng) {
+        prevPositionRef.current = position;
+        map.flyTo(position, zoom || 17, {
+          duration: 1.2,
+          easeLinearity: 0.25,
+        });
+      }
+    }
+  }, [position, zoom, map]);
+
+  return null;
+}
+
+// Map invalidation resizer
 function MapResizer() {
   const map = useMap();
   useEffect(() => {
@@ -172,85 +427,58 @@ function MapResizer() {
   return null;
 }
 
-function MapCenterController({ position, zoom = 16 }) {
-  const map = useMap();
-  const prevPosRef = useRef(null);
-
-  useEffect(() => {
-    if (position && !isNaN(position[0]) && !isNaN(position[1])) {
-      const prev = prevPosRef.current;
-      if (!prev || prev[0] !== position[0] || prev[1] !== position[1]) {
-        prevPosRef.current = position;
-        map.flyTo(position, 16, { duration: 1.2 });
-      }
-    }
-  }, [position, zoom, map]);
-
-  return null;
-}
-
 export default function LocationPickerMap({
   initialLocation = null,
-  onLocationChange,
-  isConfirmed: parentIsConfirmed = null,
+  onLocationChange = null,
+  isConfirmed = false,
   onConfirmChange = null,
   locationLink = '',
   onLocationLinkChange = null,
   onAddressSelect = null,
-  required = true,
+  required = false,
   title = "Property Location"
 }) {
-  const initialLat = initialLocation?.latitude ?? initialLocation?.coordinates?.latitude ?? null;
-  const initialLng = initialLocation?.longitude ?? initialLocation?.coordinates?.longitude ?? null;
-
   const [position, setPosition] = useState(() => {
-    if (initialLat !== null && initialLng !== null && !isNaN(Number(initialLat)) && !isNaN(Number(initialLng))) {
-      return [Number(initialLat), Number(initialLng)];
+    if (initialLocation?.latitude && initialLocation?.longitude) {
+      return [Number(initialLocation.latitude), Number(initialLocation.longitude)];
+    }
+    if (initialLocation?.coordinates?.latitude && initialLocation?.coordinates?.longitude) {
+      return [Number(initialLocation.coordinates.latitude), Number(initialLocation.coordinates.longitude)];
     }
     return null;
   });
 
-  const [selectedLandmark, setSelectedLandmark] = useState(null);
-
-  const [internalLink, setInternalLink] = useState(() => {
-    if (locationLink) return locationLink;
-    if (initialLat !== null && initialLng !== null) {
-      return generateOsmLink(initialLat, initialLng);
-    }
-    return '';
-  });
-
-  const activeLink = locationLink !== undefined && locationLink !== null && locationLink !== '' 
-    ? locationLink 
-    : internalLink;
-
+  const [internalLink, setInternalLink] = useState(locationLink || '');
   const [copied, setCopied] = useState(false);
+  const [localConfirmed, setLocalConfirmed] = useState(isConfirmed);
 
-  // Search state
+  // Real-time Road / Block / Address resolution state
+  const [resolvedLocation, setResolvedLocation] = useState(null);
+  const [isResolvingAddress, setIsResolvingAddress] = useState(false);
+
+  // Google Maps Search Engine state
   const [searchQuery, setSearchQuery] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
-  const [searchError, setSearchError] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
   const [showResultsDropdown, setShowResultsDropdown] = useState(false);
-  const [activeChipTab, setActiveChipTab] = useState('landmarks'); // 'landmarks' or 'areas'
-  const searchContainerRef = useRef(null);
-  const debounceTimerRef = useRef(null);
+  const [searchError, setSearchError] = useState('');
+  const [activeCategory, setActiveCategory] = useState(null);
+  const [isFocused, setIsFocused] = useState(false);
 
-  const [localConfirmed, setLocalConfirmed] = useState(() => {
-    if (initialLat !== null && initialLng !== null) {
-      return true;
-    }
-    return false;
-  });
-
-  const isConfirmed = parentIsConfirmed !== null ? parentIsConfirmed : localConfirmed;
   const markerRef = useRef(null);
+  const debounceTimerRef = useRef(null);
+  const searchContainerRef = useRef(null);
 
-  // Close search dropdown on click outside
+  const activeConfirmed = onConfirmChange ? isConfirmed : localConfirmed;
+  const activeLink = locationLink || internalLink;
+  const centerCoordinates = position || DHAKA_COORDINATES;
+
+  // Click outside to close search dropdown
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
         setShowResultsDropdown(false);
+        setIsFocused(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -289,19 +517,101 @@ export default function LocationPickerMap({
   }, [locationLink]);
 
   const markerIcon = useMemo(() => {
-    return createMarkerIcon(isConfirmed ? '#10b981' : '#2563eb');
-  }, [isConfirmed]);
+    return createMarkerIcon(activeConfirmed ? '#10b981' : '#2563eb');
+  }, [activeConfirmed]);
+
+  // Real-time Reverse Geocoding: Look up exact road, block, sector, neighborhood, and city from OpenStreetMap
+  const reverseGeocode = useCallback(async (lat, lng) => {
+    setIsResolvingAddress(true);
+    try {
+      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=en`;
+      const response = await fetch(url, {
+        headers: { 'Accept': 'application/json' }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.address) {
+          const addr = data.address;
+
+          // Road identification (e.g. Road 8A, Mirpur Road, Pragati Sarani)
+          const road = addr.road || addr.pedestrian || addr.street || addr.highway || addr.path || '';
+
+          // Block / Sector / Neighborhood (e.g. Block C, Sector 4, Dhanmondi, Bashundhara R/A)
+          const block = addr.block || addr.neighbourhood || addr.suburb || addr.quarter || addr.residential || '';
+
+          // House / Plot / Building number
+          const house = addr.house_number || addr.building || '';
+
+          // City & State
+          const city = addr.city || addr.town || addr.city_district || addr.county || 'Dhaka';
+          const state = addr.state || 'Dhaka Division';
+          const zipCode = addr.postcode || '';
+
+          // Build precise formatted street address
+          let formattedStreet = '';
+          if (house && road) {
+            formattedStreet = `House ${house}, ${road}`;
+          } else if (road) {
+            formattedStreet = road;
+          }
+          if (block && formattedStreet) {
+            formattedStreet = `${formattedStreet}, ${block}`;
+          } else if (block) {
+            formattedStreet = block;
+          }
+          if (!formattedStreet) {
+            formattedStreet = data.display_name.split(',').slice(0, 3).join(',').trim();
+          }
+
+          const primaryName = road || block || data.display_name.split(',')[0];
+          const info = {
+            name: primaryName,
+            road: road,
+            block: block,
+            fullName: data.display_name,
+            formattedStreet: formattedStreet,
+            city: city,
+            state: state,
+            zipCode: zipCode,
+            category: road ? 'Road / Street' : (block ? 'Block / Sector' : 'Identified Location'),
+            icon: road ? '🛣️' : (block ? '🏘️' : '📍')
+          };
+
+          setResolvedLocation(info);
+
+          // Update parent form's address, city, state, zipCode automatically in real time!
+          if (onAddressSelect) {
+            onAddressSelect({
+              address: formattedStreet,
+              city: city,
+              state: state,
+              zipCode: zipCode,
+              landmark: primaryName
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Real-time reverse geocode error:', err);
+    } finally {
+      setIsResolvingAddress(false);
+    }
+  }, [onAddressSelect]);
 
   // Update location and auto-generate OSM link
-  const updateLocationState = (lat, lng, confirmed = false, landmarkInfo = null) => {
+  const updateLocationState = (lat, lng, confirmed = false, locationMeta = null) => {
     const roundedLat = Number(lat.toFixed(6));
     const roundedLng = Number(lng.toFixed(6));
     const newLink = generateOsmLink(roundedLat, roundedLng);
 
     setPosition([roundedLat, roundedLng]);
     setInternalLink(newLink);
-    if (landmarkInfo) {
-      setSelectedLandmark(landmarkInfo);
+
+    if (locationMeta) {
+      setResolvedLocation(locationMeta);
+    } else {
+      // Trigger real-time reverse lookup for road and block
+      reverseGeocode(roundedLat, roundedLng);
     }
 
     if (onLocationLinkChange) {
@@ -314,7 +624,7 @@ export default function LocationPickerMap({
         longitude: roundedLng,
         location_link: newLink,
         isConfirmed: confirmed,
-        landmark: landmarkInfo
+        landmark: locationMeta
       });
     }
 
@@ -351,7 +661,7 @@ export default function LocationPickerMap({
           longitude: position[1],
           location_link: activeLink || generateOsmLink(position[0], position[1]),
           isConfirmed: true,
-          landmark: selectedLandmark
+          landmark: resolvedLocation
         });
       }
     }
@@ -370,12 +680,14 @@ export default function LocationPickerMap({
         longitude: position[1],
         location_link: activeLink,
         isConfirmed: false,
-        landmark: selectedLandmark
+        landmark: resolvedLocation
       });
     }
   };
 
-  // Search landmarks & addresses like Google Maps
+  // ============================================================================
+  // GOOGLE MAPS STYLE DUAL-ENGINE SEARCH (Photon Elasticsearch + Curated DB + Nominatim)
+  // ============================================================================
   const executeSearch = useCallback(async (queryText, isExplicit = false) => {
     const q = (queryText !== undefined ? queryText : searchQuery).trim();
     if (!q || q.length < 2) {
@@ -388,64 +700,183 @@ export default function LocationPickerMap({
     setSearchError('');
     setShowResultsDropdown(true);
 
-    try {
-      // 1. Primary search with countrycodes=bd for Bangladesh landmarks/areas
-      const urlWithCountry = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=bd&limit=7&accept-language=en&addressdetails=1`;
-      const response = await fetch(urlWithCountry, {
-        headers: { 'Accept': 'application/json' }
+    const qLower = q.toLowerCase();
+    const aggregatedResults = [];
+    const seenCoordKeys = new Set();
+
+    const addCandidate = (item) => {
+      const key = `${item.title.toLowerCase()}_${item.lat.toFixed(4)}_${item.lng.toFixed(4)}`;
+      if (!seenCoordKeys.has(key)) {
+        seenCoordKeys.add(key);
+        aggregatedResults.push(item);
+      }
+    };
+
+    // 1. Check Fast Curated Landmarks DB first (handles colloquial queries like "dhanmondi 27", "road 27", "dhanmondi 32")
+    const dbMatches = DHAKA_LANDMARKS_DB.filter(item => {
+      const nameMatch = item.name.toLowerCase().includes(qLower);
+      const subMatch = item.subtitle.toLowerCase().includes(qLower);
+      const kwMatch = item.keywords.some(k => k.includes(qLower) || qLower.includes(k));
+      return nameMatch || subMatch || kwMatch;
+    });
+
+    dbMatches.forEach(item => {
+      addCandidate({
+        id: `curated-${item.name}-${item.lat}`,
+        title: item.name,
+        subtitle: item.subtitle,
+        road: item.road,
+        block: item.block,
+        city: item.city,
+        state: item.state,
+        zipCode: item.zipCode,
+        category: item.category,
+        icon: item.icon,
+        lat: item.lat,
+        lng: item.lng,
+        isCurated: true,
       });
+    });
 
-      if (!response.ok) throw new Error('Search failed');
-      let data = await response.json();
+    // 2. Query Live OpenStreetMap Search Engine (Photon Elasticsearch API + Nominatim API)
+    try {
+      const currentLat = position ? position[0] : DHAKA_COORDINATES[0];
+      const currentLon = position ? position[1] : DHAKA_COORDINATES[1];
 
-      // 2. If no results or fewer than 2, do global/Dhaka fallback query
-      if (!Array.isArray(data) || data.length === 0) {
-        const fallbackUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q + ' Dhaka')}&limit=7&accept-language=en&addressdetails=1`;
-        const fbRes = await fetch(fallbackUrl);
-        const fbData = await fbRes.json();
-        if (Array.isArray(fbData) && fbData.length > 0) {
-          data = fbData;
-        } else {
-          // 3. Raw global query as final fallback
-          const rawUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=7&accept-language=en&addressdetails=1`;
-          const rawRes = await fetch(rawUrl);
-          const rawData = await rawRes.json();
-          data = Array.isArray(rawData) ? rawData : [];
-        }
+      // Prepare search queries including colloquial number variations (e.g. "dhanmondi 27" -> "road 27 dhanmondi")
+      const queriesToTry = [q];
+      if (/\d+/.test(q)) {
+        queriesToTry.push(q.replace(/(\d+)/, 'road $1'));
       }
 
-      if (data && data.length > 0) {
-        setSearchResults(data);
+      // Execute live Photon queries with Dhaka / current viewport bias
+      const photonPromises = queriesToTry.map(queryItem => {
+        const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(queryItem)}&lat=${currentLat}&lon=${currentLon}&limit=8`;
+        return fetch(photonUrl).then(r => r.ok ? r.json() : null).catch(() => null);
+      });
+
+      // Execute live Nominatim query in parallel
+      const nomUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=bd&limit=6&addressdetails=1`;
+      const nomPromise = fetch(nomUrl, { headers: { 'Accept': 'application/json' } })
+        .then(r => r.ok ? r.json() : null)
+        .catch(() => null);
+
+      const [photonResults, nomResults] = await Promise.all([
+        Promise.all(photonPromises),
+        nomPromise
+      ]);
+
+      // Process Photon features
+      if (Array.isArray(photonResults)) {
+        photonResults.forEach(pData => {
+          if (pData && Array.isArray(pData.features)) {
+            pData.features.forEach(f => {
+              const p = f.properties || {};
+              const coords = f.geometry?.coordinates;
+              if (coords && coords.length >= 2) {
+                const lng = coords[0];
+                const lat = coords[1];
+                const meta = getLandmarkMeta(f);
+
+                const primaryName = p.name || p.street || q;
+                const road = p.street || (p.osm_key === 'highway' ? p.name : '') || '';
+                const block = p.district || p.suburb || p.neighbourhood || '';
+                const city = p.city || 'Dhaka';
+                const state = p.state || 'Dhaka Division';
+                const zipCode = p.postcode || '';
+
+                const subDetails = [road, block, city].filter(Boolean).join(', ');
+
+                addCandidate({
+                  id: `photon-${p.osm_id || Math.random()}`,
+                  title: primaryName,
+                  subtitle: subDetails || `${city}, Bangladesh`,
+                  road: road,
+                  block: block,
+                  city: city,
+                  state: state,
+                  zipCode: zipCode,
+                  category: meta.tag,
+                  icon: meta.icon,
+                  lat: lat,
+                  lng: lng,
+                  isCurated: false,
+                });
+              }
+            });
+          }
+        });
+      }
+
+      // Process Nominatim results
+      if (Array.isArray(nomResults)) {
+        nomResults.forEach(item => {
+          const lat = parseFloat(item.lat);
+          const lng = parseFloat(item.lon);
+          if (!isNaN(lat) && !isNaN(lng)) {
+            const addr = item.address || {};
+            const meta = getLandmarkMeta(item);
+            const road = addr.road || addr.street || '';
+            const block = addr.block || addr.neighbourhood || addr.suburb || '';
+            const city = addr.city || addr.town || addr.city_district || 'Dhaka';
+            const state = addr.state || 'Dhaka Division';
+            const zipCode = addr.postcode || '';
+            const primaryName = road || block || item.name || item.display_name.split(',')[0];
+
+            addCandidate({
+              id: `nom-${item.place_id || Math.random()}`,
+              title: primaryName,
+              subtitle: item.display_name.split(',').slice(0, 4).join(', '),
+              road: road,
+              block: block,
+              city: city,
+              state: state,
+              zipCode: zipCode,
+              category: meta.tag,
+              icon: meta.icon,
+              lat: lat,
+              lng: lng,
+              isCurated: false,
+            });
+          }
+        });
+      }
+
+      if (aggregatedResults.length > 0) {
+        setSearchResults(aggregatedResults);
         setSearchError('');
       } else {
         setSearchResults([]);
         if (isExplicit) {
-          setSearchError(`No landmarks or places found for "${q}". Try another landmark name or area.`);
+          setSearchError(`No places found for "${q}". Try typing the road name, block, or area.`);
         }
       }
     } catch (err) {
       console.error('Location search error:', err);
-      if (isExplicit) {
-        setSearchError('Search is taking longer than usual. Please try again or click the map directly.');
+      if (aggregatedResults.length > 0) {
+        setSearchResults(aggregatedResults);
+      } else if (isExplicit) {
+        setSearchError('Search request timed out. Please try clicking directly on the map.');
       }
     } finally {
       setIsSearching(false);
     }
-  }, [searchQuery]);
+  }, [searchQuery, position]);
 
-  // Live auto-complete search as user types (like Google Maps)
+  // Live auto-complete search as user types
   const handleInputChange = (e) => {
     const text = e.target.value;
     setSearchQuery(text);
+    setActiveCategory(null);
 
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
 
-    if (text.trim().length >= 3) {
+    if (text.trim().length >= 2) {
       debounceTimerRef.current = setTimeout(() => {
         executeSearch(text, false);
-      }, 350);
+      }, 300);
     } else {
       setSearchResults([]);
       setShowResultsDropdown(false);
@@ -458,46 +889,65 @@ export default function LocationPickerMap({
     executeSearch(searchQuery, true);
   };
 
-  const handleQuickChipClick = (query) => {
-    setSearchQuery(query);
-    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+  // Google Maps Category Chip Quick Search
+  const handleCategoryClick = (cat) => {
+    setActiveCategory(cat.id);
+    // Search for this category near currently pinned location or Dhaka center
+    const areaName = resolvedLocation?.block || resolvedLocation?.name || 'Dhaka';
+    const query = `${cat.query} ${areaName}`;
+    setSearchQuery(cat.label);
     executeSearch(query, true);
   };
 
-  // When a user selects a landmark or place result from the dropdown
+  // When user selects a road, block, or location result from the Google Maps dropdown
   const handleSelectSearchResult = (result) => {
-    const lat = parseFloat(result.lat);
-    const lng = parseFloat(result.lon);
+    const lat = Number(result.lat);
+    const lng = Number(result.lng);
+
     if (!isNaN(lat) && !isNaN(lng)) {
-      const primaryName = result.name || result.display_name.split(',')[0];
-      const meta = getLandmarkMeta(result);
-      const landmarkInfo = {
-        name: primaryName,
-        fullName: result.display_name,
-        category: meta.tag,
-        icon: meta.icon,
-        address: result.address
+      // Build structured street address
+      let formattedStreet = '';
+      if (result.road && result.block) {
+        formattedStreet = `${result.road}, ${result.block}`;
+      } else if (result.road) {
+        formattedStreet = result.road;
+      } else if (result.block) {
+        formattedStreet = result.block;
+      } else {
+        formattedStreet = result.title;
+      }
+
+      const locationInfo = {
+        name: result.title,
+        road: result.road || '',
+        block: result.block || '',
+        fullName: `${result.title}, ${result.subtitle}`,
+        formattedStreet: formattedStreet,
+        city: result.city || 'Dhaka',
+        state: result.state || 'Dhaka Division',
+        zipCode: result.zipCode || '',
+        category: result.category,
+        icon: result.icon
       };
 
-      updateLocationState(lat, lng, false, landmarkInfo);
+      updateLocationState(lat, lng, false, locationInfo);
       setShowResultsDropdown(false);
-      setSearchResults([]);
-      setSearchQuery(primaryName);
+      setIsFocused(false);
+      setSearchQuery(result.title);
 
-      // If parent supplied onAddressSelect, offer address details
-      if (onAddressSelect && result.display_name) {
+      if (onAddressSelect) {
         onAddressSelect({
-          address: result.display_name,
-          city: result.address?.city || result.address?.town || result.address?.suburb || 'Dhaka',
-          state: result.address?.state || 'Dhaka Division',
-          zipCode: result.address?.postcode || '',
-          landmark: primaryName
+          address: formattedStreet,
+          city: result.city || 'Dhaka',
+          state: result.state || 'Dhaka Division',
+          zipCode: result.zipCode || '',
+          landmark: result.title
         });
       }
     }
   };
 
-  // Handle manual edits or pasted links in the OpenStreetMap link input
+  // Handle manual edits or pasted links in OpenStreetMap link input
   const handleLinkInputChange = (e) => {
     const val = e.target.value;
     setInternalLink(val);
@@ -508,6 +958,7 @@ export default function LocationPickerMap({
     const parsed = parseOsmCoordinates(val);
     if (parsed) {
       setPosition([parsed.lat, parsed.lng]);
+      reverseGeocode(parsed.lat, parsed.lng);
       if (onLocationChange) {
         onLocationChange({
           latitude: parsed.lat,
@@ -525,58 +976,55 @@ export default function LocationPickerMap({
   };
 
   const handleCopyLink = () => {
-    if (activeLink) {
-      navigator.clipboard.writeText(activeLink);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
+    if (!activeLink) return;
+    navigator.clipboard.writeText(activeLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
-  const centerCoordinates = position || DHAKA_COORDINATES;
-
   return (
-    <div className="location-picker-container" id="property-location-section">
-      {/* Module Header */}
+    <div className="location-picker-container">
+      {/* Header */}
       <div className="location-picker-header">
-        <h4 className="location-picker-title">
-          📍 {title} {required && <span style={{ color: '#ef4444' }}>*</span>}
-        </h4>
-        {position && (
-          <span className={`location-status-badge ${isConfirmed ? 'confirmed' : 'pending'}`}>
-            {isConfirmed ? '✓ Location Confirmed' : '⚠️ Pending Confirmation'}
-          </span>
-        )}
+        <h3 className="location-picker-title">
+          <span>📍</span> {title} {required && <span className="location-required">*</span>}
+        </h3>
+        <div className={`location-status-badge ${activeConfirmed ? 'confirmed' : 'pending'}`}>
+          {activeConfirmed ? '✓ Location Confirmed' : '⚠️ Location Unconfirmed'}
+        </div>
       </div>
 
-      <p className={`location-picker-instructions ${isConfirmed ? 'locked' : ''}`}>
-        {isConfirmed ? (
-          '✓ Location is locked and confirmed. Click "Edit Location" below if you need to adjust.'
-        ) : position ? (
-          'Search landmarks/areas below or drag the pin to pinpoint the exact building. Then click "Confirm Location".'
+      <p className={`location-picker-instructions ${activeConfirmed ? 'locked' : ''}`}>
+        {activeConfirmed ? (
+          '✓ Property location confirmed on real-time map. Click "Edit Location" below to make changes.'
         ) : (
-          'Search like Google Maps by landmark (e.g. Jamuna Future Park, Square Hospital) or area, or click the map.'
+          '⚡ Search any road, block, bus stop, landmark (like Google Maps), or click directly anywhere on the map.'
         )}
       </p>
 
-      {/* Google Maps Style Landmark & Location Search Bar */}
-      {!isConfirmed && (
+      {/* Google Maps Style Search & Filter Bar */}
+      {!activeConfirmed && (
         <div className="location-search-wrapper" ref={searchContainerRef}>
           <form className="location-search-form" onSubmit={handleSearchSubmit}>
             <div className="search-input-group">
-              <span className="search-icon">🔍</span>
+              <span className="search-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+              </span>
               <input
                 type="text"
                 className="location-search-input"
-                placeholder="Search landmarks (e.g. Jamuna Future Park, Square Hospital, Lalbagh Fort, Dhanmondi 32)..."
+                placeholder="Search Google Maps style: e.g. Dhanmondi 27, Road 8A, Gulshan 2, Uttara 3..."
                 value={searchQuery}
                 onChange={handleInputChange}
                 onFocus={() => {
-                  if (searchResults.length > 0) setShowResultsDropdown(true);
+                  setIsFocused(true);
+                  setShowResultsDropdown(true);
                 }}
               />
-              {isSearching && (
-                <div className="search-input-spinner" title="Searching..."></div>
-              )}
+              {isSearching && <span className="search-input-spinner"></span>}
               {searchQuery && !isSearching && (
                 <button
                   type="button"
@@ -585,6 +1033,7 @@ export default function LocationPickerMap({
                     setSearchQuery('');
                     setSearchResults([]);
                     setShowResultsDropdown(false);
+                    setActiveCategory(null);
                   }}
                   title="Clear search"
                 >
@@ -601,58 +1050,27 @@ export default function LocationPickerMap({
             </button>
           </form>
 
-          {/* Landmark / Area Filter Tabs & Quick Chips (Google Maps Style) */}
-          <div className="landmark-chips-section">
-            <div className="chips-tab-row">
+          {/* Google Maps Quick Filter Category Chips */}
+          <div className="gmap-category-pills-bar">
+            {GOOGLE_MAP_CATEGORIES.map(cat => (
               <button
                 type="button"
-                className={`chips-tab-btn ${activeChipTab === 'landmarks' ? 'active' : ''}`}
-                onClick={() => setActiveChipTab('landmarks')}
+                key={cat.id}
+                className={`gmap-category-pill ${activeCategory === cat.id ? 'active' : ''}`}
+                onClick={() => handleCategoryClick(cat)}
               >
-                🏛️ Famous Landmarks
+                <span className="gmap-cat-icon">{cat.icon}</span>
+                <span>{cat.label}</span>
               </button>
-              <button
-                type="button"
-                className={`chips-tab-btn ${activeChipTab === 'areas' ? 'active' : ''}`}
-                onClick={() => setActiveChipTab('areas')}
-              >
-                📍 Popular Areas
-              </button>
-            </div>
-
-            <div className="location-quick-chips">
-              {activeChipTab === 'landmarks' ? (
-                FAMOUS_LANDMARKS.map((lm) => (
-                  <button
-                    key={lm.name}
-                    type="button"
-                    className="quick-chip-btn landmark-chip"
-                    onClick={() => handleQuickChipClick(lm.name)}
-                  >
-                    <span>{lm.icon}</span> {lm.label}
-                  </button>
-                ))
-              ) : (
-                QUICK_AREAS.map((area) => (
-                  <button
-                    key={area}
-                    type="button"
-                    className="quick-chip-btn"
-                    onClick={() => handleQuickChipClick(area)}
-                  >
-                    📍 {area}
-                  </button>
-                ))
-              )}
-            </div>
+            ))}
           </div>
 
-          {/* Google Maps Style Autocomplete Search Dropdown */}
+          {/* Autocomplete Search Dropdown (Google Maps Floating Style) */}
           {showResultsDropdown && (
             <div className="location-search-dropdown">
               {isSearching && searchResults.length === 0 && (
                 <div className="search-dropdown-loading">
-                  <div className="search-spinner"></div> Searching landmarks & locations...
+                  <div className="search-spinner"></div> Searching Google Maps places & roads in real time...
                 </div>
               )}
               {searchError && (
@@ -660,43 +1078,82 @@ export default function LocationPickerMap({
                   {searchError}
                 </div>
               )}
+
+              {/* Real-time search results list */}
               {searchResults.length > 0 && (
                 <ul className="search-dropdown-list">
-                  {searchResults.map((result, idx) => {
-                    const primaryName = result.name || result.display_name.split(',')[0];
-                    const fullAddress = result.display_name;
-                    const meta = getLandmarkMeta(result);
-                    return (
+                  {searchResults.map((result) => (
+                    <li
+                      key={result.id}
+                      className="search-dropdown-item"
+                      onClick={() => handleSelectSearchResult(result)}
+                    >
+                      <div className="search-item-badge-icon" title={result.category}>
+                        {result.icon}
+                      </div>
+                      <div className="search-item-text">
+                        <div className="search-item-header-row">
+                          <strong className="search-item-title">{result.title}</strong>
+                          <span className="search-landmark-category-tag">{result.category}</span>
+                        </div>
+                        <span className="search-item-address">{result.subtitle}</span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {/* Google Maps Style Popular Recommendations on Empty Focus */}
+              {searchResults.length === 0 && !isSearching && !searchError && isFocused && (
+                <div className="search-empty-focus-suggestions">
+                  <div className="search-suggestions-header">
+                    <span>🕒</span> POPULAR PLACES IN DHAKA
+                  </div>
+                  <ul className="search-dropdown-list">
+                    {DHAKA_LANDMARKS_DB.slice(0, 6).map((item) => (
                       <li
-                        key={result.place_id || idx}
+                        key={`pop-${item.name}`}
                         className="search-dropdown-item"
-                        onClick={() => handleSelectSearchResult(result)}
+                        onClick={() => handleSelectSearchResult({
+                          id: `pop-${item.name}`,
+                          title: item.name,
+                          subtitle: item.subtitle,
+                          road: item.road,
+                          block: item.block,
+                          city: item.city,
+                          state: item.state,
+                          zipCode: item.zipCode,
+                          category: item.category,
+                          icon: item.icon,
+                          lat: item.lat,
+                          lng: item.lng,
+                        })}
                       >
-                        <div className="search-item-badge-icon" title={meta.tag}>
-                          {meta.icon}
+                        <div className="search-item-badge-icon">
+                          {item.icon}
                         </div>
                         <div className="search-item-text">
                           <div className="search-item-header-row">
-                            <strong className="search-item-title">{primaryName}</strong>
-                            <span className="search-landmark-category-tag">{meta.tag}</span>
+                            <strong className="search-item-title">{item.name}</strong>
+                            <span className="search-landmark-category-tag">{item.category}</span>
                           </div>
-                          <span className="search-item-address">{fullAddress}</span>
+                          <span className="search-item-address">{item.subtitle}</span>
                         </div>
                       </li>
-                    );
-                  })}
-                </ul>
+                    ))}
+                  </ul>
+                </div>
               )}
             </div>
           )}
         </div>
       )}
 
-      {/* Leaflet Map Viewer */}
-      <div className={`location-map-wrapper ${isConfirmed ? 'locked' : ''}`}>
+      {/* Leaflet Map Viewer with Smooth Google Maps FlyTo */}
+      <div className={`location-map-wrapper ${activeConfirmed ? 'locked' : ''}`}>
         <MapContainer
           center={centerCoordinates}
-          zoom={position ? 16 : 12}
+          zoom={position ? 16 : 13}
           scrollWheelZoom={true}
           className="location-picker-map"
         >
@@ -705,13 +1162,13 @@ export default function LocationPickerMap({
             url={DEFAULT_TILE_URL}
           />
           <MapResizer />
-          {position && <MapCenterController position={position} zoom={16} />}
-          <MapClickHandler onSelectLocation={handleSelectLocation} isLocked={isConfirmed} />
+          {position && <MapFlyController position={position} zoom={17} />}
+          <MapClickHandler onSelectLocation={handleSelectLocation} isLocked={activeConfirmed} />
 
           {position && (
             <Marker
               position={position}
-              draggable={!isConfirmed}
+              draggable={!activeConfirmed}
               icon={markerIcon}
               eventHandlers={{
                 dragend: handleDragEnd
@@ -719,23 +1176,30 @@ export default function LocationPickerMap({
               ref={markerRef}
             >
               <Popup>
-                <div style={{ textAlign: 'center', padding: '6px', maxWidth: '220px' }}>
-                  {selectedLandmark ? (
+                <div style={{ textAlign: 'center', padding: '6px', maxWidth: '240px' }}>
+                  {resolvedLocation ? (
                     <>
-                      <div style={{ fontSize: '1rem', marginBottom: '2px' }}>{selectedLandmark.icon} <strong>{selectedLandmark.name}</strong></div>
-                      <span style={{ fontSize: '0.78rem', background: '#dbeafe', color: '#1e40af', padding: '1px 6px', borderRadius: '4px', display: 'inline-block', marginBottom: '4px' }}>
-                        {selectedLandmark.category}
+                      <div style={{ fontSize: '1rem', marginBottom: '3px' }}>
+                        {resolvedLocation.icon || '📍'} <strong>{resolvedLocation.road || resolvedLocation.name}</strong>
+                      </div>
+                      {resolvedLocation.block && (
+                        <div style={{ fontSize: '0.82rem', color: '#1e40af', fontWeight: 600, marginBottom: '3px' }}>
+                          🏘️ {resolvedLocation.block}
+                        </div>
+                      )}
+                      <span style={{ fontSize: '0.78rem', background: '#eff6ff', color: '#1d4ed8', padding: '2px 8px', borderRadius: '4px', display: 'inline-block', marginBottom: '4px', border: '1px solid #bfdbfe' }}>
+                        {resolvedLocation.category}
                       </span>
                     </>
                   ) : (
                     <strong>Property Location Pin</strong>
                   )}
-                  <div style={{ fontSize: '0.82rem', color: '#475569', marginTop: '2px' }}>
+                  <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>
                     Lat: {position[0].toFixed(6)} | Lng: {position[1].toFixed(6)}
                   </div>
-                  {!isConfirmed && (
-                    <div style={{ fontSize: '0.78rem', color: '#059669', marginTop: '4px', fontWeight: 500 }}>
-                      👉 Drag pin to fine-tune exact building
+                  {!activeConfirmed && (
+                    <div style={{ fontSize: '0.78rem', color: '#059669', marginTop: '5px', fontWeight: 500 }}>
+                      👉 Drag pin to any road or building to update
                     </div>
                   )}
                 </div>
@@ -745,36 +1209,36 @@ export default function LocationPickerMap({
         </MapContainer>
       </div>
 
-      {/* Selected Landmark Hint / Banner */}
-      {selectedLandmark && !isConfirmed && (
-        <div className="selected-landmark-banner">
-          <div className="landmark-banner-info">
-            <span className="landmark-banner-icon">{selectedLandmark.icon}</span>
-            <div>
-              <strong>Near {selectedLandmark.name}</strong> ({selectedLandmark.category})
-              <div className="landmark-banner-sub">{selectedLandmark.fullName}</div>
-            </div>
+      {/* Real-time Resolved Place Details Card (Google Maps Style Place Preview) */}
+      {resolvedLocation && !activeConfirmed && (
+        <div className="realtime-resolved-card">
+          <div className="resolved-card-header">
+            <span className="resolved-card-badge">
+              <span className="live-pulse-dot" style={{ marginRight: '6px' }}></span>
+              Google Maps Style Pinned Location
+            </span>
+            {isResolvingAddress && <span className="resolving-indicator">Identifying road & block...</span>}
           </div>
-          <div className="landmark-banner-actions">
-            {onAddressSelect && (
-              <button
-                type="button"
-                className="btn-use-landmark-address"
-                onClick={() => {
-                  onAddressSelect({
-                    address: selectedLandmark.fullName,
-                    city: selectedLandmark.address?.city || selectedLandmark.address?.town || selectedLandmark.address?.suburb || 'Dhaka',
-                    state: selectedLandmark.address?.state || 'Dhaka Division',
-                    zipCode: selectedLandmark.address?.postcode || '',
-                    landmark: selectedLandmark.name
-                  });
-                }}
-                title="Fill property address form with this landmark location"
-              >
-                📝 Use this Address
-              </button>
-            )}
-            <span className="landmark-banner-tip">💡 Drag pin to set exact apartment/flat</span>
+          <div className="resolved-card-body">
+            <div className="resolved-main-line">
+              <span className="resolved-road-icon">{resolvedLocation.icon || '📍'}</span>
+              <div>
+                <strong className="resolved-road-name">
+                  {resolvedLocation.road || resolvedLocation.formattedStreet || resolvedLocation.name}
+                </strong>
+                {resolvedLocation.block && (
+                  <span className="resolved-block-tag">Area: {resolvedLocation.block}</span>
+                )}
+                {resolvedLocation.category && (
+                  <span className="search-landmark-category-tag" style={{ marginLeft: '6px' }}>
+                    {resolvedLocation.category}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="resolved-full-addr">
+              {resolvedLocation.fullName}
+            </div>
           </div>
         </div>
       )}
@@ -783,10 +1247,10 @@ export default function LocationPickerMap({
       <div className="osm-link-integration-card">
         <div className="osm-link-header">
           <label htmlFor="osm-location-link-input" className="osm-link-label">
-            🌐 OpenStreetMap Location Link
+            🌐 OpenStreetMap Real-Time Link
           </label>
           <span className="osm-link-auto-tag">
-            ⚡ {activeLink ? 'Auto-generated from pin' : 'Auto-generates when pinned'}
+            ⚡ {activeLink ? 'Auto-synchronized with pin' : 'Auto-generates when pinned'}
           </span>
         </div>
 
@@ -797,7 +1261,7 @@ export default function LocationPickerMap({
             className="osm-link-input"
             value={activeLink}
             onChange={handleLinkInputChange}
-            disabled={isConfirmed}
+            disabled={activeConfirmed}
             placeholder="Pin a location on the map or paste an OpenStreetMap URL (https://www.openstreetmap.org/...)"
             title="Auto-generates with coordinates. You can also paste an OpenStreetMap URL directly here."
           />
@@ -825,7 +1289,7 @@ export default function LocationPickerMap({
           </div>
         </div>
         <small className="osm-link-helper-text">
-          💡 This link is automatically synchronized in real time when you search landmarks, click, or drag the map pin. You can also paste an existing OpenStreetMap link to position the pin automatically.
+          💡 100% Free real-time live map. Searching, clicking, or dragging the pin automatically identifies the exact road, block, and coordinates.
         </small>
       </div>
 
@@ -844,7 +1308,7 @@ export default function LocationPickerMap({
         </div>
 
         <div className="location-picker-actions">
-          {isConfirmed ? (
+          {activeConfirmed ? (
             <button
               type="button"
               className="btn-edit-location"

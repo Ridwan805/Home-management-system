@@ -1,20 +1,22 @@
 .security-guard-sidebar-nav {
   width: 280px;
-  background-color: #059669; /* Green theme for security guards */
+  background-color: #0f172a;
   color: white;
   display: flex;
   flex-direction: column;
   height: 100vh;
   position: sticky;
   top: 0;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
-.sidebar-header {
+.security-guard-sidebar-nav .sidebar-header {
   padding: 1.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.sidebar-title {
+.security-guard-sidebar-nav .sidebar-title {
   font-size: 1.5rem;
   font-weight: 700;
   color: white;
@@ -22,51 +24,52 @@
   display: block;
 }
 
-.sidebar-subtitle {
+.security-guard-sidebar-nav .sidebar-subtitle {
   font-size: 0.875rem;
   color: rgba(255, 255, 255, 0.7);
 }
 
-.sidebar-menu {
+.security-guard-sidebar-nav .sidebar-menu {
   list-style: none;
   padding: 0;
   margin: 0;
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
-.sidebar-menu-item {
+.security-guard-sidebar-nav .sidebar-menu-item {
   padding: 1rem 1.5rem;
   cursor: pointer;
   transition: background-color 0.2s;
   border-left: 3px solid transparent;
 }
 
-.sidebar-menu-item:hover {
+.security-guard-sidebar-nav .sidebar-menu-item:hover {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
-.sidebar-menu-item.active {
+.security-guard-sidebar-nav .sidebar-menu-item.active {
   background-color: rgba(255, 255, 255, 0.1);
-  border-left-color: #34d399; /* Light green accent */
+  border-left-color: #34d399;
 }
 
-.menu-label {
+.security-guard-sidebar-nav .menu-label {
   font-weight: 500;
   margin-bottom: 0.25rem;
 }
 
-.menu-description {
+.security-guard-sidebar-nav .menu-description {
   font-size: 0.75rem;
   color: rgba(255, 255, 255, 0.7);
 }
 
-.sidebar-logout {
+.security-guard-sidebar-nav .sidebar-logout {
   padding: 1.5rem;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.logout-btn {
+.security-guard-sidebar-nav .logout-btn {
   width: 100%;
   padding: 0.75rem;
   background-color: rgba(255, 255, 255, 0.1);
@@ -78,6 +81,6 @@
   font-weight: 500;
 }
 
-.logout-btn:hover {
+.security-guard-sidebar-nav .logout-btn:hover {
   background-color: rgba(255, 255, 255, 0.2);
 }
