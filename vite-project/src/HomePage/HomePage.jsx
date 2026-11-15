@@ -88,7 +88,7 @@ const HomePage = () => {
       };
     }
 
-    // 2. Cinematic overlapping scroll transforms (scales down and darkens outgoing sections)
+    // 2. Cinematic overlapping scroll transitions with background defocus & depth-of-field
     let ticking = false;
     const handleScroll = () => {
       if (!ticking) {
@@ -104,25 +104,66 @@ const HomePage = () => {
               // Progress: 0 (nextSec not visible) to 1 (nextSec fully covers sec)
               const progress = Math.max(0, Math.min(1, 1 - (nextRect.top / vh)));
 
-              if (bgImg) {
-                const scale = 1 - (progress * 0.05); // 1.0 down to 0.95
-                const brightness = 1 - (progress * 0.35); // 1.0 down to 0.65
-                bgImg.style.transform = `scale(${scale})`;
-                bgImg.style.filter = `brightness(${brightness})`;
-              }
+              // Cinematic depth-of-field calculations linked to scroll progress:
+              const scale = (1 - (progress * 0.05)).toFixed(4); // 1.0 down to 0.95
+              const blurVal = (progress * 7.5).toFixed(2); // 0px up to 7.5px (6-8px range)
+              const brightness = (1 - (progress * 0.40)).toFixed(3); // 1.0 down to 0.60 (darker)
+              const opacity = (1 - (progress * 0.45)).toFixed(3); // 1.0 down to 0.55 (0.5-0.65 range)
+              const translateY = (-progress * 24).toFixed(1); // Subtle recession drift
 
-              if (content) {
-                if (sec.id === 'affordability') {
-                  // Keep calculator content fully visible and interactive without parallax shifts
-                  content.style.opacity = '1';
-                  content.style.transform = 'none';
+              // Visual layer defocus: background image
+              if (bgImg) {
+                if (progress > 0.005) {
+                  bgImg.style.transform = `scale(${scale})`;
+                  bgImg.style.transformOrigin = 'center center';
+                  bgImg.style.filter = `blur(${blurVal}px) brightness(${brightness})`;
                 } else {
-                  const opacity = Math.max(0, 1 - (progress * 1.25));
-                  const translateY = -progress * 35;
-                  content.style.opacity = `${opacity}`;
-                  content.style.transform = `translateY(${translateY}px)`;
+                  bgImg.style.transform = 'none';
+                  bgImg.style.filter = 'none';
                 }
               }
+
+              // Visual layer defocus: content cards & typography
+              if (content) {
+                if (progress > 0.005) {
+                  content.style.transform = `scale(${scale}) translateY(${translateY}px)`;
+                  content.style.transformOrigin = 'center center';
+                  content.style.opacity = `${opacity}`;
+                  content.style.filter = `blur(${blurVal}px)`;
+                } else {
+                  content.style.transform = 'none';
+                  content.style.opacity = '1';
+                  content.style.filter = 'none';
+                }
+              }
+
+              // Affordability Section background subtle dimming
+              if (sec.id === 'affordability') {
+                if (progress > 0.005) {
+                  sec.style.filter = `brightness(${(1 - (progress * 0.15)).toFixed(3)})`;
+                } else {
+                  sec.style.filter = 'none';
+                }
+              }
+
+              // Click-interception prevention: disable pointer events when heavily covered
+              if (progress > 0.85) {
+                sec.style.pointerEvents = 'none';
+              } else {
+                sec.style.pointerEvents = 'auto';
+              }
+            } else {
+              // Final section (CTA) has no next section and always remains 100% focused
+              if (bgImg) {
+                bgImg.style.transform = 'none';
+                bgImg.style.filter = 'none';
+              }
+              if (content) {
+                content.style.transform = 'none';
+                content.style.opacity = '1';
+                content.style.filter = 'none';
+              }
+              sec.style.pointerEvents = 'auto';
             }
           });
           ticking = false;
@@ -132,11 +173,13 @@ const HomePage = () => {
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', handleScroll, { passive: true });
     handleScroll();
 
     return () => {
       sections.forEach((sec) => observer.unobserve(sec));
       window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
     };
   }, []);
 
