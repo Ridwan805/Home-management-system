@@ -15,6 +15,7 @@ import {
 } from 'react-icons/fa';
 import { AuthContext } from '../App';
 import AffordabilityCalculatorModal from '../components/AffordabilityCalculatorModal';
+import FloatingHomeNav from '../components/layout/FloatingHomeNav';
 import './HomePage.css';
 
 // Exact image assets as required
@@ -141,6 +142,9 @@ const HomePage = () => {
 
   return (
     <div className="dwellsync-cinematic-home">
+      {/* Floating DwellSync Branding & Minimal Authentication Controls */}
+      <FloatingHomeNav />
+
       {/* =====================================================================
           1. CINEMATIC HERO SECTION — flats.jpg
           ===================================================================== */}

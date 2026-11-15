@@ -27,8 +27,9 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [isHomePage]);
 
-  // Hide navbar on login and register pages and dashboard routes
+  // Hide navbar on homepage, login and register pages, and dashboard routes
   if (
+    location.pathname === '/' ||
     location.pathname === '/login' ||
     location.pathname === '/register' ||
     location.pathname.startsWith('/dashboard') ||

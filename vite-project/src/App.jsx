@@ -133,6 +133,7 @@ export const AuthContext = React.createContext();
 
 function AppRoutes() {
   const initialUser = getStoredUser();
+  const [currentUser, setCurrentUser] = useState(initialUser);
   const [isLoggedIn, setIsLoggedIn] = useState(!!initialUser);
   const [userRole, setUserRole] = useState(initialUser ? initialUser.role : null);
   const [popupMessage, setPopupMessage] = useState('');
@@ -147,6 +148,7 @@ function AppRoutes() {
         const userData = localStorage.getItem('dwellSyncUser');
         if (!userData) {
           setAuthLoading(false);
+          setCurrentUser(null);
           return;
         }
 
@@ -157,6 +159,7 @@ function AppRoutes() {
           setAuthLoading(false);
           setIsLoggedIn(false);
           setUserRole(null);
+          setCurrentUser(null);
           return;
         }
 
@@ -170,17 +173,20 @@ function AppRoutes() {
         if (response.ok) {
           setIsLoggedIn(true);
           setUserRole(user.role);
+          setCurrentUser(user);
         } else {
           // Token is invalid, clear localStorage
           localStorage.removeItem('dwellSyncUser');
           setIsLoggedIn(false);
           setUserRole(null);
+          setCurrentUser(null);
         }
       } catch (error) {
         console.error('Token validation error:', error);
         localStorage.removeItem('dwellSyncUser');
         setIsLoggedIn(false);
         setUserRole(null);
+        setCurrentUser(null);
       } finally {
         setAuthLoading(false);
       }
@@ -203,12 +209,14 @@ function AppRoutes() {
     localStorage.setItem('dwellSyncUser', JSON.stringify(user));
     setIsLoggedIn(true);
     setUserRole(user.role);
+    setCurrentUser(user);
   };
 
   const logout = () => {
     localStorage.removeItem('dwellSyncUser');
     setIsLoggedIn(false);
     setUserRole(null);
+    setCurrentUser(null);
   };
 
   // Show branded loading screen only while validating authentication for a stored session
@@ -219,9 +227,9 @@ function AppRoutes() {
   const isDashboard = isDashboardPath(location.pathname);
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, login, logout, setPopupMessage, userRole, authLoading }}>
+    <AuthContext.Provider value={{ isLoggedIn, login, logout, setPopupMessage, userRole, authLoading, currentUser }}>
       <div className="app-wrapper">
-        {!isDashboard && <Navbar />}
+        {!isDashboard && location.pathname !== '/' && <Navbar />}
 
         {popupMessage && <div className="popup-message">{popupMessage}</div>}
 
