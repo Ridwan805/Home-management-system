@@ -1,4 +1,4 @@
-import React, { useEffect, useContext } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FaArrowRight,
@@ -8,9 +8,13 @@ import {
   FaCheckCircle,
   FaTree,
   FaShieldAlt,
-  FaCompass
+  FaCompass,
+  FaHome,
+  FaMoneyBillWave,
+  FaCalculator
 } from 'react-icons/fa';
 import { AuthContext } from '../App';
+import AffordabilityCalculatorModal from '../components/AffordabilityCalculatorModal';
 import './HomePage.css';
 
 // Exact image assets as required
@@ -24,6 +28,10 @@ import parkImg from '../assets/a park.jpg';
 const HomePage = () => {
   const navigate = useNavigate();
   const { isLoggedIn, userRole } = useContext(AuthContext);
+
+  // Affordability Calculator Modal State
+  const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
+  const [calculatorMode, setCalculatorMode] = useState('buy'); // 'buy' or 'rent'
 
   // Smooth scroll handler for hero explore indicator
   const scrollTo = (id) => {
@@ -103,10 +111,16 @@ const HomePage = () => {
               }
 
               if (content) {
-                const opacity = Math.max(0, 1 - (progress * 1.25));
-                const translateY = -progress * 35;
-                content.style.opacity = `${opacity}`;
-                content.style.transform = `translateY(${translateY}px)`;
+                if (sec.id === 'affordability') {
+                  // Keep calculator content fully visible and interactive without parallax shifts
+                  content.style.opacity = '1';
+                  content.style.transform = 'none';
+                } else {
+                  const opacity = Math.max(0, 1 - (progress * 1.25));
+                  const translateY = -progress * 35;
+                  content.style.opacity = `${opacity}`;
+                  content.style.transform = `translateY(${translateY}px)`;
+                }
               }
             }
           });
@@ -410,7 +424,84 @@ const HomePage = () => {
       </section>
 
       {/* =====================================================================
-          6. LIFESTYLE AND COMMUNITY SECTION — a park.jpg
+          6. AFFORDABILITY CALCULATOR SECTION — Find homes within your budget
+          ===================================================================== */}
+      <section id="affordability" className="cinematic-section section-affordability">
+        <div className="section-container affordability-section-container">
+          <div className="section-content affordability-card">
+            {/* Left Content Side */}
+            <div className="affordability-text-side">
+              <span className="section-eyebrow">✦ FINANCIAL PLANNING</span>
+              <h2 className="affordability-title">
+                Find homes within <span className="text-gradient">your budget</span>
+              </h2>
+              <p className="affordability-desc">
+                Use our affordability calculator to discover properties that match your financial goals
+              </p>
+
+              <div className="affordability-features-list">
+                <div className="affordability-feature-item">
+                  <div className="feature-icon-box icon-blue">
+                    <FaMoneyBillWave />
+                  </div>
+                  <div className="feature-info">
+                    <h3>Budget Planning</h3>
+                    <p>Set your price range and monthly payment goals</p>
+                  </div>
+                </div>
+
+                <div className="affordability-feature-item">
+                  <div className="feature-icon-box icon-emerald">
+                    <FaHome />
+                  </div>
+                  <div className="feature-info">
+                    <h3>Property Matching</h3>
+                    <p>We'll show you homes that fit your budget</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="affordability-cta-group">
+                <button
+                  type="button"
+                  className="calculator-button"
+                  onClick={() => {
+                    setCalculatorMode('buy');
+                    setIsCalculatorOpen(true);
+                  }}
+                >
+                  <FaCalculator /> Start Calculating <FaArrowRight className="btn-icon" />
+                </button>
+                <button
+                  type="button"
+                  className="affordability-secondary-link"
+                  onClick={() => {
+                    setCalculatorMode('rent');
+                    setIsCalculatorOpen(true);
+                  }}
+                >
+                  Calculate Rent Budget &rarr;
+                </button>
+              </div>
+            </div>
+
+            {/* Right Photograph Side */}
+            <div className="affordability-image-side">
+              <img
+                src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=800&q=80"
+                alt="House keys and miniature home model representing home affordability"
+                loading="lazy"
+              />
+              <div className="affordability-image-badge">
+                <FaHome /> Smart Budget Matching
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* =====================================================================
+          7. LIFESTYLE AND COMMUNITY SECTION — a park.jpg
           ===================================================================== */}
       <section id="lifestyle" className="cinematic-section section-lifestyle">
         <div className="section-bg-wrap">
@@ -469,7 +560,7 @@ const HomePage = () => {
       </section>
 
       {/* =====================================================================
-          7. FINAL CALL TO ACTION SECTION — landscape2.jpg
+          8. FINAL CALL TO ACTION SECTION — landscape2.jpg
           ===================================================================== */}
       <section id="cta" className="cinematic-section section-cta">
         <div className="section-bg-wrap">
@@ -511,6 +602,13 @@ const HomePage = () => {
           </div>
         </div>
       </section>
+
+      {/* Interactive Affordability Calculator Modal */}
+      <AffordabilityCalculatorModal
+        isOpen={isCalculatorOpen}
+        onClose={() => setIsCalculatorOpen(false)}
+        initialMode={calculatorMode}
+      />
     </div>
   );
 };

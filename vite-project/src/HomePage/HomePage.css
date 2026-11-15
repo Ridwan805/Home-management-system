@@ -73,12 +73,19 @@
   z-index: 50;
 }
 
-.cinematic-section.section-lifestyle {
+.cinematic-section.section-affordability {
   z-index: 60;
+  background: linear-gradient(180deg, #FDFBF7 0%, #FAF3DD 50%, #FAF6EE 100%);
+  color: #0F172A;
+  box-shadow: 0 -24px 60px rgba(0, 0, 0, 0.2);
+}
+
+.cinematic-section.section-lifestyle {
+  z-index: 70;
 }
 
 .cinematic-section.section-cta {
-  z-index: 70;
+  z-index: 80;
 }
 
 /* --- Fullscreen Photographic Background Canvas --- */
@@ -529,7 +536,234 @@
   gap: 16px;
 }
 
-/* --- Section 6: Lifestyle & Community --- */
+/* ==========================================================================
+   6. AFFORDABILITY CALCULATOR SECTION (Soft Cream Background & Split White Card)
+   ========================================================================== */
+.cinematic-section.section-affordability {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+}
+
+.affordability-section-container {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  position: relative;
+}
+
+.affordability-card {
+  width: 100%;
+  background: #FFFFFF;
+  border-radius: 24px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.1), 0 1px 3px rgba(15, 23, 42, 0.06);
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  overflow: hidden;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.affordability-card:hover {
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.14), 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+
+.affordability-text-side {
+  padding: 3.5rem 3.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.affordability-text-side .section-eyebrow {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #2563EB;
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+}
+
+.affordability-title {
+  font-family: var(--ds-font-heading);
+  font-size: 2.25rem;
+  font-weight: 850;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  color: #0F172A;
+  margin: 0 0 1rem 0;
+}
+
+.affordability-title .text-gradient {
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.affordability-desc {
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: #475569;
+  margin: 0 0 2rem 0;
+}
+
+.affordability-features-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-bottom: 2.25rem;
+}
+
+.affordability-feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.affordability-feature-item .feature-icon-box {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.feature-icon-box.icon-blue {
+  background: #EFF6FF;
+  color: #2563EB;
+  border: 1px solid #DBEAFE;
+}
+
+.feature-icon-box.icon-emerald {
+  background: #ECFDF5;
+  color: #059669;
+  border: 1px solid #D1FAE5;
+}
+
+.feature-info h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0 0 0.25rem 0;
+}
+
+.feature-info p {
+  font-size: 0.925rem;
+  color: #64748B;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.affordability-cta-group {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.calculator-button {
+  background: #2563EB;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 12px;
+  padding: 0.95rem 2.2rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.3);
+}
+
+.calculator-button:hover {
+  background: #1D4ED8;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4);
+}
+
+.calculator-button:active {
+  transform: translateY(0);
+}
+
+.calculator-button .btn-icon {
+  font-size: 1rem;
+  transition: transform 0.2s ease;
+}
+
+.calculator-button:hover .btn-icon {
+  transform: translateX(4px);
+}
+
+.affordability-secondary-link {
+  color: #2563EB;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0.5rem 0.75rem;
+  transition: all 0.15s ease;
+  background: transparent;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.affordability-secondary-link:hover {
+  color: #1D4ED8;
+  text-decoration: underline;
+}
+
+/* Image Side */
+.affordability-image-side {
+  position: relative;
+  min-height: 440px;
+  overflow: hidden;
+  background: #F1F5F9;
+}
+
+.affordability-image-side img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.affordability-card:hover .affordability-image-side img {
+  transform: scale(1.03);
+}
+
+.affordability-image-badge {
+  position: absolute;
+  bottom: 24px;
+  left: 24px;
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #FFFFFF;
+  padding: 8px 18px;
+  border-radius: 30px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* --- Section 7: Lifestyle & Community --- */
 .lifestyle-panel {
   max-width: 960px;
   text-align: center;
@@ -641,6 +875,14 @@
   .cta-panel {
     padding: 36px 32px;
   }
+
+  .affordability-text-side {
+    padding: 2.75rem 2.25rem;
+  }
+
+  .affordability-title {
+    font-size: 2rem;
+  }
 }
 
 @media (max-width: 768px) {
@@ -648,6 +890,35 @@
     min-height: 580px;
     border-top-left-radius: 28px;
     border-top-right-radius: 28px;
+  }
+
+  .cinematic-section.section-affordability {
+    height: auto;
+    min-height: auto;
+    padding: 4.5rem 1.25rem 3.5rem;
+  }
+
+  .affordability-card {
+    grid-template-columns: 1fr;
+  }
+
+  .affordability-text-side {
+    padding: 2.25rem 1.75rem;
+  }
+
+  .affordability-image-side {
+    min-height: 260px;
+    max-height: 320px;
+  }
+
+  .calculator-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .affordability-cta-group {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .section-container {
