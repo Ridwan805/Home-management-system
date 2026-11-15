@@ -3,6 +3,7 @@ const Property = require('../models/Property');
 const User = require('../models/User');
 const Payment = require('../models/Payment');
 const Rent = require('../models/Rent');
+const Invoice = require('../models/Invoice');
 const InvoiceService = require('../services/invoiceService');
 
 // Get all requests for the authenticated tenant
@@ -63,13 +64,28 @@ const getMyRequests = async (req, res) => {
 const getOwnerRequests = async (req, res) => {
   try {
     const ownerId = req.user.userId;
-    
-    const requests = await Request.find({ ownerId })
-      .populate('propertyId', 'address city state pricing.rent pricing.sale listingType images')
-      .populate('ownerId', 'firstName lastName email')
-      .populate('tenantId', 'firstName lastName email')
+
+    // Find all properties owned by this owner
+    const ownedProperties = await Property.find({
+      $or: [
+        { ownerUserId: ownerId },
+        { owner: ownerId },
+        { ownerId: ownerId }
+      ]
+    }).select('_id');
+    const propertyIds = ownedProperties.map(p => p._id);
+
+    const requests = await Request.find({
+      $or: [
+        { ownerId },
+        { propertyId: { $in: propertyIds } }
+      ]
+    })
+      .populate('propertyId', 'title address city state unitNumber floorNumber specifications pricing listingType images price')
+      .populate('ownerId', 'firstName lastName email phoneNumber')
+      .populate('tenantId', 'firstName lastName email phoneNumber name')
       .sort({ createdAt: -1 });
-    
+
     res.status(200).json({
       success: true,
       count: requests.length,
@@ -569,21 +585,190 @@ const setupAdvancePayment = async (req, res) => {
   }
 };
 
+// Approve rental application and automatically establish active tenancy
+const approveRequest = async (req, res) => {
+  try {
+    const { requestId } = req.params;
+    const userId = req.user.userId;
+
+    const request = await Request.findById(requestId)
+      .populate('propertyId')
+      .populate('tenantId', 'firstName lastName email phoneNumber name address');
+
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        message: 'Application not found'
+      });
+    }
+
+    const property = request.propertyId;
+    if (!property) {
+      return res.status(404).json({
+        success: false,
+        message: 'Associated property record not found'
+      });
+    }
+
+    // 1. Verify owner authorization
+    const isOwner = request.ownerId?.toString() === userId.toString() ||
+                    property.ownerUserId?.toString() === userId.toString() ||
+                    property.owner?.toString() === userId.toString() ||
+                    property.ownerId?.toString() === userId.toString();
+
+    if (!isOwner) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not authorized to approve applications for this property'
+      });
+    }
+
+    // 2. Validate application is pending
+    if (['Approved', 'Paid/Completed'].includes(request.status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'This application has already been approved'
+      });
+    }
+
+    if (['Rejected', 'Canceled', 'Withdrawn', 'Expired'].includes(request.status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot approve an application with status "${request.status}"`
+      });
+    }
+
+    // 3. Verify property availability & prevent assigning occupied unit
+    if (property.isDeleted) {
+      return res.status(400).json({
+        success: false,
+        message: 'This property is no longer available'
+      });
+    }
+
+    const conflictingRent = await Rent.findOne({
+      propertyId: property._id,
+      status: 'Active',
+      isDeleted: { $ne: true }
+    });
+
+    if (conflictingRent) {
+      return res.status(400).json({
+        success: false,
+        message: 'This property/unit already has an active tenancy. Cannot approve another tenant.'
+      });
+    }
+
+    // 4. Create active tenancy record
+    const rentAmount = Number(req.body.monthlyRent || property.pricing?.rent || property.pricing?.monthlyRent || property.price || 0);
+    const depositAmount = Number(req.body.securityDeposit || property.pricing?.securityDeposit || rentAmount);
+    const startDate = req.body.startDate ? new Date(req.body.startDate) : new Date();
+    const endDate = req.body.endDate ? new Date(req.body.endDate) : new Date(startDate.getTime() + 365 * 24 * 60 * 60 * 1000);
+
+    const newRent = new Rent({
+      propertyId: property._id,
+      ownerId: userId,
+      tenants: [request.tenantId._id || request.tenantId],
+      requestId: request._id,
+      term: {
+        type: 'fixed',
+        startDate,
+        endDate,
+        noticeDays: 30
+      },
+      rent: {
+        amount: rentAmount,
+        currency: property.pricing?.currency || 'BDT',
+        dueDay: 1,
+        graceDays: 5,
+        lateFee: { amount: 0, type: 'fixed' }
+      },
+      securityDeposit: {
+        amount: depositAmount,
+        held: depositAmount
+      },
+      billing: {
+        frequency: 'monthly',
+        nextInvoiceDate: new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000),
+        autoGenerate: true
+      },
+      status: 'Active'
+    });
+
+    await newRent.save();
+
+    // 5. Update Property status to Rented and set currentRentId
+    property.status = 'Rented';
+    property.currentRentId = newRent._id;
+    property.rentedAt = new Date();
+    await property.save();
+
+    // 6. Update Request status to Approved and link tenancy
+    request.status = 'Approved';
+    request.rentId = newRent._id;
+    request.timeline.push({
+      event: 'Application Approved & Tenancy Activated',
+      actor: userId,
+      timestamp: new Date(),
+      note: req.body.note || `Approved by owner. Tenancy created with monthly rent ৳${rentAmount.toLocaleString()}.`
+    });
+    await request.save();
+
+    // 7. Generate initial invoice for rent tracking
+    try {
+      const invoiceDueDate = new Date();
+      invoiceDueDate.setDate(invoiceDueDate.getDate() + 7);
+      const invoiceNumber = `INV-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
+
+      await Invoice.create({
+        invoiceNumber,
+        rentId: newRent._id,
+        propertyId: property._id,
+        ownerId: userId,
+        tenantId: request.tenantId._id || request.tenantId,
+        payerId: request.tenantId._id || request.tenantId,
+        type: 'rent',
+        billingMonth: new Date().toLocaleString('default', { month: 'long', year: 'numeric' }),
+        issueDate: new Date(),
+        dueDate: invoiceDueDate,
+        items: [{
+          description: `First Month Rent - ${property.title || property.address}`,
+          amount: rentAmount
+        }],
+        subtotal: rentAmount,
+        tax: 0,
+        total: rentAmount,
+        balance: rentAmount,
+        paidAmount: 0,
+        status: 'issued'
+      });
+    } catch (invErr) {
+      console.warn('Initial invoice generation warning:', invErr.message);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Rental application approved successfully. Tenancy is now active and listed in Tenant Info.',
+      request,
+      rent: newRent
+    });
+  } catch (error) {
+    console.error('Error approving request:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to approve application: ' + error.message
+    });
+  }
+};
+
 // Reject request with reason (for owners)
 const rejectRequest = async (req, res) => {
   try {
     const { requestId } = req.params;
-    const { reason } = req.body;
+    const { reason = 'Application rejected by property owner' } = req.body;
     const userId = req.user.userId;
     
-    if (!reason || !reason.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Rejection reason is required'
-      });
-    }
-    
-    const request = await Request.findById(requestId);
+    const request = await Request.findById(requestId).populate('propertyId');
     
     if (!request) {
       return res.status(404).json({
@@ -592,38 +777,39 @@ const rejectRequest = async (req, res) => {
       });
     }
     
-    // Check if user is the property owner
-    if (request.ownerId.toString() !== userId) {
+    const property = request.propertyId;
+    const isOwner = request.ownerId?.toString() === userId.toString() ||
+                    (property && (
+                      property.ownerUserId?.toString() === userId.toString() ||
+                      property.owner?.toString() === userId.toString() ||
+                      property.ownerId?.toString() === userId.toString()
+                    ));
+
+    if (!isOwner) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to reject this request'
       });
     }
     
-    // Validate status transition
-    const validStatuses = ['Submitted', 'Under Review', 'Info Requested'];
-    if (!validStatuses.includes(request.status)) {
+    if (['Approved', 'Paid/Completed'].includes(request.status)) {
       return res.status(400).json({
         success: false,
-        message: `Cannot reject request in status: ${request.status}`
+        message: 'Cannot reject an already approved request'
       });
     }
     
-    // Update request status
     const oldStatus = request.status;
     request.status = 'Rejected';
     
-    // Add timeline event
     request.timeline.push({
-      event: `Request rejected`,
+      event: 'Request rejected',
       actor: userId,
       timestamp: new Date(),
-      note: `Reason: ${reason.trim()}`
+      note: `Reason: ${reason ? reason.trim() : 'Application rejected by property owner'}`
     });
     
     await request.save();
-    
-    // TODO: Send notification to tenant
     
     res.status(200).json({
       success: true,
@@ -648,5 +834,6 @@ module.exports = {
   addMessage,
   markMessagesAsRead,
   setupAdvancePayment,
-  rejectRequest
+  rejectRequest,
+  approveRequest
 };

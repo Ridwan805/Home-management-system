@@ -1018,10 +1018,10 @@ const getTenantAssignments = async (req, res) => {
   try {
     const userId = req.user._id || req.user.userId || req.user.id;
     
-    // Find approved requests (Paid/Completed status) where user is the tenant
+    // Find approved requests (Approved or Paid/Completed status) where user is the tenant
     const approvedRequests = await Request.find({
       tenantId: userId,
-      status: 'Paid/Completed'
+      status: { $in: ['Approved', 'Paid/Completed', 'AdvancePaid'] }
     }).populate({
       path: 'propertyId',
       populate: {

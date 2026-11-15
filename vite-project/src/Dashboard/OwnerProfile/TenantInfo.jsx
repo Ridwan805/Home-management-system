@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './TenantInfo.css';
 import { authenticatedFetch, API_BASE_URL } from '../../config/api';
 import {
@@ -9,7 +10,6 @@ import {
 } from '../../components/loading';
 import {
   FaSearch,
-  FaPlus,
   FaBullhorn,
   FaSync,
   FaUser,
@@ -40,6 +40,8 @@ const NOTICE_TYPES = [
 ];
 
 const TenantInfo = () => {
+  const navigate = useNavigate();
+
   // State
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -59,8 +61,7 @@ const TenantInfo = () => {
   const [leaseStatusFilter, setLeaseStatusFilter] = useState('all');
 
   // Modals
-  const [showAddEditModal, setShowAddEditModal] = useState(false);
-  const [modalMode, setModalMode] = useState('add'); // 'add' | 'edit'
+  const [showEditModal, setShowEditModal] = useState(false);
   const [selectedTenantRecord, setSelectedTenantRecord] = useState(null);
 
   // Profile View Modal
@@ -170,31 +171,8 @@ const TenantInfo = () => {
     }
   };
 
-  // Open Add Tenant
-  const handleOpenAddTenant = () => {
-    setModalMode('add');
-    setTenantFormData({
-      firstName: '',
-      lastName: '',
-      email: '',
-      phoneNumber: '',
-      address: '',
-      propertyId: properties[0]?._id || '',
-      unitNumber: '',
-      monthlyRent: '',
-      securityDeposit: '',
-      startDate: new Date().toISOString().split('T')[0],
-      endDate: '',
-      status: 'Active',
-      notes: ''
-    });
-    setFormError(null);
-    setShowAddEditModal(true);
-  };
-
-  // Open Edit Tenant
+  // Open Edit Tenancy Agreement
   const handleOpenEditTenant = (tenant) => {
-    setModalMode('edit');
     setSelectedTenantRecord(tenant);
     setTenantFormData({
       firstName: tenant.firstName || '',
@@ -212,37 +190,35 @@ const TenantInfo = () => {
       notes: tenant.notes || ''
     });
     setFormError(null);
-    setShowAddEditModal(true);
+    setShowEditModal(true);
   };
 
-  // Submit Add / Edit Tenant
+  // Submit Edit Tenancy Form (Updates existing lease / contact terms)
   const handleSubmitTenantForm = async (e) => {
     e.preventDefault();
+    if (!selectedTenantRecord?.rentId) return;
+
     try {
       setFormSubmitting(true);
       setFormError(null);
 
-      const url = modalMode === 'add'
-        ? `${API_BASE_URL}/api/owner/tenants`
-        : `${API_BASE_URL}/api/owner/tenants/${selectedTenantRecord.rentId}`;
-
-      const method = modalMode === 'add' ? 'POST' : 'PUT';
+      const url = `${API_BASE_URL}/api/owner/tenants/${selectedTenantRecord.rentId}`;
 
       const res = await authenticatedFetch(url, {
-        method,
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(tenantFormData)
       });
 
       if (res && res.success) {
-        setShowAddEditModal(false);
+        setShowEditModal(false);
         await fetchTenantsData();
       } else {
-        setFormError(res?.message || 'Failed to save tenant information');
+        setFormError(res?.message || 'Failed to save tenancy information');
       }
     } catch (err) {
-      console.error('Error saving tenant:', err);
-      setFormError(err.message || 'Error occurred while saving tenant.');
+      console.error('Error updating tenancy:', err);
+      setFormError(err.message || 'Error occurred while updating tenancy.');
     } finally {
       setFormSubmitting(false);
     }
@@ -408,9 +384,6 @@ const TenantInfo = () => {
           <button className="btn-navy-outline" onClick={() => handleOpenNoticeModal(null)}>
             <FaBullhorn /> Send Notice
           </button>
-          <button className="btn-primary-blue" onClick={handleOpenAddTenant}>
-            <FaPlus /> Add Tenant
-          </button>
         </div>
       </header>
 
@@ -530,14 +503,14 @@ const TenantInfo = () => {
       ) : filteredTenants.length === 0 ? (
         <div className="tenant-empty-state">
           <div className="tenant-empty-icon">👥</div>
-          <h3>No Tenants Found</h3>
+          <h3>{searchTerm || propertyFilter !== 'all' || paymentStatusFilter !== 'all' || leaseStatusFilter !== 'all' ? 'No Matching Tenants' : 'No Active Tenants Yet'}</h3>
           <p>
-            {searchTerm || propertyFilter !== 'all' || paymentStatusFilter !== 'all'
+            {searchTerm || propertyFilter !== 'all' || paymentStatusFilter !== 'all' || leaseStatusFilter !== 'all'
               ? 'No tenants match your search and filter criteria.'
-              : 'You have not added any tenants to your properties yet.'}
+              : 'Tenants will appear here automatically once their rental applications have been approved and their tenancy is active.'}
           </p>
-          <button className="btn-primary-blue" onClick={handleOpenAddTenant}>
-            <FaPlus /> Add Your First Tenant
+          <button className="btn-primary-blue" onClick={() => navigate('/request-info')}>
+            View Property Requests
           </button>
         </div>
       ) : (
@@ -666,14 +639,14 @@ const TenantInfo = () => {
       )}
 
       {/* =====================================================================
-          MODAL 1: ADD / EDIT TENANT MODAL
+          MODAL 1: EDIT TENANCY MODAL (Existing Approved Tenancies Only)
           ===================================================================== */}
-      {showAddEditModal && (
-        <div className="tenant-modal-backdrop" onClick={() => setShowAddEditModal(false)}>
+      {showEditModal && selectedTenantRecord && (
+        <div className="tenant-modal-backdrop" onClick={() => setShowEditModal(false)}>
           <div className="tenant-modal-dialog" onClick={(e) => e.stopPropagation()}>
             <div className="tenant-modal-header">
-              <h2>{modalMode === 'add' ? 'Add New Tenant & Tenancy' : 'Edit Tenancy Agreement'}</h2>
-              <button className="tenant-modal-close-btn" onClick={() => setShowAddEditModal(false)}>
+              <h2>Edit Tenancy Agreement</h2>
+              <button className="tenant-modal-close-btn" onClick={() => setShowEditModal(false)}>
                 <FaTimes />
               </button>
             </div>
@@ -713,15 +686,12 @@ const TenantInfo = () => {
                     <input
                       type="email"
                       required
-                      placeholder="tenant@example.com"
+                      disabled
                       value={tenantFormData.email}
-                      disabled={modalMode === 'edit'}
-                      onChange={(e) => setTenantFormData({ ...tenantFormData, email: e.target.value })}
+                      style={{ background: '#f1f5f9', cursor: 'not-allowed' }}
                     />
                     <span className="field-hint">
-                      {modalMode === 'add'
-                        ? 'If the user is already registered in DwellSync, their account will be linked seamlessly.'
-                        : 'Email cannot be altered once tenancy is registered.'}
+                      Email address is tied to the tenant's authenticated account and cannot be modified.
                     </span>
                   </div>
 
@@ -736,18 +706,13 @@ const TenantInfo = () => {
                   </div>
 
                   <div className="form-field">
-                    <label>Associated Property *</label>
-                    <select
-                      required
-                      value={tenantFormData.propertyId}
-                      disabled={modalMode === 'edit'}
-                      onChange={(e) => setTenantFormData({ ...tenantFormData, propertyId: e.target.value })}
-                    >
-                      <option value="">Select Property...</option>
-                      {properties.map(p => (
-                        <option key={p._id} value={p._id}>{p.title || p.address}</option>
-                      ))}
-                    </select>
+                    <label>Associated Property</label>
+                    <input
+                      type="text"
+                      disabled
+                      value={selectedTenantRecord.propertyName || selectedTenantRecord.propertyAddress}
+                      style={{ background: '#f1f5f9', cursor: 'not-allowed' }}
+                    />
                   </div>
 
                   <div className="form-field">
@@ -810,9 +775,9 @@ const TenantInfo = () => {
                       onChange={(e) => setTenantFormData({ ...tenantFormData, status: e.target.value })}
                     >
                       <option value="Active">Active</option>
-                      <option value="Pending">Pending</option>
+                      <option value="Paused">Paused</option>
+                      <option value="Ended">Ended</option>
                       <option value="Terminated">Terminated</option>
-                      <option value="Expired">Expired</option>
                     </select>
                   </div>
 
@@ -832,7 +797,7 @@ const TenantInfo = () => {
                 <button
                   type="button"
                   className="btn-navy-outline"
-                  onClick={() => setShowAddEditModal(false)}
+                  onClick={() => setShowEditModal(false)}
                   disabled={formSubmitting}
                 >
                   Cancel
@@ -844,10 +809,8 @@ const TenantInfo = () => {
                 >
                   {formSubmitting ? (
                     <>
-                      <ButtonLoader size="small" /> Saving...
+                      <ButtonLoader size="small" /> Saving Changes...
                     </>
-                  ) : modalMode === 'add' ? (
-                    'Add Tenant Record'
                   ) : (
                     'Save Changes'
                   )}

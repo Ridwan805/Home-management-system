@@ -5,6 +5,7 @@ const VALID_STATUSES = [
   'Submitted',
   'Under Review',
   'Info Requested',
+  'Approved',
   'Approved – Pay Advance',
   'Payment Submitted',
   'AdvancePaid',
@@ -13,6 +14,7 @@ const VALID_STATUSES = [
   'Paid/Completed',
   'Rejected',
   'Canceled',
+  'Withdrawn',
   'Expired'
 ];
 

@@ -311,6 +311,7 @@ export default {
     requestMessages: (id) => `/api/request-management/${id}/messages`,
     readMessages: (id) => `/api/request-management/${id}/messages/read`,
     rejectRequest: (id) => `/api/request-management/owner-requests/${id}/reject`,
+    approveRequest: (id) => `/api/request-management/owner-requests/${id}/approve`,
     requestStatusUpdate: (id) => `/api/request-management/owner-requests/${id}/status`,
     advancePayment: (id) => `/api/request-management/owner-requests/${id}/advance-payment`,
     

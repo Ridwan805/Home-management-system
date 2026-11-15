@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import API from '../../config/api';
 import './OwnerRequestsInbox.css';
 import { FaReceipt, FaPrint } from 'react-icons/fa';
 import { ListItemSkeleton, CircularSpinner, ButtonLoader } from '../../components/loading';
 
 const OwnerRequestsInbox = () => {
+  const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
   const [filteredRequests, setFilteredRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -14,6 +16,18 @@ const OwnerRequestsInbox = () => {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Approval modal state
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [selectedRequestForApprove, setSelectedRequestForApprove] = useState(null);
+  const [approveForm, setApproveForm] = useState({
+    monthlyRent: '',
+    securityDeposit: '',
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    note: ''
+  });
+  const [approveLoading, setApproveLoading] = useState(false);
   
   // Messaging state
   const [messages, setMessages] = useState([]);
@@ -281,19 +295,81 @@ const OwnerRequestsInbox = () => {
     handleStatusUpdate(requestId, 'Info Requested');
   };
 
+  // Open Approval Confirmation Modal
+  const handleOpenApproveModal = (request) => {
+    const reqObj = typeof request === 'string' ? requests.find(r => r._id === request) : request;
+    if (!reqObj) return;
+
+    setSelectedRequestForApprove(reqObj);
+    const defaultRent = reqObj.propertyId?.pricing?.rent || reqObj.propertyId?.pricing?.monthlyRent || reqObj.propertyId?.price || '';
+    const defaultDeposit = reqObj.propertyId?.pricing?.securityDeposit || defaultRent || '';
+    setApproveForm({
+      monthlyRent: defaultRent,
+      securityDeposit: defaultDeposit,
+      startDate: new Date().toISOString().split('T')[0],
+      endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      note: ''
+    });
+    setShowApproveModal(true);
+  };
+
+  // Submit Approval & Activate Tenancy
+  const handleApproveSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedRequestForApprove) return;
+
+    try {
+      setApproveLoading(true);
+      const userData = localStorage.getItem('dwellSyncUser');
+      if (!userData) {
+        alert('Please log in to approve application');
+        return;
+      }
+      const token = JSON.parse(userData).token;
+
+      const response = await fetch(API.getUrl(API.endpoints.approveRequest(selectedRequestForApprove._id)), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(approveForm)
+      });
+
+      const data = await response.json();
+      if (response.ok && data.success) {
+        alert('Rental application approved successfully! The active tenancy has been established and now appears in Tenant Info.');
+        setShowApproveModal(false);
+        setSelectedRequestForApprove(null);
+        if (showDetailModal) setShowDetailModal(false);
+        await fetchOwnerRequests();
+      } else {
+        alert(data.message || 'Failed to approve application');
+      }
+    } catch (err) {
+      console.error('Error approving application:', err);
+      alert('An error occurred while approving the application: ' + err.message);
+    } finally {
+      setApproveLoading(false);
+    }
+  };
+
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [selectedRequestForReject, setSelectedRequestForReject] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
 
-  const handleReject = (requestId) => {
-    setSelectedRequestForReject(requestId);
+  const handleReject = (request) => {
+    const reqId = typeof request === 'string' ? request : request._id;
+    setSelectedRequestForReject(reqId);
+    setRejectReason('');
     setShowRejectModal(true);
   };
 
   const handleRejectSubmit = async (e) => {
     e.preventDefault();
-    if (!rejectReason.trim()) {
-      alert('Please provide a reason for rejection');
+    const reqId = selectedRequestForReject?._id || selectedRequestForReject;
+    if (!reqId) {
+      alert('No request selected for rejection');
       return;
     }
     
@@ -309,32 +385,35 @@ const OwnerRequestsInbox = () => {
       const user = JSON.parse(userData);
       const token = user.token;
       
-      const response = await fetch(API.getUrl(API.endpoints.rejectRequest(selectedRequestForReject)), {
+      const response = await fetch(API.getUrl(API.endpoints.rejectRequest(reqId)), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ reason: rejectReason })
+        body: JSON.stringify({ reason: rejectReason.trim() || 'Application rejected by property owner' })
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
       
       if (data.success) {
-        fetchOwnerRequests();
         setShowRejectModal(false);
+        setSelectedRequestForReject(null);
         setRejectReason('');
-        alert('Request rejected successfully. Tenant has been notified.');
+        if (showDetailModal) setShowDetailModal(false);
+        await fetchOwnerRequests();
+        alert('Request rejected successfully.');
       } else {
         alert(data.message || 'Failed to reject request');
       }
     } catch (err) {
       console.error('Error rejecting request:', err);
-      alert('Failed to reject request. Please try again.');
+      alert('Failed to reject request: ' + err.message);
     } finally {
       setActionLoading(false);
     }
@@ -902,28 +981,44 @@ const OwnerRequestsInbox = () => {
               
               <div className="request-details">
                 <div className="detail-row">
-                  <span className="label">Property:</span>
+                  <span className="label">Applicant Name:</span>
                   <span className="value">
-                    {request.propertyId?.address}, {request.propertyId?.city}
+                    {request.tenantId?.firstName} {request.tenantId?.lastName || request.tenantId?.name || 'Applicant'}
                   </span>
                 </div>
                 <div className="detail-row">
-                  <span className="label">Tenant:</span>
+                  <span className="label">Email:</span>
+                  <span className="value">{request.tenantId?.email || 'N/A'}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="label">Phone Number:</span>
+                  <span className="value">{request.tenantId?.phoneNumber || request.payload?.identity?.phone || 'Not provided'}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="label">Property Name:</span>
+                  <span className="value">{request.propertyId?.title || request.propertyId?.address || 'Property'}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="label">Property Location:</span>
                   <span className="value">
-                    {request.tenantId?.firstName} {request.tenantId?.lastName}
+                    {request.propertyId?.address}{request.propertyId?.city ? `, ${request.propertyId?.city}` : ''}
                   </span>
                 </div>
                 <div className="detail-row">
-                  <span className="label">Type:</span>
-                  <span className="value">{request.requestType}</span>
+                  <span className="label">Requested Apartment / Unit:</span>
+                  <span className="value">
+                    {request.propertyId?.unitNumber || request.propertyId?.specifications?.unitNumber || (request.propertyId?.floorNumber ? `Floor ${request.propertyId?.floorNumber}` : 'Unit 1')}
+                  </span>
                 </div>
                 <div className="detail-row">
-                  <span className="label">Submitted:</span>
+                  <span className="label">Application Date:</span>
                   <span className="value">{formatDate(request.createdAt)}</span>
                 </div>
                 <div className="detail-row">
-                  <span className="label">Last Update:</span>
-                  <span className="value">{formatDate(request.updatedAt)}</span>
+                  <span className="label">Application Status:</span>
+                  <span className="value" style={{ fontWeight: 600, color: getStatusColor(request.status) }}>
+                    {request.status}
+                  </span>
                 </div>
               </div>
 
@@ -935,56 +1030,50 @@ const OwnerRequestsInbox = () => {
                   View Details
                 </button>
                 
-                {request.status === 'Submitted' && (
+                {['Submitted', 'Under Review', 'Info Requested'].includes(request.status) && (
                   <>
                     <button 
-                      onClick={() => handleRequestInfo(request._id)}
-                      className="action-btn info-btn"
-                      disabled={actionLoading}
-                    >
-                      Request Info
-                    </button>
-                    <button 
-                      onClick={() => handleApprove(request._id)}
+                      onClick={() => handleOpenApproveModal(request)}
                       className="action-btn approve-btn"
-                      disabled={actionLoading}
+                      disabled={actionLoading || approveLoading}
                     >
-                      Approve
+                      Approve Application
                     </button>
                     <button 
                       onClick={() => handleReject(request._id)}
                       className="action-btn reject-btn"
-                      disabled={actionLoading}
+                      disabled={actionLoading || approveLoading}
                     >
-                      Reject
+                      Reject Application
                     </button>
                   </>
                 )}
-                
-                {request.status === 'Under Review' && (
+
+                {['Approved', 'Paid/Completed'].includes(request.status) && (
                   <>
-                    <button 
-                      onClick={() => handleRequestInfo(request._id)}
-                      className="action-btn info-btn"
-                      disabled={actionLoading}
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: '#DCFCE7', color: '#166534', borderRadius: '6px', fontWeight: 600, fontSize: '0.85rem' }}>
+                      ✓ Approved & Active Tenancy
+                    </span>
+                    <button
+                      onClick={() => navigate('/tenant-info')}
+                      className="action-btn view-btn"
+                      style={{ background: '#0F172A', color: '#fff' }}
                     >
-                      Request Info
-                    </button>
-                    <button 
-                      onClick={() => handleApprove(request._id)}
-                      className="action-btn approve-btn"
-                      disabled={actionLoading}
-                    >
-                      Approve
-                    </button>
-                    <button 
-                      onClick={() => handleReject(request._id)}
-                      className="action-btn reject-btn"
-                      disabled={actionLoading}
-                    >
-                      Reject
+                      View in Tenant Info
                     </button>
                   </>
+                )}
+
+                {request.status === 'Rejected' && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', padding: '6px 12px', background: '#FEE2E2', color: '#991B1B', borderRadius: '6px', fontWeight: 600, fontSize: '0.85rem' }}>
+                    ✕ Application Rejected
+                  </span>
+                )}
+
+                {['Canceled', 'Withdrawn'].includes(request.status) && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', padding: '6px 12px', background: '#F1F5F9', color: '#64748B', borderRadius: '6px', fontWeight: 600, fontSize: '0.85rem' }}>
+                    Withdrawn by Tenant
+                  </span>
                 )}
                 
                 {request.status === 'AdvancePaid' && (
@@ -1023,11 +1112,11 @@ const OwnerRequestsInbox = () => {
                       </>
                     ) : (
                       <button 
-                        onClick={() => handleApproveAdvancePaid(request._id)}
+                        onClick={() => handleOpenApproveModal(request)}
                         className="action-btn approve-btn"
                         disabled={actionLoading}
                       >
-                        Approve Request
+                        Approve Application
                       </button>
                     )}
                   </>
@@ -1336,6 +1425,34 @@ const OwnerRequestsInbox = () => {
                       {actionLoading ? 'Rejecting...' : 'Reject Payment Proof'}
                     </button>
                   </div>
+                </div>
+              )}
+
+              {/* Direct Application Approval / Rejection from Detail Modal */}
+              {['Submitted', 'Under Review', 'Info Requested'].includes(selectedRequest.status) && (
+                <div className="detail-section" style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', paddingTop: '16px', borderTop: '1px solid #E2E8F0', marginTop: '20px' }}>
+                  <button 
+                    onClick={() => {
+                      const req = selectedRequest;
+                      setShowDetailModal(false);
+                      handleOpenApproveModal(req);
+                    }}
+                    className="action-btn approve-btn"
+                    style={{ padding: '10px 20px', background: '#16A34A', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
+                  >
+                    Approve Application
+                  </button>
+                  <button 
+                    onClick={() => {
+                      const req = selectedRequest;
+                      setShowDetailModal(false);
+                      handleReject(req._id);
+                    }}
+                    className="action-btn reject-btn"
+                    style={{ padding: '10px 20px', background: '#DC2626', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
+                  >
+                    Reject Application
+                  </button>
                 </div>
               )}
             </div>
@@ -1680,6 +1797,122 @@ const OwnerRequestsInbox = () => {
                   disabled={actionLoading}
                 >
                   {actionLoading ? 'Setting up...' : 'Set Up Payment'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Approve Application Confirmation Modal */}
+      {showApproveModal && selectedRequestForApprove && (
+        <div className="modal-overlay" onClick={() => setShowApproveModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '560px' }}>
+            <div className="modal-header">
+              <h2>Approve Rental Application</h2>
+              <button 
+                onClick={() => setShowApproveModal(false)}
+                className="close-btn"
+              >
+                ×
+              </button>
+            </div>
+            
+            <form onSubmit={handleApproveSubmit} className="modal-body">
+              <div style={{ padding: '14px 16px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '10px', marginBottom: '16px' }}>
+                <p style={{ margin: '0 0 6px 0', fontWeight: 600, color: '#166534', fontSize: '0.925rem' }}>
+                  ✓ Confirm Tenancy Activation
+                </p>
+                <p style={{ margin: 0, color: '#15803D', fontSize: '0.85rem', lineHeight: 1.5 }}>
+                  Approving this application will automatically establish an active tenancy for <strong>{selectedRequestForApprove.tenantId?.firstName} {selectedRequestForApprove.tenantId?.lastName || selectedRequestForApprove.tenantId?.name}</strong> at <strong>{selectedRequestForApprove.propertyId?.title || selectedRequestForApprove.propertyId?.address}</strong>. The tenant will immediately appear in your Tenant Info dashboard.
+                </p>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '14px' }}>
+                <label>Applicant Dossier</label>
+                <div style={{ padding: '10px 14px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.875rem', color: '#334155', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div><strong>Name:</strong> {selectedRequestForApprove.tenantId?.firstName} {selectedRequestForApprove.tenantId?.lastName || selectedRequestForApprove.tenantId?.name}</div>
+                  <div><strong>Email:</strong> {selectedRequestForApprove.tenantId?.email}</div>
+                  <div><strong>Phone:</strong> {selectedRequestForApprove.tenantId?.phoneNumber || 'Not provided'}</div>
+                  <div><strong>Property:</strong> {selectedRequestForApprove.propertyId?.title || selectedRequestForApprove.propertyId?.address} ({selectedRequestForApprove.propertyId?.unitNumber ? `Unit ${selectedRequestForApprove.propertyId.unitNumber}` : 'Standard Unit'})</div>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                <div className="form-group">
+                  <label htmlFor="approve-rent">Monthly Rent (BDT ৳) *</label>
+                  <input
+                    type="number"
+                    id="approve-rent"
+                    required
+                    min="1"
+                    value={approveForm.monthlyRent}
+                    onChange={(e) => setApproveForm({ ...approveForm, monthlyRent: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="approve-deposit">Security Deposit (BDT ৳)</label>
+                  <input
+                    type="number"
+                    id="approve-deposit"
+                    min="0"
+                    value={approveForm.securityDeposit}
+                    onChange={(e) => setApproveForm({ ...approveForm, securityDeposit: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                <div className="form-group">
+                  <label htmlFor="approve-start">Lease Start Date *</label>
+                  <input
+                    type="date"
+                    id="approve-start"
+                    required
+                    value={approveForm.startDate}
+                    onChange={(e) => setApproveForm({ ...approveForm, startDate: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="approve-end">Lease End Date</label>
+                  <input
+                    type="date"
+                    id="approve-end"
+                    value={approveForm.endDate}
+                    onChange={(e) => setApproveForm({ ...approveForm, endDate: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '18px' }}>
+                <label htmlFor="approve-note">Owner Welcome Note / Terms</label>
+                <textarea
+                  id="approve-note"
+                  rows="2"
+                  placeholder="Welcome remarks, keys pickup instructions, or special lease terms..."
+                  value={approveForm.note}
+                  onChange={(e) => setApproveForm({ ...approveForm, note: e.target.value })}
+                />
+              </div>
+
+              <div className="modal-actions">
+                <button 
+                  type="button" 
+                  onClick={() => setShowApproveModal(false)}
+                  className="cancel-btn"
+                  disabled={approveLoading}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="approve-btn"
+                  style={{ padding: '10px 20px', background: '#16A34A', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
+                  disabled={approveLoading}
+                >
+                  {approveLoading ? 'Approving & Activating...' : 'Approve & Activate Tenancy'}
                 </button>
               </div>
             </form>

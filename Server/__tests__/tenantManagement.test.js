@@ -145,8 +145,8 @@ describe('Tenant Management Controller', () => {
     });
   });
 
-  describe('POST /api/owner/tenants (createTenant)', () => {
-    it('rejects if property is not owned by the requesting user', async () => {
+  describe('POST /api/owner/tenants (createTenant - Workflow Enforcement)', () => {
+    it('disallows manual tenant creation with 403 Forbidden', async () => {
       req.body = {
         firstName: 'Bob',
         email: 'bob@example.com',
@@ -154,96 +154,16 @@ describe('Tenant Management Controller', () => {
         monthlyRent: 20000,
         startDate: '2026-03-01'
       };
-
-      Property.findById.mockResolvedValue({
-        _id: propertyId,
-        ownerUserId: new mongoose.Types.ObjectId().toString(), // Different owner
-        owner: new mongoose.Types.ObjectId().toString()
-      });
 
       await createTenant(req, res);
 
       expect(res.status).toHaveBeenCalledWith(403);
       expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ message: 'You do not own this property' })
+        expect.objectContaining({
+          success: false,
+          message: expect.stringContaining('Manual tenant creation is disabled')
+        })
       );
-    });
-
-    it('rejects duplicate active tenancy for the same property', async () => {
-      req.body = {
-        firstName: 'Bob',
-        email: 'bob@example.com',
-        propertyId,
-        monthlyRent: 20000,
-        startDate: '2026-03-01'
-      };
-
-      Property.findById.mockResolvedValue({
-        _id: propertyId,
-        ownerUserId: ownerUserId
-      });
-
-      Rent.findOne.mockResolvedValue({ _id: 'existing-rent-id', status: 'Active' });
-
-      await createTenant(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ message: expect.stringContaining('already has an active tenant') })
-      );
-    });
-
-    it('links existing user without duplicate account and creates tenancy', async () => {
-      req.body = {
-        firstName: 'Bob',
-        lastName: 'Smith',
-        email: 'bob.smith@example.com',
-        phoneNumber: '01800000000',
-        propertyId,
-        unitNumber: 'Unit 5A',
-        monthlyRent: 30000,
-        securityDeposit: 60000,
-        startDate: '2026-04-01'
-      };
-
-      const mockProp = {
-        _id: propertyId,
-        ownerUserId: ownerUserId,
-        save: jest.fn().mockResolvedValue(true)
-      };
-      Property.findById.mockResolvedValue(mockProp);
-      Rent.findOne.mockResolvedValue(null); // No duplicate active rent
-
-      const existingUser = {
-        _id: tenantId,
-        email: 'bob.smith@example.com',
-        role: 'Tenant',
-        save: jest.fn().mockResolvedValue(true)
-      };
-      User.findOne.mockResolvedValue(existingUser);
-
-      // Rent mock constructor
-      const mockRentInstance = {
-        _id: rentId,
-        save: jest.fn().mockResolvedValue(true)
-      };
-      Rent.mockImplementation(() => mockRentInstance);
-
-      // Invoice mock constructor
-      const mockInvoiceInstance = {
-        save: jest.fn().mockResolvedValue(true),
-        invoiceNo: 'INV-TEST-001'
-      };
-      Invoice.mockImplementation(() => mockInvoiceInstance);
-      Notification.create.mockResolvedValue({});
-
-      await createTenant(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(201);
-      expect(mockRentInstance.save).toHaveBeenCalled();
-      expect(mockProp.status).toBe('Rented');
-      expect(mockProp.currentRentId).toBe(rentId);
-      expect(mockProp.save).toHaveBeenCalled();
     });
   });
 

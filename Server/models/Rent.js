@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 // Define valid rent statuses
-const RENT_STATUSES = ['Pending', 'Active', 'Paused', 'Terminated', 'Expired'];
+const RENT_STATUSES = ['Pending', 'Awaiting Activation', 'Active', 'Paused', 'Terminated', 'Ended', 'Expired'];
 
 // Define valid term types
 const TERM_TYPES = ['fixed', 'month_to_month'];

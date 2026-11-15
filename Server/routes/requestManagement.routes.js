@@ -10,7 +10,8 @@ const {
   addMessage,
   markMessagesAsRead,
   setupAdvancePayment,
-  rejectRequest
+  rejectRequest,
+  approveRequest
 } = require('../controllers/requestManagement.controller');
 const authMiddleware = require('../middleware/authMiddleware');
 
@@ -20,6 +21,7 @@ router.patch('/my-requests/:requestId/cancel', authMiddleware, cancelRequest);
 
 // Owner routes
 router.get('/owner-requests', authMiddleware, getOwnerRequests);
+router.post('/owner-requests/:requestId/approve', authMiddleware, approveRequest);
 router.patch('/owner-requests/:requestId/status', authMiddleware, updateRequestStatus);
 router.post('/owner-requests/:requestId/advance-payment', authMiddleware, setupAdvancePayment);
 router.post('/owner-requests/:requestId/reject', authMiddleware, rejectRequest);
