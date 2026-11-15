@@ -21,6 +21,13 @@
   background-color: #f8fafc;
 }
 
+/* Seamless background for cinematic homepage without bottom gaps */
+.main-content.homepage-main {
+  background-color: #070c18;
+  padding: 0;
+  margin: 0;
+}
+
 .auth-sections {
   display: flex;
   justify-content: space-around;

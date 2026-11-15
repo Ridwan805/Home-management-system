@@ -233,7 +233,7 @@ function AppRoutes() {
 
         {popupMessage && <div className="popup-message">{popupMessage}</div>}
 
-        <main className={`main-content ${isDashboard ? 'dashboard-page' : ''}`}>
+        <main className={`main-content ${isDashboard ? 'dashboard-page' : ''} ${location.pathname === '/' ? 'homepage-main' : ''}`}>
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<Login />} />
@@ -305,8 +305,9 @@ function AppRoutes() {
           </Routes>
         </main>
         
-        {/* Footer - exclude from login, register, forgot-password and dashboard pages */}
+        {/* Footer - exclude from homepage, login, register, forgot-password and dashboard pages */}
         {!isDashboard && 
+         location.pathname !== '/' && 
          location.pathname !== '/login' && 
          location.pathname !== '/register' && 
          location.pathname !== '/forgot-password' && 
