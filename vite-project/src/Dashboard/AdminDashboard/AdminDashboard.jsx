@@ -16,7 +16,7 @@ const AdminDashboard = () => {
   // Check if user is logged in and has admin role
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('dwellSyncUser') || '{}');
-    if (!user.token || user.role !== 'admin') {
+    if (!user.token || user.role?.toLowerCase() !== 'admin') {
       navigate('/login');
     }
   }, [navigate]);

@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import API from '../../config/api';
 import './OwnerRequestsInbox.css';
 import { FaReceipt, FaPrint } from 'react-icons/fa';
+import { ListItemSkeleton } from '../../components/loading';
 
 const OwnerRequestsInbox = () => {
   const [requests, setRequests] = useState([]);
   const [filteredRequests, setFilteredRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [requestState, setRequestState] = useState('loading'); // 'idle' | 'loading' | 'success' | 'error'
   const [error, setError] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [selectedRequest, setSelectedRequest] = useState(null);
@@ -34,15 +36,15 @@ const OwnerRequestsInbox = () => {
 
   const fetchOwnerRequests = async () => {
     try {
-  
       setLoading(true);
+      setRequestState('loading');
       setError(''); // Clear any previous errors
   
       const userData = localStorage.getItem('dwellSyncUser');
       
       if (!userData) {
         setError('Please log in to view requests');
-  
+        setRequestState('error');
         setLoading(false);
         return;
       }
@@ -52,7 +54,7 @@ const OwnerRequestsInbox = () => {
       
       if (!token) {
         setError('Please log in to view requests');
-  
+        setRequestState('error');
         setLoading(false);
         return;
       }
@@ -72,21 +74,17 @@ const OwnerRequestsInbox = () => {
       const data = await response.json();
       
       if (data.success) {
-  
-  
-        if (data.requests && data.requests.length > 0) {
-    
-        }
         setRequests(data.requests || []);
         setFilteredRequests(data.requests || []);
+        setRequestState('success');
       } else {
         setError(data.message || 'Failed to fetch requests');
-  
+        setRequestState('error');
       }
     } catch (err) {
       console.error('Error fetching requests:', err);
       setError('Failed to fetch requests. Please try again.');
-
+      setRequestState('error');
     } finally {
       setLoading(false);
     }
@@ -836,37 +834,12 @@ const OwnerRequestsInbox = () => {
     'Expired'
   ];
 
-  if (loading) {
-    return (
-      <div className="owner-requests-container">
-        <div className="loading-spinner">
-          <div className="spinner"></div>
-          <p>Loading requests...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="owner-requests-container">
-        <div className="error-message">
-          <p>{error}</p>
-          <button onClick={fetchOwnerRequests} className="retry-btn">
-            Try Again
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   try {
     return (
     <div className="owner-requests-container">
       <div className="owner-requests-header">
         <h1>Property Requests Inbox</h1>
         <p>Manage requests for your properties</p>
-
       </div>
 
       <div className="requests-filters">
@@ -884,11 +857,30 @@ const OwnerRequestsInbox = () => {
           </select>
         </div>
         <div className="requests-count">
-          Showing {filteredRequests.length} of {requests.length} requests
+          {requestState === 'loading' ? (
+            <span style={{ color: '#64748b' }}>Loading requests...</span>
+          ) : requestState === 'error' ? (
+            <span style={{ color: '#ef4444' }}>Error loading requests</span>
+          ) : (
+            <span>Showing {filteredRequests.length} of {requests.length} requests</span>
+          )}
         </div>
       </div>
 
-      {filteredRequests.length === 0 ? (
+      {requestState === 'loading' ? (
+        <div className="requests-list" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {[1, 2, 3, 4].map(n => (
+            <ListItemSkeleton key={n} />
+          ))}
+        </div>
+      ) : requestState === 'error' ? (
+        <div className="error-message" style={{ textAlign: 'center', padding: '40px 20px', background: '#fff', borderRadius: '12px', border: '1px solid #fee2e2' }}>
+          <p style={{ color: '#dc2626', fontWeight: 500, marginBottom: '16px' }}>{error || 'Failed to fetch requests'}</p>
+          <button onClick={fetchOwnerRequests} className="retry-btn">
+            Try Again
+          </button>
+        </div>
+      ) : filteredRequests.length === 0 ? (
         <div className="no-requests">
           <p>No requests found{statusFilter !== 'All' ? ` with status "${statusFilter}"` : ''}.</p>
         </div>

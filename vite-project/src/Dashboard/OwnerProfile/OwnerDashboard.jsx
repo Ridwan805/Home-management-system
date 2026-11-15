@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import SidebarNav from './SidebarNav';
 import OwnerProfile from './OwnerProfile';
 import API from '../../config/api';
 import PropertyCard from '../../components/PropertyCard';
@@ -9,7 +8,6 @@ import './OwnerDashboard.css';
 import { useNavigate } from 'react-router-dom';
 
 const OwnerDashboard = () => {
-  const [activeSection, setActiveSection] = useState('profile');
   const [properties, setProperties] = useState([]);
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -160,24 +158,10 @@ const OwnerDashboard = () => {
   }
 
   return (
-    <div className="owner-dashboard">
-      <SidebarNav activeSection={activeSection} setActiveSection={key => {
-        if (key === 'profile') setActiveSection('profile');
-        else if (key === 'create-listing') navigate('/create-listing');
-        else if (key === 'property-details') navigate('/property-details');
-        else if (key === 'tenant-info') navigate('/tenant-info');
-        else if (key === 'security-guard-info') navigate('/security-guard-info');
-        else if (key === 'request-info') navigate('/request-info');
-        else if (key === 'payments') navigate('/payments');
-        else if (key === 'maintenance-reports') navigate('/maintenance-reports');
-      }} />
-      <main className="dashboard-main">
-        <div className="dashboard-content">
-          {activeSection === 'profile' && (
-            <>
-              <OwnerProfile />
+    <>
+      <OwnerProfile />
 
-              {/* Quick Overview Metric Stats Bar */}
+      {/* Quick Overview Metric Stats Bar */}
               <div className="dashboard-stats-grid">
                 {loading ? (
                   Array.from({ length: 4 }).map((_, i) => (
@@ -287,7 +271,14 @@ const OwnerDashboard = () => {
                     )}
                   </div>
                   <div className="requests-list">
-                    {requests.length > 0 ? (
+                    {loading ? (
+                      Array.from({ length: 2 }).map((_, i) => (
+                        <div key={`req-skeleton-${i}`} style={{ padding: '16px', background: '#ffffff', borderRadius: '12px', marginBottom: '12px', border: '1px solid #e2e8f0' }}>
+                          <div style={{ height: '14px', width: '35%', background: '#e2e8f0', borderRadius: '4px', marginBottom: '8px' }} />
+                          <div style={{ height: '12px', width: '60%', background: '#f1f5f9', borderRadius: '4px' }} />
+                        </div>
+                      ))
+                    ) : requests.length > 0 ? (
                       requests.map(request => (
                         <div key={request._id} className="request-card">
                           <div className="request-info">
@@ -333,11 +324,7 @@ const OwnerDashboard = () => {
                   </div>
                 </section>
               </div>
-            </>
-          )}
-        </div>
-      </main>
-    </div>
+    </>
   );
 };
 

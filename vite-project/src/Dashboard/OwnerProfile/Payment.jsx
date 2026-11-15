@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import API from '../../config/api';
 import './Payment.css';
+import { DashboardCardSkeleton } from '../../components/loading';
 
 const Payment = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState('securityGuardPayments');
   const [loading, setLoading] = useState(false);
+  const [loadingGuards, setLoadingGuards] = useState(true);
   const [guardPaymentLoading, setGuardPaymentLoading] = useState(false);
   const [hiredGuards, setHiredGuards] = useState([]);
   const [guardPaymentHistory, setGuardPaymentHistory] = useState([]);
@@ -84,6 +86,7 @@ const Payment = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setLoadingGuards(true);
         const token = getAuthToken();
         if (!token) {
           console.error('No authentication token found');
@@ -105,11 +108,10 @@ const Payment = () => {
         } else {
           console.error('API request failed:', guardsResponse.status, guardsResponse.statusText);
         }
-        
-        // Using sample data for regular payment history
-    
       } catch (error) {
         console.error('Error fetching data:', error);
+      } finally {
+        setLoadingGuards(false);
       }
     };
     
@@ -425,7 +427,13 @@ const Payment = () => {
         ) : activeTab === 'securityGuardPayments' ? (
           <div className="security-guard-payments-section">
             <h3>Security Guard Payments</h3>
-            {hiredGuards.length === 0 ? (
+            {loadingGuards ? (
+              <div className="guards-payment-grid">
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <DashboardCardSkeleton key={`guard-pay-skel-${i}`} />
+                ))}
+              </div>
+            ) : hiredGuards.length === 0 ? (
               <div className="no-guards">
                 <p>No hired security guards found.</p>
               </div>

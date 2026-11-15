@@ -205,7 +205,7 @@ const ViewDetails = () => {
     
     // Optionally redirect to My Requests page
     setTimeout(() => {
-      navigate('/my-requests');
+      navigate('/tenant/request-info');
     }, 2000);
   };
 

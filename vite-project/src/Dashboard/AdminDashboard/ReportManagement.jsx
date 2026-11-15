@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import API from '../../config/api';
 import { FaTrash, FaBan, FaExclamationTriangle, FaFlag, FaUser, FaExclamationCircle } from 'react-icons/fa';
+import { TableSkeleton } from '../../components/loading';
 
 const ReportManagement = () => {
   const [reports, setReports] = useState([]);
@@ -122,7 +123,9 @@ const ReportManagement = () => {
     <div className="report-management">
       <h2>Report Management</h2>
       {loading ? (
-        <div className="loading-spinner">Loading reports...</div>
+        <div style={{ padding: '20px 0' }}>
+          <TableSkeleton rows={4} columns={5} />
+        </div>
       ) : error ? (
         <div className="error-message">
           {error}

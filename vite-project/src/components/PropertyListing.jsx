@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import './PropertyListing.css';
 import PropertyCard from './PropertyCard';
 import EditPropertyModal from './EditPropertyModal';
@@ -10,6 +10,7 @@ import API from '../config/api';
 
 const PropertyListing = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -28,7 +29,7 @@ const PropertyListing = () => {
         
         if (!userData) {
           // Redirect to login page if user is not logged in
-          window.location.href = '/login'; 
+          navigate('/login'); 
           return;
         }
         
@@ -206,7 +207,7 @@ const PropertyListing = () => {
       <div className="property-listing-header">
         <h1>Property Listings</h1>
         <p className="subtitle">View and manage your property listings</p>
-        <button className="add-property-btn" onClick={() => window.location.href = '/create-listing'}>
+        <button className="add-property-btn" onClick={() => navigate('/create-listing')}>
           Add New Property
         </button>
       </div>
@@ -224,7 +225,7 @@ const PropertyListing = () => {
       {!loading && !error && properties.length === 0 && (
         <div className="no-properties">
           <p>You haven't listed any properties yet.</p>
-          <button className="add-property-btn" onClick={() => window.location.href = '/create-listing'}>
+          <button className="add-property-btn" onClick={() => navigate('/create-listing')}>
             Add Your First Property
           </button>
         </div>

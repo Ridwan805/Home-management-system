@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import apiConfig, { authenticatedFetch } from '../../config/api';
 import './SecurityGuardInfo.css';
+import { DashboardCardSkeleton } from '../../components/loading';
 
 const SecurityGuardInfo = () => {
   const [activeTab, setActiveTab] = useState('jobs');
   const [jobPosts, setJobPosts] = useState([]);
   const [applications, setApplications] = useState([]);
   const [properties, setProperties] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [showCreateJobModal, setShowCreateJobModal] = useState(false);
   const [selectedJobPost, setSelectedJobPost] = useState(null);
   const [showApplicationsModal, setShowApplicationsModal] = useState(false);
@@ -285,7 +286,11 @@ const SecurityGuardInfo = () => {
         {activeTab === 'jobs' && (
           <div className="job-posts">
             {loading ? (
-              <div className="loading">Loading job posts...</div>
+              <div className="job-posts-grid">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <DashboardCardSkeleton key={`guard-post-skel-${i}`} />
+                ))}
+              </div>
             ) : jobPosts.length === 0 ? (
               <div className="empty-state">
                 <p>No job posts yet. Create your first security guard job posting!</p>

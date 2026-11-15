@@ -3,7 +3,7 @@ import './App.css';
 import Register from './Login_and_Register/Register';
 import Login from './Login_and_Register/Login';
 import ForgotPassword from './Login_and_Register/ForgotPassword';
-import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import Navbar from './components/layout/Navbar';
 import HomePage from './HomePage/HomePage';
 import OwnerDashboard from './Dashboard/OwnerProfile/OwnerDashboard';
@@ -29,16 +29,114 @@ import Footer from './components/layout/Footer';
 import API from './config/api';
 import { AppLoader } from './components/loading';
 
- 
+// Helper to reliably detect any dashboard route (prevents layout and navbar flickering)
+const isDashboardPath = (pathname) => {
+  return (
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/create-listing') ||
+    pathname.startsWith('/property-details') ||
+    pathname.startsWith('/tenant-info') ||
+    pathname.startsWith('/security-guard-info') ||
+    pathname.startsWith('/request-info') ||
+    pathname.startsWith('/payments') ||
+    pathname.startsWith('/maintenance-reports') ||
+    pathname.startsWith('/tenant') ||
+    pathname.startsWith('/security-guard')
+  );
+};
+
+// Initialize stored user synchronously to eliminate auth flash on page reload
+const getStoredUser = () => {
+  try {
+    const data = localStorage.getItem('dwellSyncUser');
+    if (data) {
+      const user = JSON.parse(data);
+      if (user && user.token) return user;
+    }
+  } catch (e) {
+    console.error('Error reading stored user from localStorage:', e);
+  }
+  return null;
+};
+
+// Persistent Owner Dashboard Layout - Keeps sidebar mounted and prevents layout shift
+function OwnerLayout() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const getActiveSection = (pathname) => {
+    if (pathname === '/dashboard') return 'profile';
+    if (pathname.startsWith('/create-listing')) return 'create-listing';
+    if (pathname.startsWith('/property-details')) return 'property-details';
+    if (pathname.startsWith('/tenant-info')) return 'tenant-info';
+    if (pathname.startsWith('/security-guard-info')) return 'security-guard-info';
+    if (pathname.startsWith('/request-info')) return 'request-info';
+    if (pathname.startsWith('/payments')) return 'payments';
+    if (pathname.startsWith('/maintenance-reports')) return 'maintenance-reports';
+    return 'profile';
+  };
+
+  const activeSection = getActiveSection(location.pathname);
+
+  const handleSectionChange = (key) => {
+    switch (key) {
+      case 'profile':
+        navigate('/dashboard');
+        break;
+      case 'create-listing':
+        navigate('/create-listing');
+        break;
+      case 'property-details':
+        navigate('/property-details');
+        break;
+      case 'tenant-info':
+        navigate('/tenant-info');
+        break;
+      case 'security-guard-info':
+        navigate('/security-guard-info');
+        break;
+      case 'request-info':
+        navigate('/request-info');
+        break;
+      case 'payments':
+        navigate('/payments');
+        break;
+      case 'maintenance-reports':
+        navigate('/maintenance-reports');
+        break;
+      default:
+        navigate('/dashboard');
+    }
+  };
+
+  return (
+    <div className="owner-dashboard">
+      <SidebarNav activeSection={activeSection} setActiveSection={handleSectionChange} />
+      <main className="dashboard-main">
+        <div className="dashboard-content">
+          <Outlet />
+        </div>
+      </main>
+      <QuickDialButton />
+    </div>
+  );
+}
+
+function CreateListingPage() {
+  const navigate = useNavigate();
+  return <CreateListingForm onSuccess={() => navigate('/dashboard')} onCancel={() => navigate('/dashboard')} />;
+}
 
 // Session context for login state
 export const AuthContext = React.createContext();
 
 function AppRoutes() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userRole, setUserRole] = useState(null);
+  const initialUser = getStoredUser();
+  const [isLoggedIn, setIsLoggedIn] = useState(!!initialUser);
+  const [userRole, setUserRole] = useState(initialUser ? initialUser.role : null);
   const [popupMessage, setPopupMessage] = useState('');
-  const [authLoading, setAuthLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(!!initialUser);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -57,6 +155,8 @@ function AppRoutes() {
         if (!token) {
           localStorage.removeItem('dwellSyncUser');
           setAuthLoading(false);
+          setIsLoggedIn(false);
+          setUserRole(null);
           return;
         }
 
@@ -86,7 +186,11 @@ function AppRoutes() {
       }
     };
 
-    validateToken();
+    if (initialUser) {
+      validateToken();
+    } else {
+      setAuthLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -107,236 +211,98 @@ function AppRoutes() {
     setUserRole(null);
   };
 
-  function OwnerLayout({ activeSection, children }) {
-    const nav = useNavigate();
-    const handleSectionChange = (key) => {
-      switch (key) {
-        case 'profile':
-          nav('/dashboard');
-          break;
-        case 'create-listing':
-          nav('/create-listing');
-          break;
-        case 'property-details':
-          nav('/property-details');
-          break;
-        case 'tenant-info':
-          nav('/tenant-info');
-          break;
-        case 'security-guard-info':
-          nav('/security-guard-info');
-          break;
-        case 'request-info':
-          nav('/request-info');
-          break;
-        case 'payments':
-          nav('/payments');
-          break;
-        case 'maintenance-reports':
-          nav('/maintenance-reports');
-          break;
-        default:
-          nav('/dashboard');
-      }
-    };
-
-    return (
-      <div className="owner-dashboard">
-        <SidebarNav activeSection={activeSection} setActiveSection={handleSectionChange} />
-        <main className="dashboard-main">
-          <div className="dashboard-content">
-            {children}
-          </div>
-        </main>
-        <QuickDialButton />
-      </div>
-    );
-  }
-
-  function CreateListingPage() {
-    const nav = useNavigate();
-    return (
-      <OwnerLayout activeSection="create-listing">
-        <CreateListingForm onSuccess={() => nav('/dashboard')} onCancel={() => nav('/dashboard')} />
-      </OwnerLayout>
-    );
-  }
-
-  // Show branded loading screen while validating authentication
+  // Show branded loading screen only while validating authentication for a stored session
   if (authLoading) {
     return <AppLoader message="Verifying session..." />;
   }
 
+  const isDashboard = isDashboardPath(location.pathname);
+
   return (
     <AuthContext.Provider value={{ isLoggedIn, login, logout, setPopupMessage, userRole, authLoading }}>
       <div className="app-wrapper">
-        {!(location.pathname.startsWith('/dashboard') ||
-          location.pathname.startsWith('/admin') || // ✅ ADDED: hide navbar on admin routes
-          location.pathname === '/create-listing' ||
-          location.pathname === '/property-details' ||
-          location.pathname === '/tenant-info' ||
-          location.pathname === '/security-guard-info' ||
-          location.pathname === '/request-info' ||
-          location.pathname === '/payments' ||
-          location.pathname === '/maintenance-reports' ||
-          location.pathname.startsWith('/tenant') ||
-          location.pathname.startsWith('/security-guard')
-        ) && <Navbar />}
+        {!isDashboard && <Navbar />}
 
         {popupMessage && <div className="popup-message">{popupMessage}</div>}
 
-        <main className={`main-content ${
-          (location.pathname.startsWith('/dashboard') ||
-           location.pathname.startsWith('/admin') ||
-           location.pathname === '/create-listing' ||
-           location.pathname === '/property-details' ||
-           location.pathname === '/tenant-info' ||
-           location.pathname === '/security-guard-info' ||
-           location.pathname === '/request-info' ||
-           location.pathname === '/payments' ||
-           location.pathname === '/maintenance-reports' ||
-           location.pathname.startsWith('/tenant') ||
-           location.pathname.startsWith('/security-guard'))
-          ? 'dashboard-page' : ''
-        }`}>
+        <main className={`main-content ${isDashboard ? 'dashboard-page' : ''}`}>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/properties" element={<PropertyFilter />} />
+            <Route path="/properties/:propertyId" element={<ViewDetails />} />
 
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/properties" element={<PropertyFilter />} />
-        <Route path="/properties/:propertyId" element={<ViewDetails />} />
-        <Route path="/tenant/:section" element={
-          <ProtectedRoute allowedRoles={['Tenant']}>
-            <TenantDashboard />
-          </ProtectedRoute>
-        } />
-        <Route path="/dashboard" element={
-          <ProtectedRoute allowedRoles={['Owner']}>
-            <OwnerDashboard />
-          </ProtectedRoute>
-        } />
-        <Route path="/create-listing" element={
-          <ProtectedRoute allowedRoles={['Owner', 'Admin', 'admin']}>
-            <CreateListingPage />
-          </ProtectedRoute>
-        } />
+            {/* Tenant Dashboard Routes */}
+            <Route path="/tenant/:section" element={
+              <ProtectedRoute allowedRoles={['Tenant']}>
+                <TenantDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/tenant" element={
+              <ProtectedRoute allowedRoles={['Tenant']}>
+                <Navigate to="/tenant/profile" />
+              </ProtectedRoute>
+            } />
+            <Route path="/my-requests" element={
+              <ProtectedRoute allowedRoles={['Tenant']}>
+                <Navigate to="/tenant/request-info" replace />
+              </ProtectedRoute>
+            } />
 
-        <Route
-          path="/property-details"
-          element={
-            <ProtectedRoute allowedRoles={['Owner']}>
-              <OwnerLayout activeSection="property-details">
-                <PropertyListing />
-              </OwnerLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/tenant-info"
-          element={
-            <ProtectedRoute allowedRoles={['Owner']}>
-              <OwnerLayout activeSection="tenant-info">
-                <TenantInfo />
-              </OwnerLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/security-guard-info"
-          element={
-            <ProtectedRoute allowedRoles={['Owner']}>
-              <OwnerLayout activeSection="security-guard-info">
-                <SecurityGuardInfo />
-              </OwnerLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/request-info"
-          element={
-            <ProtectedRoute allowedRoles={['Owner']}>
-              <OwnerLayout activeSection="request-info">
-                <OwnerRequestsInbox />
-              </OwnerLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/payments"
-          element={
-            <ProtectedRoute allowedRoles={['Owner']}>
-              <OwnerLayout activeSection="payments">
-                <Payment />
-              </OwnerLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/maintenance-reports"
-          element={
-            <ProtectedRoute allowedRoles={['Owner']}>
-              <OwnerLayout activeSection="maintenance-reports">
-                <MaintenanceReports />
-              </OwnerLayout>
-            </ProtectedRoute>
-          }
-        />
+            {/* Owner Dashboard - Shared Persistent Layout (Sidebar stays mounted across all child routes) */}
+            <Route
+              element={
+                <ProtectedRoute allowedRoles={['Owner']}>
+                  <OwnerLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route path="/dashboard" element={<OwnerDashboard />} />
+              <Route path="/create-listing" element={<CreateListingPage />} />
+              <Route path="/property-details" element={<PropertyListing />} />
+              <Route path="/tenant-info" element={<TenantInfo />} />
+              <Route path="/security-guard-info" element={<SecurityGuardInfo />} />
+              <Route path="/request-info" element={<OwnerRequestsInbox />} />
+              <Route path="/payments" element={<Payment />} />
+              <Route path="/maintenance-reports" element={<MaintenanceReports />} />
+            </Route>
+            
+            {/* Security Guard Dashboard Routes */}
+            <Route path="/security-guard/:section" element={
+              <ProtectedRoute allowedRoles={['Security Guard']}>
+                <SecurityGuardDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/security-guard" element={
+              <ProtectedRoute allowedRoles={['Security Guard']}>
+                <Navigate to="/security-guard/profile" />
+              </ProtectedRoute>
+            } />
 
-        {/* Tenant Dashboard Routes - Duplicate removed */}
-        <Route path="/tenant" element={
-          <ProtectedRoute allowedRoles={['Tenant']}>
-            <Navigate to="/tenant/profile" />
-          </ProtectedRoute>
-        } />
-        
-        {/* Security Guard Dashboard Routes */}
-        <Route path="/security-guard/:section" element={
-          <ProtectedRoute allowedRoles={['Security Guard']}>
-            <SecurityGuardDashboard />
-          </ProtectedRoute>
-        } />
-        <Route path="/security-guard" element={
-          <ProtectedRoute allowedRoles={['Security Guard']}>
-            <Navigate to="/security-guard/profile" />
-          </ProtectedRoute>
-        } />
+            {/* Admin Dashboard Route */}
+            <Route path="/admin/*" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            } />
 
-        {/* ✅ Admin Dashboard Route */}
-        <Route path="/admin/*" element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <AdminDashboard />
-          </ProtectedRoute>
-        } />
-        
-
-
-        {/* Fallback - redirect based on user role */}
-        <Route path="*" element={
-          <ProtectedRoute allowedRoles={[]}>
-            <Navigate to="/" />
-          </ProtectedRoute>
-        } />
-      </Routes>
+            {/* Fallback - redirect based on user role */}
+            <Route path="*" element={
+              <ProtectedRoute allowedRoles={[]}>
+                <Navigate to="/" />
+              </ProtectedRoute>
+            } />
+          </Routes>
         </main>
         
-        {/* Footer - exclude from login, register, and dashboard pages */}
-        {!(location.pathname === '/login' || 
-          location.pathname === '/register' || 
-          location.pathname === '/forgot-password' ||
-          location.pathname.startsWith('/dashboard') ||
-          location.pathname.startsWith('/admin') ||
-          location.pathname === '/create-listing' ||
-          location.pathname === '/property-details' ||
-          location.pathname === '/tenant-info' ||
-          location.pathname === '/security-guard-info' ||
-          location.pathname === '/request-info' ||
-          location.pathname === '/payments' ||
-          location.pathname === '/maintenance-reports' ||
-          location.pathname.startsWith('/tenant') ||
-          location.pathname.startsWith('/security-guard')
-        ) && <Footer />}
+        {/* Footer - exclude from login, register, forgot-password and dashboard pages */}
+        {!isDashboard && 
+         location.pathname !== '/login' && 
+         location.pathname !== '/register' && 
+         location.pathname !== '/forgot-password' && 
+         <Footer />}
       </div>
     </AuthContext.Provider>
   );

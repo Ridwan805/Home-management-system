@@ -293,14 +293,6 @@ const PaymentInfo = () => {
     refreshAll();
   };
 
-  if (loading) {
-    return (
-      <div className="payment-info">
-        <LoadingSpinner />
-      </div>
-    );
-  }
-
   const { totalOutstanding, totalPaid, overdueAmount } = calculateSummary();
 
   return (
@@ -383,8 +375,8 @@ const PaymentInfo = () => {
       {/* Invoices Tab */}
       {activeTab === 'invoices' && (
         <div className="bills-container">
-          <h3>Current Bills {loadingInvoices && <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>(Loading...)</span>}</h3>
-          {loadingInvoices ? (
+          <h3>Current Bills {(loading || loadingInvoices) && <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>(Loading...)</span>}</h3>
+          {(loading || loadingInvoices) ? (
             <TableSkeleton rows={4} columns={6} />
           ) : invoices.length === 0 ? (
             <p>No invoices found.</p>
@@ -439,13 +431,13 @@ const PaymentInfo = () => {
       {activeTab === 'history' && (
         <div className="bills-container">
           <h3>
-            Payment History {loadingHistory ? (
+            Payment History {(loading || loadingHistory) ? (
               <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>(Loading...)</span>
             ) : (
               <span style={{ fontSize: '0.9rem', color: '#374151' }}>({paymentHistory.length})</span>
             )}
           </h3>
-          {loadingHistory ? (
+          {(loading || loadingHistory) ? (
             <TableSkeleton rows={5} columns={5} />
           ) : paymentHistory.length === 0 ? (
             <p>No payment history found.</p>

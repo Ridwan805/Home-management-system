@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { FaCheck, FaTimes, FaHourglass, FaMapMarkerAlt, FaHome, FaMoneyBillWave, FaUser, FaEye, FaBed, FaBath, FaRulerCombined, FaCalendarAlt, FaPhone, FaEnvelope } from 'react-icons/fa';
 import API, { authenticatedAxios } from '../../config/api.js';
+import { PropertyCardSkeleton } from '../../components/loading';
 
 const PendingProperties = () => {
   const [properties, setProperties] = useState([]);
@@ -94,7 +95,11 @@ const PendingProperties = () => {
     <div className="pending-properties">
       <h2>Pending Properties</h2>
       {loading ? (
-        <div className="loading-spinner">Loading pending properties...</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px', marginTop: '20px' }}>
+          {[1, 2, 3].map((n) => (
+            <PropertyCardSkeleton key={n} />
+          ))}
+        </div>
       ) : error ? (
         <div className="error-message" style={{ backgroundColor: '#fee2e2', padding: '20px', borderRadius: '8px', textAlign: 'center' }}>
           Failed to load pending properties. Please try again later.
