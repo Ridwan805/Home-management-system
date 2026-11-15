@@ -89,17 +89,18 @@ const HomePage = () => {
     }
 
     // Section base Gaussian blur map (in rem units)
-    // Section 4 requirements:
-    // - Hero default Gaussian blur: 0.25rem
-    // - Other cinematic sections: 0.125rem to 0.25rem depending on image quality/readability
+    // Section 3 requirements:
+    // - Active section background: 0rem to 0.125rem blur (subtle resting blur)
+    // - Outgoing section background: gradually increase to approximately 0.375rem
+    // - Do not blur the incoming section (resting blur 0rem)
     const SECTION_BASE_BLUR = {
-      hero: 0.25,
-      about: 0.25,
-      rentals: 0.25,
-      buying: 0.1875,
-      land: 0.125,
-      lifestyle: 0.1875,
-      cta: 0.25
+      hero: 0.0625,
+      about: 0.0625,
+      rentals: 0,
+      buying: 0,
+      land: 0,
+      lifestyle: 0,
+      cta: 0.0625
     };
 
     // 2. Cinematic overlapping scroll transitions with background defocus & depth-of-field
@@ -108,11 +109,29 @@ const HomePage = () => {
       if (!ticking) {
         window.requestAnimationFrame(() => {
           const vh = window.innerHeight || 1;
+          const isMobile = window.innerWidth <= 768;
+
           sections.forEach((sec, idx) => {
             const nextSec = sections[idx + 1];
             const bgImg = sec.querySelector('.section-bg-img');
             const content = sec.querySelector('.section-content');
-            const baseBlur = SECTION_BASE_BLUR[sec.id] ?? 0.25;
+            const baseBlur = SECTION_BASE_BLUR[sec.id] ?? 0;
+
+            if (isMobile) {
+              // On mobile, ensure stable natural scrolling without sticky transform conflicts
+              if (bgImg) {
+                bgImg.style.transform = 'none';
+                bgImg.style.filter = baseBlur > 0 ? `blur(${baseBlur}rem)` : 'none';
+              }
+              if (content) {
+                content.style.transform = 'none';
+                content.style.opacity = '1';
+                content.style.filter = 'none';
+              }
+              sec.style.borderTopLeftRadius = '0';
+              sec.style.borderTopRightRadius = '0';
+              return;
+            }
 
             if (nextSec) {
               const nextRect = nextSec.getBoundingClientRect();
@@ -125,33 +144,53 @@ const HomePage = () => {
               // Progress: 0 (nextSec not visible) to 1 (nextSec fully covers sec)
               const progress = Math.max(0, Math.min(1, 1 - (nextRect.top / vh)));
 
-              // 1. Photographic Background Layer Defocus & Darkening
+              // 1. Dynamic border-radius docking:
+              // While nextSec is rising over sec (nextRect.top > 0), nextSec displays its
+              // intentional rounded top card edge (2rem) and shadow.
+              // As nextSec docks at top: 0, its top border-radius smoothly flattens to 0,
+              // covering sec edge-to-edge with ZERO exposed corner strips or gaps.
+              const dockThreshold = 0.12 * vh;
+              const nextRadius = nextRect.top <= 1
+                ? '0'
+                : `${(Math.min(1, nextRect.top / dockThreshold) * 2).toFixed(3)}rem`;
+              nextSec.style.borderTopLeftRadius = nextRadius;
+              nextSec.style.borderTopRightRadius = nextRadius;
+
+              // Outgoing section (sec): Ensure its own top corners stay flat while docked at top: 0
+              if (idx > 0) {
+                const secTop = sec.getBoundingClientRect().top;
+                sec.style.borderTopLeftRadius = secTop <= 1 ? '0' : '2rem';
+                sec.style.borderTopRightRadius = secTop <= 1 ? '0' : '2rem';
+              }
+
+              // 2. Photographic Background Layer Defocus & Darkening
               if (bgImg) {
                 if (progress > 0.005) {
-                  // Gradually increase blur by up to 0.45rem during scroll transition
-                  const currentBlur = (baseBlur + (progress * 0.45)).toFixed(4);
-                  // Slightly darken outgoing section (1.0 down to 0.65)
-                  const brightness = (1 - (progress * 0.35)).toFixed(3);
-                  // Subtle recession scale (1.0 down to 0.965)
-                  const scale = (1 - (progress * 0.035)).toFixed(4);
+                  // Gradually increase blur up to 0.375rem as section transitions out
+                  const maxBlur = 0.375;
+                  const currentBlur = (baseBlur + (progress * (maxBlur - baseBlur))).toFixed(4);
+                  // Slightly darken outgoing section (1.0 down to 0.75)
+                  const brightness = (1 - (progress * 0.25)).toFixed(3);
+                  // Subtle recession scale (1.0 down to 0.98)
+                  const scale = (1 - (progress * 0.02)).toFixed(4);
 
                   bgImg.style.transform = `scale(${scale}) translateZ(0)`;
                   bgImg.style.transformOrigin = 'center center';
                   bgImg.style.filter = `blur(${currentBlur}rem) brightness(${brightness})`;
                 } else {
-                  // Reset to default state with its base Gaussian blur
+                  // Reset to resting state with subtle resting blur (or none)
                   bgImg.style.transform = 'translateZ(0)';
-                  bgImg.style.filter = `blur(${baseBlur}rem) brightness(1)`;
+                  bgImg.style.filter = baseBlur > 0 ? `blur(${baseBlur}rem) brightness(1)` : 'none';
                 }
               }
 
-              // 2. Content Layer: Reduce prominence via opacity and subtle recession drift without blurring text
+              // 3. Content Layer: STABLE vertical positioning (NO translateY drift)
+              // Only gently reduce prominence via opacity as the next section covers it
               if (content) {
                 if (progress > 0.005) {
                   const opacity = (1 - (progress * 0.45)).toFixed(3);
-                  const translateY = (-progress * 1.5).toFixed(3);
-                  content.style.transform = `translateY(${translateY}rem)`;
                   content.style.opacity = `${opacity}`;
+                  content.style.transform = 'none';
                   content.style.filter = 'none';
                 } else {
                   content.style.transform = 'none';
@@ -160,16 +199,16 @@ const HomePage = () => {
                 }
               }
 
-              // 3. Affordability Section background subtle dimming
+              // 4. Affordability Section background subtle dimming
               if (sec.id === 'affordability') {
                 if (progress > 0.005) {
-                  sec.style.filter = `brightness(${(1 - (progress * 0.15)).toFixed(3)})`;
+                  sec.style.filter = `brightness(${(1 - (progress * 0.12)).toFixed(3)})`;
                 } else {
                   sec.style.filter = 'none';
                 }
               }
 
-              // 4. Click-interception prevention: disable pointer events when heavily covered
+              // 5. Click-interception prevention: disable pointer events when heavily covered
               if (progress > 0.85) {
                 sec.style.pointerEvents = 'none';
               } else {
@@ -179,7 +218,7 @@ const HomePage = () => {
               // Final section (CTA) has no next section and always remains 100% focused
               if (bgImg) {
                 bgImg.style.transform = 'translateZ(0)';
-                bgImg.style.filter = `blur(${baseBlur}rem) brightness(1)`;
+                bgImg.style.filter = baseBlur > 0 ? `blur(${baseBlur}rem) brightness(1)` : 'none';
               }
               if (content) {
                 content.style.transform = 'none';
