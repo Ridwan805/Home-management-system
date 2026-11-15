@@ -1,18 +1,19 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
-  FaBuilding,
-  FaArrowRight,
-  FaChevronDown,
-  FaThLarge,
-  FaUser,
-  FaSignOutAlt
-} from 'react-icons/fa';
+  Building2,
+  ArrowRight,
+  ChevronDown,
+  LayoutDashboard,
+  UserRound,
+  LogOut
+} from 'lucide-react';
 import { AuthContext } from '../../App';
 import './FloatingHomeNav.css';
 
 const FloatingHomeNav = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isLoggedIn, logout, userRole, setPopupMessage, currentUser } = useContext(AuthContext);
 
   const [isScrolled, setIsScrolled] = useState(false);
@@ -30,7 +31,7 @@ const FloatingHomeNav = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close dropdown when clicking outside
+  // Close dropdown when clicking outside or pressing Escape
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -53,14 +54,15 @@ const FloatingHomeNav = () => {
 
   // Role-appropriate destination links
   const getDashboardPath = () => {
-    switch (userRole) {
-      case 'Owner':
+    const role = (userRole || '').trim().toLowerCase();
+    switch (role) {
+      case 'owner':
         return '/dashboard';
-      case 'Tenant':
-        return '/tenant/requests';
-      case 'Security Guard':
-        return '/security-guard';
-      case 'Admin':
+      case 'tenant':
+        return '/tenant/dashboard';
+      case 'security guard':
+        return '/security-guard/profile';
+      case 'admin':
         return '/admin';
       default:
         return '/dashboard';
@@ -68,14 +70,15 @@ const FloatingHomeNav = () => {
   };
 
   const getProfilePath = () => {
-    switch (userRole) {
-      case 'Owner':
+    const role = (userRole || '').trim().toLowerCase();
+    switch (role) {
+      case 'owner':
         return '/dashboard';
-      case 'Tenant':
+      case 'tenant':
         return '/tenant/profile';
-      case 'Security Guard':
+      case 'security guard':
         return '/security-guard/profile';
-      case 'Admin':
+      case 'admin':
         return '/admin';
       default:
         return '/dashboard';
@@ -96,6 +99,11 @@ const FloatingHomeNav = () => {
   const displayName = currentUser?.firstName || currentUser?.name || userRole || 'User';
   const initial = displayName.charAt(0).toUpperCase();
 
+  const dashboardPath = getDashboardPath();
+  const profilePath = getProfilePath();
+  const isDashboardActive = location.pathname === dashboardPath;
+  const isProfileActive = location.pathname === profilePath;
+
   return (
     <header
       className={`floating-home-nav ${isScrolled ? 'is-scrolled' : ''}`}
@@ -105,7 +113,7 @@ const FloatingHomeNav = () => {
       <div className="floating-nav-left">
         <Link to="/" className="floating-brand-link" aria-label="DwellSync Home">
           <span className="brand-building-box">
-            <FaBuilding className="building-icon" />
+            <Building2 className="building-icon" size={20} />
           </span>
           <span className="brand-wordmark">
             Dwell<span className="wordmark-sync">Sync</span>
@@ -121,10 +129,10 @@ const FloatingHomeNav = () => {
             <button
               type="button"
               className="btn-floating-dashboard"
-              onClick={() => navigate(getDashboardPath())}
+              onClick={() => navigate(dashboardPath)}
               aria-label={`Go to ${userRole || ''} Dashboard`}
             >
-              <FaThLarge className="btn-icon" />
+              <LayoutDashboard className="btn-icon" size={17} />
               <span className="btn-label">Dashboard</span>
             </button>
 
@@ -139,7 +147,7 @@ const FloatingHomeNav = () => {
             >
               <span className="avatar-initial">{initial}</span>
               <span className="user-firstname">{displayName}</span>
-              <FaChevronDown className={`chevron-icon ${dropdownOpen ? 'rotated' : ''}`} />
+              <ChevronDown className={`chevron-icon ${dropdownOpen ? 'rotated' : ''}`} size={16} />
             </button>
 
             {/* Profile Dropdown Menu */}
@@ -155,27 +163,27 @@ const FloatingHomeNav = () => {
 
                 <button
                   type="button"
-                  className="dropdown-item"
+                  className={`dropdown-item ${isDashboardActive ? 'active' : ''}`}
                   onClick={() => {
                     setDropdownOpen(false);
-                    navigate(getDashboardPath());
+                    navigate(dashboardPath);
                   }}
                   role="menuitem"
                 >
-                  <FaThLarge className="item-icon" />
+                  <LayoutDashboard className="item-icon" size={16} />
                   <span>My Dashboard</span>
                 </button>
 
                 <button
                   type="button"
-                  className="dropdown-item"
+                  className={`dropdown-item ${isProfileActive ? 'active' : ''}`}
                   onClick={() => {
                     setDropdownOpen(false);
-                    navigate(getProfilePath());
+                    navigate(profilePath);
                   }}
                   role="menuitem"
                 >
-                  <FaUser className="item-icon" />
+                  <UserRound className="item-icon" size={16} />
                   <span>My Profile</span>
                 </button>
 
@@ -187,7 +195,7 @@ const FloatingHomeNav = () => {
                   onClick={handleLogout}
                   role="menuitem"
                 >
-                  <FaSignOutAlt className="item-icon" />
+                  <LogOut className="item-icon" size={16} />
                   <span>Log Out</span>
                 </button>
               </div>
@@ -211,7 +219,7 @@ const FloatingHomeNav = () => {
               onClick={() => navigate('/register')}
             >
               <span>Get Started</span>
-              <FaArrowRight className="btn-arrow" />
+              <ArrowRight className="btn-arrow" size={16} />
             </button>
           </div>
         )}

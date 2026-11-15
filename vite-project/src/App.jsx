@@ -250,7 +250,7 @@ function AppRoutes() {
             } />
             <Route path="/tenant" element={
               <ProtectedRoute allowedRoles={['Tenant']}>
-                <Navigate to="/tenant/profile" />
+                <Navigate to="/tenant/dashboard" replace />
               </ProtectedRoute>
             } />
             <Route path="/my-requests" element={

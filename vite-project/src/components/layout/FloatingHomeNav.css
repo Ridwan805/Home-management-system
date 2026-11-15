@@ -383,6 +383,16 @@
   color: #60A5FA;
 }
 
+.dropdown-item.active {
+  background: rgba(37, 99, 235, 0.28);
+  color: #60A5FA;
+  box-shadow: inset 0.1875rem 0 0 0 #38BDF8;
+}
+
+.dropdown-item.active .item-icon {
+  color: #38BDF8;
+}
+
 .dropdown-item.logout-item {
   color: #F87171;
 }

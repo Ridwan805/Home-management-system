@@ -1,6 +1,7 @@
 import React, { useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
+  LayoutDashboard,
   UserRound, 
   CreditCard, 
   Building2, 
@@ -15,6 +16,7 @@ import { AuthContext } from '../../App';
 import './TenantSidebarNav.css';
 
 const navItems = [
+  { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { key: 'profile', label: 'My Profile', icon: UserRound },
   { key: 'payment', label: 'Payments', icon: CreditCard },
   { key: 'house-info', label: 'House Information', icon: Building2 },

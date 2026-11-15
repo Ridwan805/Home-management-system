@@ -1,0 +1,782 @@
+/* ==========================================================================
+   DwellSync Tenant Overview Styles
+   Aesthetic: Clean Modern Property Management, Deep Slate & Royal Blue Accents
+   Convention: rem-first responsive sizing, accessible contrast, smooth transitions
+   ========================================================================== */
+
+.tenant-overview-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  width: 100%;
+  animation: fadeInOverview 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeInOverview {
+  from {
+    opacity: 0;
+    transform: translateY(0.375rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==========================================================================
+   1. WELCOME HEADER BANNER
+   ========================================================================== */
+.overview-welcome-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+  border-radius: 1rem;
+  padding: 1.75rem 2rem;
+  color: #FFFFFF;
+  box-shadow: 0 0.25rem 1.25rem rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.overview-welcome-banner::after {
+  content: '';
+  position: absolute;
+  top: -2rem;
+  right: -2rem;
+  width: 12rem;
+  height: 12rem;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.12) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.banner-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 42rem;
+}
+
+.banner-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.tenant-role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: rgba(37, 99, 235, 0.35);
+  border: 1px solid rgba(96, 165, 250, 0.5);
+  color: #93C5FD;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.25rem 0.625rem;
+  border-radius: 624.9375rem;
+}
+
+.banner-date-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: rgba(255, 255, 255, 0.1);
+  color: #CBD5E1;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.25rem 0.625rem;
+  border-radius: 624.9375rem;
+}
+
+.badge-icon {
+  flex-shrink: 0;
+}
+
+.banner-title {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: #FFFFFF;
+  line-height: 1.2;
+}
+
+.banner-subtitle {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #94A3B8;
+  line-height: 1.45;
+}
+
+.banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+  z-index: 1;
+}
+
+.overview-alert-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  color: #B91C1C;
+  padding: 0.75rem 1rem;
+  border-radius: 0.625rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   2. STATS GRID
+   ========================================================================== */
+.overview-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+}
+
+/* ==========================================================================
+   3. MAIN CONTENT GRID (TWO COLUMNS)
+   ========================================================================== */
+.overview-main-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.overview-column-primary,
+.overview-column-secondary {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Base Card Style */
+.overview-card {
+  background: #FFFFFF;
+  border-radius: 0.875rem;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 0.125rem 0.375rem rgba(15, 23, 42, 0.04);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.card-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.section-icon-box {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.625rem;
+  background: #F0FDF4;
+  color: #16A34A;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.card-section-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0F172A;
+  letter-spacing: -0.015em;
+}
+
+.card-section-subtitle {
+  margin: 0.125rem 0 0 0;
+  font-size: 0.825rem;
+  color: #64748B;
+}
+
+/* ==========================================================================
+   4. ACTIVE TENANCY SUMMARY CARD
+   ========================================================================== */
+.active-tenancy-details {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.tenancy-visual-row {
+  display: flex;
+  gap: 1.25rem;
+  align-items: flex-start;
+}
+
+.tenancy-thumbnail-box {
+  width: 9rem;
+  height: 7.25rem;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: #F1F5F9;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #E2E8F0;
+}
+
+.tenancy-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.tenancy-thumb-placeholder {
+  color: #94A3B8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tenancy-key-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.tenancy-type-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.725rem;
+  font-weight: 700;
+  color: #2563EB;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.tenancy-property-title {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #0F172A;
+  letter-spacing: -0.015em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tenancy-address {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.875rem;
+  color: #64748B;
+}
+
+.tenancy-specs-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.375rem;
+}
+
+.spec-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  padding: 0.25rem 0.55rem;
+  border-radius: 0.375rem;
+  font-size: 0.775rem;
+  color: #334155;
+  font-weight: 500;
+}
+
+.spec-chip strong {
+  color: #0F172A;
+  font-weight: 700;
+}
+
+/* Tenancy Metadata Grid */
+.tenancy-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 0.625rem;
+  padding: 0.875rem 1rem;
+}
+
+.meta-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.meta-label {
+  font-size: 0.725rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #64748B;
+  letter-spacing: 0.04em;
+}
+
+.meta-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #0F172A;
+}
+
+.tenancy-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #F1F5F9;
+}
+
+/* Skeleton Loading for Tenancy */
+.tenancy-skeleton-wrapper {
+  display: flex;
+  gap: 1.25rem;
+}
+
+.skeleton-image-box {
+  width: 9rem;
+  height: 7.25rem;
+  background: #E2E8F0;
+  border-radius: 0.75rem;
+  animation: pulseSkeleton 1.5s infinite;
+}
+
+.skeleton-info-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1;
+  justify-content: center;
+}
+
+.skeleton-line {
+  height: 1rem;
+  background: #E2E8F0;
+  border-radius: 0.25rem;
+  animation: pulseSkeleton 1.5s infinite;
+}
+
+@keyframes pulseSkeleton {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+/* ==========================================================================
+   5. QUICK ACTIONS TILES
+   ========================================================================== */
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.875rem;
+}
+
+.quick-action-tile {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 0.75rem;
+  padding: 0.875rem 1rem;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.quick-action-tile:hover {
+  background: #F8FAFC;
+  border-color: #CBD5E1;
+  transform: translateY(-0.0625rem);
+  box-shadow: 0 0.25rem 0.75rem rgba(15, 23, 42, 0.05);
+}
+
+.action-icon-circle {
+  width: 2.375rem;
+  height: 2.375rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.action-icon-circle.blue {
+  background: #EFF6FF;
+  color: #2563EB;
+}
+
+.action-icon-circle.emerald {
+  background: #ECFDF5;
+  color: #059669;
+}
+
+.action-icon-circle.amber {
+  background: #FFFBEB;
+  color: #D97706;
+}
+
+.action-icon-circle.purple {
+  background: #FAF5FF;
+  color: #9333EA;
+}
+
+.action-icon-circle.navy {
+  background: #F1F5F9;
+  color: #0F172A;
+}
+
+.action-icon-circle.sky {
+  background: #F0F9FF;
+  color: #0284C7;
+}
+
+.action-tile-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.action-tile-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #0F172A;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.action-tile-desc {
+  font-size: 0.775rem;
+  color: #64748B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tile-arrow {
+  color: #94A3B8;
+  transition: transform 0.2s ease, color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.quick-action-tile:hover .tile-arrow {
+  color: #2563EB;
+  transform: translateX(0.1875rem);
+}
+
+/* ==========================================================================
+   6. RECENT ACTIVITY FEED
+   ========================================================================== */
+.activity-feed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.activity-feed-item {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.75rem 0.875rem;
+  background: #FFFFFF;
+  border: 1px solid #F1F5F9;
+  border-radius: 0.625rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.activity-feed-item:hover {
+  background: #F8FAFC;
+  border-color: #E2E8F0;
+  transform: translateX(0.125rem);
+}
+
+.activity-icon-wrap {
+  width: 2.125rem;
+  height: 2.125rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.activity-icon-wrap.type-request {
+  background: #FAF5FF;
+  color: #9333EA;
+}
+
+.activity-icon-wrap.type-invoice {
+  background: #FEF2F2;
+  color: #DC2626;
+}
+
+.activity-icon-wrap.type-payment {
+  background: #ECFDF5;
+  color: #059669;
+}
+
+.activity-icon-wrap.type-maintenance {
+  background: #FFFBEB;
+  color: #D97706;
+}
+
+.activity-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1875rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.activity-title-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.activity-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #0F172A;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.activity-sub-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.activity-subtitle {
+  font-size: 0.75rem;
+  color: #64748B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.activity-date {
+  font-size: 0.725rem;
+  color: #94A3B8;
+  flex-shrink: 0;
+}
+
+.activity-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2.5rem 1.5rem;
+  color: #64748B;
+}
+
+.empty-clock-icon {
+  color: #CBD5E1;
+  margin-bottom: 0.75rem;
+}
+
+.empty-activity-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #0F172A;
+}
+
+.empty-activity-desc {
+  margin: 0.375rem 0 0 0;
+  font-size: 0.8rem;
+  color: #64748B;
+  max-width: 18rem;
+}
+
+/* Activity Skeletons */
+.activity-feed-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.activity-skeleton-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+}
+
+.skeleton-circle {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  background: #E2E8F0;
+  animation: pulseSkeleton 1.5s infinite;
+  flex-shrink: 0;
+}
+
+.skeleton-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  flex: 1;
+}
+
+/* ==========================================================================
+   7. APPLICATIONS SPOTLIGHT CARD
+   ========================================================================== */
+.spotlight-card {
+  border-color: #E2E8F0;
+}
+
+.spotlight-view-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #2563EB;
+  text-decoration: none;
+}
+
+.spotlight-view-all:hover {
+  text-decoration: underline;
+}
+
+.spotlight-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.spotlight-item {
+  padding: 0.75rem;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  transition: all 0.15s ease;
+}
+
+.spotlight-item:hover {
+  background: #EFF6FF;
+  border-color: #BFDBFE;
+}
+
+.spotlight-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.spotlight-prop-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #0F172A;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.spotlight-item-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #64748B;
+}
+
+/* ==========================================================================
+   8. RESPONSIVE DESIGN
+   ========================================================================== */
+@media (max-width: 68rem) {
+  .overview-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .overview-main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 48rem) {
+  .overview-welcome-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1.5rem;
+    gap: 1.25rem;
+  }
+
+  .banner-actions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .overview-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tenancy-visual-row {
+    flex-direction: column;
+  }
+
+  .tenancy-thumbnail-box {
+    width: 100%;
+    height: 10rem;
+  }
+
+  .tenancy-meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .quick-actions-grid {
+    grid-template-columns: 1fr;
+  }
+}

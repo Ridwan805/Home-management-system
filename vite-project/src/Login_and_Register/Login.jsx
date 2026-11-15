@@ -62,7 +62,7 @@ export default function Login() {
           if (data.user.role === 'Owner') {
             navigate('/dashboard');
           } else if (data.user.role === 'Tenant') {
-            navigate('/tenant/profile');
+            navigate('/tenant/dashboard');
           } else if (data.user.role === 'admin') {
             // Redirect to admin dashboard
             navigate('/admin');

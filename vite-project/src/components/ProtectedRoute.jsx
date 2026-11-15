@@ -26,7 +26,7 @@ const ProtectedRoute = ({ children, allowedRoles = [], redirectTo = '/login' }) 
         case 'owner':
           return <Navigate to="/dashboard" replace />;
         case 'tenant':
-          return <Navigate to="/tenant/profile" replace />;
+          return <Navigate to="/tenant/dashboard" replace />;
         case 'security guard':
           return <Navigate to="/security-guard/profile" replace />;
         case 'admin':

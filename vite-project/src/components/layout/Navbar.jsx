@@ -47,13 +47,31 @@ const Navbar = () => {
     navigate('/');
   };
 
-  const handleProfileClick = () => {
-    if (userRole === 'Owner') {
+  const handleDashboardClick = () => {
+    const role = (userRole || '').trim().toLowerCase();
+    if (role === 'owner') {
       navigate('/dashboard');
-    } else if (userRole === 'Tenant') {
-      navigate('/tenant/profile');
-    } else if (userRole === 'Security Guard') {
+    } else if (role === 'tenant') {
+      navigate('/tenant/dashboard');
+    } else if (role === 'security guard') {
       navigate('/security-guard/profile');
+    } else if (role === 'admin') {
+      navigate('/admin');
+    } else {
+      navigate('/dashboard');
+    }
+  };
+
+  const handleProfileClick = () => {
+    const role = (userRole || '').trim().toLowerCase();
+    if (role === 'owner') {
+      navigate('/dashboard');
+    } else if (role === 'tenant') {
+      navigate('/tenant/profile');
+    } else if (role === 'security guard') {
+      navigate('/security-guard/profile');
+    } else if (role === 'admin') {
+      navigate('/admin');
     } else {
       navigate('/login');
     }
@@ -126,6 +144,9 @@ const Navbar = () => {
         <div className="navbar-actions">
           {isLoggedIn ? (
             <>
+              <button className="nav-btn nav-btn-dashboard" onClick={handleDashboardClick}>
+                Dashboard
+              </button>
               <button className="nav-btn nav-btn-profile" onClick={handleProfileClick}>
                 Profile
               </button>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import TenantSidebarNav from './TenantSidebarNav';
+import TenantOverview from './TenantOverview';
 import TenantProfile from './TenantProfile';
 import PaymentInfo from './PaymentInfo';
 import HouseInfo from './HouseInfo';
@@ -13,6 +14,7 @@ import QuickDialButton from '../../components/QuickDialButton/QuickDialButton';
 import './TenantDashboard.css';
 
 const sectionTitles = {
+  dashboard: 'Dashboard Overview',
   profile: 'My Profile',
   payment: 'Payments & Billing',
   'house-info': 'House Information',
@@ -24,7 +26,7 @@ const sectionTitles = {
 
 const TenantDashboard = () => {
   const { section } = useParams();
-  const [activeSection, setActiveSection] = useState(section || 'profile');
+  const [activeSection, setActiveSection] = useState(section || 'dashboard');
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -32,6 +34,8 @@ const TenantDashboard = () => {
   useEffect(() => {
     if (section) {
       setActiveSection(section);
+    } else {
+      setActiveSection('dashboard');
     }
   }, [section]);
 
@@ -75,6 +79,7 @@ const TenantDashboard = () => {
 
         <main className="tenant-main-content">
           <div className="tenant-page-container">
+            {activeSection === 'dashboard' && <TenantOverview />}
             {activeSection === 'profile' && <TenantProfile />}
             {activeSection === 'payment' && <PaymentInfo />}
             {activeSection === 'house-info' && <HouseInfo />}
