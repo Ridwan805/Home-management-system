@@ -19,7 +19,7 @@ import FloatingHomeNav from '../components/layout/FloatingHomeNav';
 import './HomePage.css';
 
 // Exact image assets as required
-import heroApartmentImg from '../assets/40a157fc-07c1-50e7-9429-18852e1b2e94.jpg';
+import heroApartmentImg from '../assets/apartmment.jpg';
 import elevatorImg from '../assets/elevator.jpg';
 import landscapeImg from '../assets/landscape.jpg';
 import landscape2Img from '../assets/landscape2.jpg';
@@ -88,6 +88,20 @@ const HomePage = () => {
       };
     }
 
+    // Section base Gaussian blur map (in rem units)
+    // Section 4 requirements:
+    // - Hero default Gaussian blur: 0.25rem
+    // - Other cinematic sections: 0.125rem to 0.25rem depending on image quality/readability
+    const SECTION_BASE_BLUR = {
+      hero: 0.25,
+      about: 0.25,
+      rentals: 0.25,
+      buying: 0.1875,
+      land: 0.125,
+      lifestyle: 0.1875,
+      cta: 0.25
+    };
+
     // 2. Cinematic overlapping scroll transitions with background defocus & depth-of-field
     let ticking = false;
     const handleScroll = () => {
@@ -98,47 +112,47 @@ const HomePage = () => {
             const nextSec = sections[idx + 1];
             const bgImg = sec.querySelector('.section-bg-img');
             const content = sec.querySelector('.section-content');
+            const baseBlur = SECTION_BASE_BLUR[sec.id] ?? 0.25;
 
             if (nextSec) {
               const nextRect = nextSec.getBoundingClientRect();
+
+              // Only process sections within or adjacent to the active viewport
+              if (nextRect.top > vh * 2 || nextRect.bottom < -vh) {
+                return;
+              }
+
               // Progress: 0 (nextSec not visible) to 1 (nextSec fully covers sec)
               const progress = Math.max(0, Math.min(1, 1 - (nextRect.top / vh)));
 
-              // Cinematic depth-of-field calculations linked to scroll progress (responsive rem units):
-              const scale = (1 - (progress * 0.05)).toFixed(4); // 1.0 down to 0.95
-              const blurVal = (progress * 0.4688).toFixed(4); // 0rem up to 0.4688rem (~7.5px)
-              const brightness = (1 - (progress * 0.40)).toFixed(3); // 1.0 down to 0.60 (darker)
-              const opacity = (1 - (progress * 0.45)).toFixed(3); // 1.0 down to 0.55 (0.5-0.65 range)
-              const translateY = (-progress * 1.5).toFixed(3); // -1.5rem subtle recession drift
-
-              // Visual layer defocus: background image
+              // 1. Photographic Background Layer Defocus & Darkening
               if (bgImg) {
                 if (progress > 0.005) {
-                  const isHero = sec.id === 'hero';
-                  const baseBlur = isHero ? 0.45 : 0;
-                  const currentBlur = (baseBlur + parseFloat(blurVal)).toFixed(4);
-                  const currentScale = isHero ? (1.06 - (progress * 0.05)).toFixed(4) : scale;
-                  bgImg.style.transform = `scale(${currentScale})`;
+                  // Gradually increase blur by up to 0.45rem during scroll transition
+                  const currentBlur = (baseBlur + (progress * 0.45)).toFixed(4);
+                  // Slightly darken outgoing section (1.0 down to 0.65)
+                  const brightness = (1 - (progress * 0.35)).toFixed(3);
+                  // Subtle recession scale (1.0 down to 0.965)
+                  const scale = (1 - (progress * 0.035)).toFixed(4);
+
+                  bgImg.style.transform = `scale(${scale}) translateZ(0)`;
                   bgImg.style.transformOrigin = 'center center';
                   bgImg.style.filter = `blur(${currentBlur}rem) brightness(${brightness})`;
                 } else {
-                  if (sec.id === 'hero') {
-                    bgImg.style.transform = 'scale(1.06)';
-                    bgImg.style.filter = 'blur(0.45rem)';
-                  } else {
-                    bgImg.style.transform = 'none';
-                    bgImg.style.filter = 'none';
-                  }
+                  // Reset to default state with its base Gaussian blur
+                  bgImg.style.transform = 'translateZ(0)';
+                  bgImg.style.filter = `blur(${baseBlur}rem) brightness(1)`;
                 }
               }
 
-              // Visual layer defocus: content cards & typography
+              // 2. Content Layer: Reduce prominence via opacity and subtle recession drift without blurring text
               if (content) {
                 if (progress > 0.005) {
-                  content.style.transform = `scale(${scale}) translateY(${translateY}rem)`;
-                  content.style.transformOrigin = 'center center';
+                  const opacity = (1 - (progress * 0.45)).toFixed(3);
+                  const translateY = (-progress * 1.5).toFixed(3);
+                  content.style.transform = `translateY(${translateY}rem)`;
                   content.style.opacity = `${opacity}`;
-                  content.style.filter = `blur(${blurVal}rem)`;
+                  content.style.filter = 'none';
                 } else {
                   content.style.transform = 'none';
                   content.style.opacity = '1';
@@ -146,7 +160,7 @@ const HomePage = () => {
                 }
               }
 
-              // Affordability Section background subtle dimming
+              // 3. Affordability Section background subtle dimming
               if (sec.id === 'affordability') {
                 if (progress > 0.005) {
                   sec.style.filter = `brightness(${(1 - (progress * 0.15)).toFixed(3)})`;
@@ -155,7 +169,7 @@ const HomePage = () => {
                 }
               }
 
-              // Click-interception prevention: disable pointer events when heavily covered
+              // 4. Click-interception prevention: disable pointer events when heavily covered
               if (progress > 0.85) {
                 sec.style.pointerEvents = 'none';
               } else {
@@ -164,8 +178,8 @@ const HomePage = () => {
             } else {
               // Final section (CTA) has no next section and always remains 100% focused
               if (bgImg) {
-                bgImg.style.transform = 'none';
-                bgImg.style.filter = 'none';
+                bgImg.style.transform = 'translateZ(0)';
+                bgImg.style.filter = `blur(${baseBlur}rem) brightness(1)`;
               }
               if (content) {
                 content.style.transform = 'none';
@@ -198,7 +212,7 @@ const HomePage = () => {
       <FloatingHomeNav />
 
       {/* =====================================================================
-          1. CINEMATIC HERO SECTION — 40a157fc-07c1-50e7-9429-18852e1b2e94.jpg
+          1. CINEMATIC HERO SECTION — apartmment.jpg
           ===================================================================== */}
       <section id="hero" className="cinematic-section section-hero is-revealed">
         <div className="section-bg-wrap">
@@ -263,7 +277,7 @@ const HomePage = () => {
           <img
             src={elevatorImg}
             alt="Modern architectural living elevator"
-            className="section-bg-img"
+            className="section-bg-img about-bg-img"
             loading="lazy"
           />
           <div className="section-overlay about-overlay" />
@@ -324,7 +338,7 @@ const HomePage = () => {
           <img
             src={landscapeImg}
             alt="Scenic residential apartments for rent"
-            className="section-bg-img"
+            className="section-bg-img rentals-bg-img"
             loading="lazy"
           />
           <div className="section-overlay rentals-overlay" />
@@ -376,7 +390,7 @@ const HomePage = () => {
           <img
             src={landscape2Img}
             alt="Contemporary city skyline and premium apartments"
-            className="section-bg-img"
+            className="section-bg-img buying-bg-img"
             loading="lazy"
           />
           <div className="section-overlay buying-overlay" />
@@ -428,7 +442,7 @@ const HomePage = () => {
           <img
             src={openFieldImg}
             alt="Scenic expansive open land plot"
-            className="section-bg-img"
+            className="section-bg-img land-bg-img"
             loading="lazy"
           />
           <div className="section-overlay land-overlay" />
@@ -564,7 +578,7 @@ const HomePage = () => {
           <img
             src={parkImg}
             alt="Tranquil park with lush green trees"
-            className="section-bg-img"
+            className="section-bg-img lifestyle-bg-img"
             loading="lazy"
           />
           <div className="section-overlay lifestyle-overlay" />
@@ -623,7 +637,7 @@ const HomePage = () => {
           <img
             src={landscape2Img}
             alt="City skyline at dusk"
-            className="section-bg-img"
+            className="section-bg-img cta-bg-img"
             loading="lazy"
           />
           <div className="section-overlay cta-overlay" />
