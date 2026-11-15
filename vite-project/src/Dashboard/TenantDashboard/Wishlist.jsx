@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import './Wishlist.css';
 import { toast } from 'react-toastify';
 import apiConfig from '../../config/api';
+import { PropertyCardSkeleton } from '../../components/loading';
 
 const Wishlist = () => {
   const [wishlistItems, setWishlistItems] = useState([]);
@@ -93,7 +94,11 @@ const Wishlist = () => {
     return (
       <div className="wishlist">
         <h2 className="section-title">My Wishlist</h2>
-        <div className="loading-message">Loading your wishlist...</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px', marginTop: '20px' }}>
+          {[1, 2, 3].map((n) => (
+            <PropertyCardSkeleton key={n} />
+          ))}
+        </div>
       </div>
     );
   }

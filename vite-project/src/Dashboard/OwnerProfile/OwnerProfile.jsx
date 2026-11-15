@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './OwnerProfile.css';
 import apiConfig from '../../config/api';
+import { ProfileSkeleton, ButtonLoader } from '../../components/loading';
 
 const OwnerProfile = () => {
   const [ownerInfo, setOwnerInfo] = useState(null);
@@ -105,8 +106,8 @@ const OwnerProfile = () => {
 
   if (loading) {
     return (
-      <div className="op-card">
-        <div style={{ color: '#64748b', fontSize: '0.95rem' }}>Loading owner information...</div>
+      <div className="op-card" style={{ padding: '24px' }}>
+        <ProfileSkeleton />
       </div>
     );
   }
@@ -262,8 +263,16 @@ const OwnerProfile = () => {
               type="submit"
               className="op-btn op-btn-primary"
               disabled={saving}
+              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
             >
-              {saving ? 'Saving...' : 'Save Changes'}
+              {saving ? (
+                <>
+                  <ButtonLoader size="small" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                'Save Changes'
+              )}
             </button>
           </div>
         </form>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import './HouseInfo.css';
 import API from '../../config/api';
+import { PropertyCardSkeleton, PageLoader } from '../../components/loading';
 
 const HouseInfo = () => {
   const [assignedProperties, setAssignedProperties] = useState([]);
@@ -150,7 +151,11 @@ const HouseInfo = () => {
     return (
       <div className="house-info">
         <h2 className="section-title">House Information</h2>
-        <div className="loading">Loading your assigned properties...</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px', marginTop: '20px' }}>
+          {[1, 2, 3].map((n) => (
+            <PropertyCardSkeleton key={n} />
+          ))}
+        </div>
       </div>
     );
   }
@@ -246,9 +251,8 @@ const HouseInfo = () => {
             
             <div className="modal-body">
               {loadingDetails ? (
-                <div className="loading-details">
-                  <div className="loading-spinner">🔄</div>
-                  <p>Loading detailed property information...</p>
+                <div style={{ padding: '30px 0' }}>
+                  <PageLoader message="Loading detailed property information..." minHeight="220px" />
                 </div>
               ) : (
                 <>

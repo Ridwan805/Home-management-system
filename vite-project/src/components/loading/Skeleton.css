@@ -156,6 +156,87 @@
 }
 
 /* ==========================================================================
+   Profile Skeleton
+   ========================================================================== */
+.dwellsync-profile-skeleton {
+  background: #FFFFFF !important;
+  border: 1px solid #E2E8F0 !important;
+  border-radius: 12px !important;
+  padding: 24px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+  width: 100% !important;
+  max-width: 800px !important;
+  box-sizing: border-box !important;
+}
+
+.dwellsync-profile-skeleton .profile-skeleton-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 18px !important;
+  padding-bottom: 20px !important;
+  border-bottom: 1px solid #F1F5F9 !important;
+  margin-bottom: 20px !important;
+}
+
+.dwellsync-profile-skeleton .profile-skeleton-titles {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.dwellsync-profile-skeleton .profile-skeleton-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 18px 20px !important;
+}
+
+.dwellsync-profile-skeleton .profile-skeleton-field {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.dwellsync-profile-skeleton .profile-skeleton-field.full {
+  grid-column: 1 / -1 !important;
+}
+
+@media (max-width: 640px) {
+  .dwellsync-profile-skeleton .profile-skeleton-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ==========================================================================
+   List Item Skeleton
+   ========================================================================== */
+.dwellsync-list-skeleton-container {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  width: 100% !important;
+}
+
+.dwellsync-list-item-skeleton {
+  background: #FFFFFF !important;
+  border: 1px solid #E2E8F0 !important;
+  border-radius: 10px !important;
+  padding: 16px 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  box-sizing: border-box !important;
+}
+
+.dwellsync-list-item-skeleton .list-skeleton-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+}
+
+.dwellsync-list-item-skeleton .list-skeleton-lines {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* ==========================================================================
    Accessibility: Reduced Motion Preference
    ========================================================================== */
 @media (prefers-reduced-motion: reduce) {

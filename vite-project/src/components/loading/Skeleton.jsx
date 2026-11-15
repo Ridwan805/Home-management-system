@@ -91,7 +91,7 @@ export const DashboardCardSkeleton = ({ className = '' }) => {
 
 /**
  * TableSkeleton
- * Clean, structured placeholder for tables (user management, visitor logs, payments, etc.)
+ * Clean, structured placeholder for tables (invoices, visitor logs, user lists, etc.)
  */
 export const TableSkeleton = ({ rows = 5, columns = 4, className = '' }) => {
   return (
@@ -118,6 +118,67 @@ export const TableSkeleton = ({ rows = 5, columns = 4, className = '' }) => {
           </div>
         ))}
       </div>
+    </div>
+  );
+};
+
+/**
+ * ProfileSkeleton
+ * Form & details card placeholder for User / Owner / Tenant / Guard profiles.
+ */
+export const ProfileSkeleton = ({ className = '' }) => {
+  return (
+    <div className={`dwellsync-profile-skeleton ${className}`} aria-hidden="true">
+      <div className="profile-skeleton-header">
+        <Skeleton width="72px" height="72px" borderRadius="50%" />
+        <div className="profile-skeleton-titles">
+          <Skeleton width="160px" height="24px" borderRadius="6px" />
+          <Skeleton width="100px" height="16px" borderRadius="4px" style={{ marginTop: '8px' }} />
+        </div>
+      </div>
+      <div className="profile-skeleton-grid">
+        <div className="profile-skeleton-field">
+          <Skeleton width="80px" height="14px" borderRadius="4px" />
+          <Skeleton width="100%" height="40px" borderRadius="8px" style={{ marginTop: '6px' }} />
+        </div>
+        <div className="profile-skeleton-field">
+          <Skeleton width="80px" height="14px" borderRadius="4px" />
+          <Skeleton width="100%" height="40px" borderRadius="8px" style={{ marginTop: '6px' }} />
+        </div>
+        <div className="profile-skeleton-field full">
+          <Skeleton width="100px" height="14px" borderRadius="4px" />
+          <Skeleton width="100%" height="40px" borderRadius="8px" style={{ marginTop: '6px' }} />
+        </div>
+        <div className="profile-skeleton-field full">
+          <Skeleton width="100px" height="14px" borderRadius="4px" />
+          <Skeleton width="100%" height="40px" borderRadius="8px" style={{ marginTop: '6px' }} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * ListItemSkeleton
+ * Card list rows for requests, notices, inbox items, and activity feeds.
+ */
+export const ListItemSkeleton = ({ count = 3, className = '' }) => {
+  return (
+    <div className={`dwellsync-list-skeleton-container ${className}`} aria-hidden="true">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={`item-${i}`} className="dwellsync-list-item-skeleton">
+          <div className="list-skeleton-left">
+            <Skeleton width="40px" height="40px" borderRadius="8px" />
+            <div className="list-skeleton-lines">
+              <Skeleton width="180px" height="18px" borderRadius="4px" />
+              <Skeleton width="120px" height="14px" borderRadius="4px" style={{ marginTop: '6px' }} />
+            </div>
+          </div>
+          <div className="list-skeleton-right">
+            <Skeleton width="80px" height="24px" borderRadius="12px" />
+          </div>
+        </div>
+      ))}
     </div>
   );
 };

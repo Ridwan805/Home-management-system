@@ -6,6 +6,7 @@ import {
   FaEye, FaEdit, FaKey, FaSearch, FaFilter, FaHome, FaFileInvoiceDollar, 
   FaTools, FaPhone, FaMapMarkerAlt, FaTimes, FaCheck, FaCalendarAlt, FaExchangeAlt
 } from 'react-icons/fa';
+import { TableSkeleton, PageLoader, ButtonLoader } from '../../components/loading';
 
 const UserModeration = () => {
   const [users, setUsers] = useState([]);
@@ -334,7 +335,9 @@ const UserModeration = () => {
       </div>
 
       {loading ? (
-        <div className="loading-spinner">Loading users and activity data...</div>
+        <div style={{ padding: '20px 0' }}>
+          <TableSkeleton rows={6} columns={5} />
+        </div>
       ) : error ? (
         <div className="error-message">
           {error}
@@ -492,7 +495,9 @@ const UserModeration = () => {
             </div>
 
             {loadingActivity ? (
-              <div className="modal-loading">Aggregating live user activity...</div>
+              <div style={{ padding: '40px 0' }}>
+                <PageLoader message="Aggregating live user activity..." minHeight="200px" />
+              </div>
             ) : !selectedUserActivity ? (
               <div className="modal-error">Failed to load activity details.</div>
             ) : (
@@ -773,8 +778,20 @@ const UserModeration = () => {
                 <button type="button" className="btn-cancel" onClick={() => setEditModalOpen(false)}>
                   Cancel
                 </button>
-                <button type="submit" className="btn-save" disabled={actionInProgress}>
-                  {actionInProgress ? 'Saving...' : 'Save Profile Changes'}
+                <button
+                  type="submit"
+                  className="btn-save"
+                  disabled={actionInProgress}
+                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                >
+                  {actionInProgress ? (
+                    <>
+                      <ButtonLoader size="small" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    'Save Profile Changes'
+                  )}
                 </button>
               </div>
             </form>
@@ -813,8 +830,20 @@ const UserModeration = () => {
                 <button type="button" className="btn-cancel" onClick={() => setPasswordModalOpen(false)}>
                   Cancel
                 </button>
-                <button type="submit" className="btn-save" disabled={actionInProgress || newAdminPassword.length < 6}>
-                  {actionInProgress ? 'Resetting...' : 'Set New Password'}
+                <button
+                  type="submit"
+                  className="btn-save"
+                  disabled={actionInProgress || newAdminPassword.length < 6}
+                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                >
+                  {actionInProgress ? (
+                    <>
+                      <ButtonLoader size="small" />
+                      <span>Resetting...</span>
+                    </>
+                  ) : (
+                    'Set New Password'
+                  )}
                 </button>
               </div>
             </form>

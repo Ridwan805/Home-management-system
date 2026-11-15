@@ -7,6 +7,7 @@ import { FaDownload, FaUpload, FaReceipt, FaPrint } from 'react-icons/fa';
 // TEMPORARILY DISABLED FOR WEBHOOK TESTING
 import LoadingSpinner from '../../components/LoadingSpinner';
 import PaymentStatusIndicator from '../../components/PaymentStatusIndicator';
+import { ListItemSkeleton, ButtonLoader } from '../../components/loading';
 
 const MyRequests = () => {
 
@@ -671,7 +672,11 @@ const MyRequests = () => {
     return (
       <div className="my-requests">
         <h2 className="section-title">My Requests</h2>
-        <LoadingSpinner message="Loading your requests..." />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '20px' }}>
+          {[1, 2, 3, 4].map((n) => (
+            <ListItemSkeleton key={n} />
+          ))}
+        </div>
       </div>
     );
   }
@@ -1024,7 +1029,7 @@ const MyRequests = () => {
                   >
                     {paymentLoading ? (
                       <>
-                        <LoadingSpinner size="small" />
+                        <ButtonLoader size="small" />
                         Processing...
                       </>
                     ) : (
@@ -1047,7 +1052,7 @@ const MyRequests = () => {
                   >
                     {paymentLoading ? (
                       <>
-                        <LoadingSpinner size="small" />
+                        <ButtonLoader size="small" />
                         Processing...
                       </>
                     ) : (
@@ -1078,7 +1083,7 @@ const MyRequests = () => {
                   >
                     {receiptLoading ? (
                       <>
-                        <LoadingSpinner size="small" />
+                        <ButtonLoader size="small" />
                         Loading...
                       </>
                     ) : (
@@ -1167,7 +1172,7 @@ const MyRequests = () => {
                   >
                     {uploadLoading ? (
                       <>
-                        <LoadingSpinner size="small" />
+                        <ButtonLoader size="small" />
                         Uploading...
                       </>
                     ) : (

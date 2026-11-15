@@ -6,6 +6,7 @@ import {
   FaUserPlus, FaFileInvoiceDollar, FaTools, FaBolt, FaArrowRight 
 } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
+import { DashboardCardSkeleton, TableSkeleton } from '../../components/loading';
 
 const DashboardOverview = () => {
   const [stats, setStats] = useState({
@@ -91,7 +92,14 @@ const DashboardOverview = () => {
       </div>
 
       {loading ? (
-        <div className="loading-spinner">Loading platform dashboard & live feed...</div>
+        <div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '24px' }}>
+            {[1, 2, 3, 4].map((n) => (
+              <DashboardCardSkeleton key={n} />
+            ))}
+          </div>
+          <TableSkeleton rows={4} columns={4} />
+        </div>
       ) : error ? (
         <div className="error-message" style={{ backgroundColor: '#fee2e2', padding: '20px', borderRadius: '8px', textAlign: 'center' }}>
           Failed to load dashboard statistics. Please try again later.

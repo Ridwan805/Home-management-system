@@ -27,7 +27,7 @@ import AdminDashboard from './Dashboard/AdminDashboard/AdminDashboard';
 import MaintenanceReports from './Dashboard/OwnerProfile/MaintenanceReports';
 import Footer from './components/layout/Footer';
 import API from './config/api';
-import { DwellSyncLoadingScreen } from './components/loading';
+import { AppLoader } from './components/loading';
 
  
 
@@ -107,26 +107,45 @@ function AppRoutes() {
     setUserRole(null);
   };
 
-  function CreateListingPage() {
-    const navigate = useNavigate();
+  function OwnerLayout({ activeSection, children }) {
+    const nav = useNavigate();
+    const handleSectionChange = (key) => {
+      switch (key) {
+        case 'profile':
+          nav('/dashboard');
+          break;
+        case 'create-listing':
+          nav('/create-listing');
+          break;
+        case 'property-details':
+          nav('/property-details');
+          break;
+        case 'tenant-info':
+          nav('/tenant-info');
+          break;
+        case 'security-guard-info':
+          nav('/security-guard-info');
+          break;
+        case 'request-info':
+          nav('/request-info');
+          break;
+        case 'payments':
+          nav('/payments');
+          break;
+        case 'maintenance-reports':
+          nav('/maintenance-reports');
+          break;
+        default:
+          nav('/dashboard');
+      }
+    };
+
     return (
       <div className="owner-dashboard">
-        <SidebarNav
-          activeSection="create-listing"
-          setActiveSection={(key) => {
-            if (key === 'profile') navigate('/dashboard');
-            else if (key === 'create-listing') navigate('/create-listing');
-            else if (key === 'property-details') navigate('/property-details');
-            else if (key === 'tenant-info') navigate('/tenant-info');
-            else if (key === 'security-guard-info') navigate('/security-guard-info');
-            else if (key === 'request-info') navigate('/request-info');
-            else if (key === 'payments') navigate('/payments');
-            else if (key === 'maintenance-reports') navigate('/maintenance-reports');
-          }}
-        />
+        <SidebarNav activeSection={activeSection} setActiveSection={handleSectionChange} />
         <main className="dashboard-main">
           <div className="dashboard-content">
-            <CreateListingForm onSuccess={() => navigate('/dashboard')} onCancel={() => navigate('/dashboard')} />
+            {children}
           </div>
         </main>
         <QuickDialButton />
@@ -134,42 +153,22 @@ function AppRoutes() {
     );
   }
 
-  function UnderConstructionPage({ activeSection }) {
-    const navigate = useNavigate();
+  function CreateListingPage() {
+    const nav = useNavigate();
     return (
-      <div className="owner-dashboard">
-        <SidebarNav
-          activeSection={activeSection}
-          setActiveSection={(key) => {
-            if (key === 'profile') navigate('/dashboard');
-            else if (key === 'create-listing') navigate('/create-listing');
-            else if (key === 'property-details') navigate('/property-details');
-            else if (key === 'tenant-info') navigate('/tenant-info');
-            else if (key === 'request-info') navigate('/request-info');
-            else if (key === 'payments') navigate('/payments');
-            else if (key === 'maintenance-reports') navigate('/maintenance-reports');
-          }}
-        />
-        <main className="dashboard-main">
-          <div
-            className="dashboard-content"
-            style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}
-          >
-            <h2 style={{ color: '#2563eb', fontSize: '2rem' }}>Page under construction</h2>
-          </div>
-        </main>
-        <QuickDialButton />
-      </div>
+      <OwnerLayout activeSection="create-listing">
+        <CreateListingForm onSuccess={() => nav('/dashboard')} onCancel={() => nav('/dashboard')} />
+      </OwnerLayout>
     );
   }
 
   // Show branded loading screen while validating authentication
   if (authLoading) {
-    return <DwellSyncLoadingScreen message="Verifying session..." />;
+    return <AppLoader message="Verifying session..." />;
   }
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, login, logout, setPopupMessage, userRole }}>
+    <AuthContext.Provider value={{ isLoggedIn, login, logout, setPopupMessage, userRole, authLoading }}>
       <div className="app-wrapper">
         {!(location.pathname.startsWith('/dashboard') ||
           location.pathname.startsWith('/admin') || // ✅ ADDED: hide navbar on admin routes
@@ -228,27 +227,9 @@ function AppRoutes() {
           path="/property-details"
           element={
             <ProtectedRoute allowedRoles={['Owner']}>
-              <div className="owner-dashboard">
-                <SidebarNav
-                  activeSection="property-details"
-                  setActiveSection={(key) => {
-                    if (key === 'profile') navigate('/dashboard');
-                    else if (key === 'create-listing') navigate('/create-listing');
-                    else if (key === 'property-details') navigate('/property-details');
-                    else if (key === 'tenant-info') navigate('/tenant-info');
-                    else if (key === 'security-guard-info') navigate('/security-guard-info');
-                    else if (key === 'request-info') navigate('/request-info');
-                    else if (key === 'payments') navigate('/payments');
-                    else if (key === 'maintenance-reports') navigate('/maintenance-reports');
-                  }}
-                />
-                <main className="dashboard-main">
-                  <div className="dashboard-content">
-                    <PropertyListing />
-                  </div>
-                </main>
-                <QuickDialButton />
-              </div>
+              <OwnerLayout activeSection="property-details">
+                <PropertyListing />
+              </OwnerLayout>
             </ProtectedRoute>
           }
         />
@@ -256,27 +237,9 @@ function AppRoutes() {
           path="/tenant-info"
           element={
             <ProtectedRoute allowedRoles={['Owner']}>
-              <div className="owner-dashboard">
-                <SidebarNav
-                  activeSection="tenant-info"
-                  setActiveSection={(key) => {
-                    if (key === 'profile') navigate('/dashboard');
-                    else if (key === 'create-listing') navigate('/create-listing');
-                    else if (key === 'property-details') navigate('/property-details');
-                    else if (key === 'tenant-info') navigate('/tenant-info');
-                    else if (key === 'security-guard-info') navigate('/security-guard-info');
-                    else if (key === 'request-info') navigate('/request-info');
-                    else if (key === 'payments') navigate('/payments');
-                    else if (key === 'maintenance-reports') navigate('/maintenance-reports');
-                  }}
-                />
-                <main className="dashboard-main">
-                  <div className="dashboard-content">
-                    <TenantInfo />
-                  </div>
-                </main>
-                <QuickDialButton />
-              </div>
+              <OwnerLayout activeSection="tenant-info">
+                <TenantInfo />
+              </OwnerLayout>
             </ProtectedRoute>
           }
         />
@@ -284,27 +247,9 @@ function AppRoutes() {
           path="/security-guard-info"
           element={
             <ProtectedRoute allowedRoles={['Owner']}>
-              <div className="owner-dashboard">
-                <SidebarNav
-                  activeSection="security-guard-info"
-                  setActiveSection={(key) => {
-                    if (key === 'profile') navigate('/dashboard');
-                    else if (key === 'create-listing') navigate('/create-listing');
-                    else if (key === 'property-details') navigate('/property-details');
-                    else if (key === 'tenant-info') navigate('/tenant-info');
-                    else if (key === 'security-guard-info') navigate('/security-guard-info');
-                    else if (key === 'request-info') navigate('/request-info');
-                    else if (key === 'payments') navigate('/payments');
-                    else if (key === 'maintenance-reports') navigate('/maintenance-reports');
-                  }}
-                />
-                <main className="dashboard-main">
-                  <div className="dashboard-content">
-                    <SecurityGuardInfo />
-                  </div>
-                </main>
-                <QuickDialButton />
-              </div>
+              <OwnerLayout activeSection="security-guard-info">
+                <SecurityGuardInfo />
+              </OwnerLayout>
             </ProtectedRoute>
           }
         />
@@ -312,27 +257,9 @@ function AppRoutes() {
           path="/request-info"
           element={
             <ProtectedRoute allowedRoles={['Owner']}>
-              <div className="owner-dashboard">
-                <SidebarNav
-                  activeSection="request-info"
-                  setActiveSection={(key) => {
-                    if (key === 'profile') navigate('/dashboard');
-                    else if (key === 'create-listing') navigate('/create-listing');
-                    else if (key === 'property-details') navigate('/property-details');
-                    else if (key === 'tenant-info') navigate('/tenant-info');
-                    else if (key === 'security-guard-info') navigate('/security-guard-info');
-                    else if (key === 'request-info') navigate('/request-info');
-                    else if (key === 'payments') navigate('/payments');
-                    else if (key === 'maintenance-reports') navigate('/maintenance-reports');
-                  }}
-                />
-                <main className="dashboard-main">
-                  <div className="dashboard-content">
-                    <OwnerRequestsInbox />
-                  </div>
-                </main>
-                <QuickDialButton />
-              </div>
+              <OwnerLayout activeSection="request-info">
+                <OwnerRequestsInbox />
+              </OwnerLayout>
             </ProtectedRoute>
           }
         />
@@ -340,27 +267,9 @@ function AppRoutes() {
           path="/payments"
           element={
             <ProtectedRoute allowedRoles={['Owner']}>
-              <div className="owner-dashboard">
-                <SidebarNav
-                  activeSection="payments"
-                  setActiveSection={(key) => {
-                    if (key === 'profile') navigate('/dashboard');
-                    else if (key === 'create-listing') navigate('/create-listing');
-                    else if (key === 'property-details') navigate('/property-details');
-                    else if (key === 'tenant-info') navigate('/tenant-info');
-                    else if (key === 'security-guard-info') navigate('/security-guard-info');
-                    else if (key === 'request-info') navigate('/request-info');
-                    else if (key === 'payments') navigate('/payments');
-                    else if (key === 'maintenance-reports') navigate('/maintenance-reports');
-                  }}
-                />
-                <main className="dashboard-main">
-                  <div className="dashboard-content">
-                    <Payment />
-                  </div>
-                </main>
-                <QuickDialButton />
-              </div>
+              <OwnerLayout activeSection="payments">
+                <Payment />
+              </OwnerLayout>
             </ProtectedRoute>
           }
         />
@@ -368,27 +277,9 @@ function AppRoutes() {
           path="/maintenance-reports"
           element={
             <ProtectedRoute allowedRoles={['Owner']}>
-              <div className="owner-dashboard">
-                <SidebarNav
-                  activeSection="maintenance-reports"
-                  setActiveSection={(key) => {
-                    if (key === 'profile') navigate('/dashboard');
-                    else if (key === 'create-listing') navigate('/create-listing');
-                    else if (key === 'property-details') navigate('/property-details');
-                    else if (key === 'tenant-info') navigate('/tenant-info');
-                    else if (key === 'security-guard-info') navigate('/security-guard-info');
-                    else if (key === 'request-info') navigate('/request-info');
-                    else if (key === 'payments') navigate('/payments');
-                    else if (key === 'maintenance-reports') navigate('/maintenance-reports');
-                  }}
-                />
-                <main className="dashboard-main">
-                  <div className="dashboard-content">
-                    <MaintenanceReports />
-                  </div>
-                </main>
-                <QuickDialButton />
-              </div>
+              <OwnerLayout activeSection="maintenance-reports">
+                <MaintenanceReports />
+              </OwnerLayout>
             </ProtectedRoute>
           }
         />

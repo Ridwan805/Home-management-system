@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import './TenantProfile.css';
 import apiConfig from '../../config/api';
+import { ProfileSkeleton, ButtonLoader } from '../../components/loading';
 
 const TenantProfile = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
   const [formData, setFormData] = useState({
@@ -45,6 +47,7 @@ const TenantProfile = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
     try {
       const token = JSON.parse(localStorage.getItem('dwellSyncUser')).token;
 
@@ -64,10 +67,12 @@ const TenantProfile = () => {
       setIsEditing(false);
     } catch (err) {
       setError(err.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  if (loading) return <div className="loading">Loading profile...</div>;
+  if (loading) return <div className="tenant-profile"><ProfileSkeleton /></div>;
   if (error) return <div className="error">Error: {error}</div>;
 
   return (
@@ -109,8 +114,22 @@ const TenantProfile = () => {
           ))}
 
           <div className="form-actions">
-            <button type="submit" className="btn-primary">Save Changes</button>
-            <button type="button" className="btn-secondary" onClick={() => setIsEditing(false)}>Cancel</button>
+            <button
+              type="submit"
+              className="btn-primary"
+              disabled={isSubmitting}
+              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+            >
+              {isSubmitting ? (
+                <>
+                  <ButtonLoader size="small" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                'Save Changes'
+              )}
+            </button>
+            <button type="button" className="btn-secondary" onClick={() => setIsEditing(false)} disabled={isSubmitting}>Cancel</button>
           </div>
         </form>
       )}

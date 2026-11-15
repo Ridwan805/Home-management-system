@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import LoadingSpinner from './LoadingSpinner';
+import { InlineLoader } from './loading';
 import './LoadingSpinner.css';
 
 const PaymentStatusIndicator = ({ 
@@ -77,7 +77,7 @@ const PaymentStatusIndicator = ({
       {/* Status Indicator */}
       <div className={`payment-status-indicator ${statusConfig.className}`}>
         {isPolling ? (
-          <LoadingSpinner size="small" color="currentColor" />
+          <InlineLoader size="small" />
         ) : (
           <span>{statusConfig.icon}</span>
         )}

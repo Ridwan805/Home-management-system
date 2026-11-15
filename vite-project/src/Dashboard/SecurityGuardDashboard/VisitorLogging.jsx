@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../../config/api';
 import './VisitorLogging.css';
+import { TableSkeleton, ButtonLoader } from '../../components/loading';
 
 const VisitorLogging = () => {
   const [visitors, setVisitors] = useState([]);
@@ -335,8 +336,20 @@ const VisitorLogging = () => {
               />
             </div>
             <div className="form-actions">
-              <button type="submit" className="btn-primary" disabled={loading}>
-                {loading ? 'Logging...' : 'Log Visitor'}
+              <button
+                type="submit"
+                className="btn-primary"
+                disabled={loading}
+                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+              >
+                {loading ? (
+                  <>
+                    <ButtonLoader size="small" />
+                    <span>Logging...</span>
+                  </>
+                ) : (
+                  'Log Visitor'
+                )}
               </button>
               <button 
                 type="button" 
@@ -389,7 +402,9 @@ const VisitorLogging = () => {
 
       <div className="visitor-list">
         {loading ? (
-          <div className="loading">Loading visitors...</div>
+          <div style={{ padding: '20px 0' }}>
+            <TableSkeleton rows={5} columns={7} />
+          </div>
         ) : currentData.length === 0 ? (
           <div className="no-data">No visitors found</div>
         ) : (

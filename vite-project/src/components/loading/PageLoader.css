@@ -1,0 +1,163 @@
+/* ==========================================================================
+   PageLoader Styles - Centered Content Area Loader
+   ========================================================================== */
+
+.dwellsync-page-loader {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  padding: 40px 20px !important;
+  box-sizing: border-box !important;
+  background: transparent !important;
+  animation: pageLoaderFadeIn 0.25s ease-out forwards;
+}
+
+.dwellsync-page-loader-inner {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  max-width: 380px !important;
+  width: 100% !important;
+}
+
+.dwellsync-page-loader-icon {
+  width: 64px !important;
+  height: 64px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #FFFFFF !important;
+  border-radius: 16px !important;
+  box-shadow: 
+    0 4px 12px rgba(37, 99, 235, 0.08),
+    0 0 0 1px rgba(226, 232, 240, 0.8) !important;
+  margin-bottom: 14px !important;
+}
+
+.dwellsync-page-house-svg {
+  width: 44px !important;
+  height: 44px !important;
+  display: block !important;
+}
+
+.page-svg-outline {
+  stroke-dasharray: 240 !important;
+  stroke-dashoffset: 240 !important;
+  animation: pageDrawHouse 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite !important;
+}
+
+.page-svg-door {
+  stroke-dasharray: 85 !important;
+  stroke-dashoffset: 85 !important;
+  animation: pageDrawDoor 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite !important;
+}
+
+.page-svg-chimney {
+  stroke-dasharray: 45 !important;
+  stroke-dashoffset: 45 !important;
+  animation: pageDrawChimney 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite !important;
+}
+
+.page-svg-node {
+  transform-origin: 50px 35px !important;
+  animation: pagePulseNode 2.2s ease-in-out infinite !important;
+}
+
+@keyframes pageDrawHouse {
+  0% { stroke-dashoffset: 240; opacity: 0.2; }
+  20% { opacity: 1; }
+  50%, 75% { stroke-dashoffset: 0; opacity: 1; }
+  95%, 100% { stroke-dashoffset: -240; opacity: 0.2; }
+}
+
+@keyframes pageDrawDoor {
+  0%, 15% { stroke-dashoffset: 85; opacity: 0; }
+  30% { opacity: 1; }
+  52%, 78% { stroke-dashoffset: 0; opacity: 1; }
+  95%, 100% { stroke-dashoffset: -85; opacity: 0; }
+}
+
+@keyframes pageDrawChimney {
+  0%, 10% { stroke-dashoffset: 45; opacity: 0; }
+  25% { opacity: 1; }
+  50%, 78% { stroke-dashoffset: 0; opacity: 1; }
+  95%, 100% { stroke-dashoffset: -45; opacity: 0; }
+}
+
+@keyframes pagePulseNode {
+  0%, 35% { transform: scale(0); opacity: 0; }
+  50%, 75% { transform: scale(1); opacity: 1; }
+  90%, 100% { transform: scale(0); opacity: 0; }
+}
+
+.dwellsync-page-loader-brand {
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+  color: #0F172A !important;
+  letter-spacing: -0.02em !important;
+}
+
+.dwellsync-page-loader-brand .brand-accent {
+  color: #2563EB !important;
+}
+
+.dwellsync-page-loader-msg {
+  margin: 4px 0 0 0 !important;
+  font-size: 0.875rem !important;
+  color: #64748B !important;
+  font-weight: 500 !important;
+}
+
+.dwellsync-page-loader-dots {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  margin-top: 10px !important;
+}
+
+.page-dot {
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 50% !important;
+  background-color: #2563EB !important;
+  opacity: 0.3 !important;
+  transform: scale(0.8) !important;
+  animation: pageDotPulse 1.4s ease-in-out infinite !important;
+}
+
+.page-dot.dot-1 { animation-delay: 0s !important; }
+.page-dot.dot-2 { animation-delay: 0.2s !important; }
+.page-dot.dot-3 { animation-delay: 0.4s !important; }
+
+@keyframes pageDotPulse {
+  0%, 100% { opacity: 0.25; transform: scale(0.8); background-color: #93C5FD; }
+  40% { opacity: 1; transform: scale(1.15); background-color: #2563EB; }
+}
+
+@keyframes pageLoaderFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-svg-outline,
+  .page-svg-door,
+  .page-svg-chimney {
+    animation: none !important;
+    stroke-dashoffset: 0 !important;
+    opacity: 1 !important;
+  }
+  .page-svg-node {
+    animation: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+  .page-dot {
+    animation: none !important;
+    opacity: 0.6 !important;
+  }
+}

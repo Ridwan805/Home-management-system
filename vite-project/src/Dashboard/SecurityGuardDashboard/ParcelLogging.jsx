@@ -3,6 +3,7 @@ import axios from 'axios';
 import { API_BASE_URL } from '../../config/api';
 import { useNavigate } from 'react-router-dom';
 import './ParcelLogging.css';
+import { TableSkeleton, ButtonLoader } from '../../components/loading';
 
 const ParcelLogging = () => {
   const navigate = useNavigate();
@@ -219,8 +220,20 @@ const ParcelLogging = () => {
               />
             </div>
             <div className="form-actions">
-              <button type="submit" className="btn-primary" disabled={loading}>
-                {loading ? 'Logging...' : 'Log Parcel'}
+              <button
+                type="submit"
+                className="btn-primary"
+                disabled={loading}
+                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+              >
+                {loading ? (
+                  <>
+                    <ButtonLoader size="small" />
+                    <span>Logging...</span>
+                  </>
+                ) : (
+                  'Log Parcel'
+                )}
               </button>
               <button 
                 type="button" 
@@ -255,7 +268,9 @@ const ParcelLogging = () => {
 
       <div className="parcel-list">
         {loading ? (
-          <div className="loading">Loading parcels...</div>
+          <div style={{ padding: '20px 0' }}>
+            <TableSkeleton rows={5} columns={6} />
+          </div>
         ) : parcels.length === 0 ? (
           <div className="no-data">No parcels found</div>
         ) : (

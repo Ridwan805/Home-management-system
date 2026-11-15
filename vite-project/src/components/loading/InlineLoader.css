@@ -1,0 +1,52 @@
+/* ==========================================================================
+   InlineLoader Styles
+   ========================================================================== */
+
+.dwellsync-inline-loader {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  vertical-align: middle !important;
+  padding: 6px 10px !important;
+}
+
+.dwellsync-inline-loader .inline-spinner {
+  display: inline-block !important;
+  border-radius: 50% !important;
+  border-style: solid !important;
+  border-color: #E2E8F0 !important;
+  border-top-color: #2563EB !important;
+  animation: inlineSpin 0.7s linear infinite !important;
+  flex-shrink: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.dwellsync-inline-loader.small .inline-spinner {
+  width: 14px !important;
+  height: 14px !important;
+  border-width: 2px !important;
+}
+
+.dwellsync-inline-loader.medium .inline-spinner {
+  width: 18px !important;
+  height: 18px !important;
+  border-width: 2.5px !important;
+}
+
+.dwellsync-inline-loader .inline-loader-text {
+  font-size: 0.85rem !important;
+  font-weight: 500 !important;
+  color: #64748B !important;
+  line-height: 1 !important;
+}
+
+@keyframes inlineSpin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dwellsync-inline-loader .inline-spinner {
+    animation-duration: 1.5s !important;
+  }
+}

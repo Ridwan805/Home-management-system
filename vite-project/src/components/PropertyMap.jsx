@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { InlineLoader } from './loading';
 
 // Fix for default markers in React-Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -309,18 +310,15 @@ const PropertyMap = ({
 
   if (isLoading) {
     return (
-      <div className={`property-map-container ${className}`} style={{ height }}>
-        <div className="map-loading">
-          <div className="loading-spinner">🗺️</div>
-          <div>
-            <p>Loading map...</p>
-            {geocodingError && (
-              <div className="geocoding-status">{geocodingError}</div>
-            )}
-            {isOffline && (
-              <div className="offline-indicator">⚠️ Offline Mode</div>
-            )}
-          </div>
+      <div className={`property-map-container ${className}`} style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="map-loading" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+          <InlineLoader message="Loading interactive map..." size="medium" />
+          {geocodingError && (
+            <div className="geocoding-status">{geocodingError}</div>
+          )}
+          {isOffline && (
+            <div className="offline-indicator">⚠️ Offline Mode</div>
+          )}
         </div>
       </div>
     );
