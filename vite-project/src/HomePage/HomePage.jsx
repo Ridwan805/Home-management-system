@@ -19,7 +19,7 @@ import FloatingHomeNav from '../components/layout/FloatingHomeNav';
 import './HomePage.css';
 
 // Exact image assets as required
-import flatsImg from '../assets/flats.jpg';
+import heroApartmentImg from '../assets/40a157fc-07c1-50e7-9429-18852e1b2e94.jpg';
 import elevatorImg from '../assets/elevator.jpg';
 import landscapeImg from '../assets/landscape.jpg';
 import landscape2Img from '../assets/landscape2.jpg';
@@ -114,12 +114,21 @@ const HomePage = () => {
               // Visual layer defocus: background image
               if (bgImg) {
                 if (progress > 0.005) {
-                  bgImg.style.transform = `scale(${scale})`;
+                  const isHero = sec.id === 'hero';
+                  const baseBlur = isHero ? 0.45 : 0;
+                  const currentBlur = (baseBlur + parseFloat(blurVal)).toFixed(4);
+                  const currentScale = isHero ? (1.06 - (progress * 0.05)).toFixed(4) : scale;
+                  bgImg.style.transform = `scale(${currentScale})`;
                   bgImg.style.transformOrigin = 'center center';
-                  bgImg.style.filter = `blur(${blurVal}rem) brightness(${brightness})`;
+                  bgImg.style.filter = `blur(${currentBlur}rem) brightness(${brightness})`;
                 } else {
-                  bgImg.style.transform = 'none';
-                  bgImg.style.filter = 'none';
+                  if (sec.id === 'hero') {
+                    bgImg.style.transform = 'scale(1.06)';
+                    bgImg.style.filter = 'blur(0.45rem)';
+                  } else {
+                    bgImg.style.transform = 'none';
+                    bgImg.style.filter = 'none';
+                  }
                 }
               }
 
@@ -189,14 +198,14 @@ const HomePage = () => {
       <FloatingHomeNav />
 
       {/* =====================================================================
-          1. CINEMATIC HERO SECTION — flats.jpg
+          1. CINEMATIC HERO SECTION — 40a157fc-07c1-50e7-9429-18852e1b2e94.jpg
           ===================================================================== */}
       <section id="hero" className="cinematic-section section-hero is-revealed">
         <div className="section-bg-wrap">
           <img
-            src={flatsImg}
-            alt="DwellSync luxury city apartments"
-            className="section-bg-img"
+            src={heroApartmentImg}
+            alt="DwellSync luxury city apartments and modern residential buildings"
+            className="section-bg-img hero-bg-img"
             loading="eager"
             fetchpriority="high"
           />
