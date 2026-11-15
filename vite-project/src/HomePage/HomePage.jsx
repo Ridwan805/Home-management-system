@@ -82,41 +82,34 @@ const HomePage = () => {
 
     sections.forEach((sec) => observer.observe(sec));
 
-    // If reduced motion is requested, apply subtle resting blur and avoid scroll transforms
+    // Section base Gaussian blur map (in rem units)
+    // - Active resting blur: 0.25rem (photographic depth of field)
+    // - Affordability section: 0.625rem (soft luxury interior defocus)
+    const SCENE_BASE_BLUR = [
+      0.25,   // 0: hero
+      0.25,   // 1: about
+      0.25,   // 2: rentals
+      0.25,   // 3: buying
+      0.25,   // 4: land
+      0.625,  // 5: affordability
+      0.25,   // 6: lifestyle
+      0.25    // 7: cta
+    ];
+
+    const scenes = document.querySelectorAll('.cinematic-bg-stage .bg-stage-scene');
+
+    // If reduced motion is requested, display resting state without scroll transitions
     if (prefersReduced) {
-      sections.forEach((sec) => {
-        const bgImg = sec.querySelector('.section-bg-img');
-        const bokehLayer = sec.querySelector('.section-bokeh-layer');
-        const baseBlur = SECTION_BASE_BLUR[sec.id] ?? 0.25;
-        if (bgImg) bgImg.style.filter = `blur(${baseBlur}rem)`;
-        if (bokehLayer) {
-          bokehLayer.style.opacity = '0.55';
-          bokehLayer.style.filter = 'blur(0.125rem)';
-        }
-      });
+      if (scenes.length > 0) {
+        scenes[0].style.opacity = '1';
+        scenes[0].style.visibility = 'visible';
+      }
       return () => {
         sections.forEach((sec) => observer.unobserve(sec));
       };
     }
 
-    // Section base Gaussian blur map (in rem units)
-    // Section requirements:
-    // - Active section background: blur(0.25rem) (resting cinematic bokeh defocus)
-    // - Affordability section background: blur(0.625rem) (0.5rem to 0.875rem soft modern interior defocus)
-    // - Transitioning section background: smoothly increases to 0.75rem - 1.25rem
-    // - Outgoing highlights expand into soft circular bokeh blooms
-    const SECTION_BASE_BLUR = {
-      hero: 0.25,
-      about: 0.25,
-      rentals: 0.25,
-      buying: 0.25,
-      land: 0.25,
-      affordability: 0.625,
-      lifestyle: 0.25,
-      cta: 0.25
-    };
-
-    // 2. Cinematic overlapping scroll transitions with background defocus & depth-of-field
+    // 2. Cinematic Background Cross-Dissolve & Independent Card Transitions
     let ticking = false;
     const handleScroll = () => {
       if (!ticking) {
@@ -124,144 +117,179 @@ const HomePage = () => {
           const vh = window.innerHeight || 1;
           const isMobile = window.innerWidth <= 768;
 
-          sections.forEach((sec, idx) => {
-            const nextSec = sections[idx + 1];
-            const bgImg = sec.querySelector('.section-bg-img');
-            const bokehLayer = sec.querySelector('.section-bokeh-layer');
-            const content = sec.querySelector('.section-content');
-            const baseBlur = SECTION_BASE_BLUR[sec.id] ?? 0.25;
+          if (isMobile) {
+            // Mobile: natural document scroll
+            const mid = vh / 2;
+            let activeIdx = 0;
+            let bestDist = Infinity;
 
-            if (isMobile) {
-              // On mobile, ensure stable natural scrolling without sticky transform conflicts
-              if (bgImg) {
-                bgImg.style.transform = 'none';
-                bgImg.style.filter = `blur(${baseBlur}rem)`;
+            sections.forEach((sec, idx) => {
+              const rect = sec.getBoundingClientRect();
+              const secMid = rect.top + rect.height / 2;
+              const dist = Math.abs(secMid - mid);
+              if (dist < bestDist) {
+                bestDist = dist;
+                activeIdx = idx;
               }
-              if (bokehLayer) {
-                bokehLayer.style.transform = 'none';
-                bokehLayer.style.opacity = '0.55';
-                bokehLayer.style.filter = 'blur(0.125rem)';
-              }
+              const content = sec.querySelector('.section-content');
               if (content) {
                 content.style.transform = 'none';
                 content.style.opacity = '1';
                 content.style.filter = 'none';
+                content.style.pointerEvents = 'auto';
               }
-              sec.style.borderTopLeftRadius = '0';
-              sec.style.borderTopRightRadius = '0';
-              return;
-            }
+            });
 
-            if (nextSec) {
-              const nextRect = nextSec.getBoundingClientRect();
-
-              // Only process sections within or adjacent to the active viewport
-              if (nextRect.top > vh * 2 || nextRect.bottom < -vh) {
-                return;
-              }
-
-              // Progress: 0 (nextSec not visible) to 1 (nextSec fully covers sec)
-              const progress = Math.max(0, Math.min(1, 1 - (nextRect.top / vh)));
-
-              // 1. Dynamic border-radius docking:
-              // While nextSec is rising over sec (nextRect.top > 0), nextSec displays its
-              // intentional rounded top card edge (2rem) and shadow.
-              // As nextSec docks at top: 0, its top border-radius smoothly flattens to 0,
-              // covering sec edge-to-edge with ZERO exposed corner strips or gaps.
-              const dockThreshold = 0.12 * vh;
-              const nextRadius = nextRect.top <= 1
-                ? '0'
-                : `${(Math.min(1, nextRect.top / dockThreshold) * 2).toFixed(3)}rem`;
-              nextSec.style.borderTopLeftRadius = nextRadius;
-              nextSec.style.borderTopRightRadius = nextRadius;
-
-              // Outgoing section (sec): Ensure its own top corners stay flat while docked at top: 0
-              if (idx > 0) {
-                const secTop = sec.getBoundingClientRect().top;
-                sec.style.borderTopLeftRadius = secTop <= 1 ? '0' : '2rem';
-                sec.style.borderTopRightRadius = secTop <= 1 ? '0' : '2rem';
-              }
-
-              // 2. Photographic Background Layer Defocus & Optical Bokeh Bloom
-              if (bgImg) {
-                if (progress > 0.005) {
-                  // Gradually increase blur up to 1.0625rem (within 0.75rem - 1.25rem range)
-                  const maxBlur = 1.0625;
-                  const currentBlur = (baseBlur + (progress * (maxBlur - baseBlur))).toFixed(4);
-                  // Soft, gentle brightness reduction (1.0 down to 0.82) - avoids excessive darkening
-                  const brightness = (1 - (progress * 0.18)).toFixed(3);
-                  // Subtle contrast & saturation preservation for rich, dreamy photographic color depth
-                  const contrast = (1 + (progress * 0.06)).toFixed(3);
-                  const saturate = (1 + (progress * 0.08)).toFixed(3);
-                  // Subtle recession scale (1.0 down to 0.985)
-                  const scale = (1 - (progress * 0.015)).toFixed(4);
-
-                  bgImg.style.transform = `scale(${scale}) translateZ(0)`;
-                  bgImg.style.transformOrigin = 'center center';
-                  bgImg.style.filter = `blur(${currentBlur}rem) brightness(${brightness}) contrast(${contrast}) saturate(${saturate})`;
-                } else {
-                  // Reset to resting state with subtle resting blur (0.25rem)
-                  bgImg.style.transform = 'translateZ(0)';
-                  bgImg.style.filter = `blur(${baseBlur}rem) brightness(1) contrast(1) saturate(1)`;
-                }
-              }
-
-              // 3. Bokeh Optical Highlight Layer: expands natural light into soft circular highlights
-              if (bokehLayer) {
-                if (progress > 0.005) {
-                  const bokehScale = (1 + (progress * 0.08)).toFixed(4);
-                  const bokehOpacity = (0.55 + (progress * 0.3)).toFixed(3);
-                  const bokehBlur = (0.125 + (progress * 0.5)).toFixed(4);
-                  bokehLayer.style.transform = `scale(${bokehScale}) translateZ(0)`;
-                  bokehLayer.style.opacity = `${bokehOpacity}`;
-                  bokehLayer.style.filter = `blur(${bokehBlur}rem)`;
-                } else {
-                  bokehLayer.style.transform = 'translateZ(0)';
-                  bokehLayer.style.opacity = '0.55';
-                  bokehLayer.style.filter = 'blur(0.125rem)';
-                }
-              }
-
-              // 4. Content Layer: STABLE vertical positioning (NO translateY drift)
-              // Only gently reduce prominence via opacity as the next section covers it
-              if (content) {
-                if (progress > 0.005) {
-                  const opacity = (1 - (progress * 0.45)).toFixed(3);
-                  content.style.opacity = `${opacity}`;
-                  content.style.transform = 'none';
-                  content.style.filter = 'none';
-                } else {
-                  content.style.transform = 'none';
-                  content.style.opacity = '1';
-                  content.style.filter = 'none';
-                }
-              }
-
-              // 5. Click-interception prevention: disable pointer events when heavily covered
-              if (progress > 0.85) {
-                sec.style.pointerEvents = 'none';
+            scenes.forEach((scene, sIdx) => {
+              const bgImg = scene.querySelector('.section-bg-img');
+              const baseBlur = SCENE_BASE_BLUR[sIdx] ?? 0.25;
+              if (sIdx === activeIdx) {
+                scene.style.opacity = '1';
+                scene.style.visibility = 'visible';
+                if (bgImg) bgImg.style.filter = `blur(${baseBlur}rem)`;
               } else {
-                sec.style.pointerEvents = 'auto';
+                scene.style.opacity = '0';
+                scene.style.visibility = 'hidden';
+              }
+            });
+
+            ticking = false;
+            return;
+          }
+
+          // Desktop / Tablet (> 768px):
+          // Identify which adjacent sections are transitioning:
+          let activeIdx = 0;
+          let transitionP = 0; // 0 to 1 as sections[activeIdx + 1] approaches
+
+          for (let i = 0; i < sections.length - 1; i++) {
+            const nextRect = sections[i + 1].getBoundingClientRect();
+            if (nextRect.top < vh && nextRect.top > 0) {
+              activeIdx = i;
+              transitionP = Math.max(0, Math.min(1, 1 - (nextRect.top / vh)));
+              break;
+            } else if (nextRect.top <= 0) {
+              activeIdx = i + 1;
+              transitionP = 0;
+            }
+          }
+
+          // 1. Fullscreen Background Cross-Dissolve across Fixed Stage:
+          scenes.forEach((scene, sIdx) => {
+            const bgImg = scene.querySelector('.section-bg-img');
+            const bokeh = scene.querySelector('.section-bokeh-layer');
+            const baseBlur = SCENE_BASE_BLUR[sIdx] ?? 0.25;
+
+            if (transitionP > 0.005) {
+              if (sIdx === activeIdx) {
+                // Outgoing background photograph:
+                const p = transitionP;
+                const opacity = Math.max(0, 1 - (p * 1.05));
+                const maxBlur = 1.0625;
+                const currentBlur = (baseBlur + p * (maxBlur - baseBlur)).toFixed(4);
+                const brightness = (1 - (p * 0.16)).toFixed(3);
+                const scale = (1 - (p * 0.015)).toFixed(4);
+
+                scene.style.opacity = `${opacity.toFixed(3)}`;
+                scene.style.visibility = 'visible';
+                if (bgImg) {
+                  bgImg.style.filter = `blur(${currentBlur}rem) brightness(${brightness}) contrast(1.04) saturate(1.06)`;
+                  bgImg.style.transform = `scale(${scale}) translateZ(0)`;
+                }
+                if (bokeh) {
+                  bokeh.style.opacity = (0.55 * (1 - p)).toFixed(3);
+                  bokeh.style.transform = `scale(${1 + p * 0.06}) translateZ(0)`;
+                }
+              } else if (sIdx === activeIdx + 1) {
+                // Incoming background photograph:
+                const p = transitionP;
+                const opacity = Math.min(1, p * 1.05);
+                const currentBlur = (baseBlur + (1 - p) * 0.45).toFixed(4);
+                const brightness = (0.86 + (p * 0.14)).toFixed(3);
+                const scale = (1 + ((1 - p) * 0.015)).toFixed(4);
+
+                scene.style.opacity = `${opacity.toFixed(3)}`;
+                scene.style.visibility = 'visible';
+                if (bgImg) {
+                  bgImg.style.filter = `blur(${currentBlur}rem) brightness(${brightness}) contrast(1.04) saturate(1.06)`;
+                  bgImg.style.transform = `scale(${scale}) translateZ(0)`;
+                }
+                if (bokeh) {
+                  bokeh.style.opacity = (0.55 * p).toFixed(3);
+                  bokeh.style.transform = `scale(${1 + (1 - p) * 0.06}) translateZ(0)`;
+                }
+              } else {
+                scene.style.opacity = '0';
+                scene.style.visibility = 'hidden';
               }
             } else {
-              // Final section (CTA) has no next section and always remains 100% focused
-              if (bgImg) {
-                bgImg.style.transform = 'translateZ(0)';
-                bgImg.style.filter = `blur(${baseBlur}rem) brightness(1) contrast(1) saturate(1)`;
+              // Stationary resting on activeIdx:
+              if (sIdx === activeIdx) {
+                scene.style.opacity = '1';
+                scene.style.visibility = 'visible';
+                if (bgImg) {
+                  bgImg.style.filter = `blur(${baseBlur}rem) brightness(1) contrast(1) saturate(1)`;
+                  bgImg.style.transform = 'translateZ(0)';
+                }
+                if (bokeh) {
+                  bokeh.style.opacity = '0.55';
+                  bokeh.style.transform = 'translateZ(0)';
+                }
+              } else {
+                scene.style.opacity = '0';
+                scene.style.visibility = 'hidden';
               }
-              if (bokehLayer) {
-                bokehLayer.style.transform = 'translateZ(0)';
-                bokehLayer.style.opacity = '0.55';
-                bokehLayer.style.filter = 'blur(0.125rem)';
-              }
-              if (content) {
-                content.style.transform = 'none';
-                content.style.opacity = '1';
-                content.style.filter = 'none';
-              }
-              sec.style.pointerEvents = 'auto';
             }
           });
+
+          // 2. Content Card Independent Dissolve & Subtle Motion:
+          sections.forEach((sec, idx) => {
+            const content = sec.querySelector('.section-content');
+            if (!content) return;
+
+            if (transitionP > 0.005) {
+              if (idx === activeIdx) {
+                // Outgoing content card:
+                const p = transitionP;
+                const opacity = Math.max(0, 1 - (p * 1.35));
+                const translateY = (-p * 2).toFixed(3);
+                const scale = (1 - (p * 0.03)).toFixed(3);
+
+                content.style.opacity = `${opacity.toFixed(3)}`;
+                content.style.transform = `translateY(${translateY}rem) scale(${scale}) translateZ(0)`;
+                content.style.pointerEvents = p > 0.4 ? 'none' : 'auto';
+                content.style.filter = 'none';
+              } else if (idx === activeIdx + 1) {
+                // Incoming content card:
+                const p = transitionP;
+                const cardP = p < 0.15 ? 0 : (p - 0.15) / 0.85;
+                const opacity = Math.min(1, Math.max(0, cardP));
+                const translateY = ((1 - cardP) * 2).toFixed(3);
+
+                content.style.opacity = `${opacity.toFixed(3)}`;
+                content.style.transform = `translateY(${translateY}rem) translateZ(0)`;
+                content.style.pointerEvents = cardP > 0.7 ? 'auto' : 'none';
+                content.style.filter = 'none';
+              } else {
+                content.style.opacity = '0';
+                content.style.pointerEvents = 'none';
+                content.style.filter = 'none';
+              }
+            } else {
+              // Resting state on activeIdx:
+              if (idx === activeIdx) {
+                content.style.opacity = '1';
+                content.style.transform = 'none';
+                content.style.pointerEvents = 'auto';
+                content.style.filter = 'none';
+              } else {
+                content.style.opacity = '0';
+                content.style.pointerEvents = 'none';
+                content.style.filter = 'none';
+              }
+            }
+          });
+
           ticking = false;
         });
         ticking = true;
@@ -285,10 +313,11 @@ const HomePage = () => {
       <FloatingHomeNav />
 
       {/* =====================================================================
-          1. CINEMATIC HERO SECTION — apartmment.jpg
+          SHARED CINEMATIC BACKGROUND STAGE: Fullscreen Cross-Dissolve Scenes
           ===================================================================== */}
-      <section id="hero" className="cinematic-section section-hero is-revealed">
-        <div className="section-bg-wrap">
+      <div className="cinematic-bg-stage" aria-hidden="true">
+        {/* Scene 0: Hero */}
+        <div className="bg-stage-scene scene-hero active-init">
           <img
             src={heroApartmentImg}
             alt="DwellSync luxury city apartments and modern residential buildings"
@@ -296,11 +325,101 @@ const HomePage = () => {
             loading="eager"
             fetchpriority="high"
           />
-          <div className="section-bokeh-layer hero-bokeh" aria-hidden="true" />
+          <div className="section-bokeh-layer hero-bokeh" />
           <div className="section-overlay hero-overlay" />
         </div>
 
-        <div className="section-container hero-container">
+        {/* Scene 1: About */}
+        <div className="bg-stage-scene scene-about">
+          <img
+            src={elevatorImg}
+            alt="Modern architectural living elevator"
+            className="section-bg-img about-bg-img"
+            loading="lazy"
+          />
+          <div className="section-bokeh-layer about-bokeh" />
+          <div className="section-overlay about-overlay" />
+        </div>
+
+        {/* Scene 2: Rentals */}
+        <div className="bg-stage-scene scene-rentals">
+          <img
+            src={landscapeImg}
+            alt="Scenic residential apartments for rent"
+            className="section-bg-img rentals-bg-img"
+            loading="lazy"
+          />
+          <div className="section-bokeh-layer rentals-bokeh" />
+          <div className="section-overlay rentals-overlay" />
+        </div>
+
+        {/* Scene 3: Buying */}
+        <div className="bg-stage-scene scene-buying">
+          <img
+            src={landscape2Img}
+            alt="Contemporary city skyline and premium apartments"
+            className="section-bg-img buying-bg-img"
+            loading="lazy"
+          />
+          <div className="section-bokeh-layer buying-bokeh" />
+          <div className="section-overlay buying-overlay" />
+        </div>
+
+        {/* Scene 4: Land */}
+        <div className="bg-stage-scene scene-land">
+          <img
+            src={openFieldImg}
+            alt="Scenic expansive open land plot"
+            className="section-bg-img land-bg-img"
+            loading="lazy"
+          />
+          <div className="section-bokeh-layer land-bokeh" />
+          <div className="section-overlay land-overlay" />
+        </div>
+
+        {/* Scene 5: Affordability */}
+        <div className="bg-stage-scene scene-affordability">
+          <img
+            src={calculatingImg}
+            alt="Modern luxury apartment living room with floor-to-ceiling windows and warm natural lighting"
+            className="section-bg-img affordability-bg-img"
+            loading="lazy"
+          />
+          <div className="section-bokeh-layer affordability-bokeh" />
+          <div className="section-overlay affordability-overlay" />
+        </div>
+
+        {/* Scene 6: Lifestyle */}
+        <div className="bg-stage-scene scene-lifestyle">
+          <img
+            src={parkImg}
+            alt="Tranquil park with lush green trees"
+            className="section-bg-img lifestyle-bg-img"
+            loading="lazy"
+          />
+          <div className="section-bokeh-layer lifestyle-bokeh" />
+          <div className="section-overlay lifestyle-overlay" />
+        </div>
+
+        {/* Scene 7: CTA */}
+        <div className="bg-stage-scene scene-cta">
+          <img
+            src={landscape2Img}
+            alt="City skyline at dusk"
+            className="section-bg-img cta-bg-img"
+            loading="lazy"
+          />
+          <div className="section-bokeh-layer cta-bokeh" />
+          <div className="section-overlay cta-overlay" />
+        </div>
+      </div>
+
+
+      {/* =====================================================================
+          1. CINEMATIC HERO SECTION — apartmment.jpg
+          ===================================================================== */}
+      <section id="hero" className="cinematic-section section-hero is-revealed" data-scene-idx="0">
+                <div className="section-container hero-container">
           <div className="section-content hero-content">
             <span className="section-eyebrow hero-eyebrow">
               ✦ ALL-IN-ONE REAL ESTATE ECOSYSTEM
@@ -346,19 +465,8 @@ const HomePage = () => {
       {/* =====================================================================
           2. ABOUT SECTION — elevator.jpg
           ===================================================================== */}
-      <section id="about" className="cinematic-section section-about">
-        <div className="section-bg-wrap">
-          <img
-            src={elevatorImg}
-            alt="Modern architectural living elevator"
-            className="section-bg-img about-bg-img"
-            loading="lazy"
-          />
-          <div className="section-bokeh-layer about-bokeh" aria-hidden="true" />
-          <div className="section-overlay about-overlay" />
-        </div>
-
-        <div className="section-container about-container">
+      <section id="about" className="cinematic-section section-about" data-scene-idx="1">
+                <div className="section-container about-container">
           <div className="section-content about-content">
             <div className="about-glass-panel">
               <span className="section-eyebrow">ABOUT DWELLSYNC</span>
@@ -408,19 +516,8 @@ const HomePage = () => {
       {/* =====================================================================
           3. FLAT RENTALS SECTION — landscape.jpg
           ===================================================================== */}
-      <section id="rentals" className="cinematic-section section-rentals">
-        <div className="section-bg-wrap">
-          <img
-            src={landscapeImg}
-            alt="Scenic residential apartments for rent"
-            className="section-bg-img rentals-bg-img"
-            loading="lazy"
-          />
-          <div className="section-bokeh-layer rentals-bokeh" aria-hidden="true" />
-          <div className="section-overlay rentals-overlay" />
-        </div>
-
-        <div className="section-container align-left">
+      <section id="rentals" className="cinematic-section section-rentals" data-scene-idx="2">
+                <div className="section-container align-left">
           <div className="section-content story-glass-card">
             <span className="section-eyebrow tag-blue">RESIDENTIAL RENTALS</span>
             <h2 className="section-headline">
@@ -461,19 +558,8 @@ const HomePage = () => {
       {/* =====================================================================
           4. APARTMENT BUYING SECTION — landscape2.jpg
           ===================================================================== */}
-      <section id="buying" className="cinematic-section section-buying">
-        <div className="section-bg-wrap">
-          <img
-            src={landscape2Img}
-            alt="Contemporary city skyline and premium apartments"
-            className="section-bg-img buying-bg-img"
-            loading="lazy"
-          />
-          <div className="section-bokeh-layer buying-bokeh" aria-hidden="true" />
-          <div className="section-overlay buying-overlay" />
-        </div>
-
-        <div className="section-container align-right">
+      <section id="buying" className="cinematic-section section-buying" data-scene-idx="3">
+                <div className="section-container align-right">
           <div className="section-content story-glass-card">
             <span className="section-eyebrow tag-emerald">PERMANENT RESIDENCES</span>
             <h2 className="section-headline">
@@ -514,19 +600,8 @@ const HomePage = () => {
       {/* =====================================================================
           5. LAND BUYING AND RENTING SECTION — open field.jpg
           ===================================================================== */}
-      <section id="land" className="cinematic-section section-land">
-        <div className="section-bg-wrap">
-          <img
-            src={openFieldImg}
-            alt="Scenic expansive open land plot"
-            className="section-bg-img land-bg-img"
-            loading="lazy"
-          />
-          <div className="section-bokeh-layer land-bokeh" aria-hidden="true" />
-          <div className="section-overlay land-overlay" />
-        </div>
-
-        <div className="section-container align-left">
+      <section id="land" className="cinematic-section section-land" data-scene-idx="4">
+                <div className="section-container align-left">
           <div className="section-content story-glass-card">
             <span className="section-eyebrow tag-amber">LAND & DEVELOPMENT</span>
             <h2 className="section-headline">
@@ -574,19 +649,8 @@ const HomePage = () => {
       {/* =====================================================================
           6. AFFORDABILITY CALCULATOR SECTION — Find homes within your budget
           ===================================================================== */}
-      <section id="affordability" className="cinematic-section section-affordability">
-        <div className="section-bg-wrap">
-          <img
-            src={calculatingImg}
-            alt="Modern luxury apartment living room with floor-to-ceiling windows and warm natural lighting"
-            className="section-bg-img affordability-bg-img"
-            loading="lazy"
-          />
-          <div className="section-bokeh-layer affordability-bokeh" aria-hidden="true" />
-          <div className="section-overlay affordability-overlay" />
-        </div>
-
-        <div className="section-container affordability-section-container">
+      <section id="affordability" className="cinematic-section section-affordability" data-scene-idx="5">
+                <div className="section-container affordability-section-container">
           <div className="section-content affordability-card">
             {/* Left Content Side */}
             <div className="affordability-text-side">
@@ -662,19 +726,8 @@ const HomePage = () => {
       {/* =====================================================================
           7. LIFESTYLE AND COMMUNITY SECTION — a park.jpg
           ===================================================================== */}
-      <section id="lifestyle" className="cinematic-section section-lifestyle">
-        <div className="section-bg-wrap">
-          <img
-            src={parkImg}
-            alt="Tranquil park with lush green trees"
-            className="section-bg-img lifestyle-bg-img"
-            loading="lazy"
-          />
-          <div className="section-bokeh-layer lifestyle-bokeh" aria-hidden="true" />
-          <div className="section-overlay lifestyle-overlay" />
-        </div>
-
-        <div className="section-container align-center">
+      <section id="lifestyle" className="cinematic-section section-lifestyle" data-scene-idx="6">
+                <div className="section-container align-center">
           <div className="section-content lifestyle-panel">
             <span className="section-eyebrow tag-green">LIFESTYLE & COMMUNITY</span>
             <h2 className="section-headline">
@@ -722,19 +775,8 @@ const HomePage = () => {
       {/* =====================================================================
           8. FINAL CALL TO ACTION SECTION — landscape2.jpg
           ===================================================================== */}
-      <section id="cta" className="cinematic-section section-cta">
-        <div className="section-bg-wrap">
-          <img
-            src={landscape2Img}
-            alt="City skyline at dusk"
-            className="section-bg-img cta-bg-img"
-            loading="lazy"
-          />
-          <div className="section-bokeh-layer cta-bokeh" aria-hidden="true" />
-          <div className="section-overlay cta-overlay" />
-        </div>
-
-        <div className="section-container align-center">
+      <section id="cta" className="cinematic-section section-cta" data-scene-idx="7">
+                <div className="section-container align-center">
           <div className="section-content cta-panel">
             <span className="section-eyebrow">START TODAY</span>
             <h2 className="section-headline cta-headline">

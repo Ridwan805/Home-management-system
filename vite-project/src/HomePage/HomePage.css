@@ -32,7 +32,36 @@
   overflow-x: clip;
 }
 
-/* Base Sticky Cinematic Section */
+/* --- Shared Fixed Background Stage: Seamless Cross-Dissolve --- */
+.cinematic-bg-stage {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100svh;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+  background-color: var(--ds-navy-950);
+}
+
+.bg-stage-scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  will-change: opacity, filter, transform;
+  transform: translateZ(0);
+}
+
+.bg-stage-scene.active-init {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Base Sticky Cinematic Section Container (Transparent & Boundary-Free) */
 .cinematic-section {
   position: sticky;
   top: 0;
@@ -42,20 +71,31 @@
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  overflow: hidden;
-  background-color: var(--ds-navy-950);
-  border-top-left-radius: 2rem;
-  border-top-right-radius: 2rem;
-  box-shadow: 0 -1.25rem 3.5rem rgba(0, 0, 0, 0.45);
-  will-change: border-radius;
+  overflow: visible;
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border: none !important;
+  pointer-events: none;
   transform: translateZ(0);
 }
 
-/* 1. Hero section is the base; no rounded top or shadow */
+.cinematic-section.section-hero,
+.cinematic-section.section-about,
+.cinematic-section.section-rentals,
+.cinematic-section.section-buying,
+.cinematic-section.section-land,
+.cinematic-section.section-affordability,
+.cinematic-section.section-lifestyle,
+.cinematic-section.section-cta {
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
 .cinematic-section.section-hero {
   z-index: 10;
-  border-radius: 0 !important;
-  box-shadow: none;
 }
 
 .cinematic-section.section-about {
@@ -76,9 +116,7 @@
 
 .cinematic-section.section-affordability {
   z-index: 60;
-  background-color: var(--ds-navy-950);
   color: #0F172A;
-  box-shadow: 0 -1.25rem 3.5rem rgba(0, 0, 0, 0.45);
 }
 
 .cinematic-section.section-lifestyle {
@@ -344,6 +382,7 @@
   box-sizing: border-box;
   display: flex;
   align-items: center;
+  pointer-events: none;
 }
 
 .section-container.align-left {
@@ -358,19 +397,19 @@
   justify-content: center;
 }
 
-/* --- Section Content & Staggered Reveal Animations --- */
+/* --- Section Content Independent Card Transitions --- */
 .section-content {
-  opacity: 0;
-  transform: translateY(1rem);
+  opacity: 1;
+  transform: none;
   transform-origin: center center;
-  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: opacity;
+  will-change: opacity, transform;
+  pointer-events: auto;
+  transition: none;
 }
 
 .cinematic-section.is-revealed .section-content {
   opacity: 1;
-  transform: translateY(0);
+  transform: none;
   transition: none;
 }
 
@@ -1049,12 +1088,25 @@
     overflow: visible !important;
     border-radius: 0 !important;
     box-shadow: none !important;
+    background: transparent !important;
+    pointer-events: auto !important;
   }
 
   .cinematic-section.section-affordability {
     height: auto !important;
     min-height: auto !important;
     padding: 4.5rem 1.25rem 3.5rem !important;
+    background: transparent !important;
+  }
+
+  .section-container {
+    pointer-events: auto !important;
+  }
+
+  .section-content {
+    opacity: 1 !important;
+    transform: none !important;
+    pointer-events: auto !important;
   }
 
   .affordability-card {
