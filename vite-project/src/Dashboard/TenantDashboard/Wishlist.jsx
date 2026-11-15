@@ -94,7 +94,7 @@ const Wishlist = () => {
     return (
       <div className="wishlist">
         <h2 className="section-title">My Wishlist</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px', marginTop: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(17.5rem, 1fr))', gap: '1.25rem', marginTop: '1.25rem' }}>
           {[1, 2, 3].map((n) => (
             <PropertyCardSkeleton key={n} />
           ))}

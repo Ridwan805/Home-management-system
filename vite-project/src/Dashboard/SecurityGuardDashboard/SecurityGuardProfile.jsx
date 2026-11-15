@@ -338,7 +338,7 @@ const SecurityGuardProfile = () => {
                   type="submit"
                   className="btn-primary"
                   disabled={isSubmitting}
-                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
                 >
                   {isSubmitting ? (
                     <>
@@ -444,7 +444,7 @@ const SecurityGuardProfile = () => {
             <h3>Payments & Earnings</h3>
             
             {paymentLoading ? (
-              <div style={{ padding: '20px 0' }}>
+              <div style={{ padding: '1.25rem 0' }}>
                 <TableSkeleton rows={4} columns={5} />
               </div>
             ) : (

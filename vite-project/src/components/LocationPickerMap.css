@@ -7,8 +7,8 @@
   padding: 1.5rem;
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+  border-radius: 0.875rem;
+  box-shadow: 0 0.25rem 0.75rem rgba(15, 23, 42, 0.05);
 }
 
 .location-picker-header {
@@ -33,7 +33,7 @@
 
 .location-required {
   color: #ef4444;
-  margin-left: 2px;
+  margin-left: 0.125rem;
 }
 
 .location-picker-instructions {
@@ -55,8 +55,8 @@
   padding: 0.35rem 0.85rem;
   font-size: 0.82rem;
   font-weight: 700;
-  border-radius: 9999px;
-  letter-spacing: 0.3px;
+  border-radius: 624.9375rem;
+  letter-spacing: 0.0187rem;
 }
 
 .location-status-badge.confirmed {
@@ -79,7 +79,7 @@
   margin-bottom: 1.25rem;
   background: #f8fafc;
   padding: 1rem;
-  border-radius: 12px;
+  border-radius: 0.75rem;
   border: 1px solid #e2e8f0;
 }
 
@@ -112,11 +112,11 @@
   font-size: 0.95rem;
   font-weight: 500;
   border: 1.5px solid #cbd5e1;
-  border-radius: 24px;
+  border-radius: 1.5rem;
   background: #ffffff;
   color: #0f172a;
   outline: none;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 0.125rem 0.375rem rgba(15, 23, 42, 0.04);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   font-family: inherit;
 }
@@ -124,14 +124,14 @@
 .location-search-input:focus {
   border-color: #2563eb;
   background: #ffffff;
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12), 0 4px 12px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 0 0 0.25rem rgba(37, 99, 235, 0.12), 0 0.25rem 0.75rem rgba(15, 23, 42, 0.06);
 }
 
 .search-input-spinner {
   position: absolute;
   right: 1rem;
-  width: 18px;
-  height: 18px;
+  width: 1.125rem;
+  height: 1.125rem;
   border: 2px solid #e2e8f0;
   border-top-color: #2563eb;
   border-radius: 50%;
@@ -147,8 +147,8 @@
   font-size: 0.85rem;
   font-weight: bold;
   cursor: pointer;
-  width: 24px;
-  height: 24px;
+  width: 1.5rem;
+  height: 1.5rem;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -172,17 +172,17 @@
   padding: 0.75rem 1.5rem;
   font-size: 0.92rem;
   font-weight: 600;
-  border-radius: 24px;
+  border-radius: 1.5rem;
   cursor: pointer;
   white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+  box-shadow: 0 0.125rem 0.5rem rgba(37, 99, 235, 0.25);
   transition: all 0.2s ease;
 }
 
 .btn-search-location:hover:not(:disabled) {
   background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+  transform: translateY(-0.0625rem);
+  box-shadow: 0 0.25rem 0.75rem rgba(37, 99, 235, 0.35);
 }
 
 .btn-search-location:disabled {
@@ -206,12 +206,12 @@
 }
 
 .gmap-category-pills-bar::-webkit-scrollbar {
-  height: 4px;
+  height: 0.25rem;
 }
 
 .gmap-category-pills-bar::-webkit-scrollbar-thumb {
   background: #cbd5e1;
-  border-radius: 4px;
+  border-radius: 0.25rem;
 }
 
 .gmap-category-pill {
@@ -220,14 +220,14 @@
   gap: 0.45rem;
   background: #ffffff;
   border: 1px solid #cbd5e1;
-  border-radius: 9999px;
+  border-radius: 624.9375rem;
   padding: 0.35rem 0.85rem;
   font-size: 0.82rem;
   font-weight: 600;
   color: #334155;
   cursor: pointer;
   white-space: nowrap;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 0.0625rem 0.1875rem rgba(15, 23, 42, 0.04);
   transition: all 0.15s ease;
 }
 
@@ -235,14 +235,14 @@
   background: #eff6ff;
   border-color: #93c5fd;
   color: #1d4ed8;
-  transform: translateY(-1px);
+  transform: translateY(-0.0625rem);
 }
 
 .gmap-category-pill.active {
   background: #2563eb;
   border-color: #2563eb;
   color: #ffffff;
-  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 0.125rem 0.375rem rgba(37, 99, 235, 0.3);
 }
 
 .gmap-cat-icon {
@@ -254,15 +254,15 @@
    ========================================================================== */
 .location-search-dropdown {
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + 0.375rem);
   left: 0;
   right: 0;
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  box-shadow: 0 16px 36px -4px rgba(15, 23, 42, 0.16), 0 8px 16px -6px rgba(15, 23, 42, 0.08);
+  border-radius: 0.875rem;
+  box-shadow: 0 1rem 2.25rem -0.25rem rgba(15, 23, 42, 0.16), 0 0.5rem 1rem -0.375rem rgba(15, 23, 42, 0.08);
   z-index: 1000;
-  max-height: 380px;
+  max-height: 23.75rem;
   overflow-y: auto;
 }
 
@@ -277,8 +277,8 @@
 }
 
 .search-spinner {
-  width: 16px;
-  height: 16px;
+  width: 1rem;
+  height: 1rem;
   border: 2px solid #e2e8f0;
   border-top-color: #2563eb;
   border-radius: 50%;
@@ -294,7 +294,7 @@
   font-size: 0.88rem;
   color: #b91c1c;
   background: #fef2f2;
-  border-radius: 12px;
+  border-radius: 0.75rem;
 }
 
 .search-empty-focus-suggestions {
@@ -306,7 +306,7 @@
   font-size: 0.72rem;
   font-weight: 700;
   color: #64748b;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.0375rem;
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -338,8 +338,8 @@
 
 .search-item-badge-icon {
   font-size: 1.3rem;
-  width: 38px;
-  height: 38px;
+  width: 2.375rem;
+  height: 2.375rem;
   background: #f1f5f9;
   border-radius: 50%;
   display: flex;
@@ -383,7 +383,7 @@
   background: #eff6ff;
   border: 1px solid #bfdbfe;
   padding: 0.15rem 0.55rem;
-  border-radius: 9999px;
+  border-radius: 624.9375rem;
   white-space: nowrap;
 }
 
@@ -401,11 +401,11 @@
 .location-map-wrapper {
   position: relative;
   width: 100%;
-  height: 420px;
-  border-radius: 12px;
+  height: 26.25rem;
+  border-radius: 0.75rem;
   overflow: hidden;
   border: 2px solid #e2e8f0;
-  box-shadow: inset 0 2px 4px rgba(15, 23, 42, 0.05);
+  box-shadow: inset 0 0.125rem 0.25rem rgba(15, 23, 42, 0.05);
   margin-top: 0.5rem;
 }
 
@@ -427,8 +427,8 @@
   padding: 1rem 1.25rem;
   background: #f0fdf4;
   border: 1px solid #bbf7d0;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  border-radius: 0.75rem;
+  box-shadow: 0 0.0625rem 0.1875rem rgba(15, 23, 42, 0.04);
 }
 
 .resolved-card-header {
@@ -443,7 +443,7 @@
   font-weight: 700;
   text-transform: uppercase;
   color: #15803d;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.0312rem;
   display: flex;
   align-items: center;
 }
@@ -482,7 +482,7 @@
   background: #dbeafe;
   color: #1e40af;
   padding: 0.15rem 0.55rem;
-  border-radius: 6px;
+  border-radius: 0.375rem;
   font-weight: 600;
   border: 1px solid #bfdbfe;
 }
@@ -498,8 +498,8 @@
    Pulse Animation for Live Map Indicator
    ========================================================================== */
 .live-pulse-dot {
-  width: 8px;
-  height: 8px;
+  width: 0.5rem;
+  height: 0.5rem;
   background-color: #10b981;
   border-radius: 50%;
   display: inline-block;
@@ -514,7 +514,7 @@
   }
   70% {
     transform: scale(1);
-    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+    box-shadow: 0 0 0 0.375rem rgba(16, 185, 129, 0);
   }
   100% {
     transform: scale(0.95);
@@ -530,7 +530,7 @@
   padding: 1rem 1.25rem;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
-  border-radius: 10px;
+  border-radius: 0.625rem;
 }
 
 .osm-link-header {
@@ -557,7 +557,7 @@
   color: #059669;
   background: #ecfdf5;
   padding: 0.2rem 0.6rem;
-  border-radius: 9999px;
+  border-radius: 624.9375rem;
   border: 1px solid #a7f3d0;
 }
 
@@ -574,7 +574,7 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   background: #ffffff;
   border: 1px solid #cbd5e1;
-  border-radius: 8px;
+  border-radius: 0.5rem;
   color: #0f172a;
   outline: none;
   transition: all 0.2s ease;
@@ -582,7 +582,7 @@
 
 .osm-link-input:focus {
   border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  box-shadow: 0 0 0 0.1875rem rgba(37, 99, 235, 0.12);
 }
 
 .osm-link-input:disabled {
@@ -607,7 +607,7 @@
   background: #ffffff;
   color: #334155;
   border: 1px solid #cbd5e1;
-  border-radius: 8px;
+  border-radius: 0.5rem;
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -639,14 +639,14 @@
   background: #2563eb;
   color: #ffffff;
   text-decoration: none;
-  border-radius: 8px;
+  border-radius: 0.5rem;
   transition: all 0.15s ease;
   white-space: nowrap;
 }
 
 .btn-preview-osm-link:hover {
   background: #1d4ed8;
-  transform: translateY(-1px);
+  transform: translateY(-0.0625rem);
 }
 
 .osm-link-helper-text {
@@ -669,7 +669,7 @@
   margin-top: 1.25rem;
   padding: 0.85rem 1.15rem;
   background: #f8fafc;
-  border-radius: 10px;
+  border-radius: 0.625rem;
   border: 1px solid #e2e8f0;
 }
 
@@ -686,7 +686,7 @@
 .coordinate-chip {
   background: #ffffff;
   padding: 0.35rem 0.7rem;
-  border-radius: 6px;
+  border-radius: 0.375rem;
   border: 1px solid #cbd5e1;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-weight: 600;
@@ -714,16 +714,16 @@
   padding: 0.6rem 1.4rem;
   font-size: 0.9rem;
   font-weight: 600;
-  border-radius: 8px;
+  border-radius: 0.5rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+  box-shadow: 0 0.125rem 0.5rem rgba(16, 185, 129, 0.25);
 }
 
 .btn-confirm-location:hover:not(:disabled) {
   background: linear-gradient(135deg, #059669 0%, #047857 100%);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+  transform: translateY(-0.0625rem);
+  box-shadow: 0 0.25rem 0.75rem rgba(16, 185, 129, 0.35);
 }
 
 .btn-confirm-location:disabled {
@@ -743,7 +743,7 @@
   padding: 0.6rem 1.4rem;
   font-size: 0.9rem;
   font-weight: 600;
-  border-radius: 8px;
+  border-radius: 0.5rem;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -756,9 +756,9 @@
 /* ==========================================================================
    Responsive styles
    ========================================================================== */
-@media (max-width: 640px) {
+@media (max-width: 40rem) {
   .location-map-wrapper {
-    height: 320px;
+    height: 20rem;
   }
 
   .location-search-form {

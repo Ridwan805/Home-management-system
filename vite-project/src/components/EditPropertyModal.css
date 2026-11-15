@@ -12,15 +12,15 @@
   right: 0 !important;
   bottom: 0 !important;
   width: 100vw !important;
-  height: 100vh !important;
+  height: 100svh !important;
   background-color: rgba(15, 23, 42, 0.72) !important;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(0.25rem);
+  -webkit-backdrop-filter: blur(0.25rem);
   display: flex !important;
   justify-content: center !important;
   align-items: center !important;
   z-index: 99999 !important;
-  padding: 16px !important;
+  padding: 1rem !important;
   box-sizing: border-box !important;
   animation: editModalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -33,16 +33,16 @@
   color: #0F172A !important;
   color-scheme: light !important;
   width: 100% !important;
-  max-width: 720px !important; /* Strictly within 650px - 750px requirement */
+  max-width: 45rem !important; /* Strictly within 40.625rem - 46.875rem requirement */
   max-height: 90vh !important;
   height: auto !important;
   display: flex !important;
   flex-direction: column !important;
   padding: 0 !important;
-  border-radius: 12px !important;
+  border-radius: 0.75rem !important;
   box-shadow: 
-    0 25px 50px -12px rgba(15, 23, 42, 0.25),
-    0 0 0 1px rgba(203, 213, 225, 0.4) !important;
+    0 1.5625rem 3.125rem -0.75rem rgba(15, 23, 42, 0.25),
+    0 0 0 0.0625rem rgba(203, 213, 225, 0.4) !important;
   overflow: hidden !important;
   position: relative !important;
   animation: editModalSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
@@ -55,7 +55,7 @@
   display: flex !important;
   justify-content: space-between !important;
   align-items: center !important;
-  padding: 18px 24px !important;
+  padding: 1.125rem 1.5rem !important;
   background-color: #FFFFFF !important;
   border-bottom: 1px solid #E2E8F0 !important;
   position: sticky !important;
@@ -66,7 +66,7 @@
 .edit-form-modal .modal-header-titles {
   display: flex !important;
   flex-direction: column !important;
-  gap: 2px !important;
+  gap: 0.125rem !important;
   min-width: 0 !important;
 }
 
@@ -89,7 +89,7 @@
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
-  max-width: 480px !important;
+  max-width: 30rem !important;
   line-height: 1.3 !important;
 }
 
@@ -102,16 +102,16 @@
   font-size: 1.75rem !important;
   font-weight: 300 !important;
   line-height: 1 !important;
-  width: 36px !important;
-  height: 36px !important;
+  width: 2.25rem !important;
+  height: 2.25rem !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  border-radius: 8px !important;
+  border-radius: 0.5rem !important;
   cursor: pointer !important;
   transition: all 0.15s ease !important;
   padding: 0 !important;
-  margin-left: 12px !important;
+  margin-left: 0.75rem !important;
 }
 
 .edit-form-modal .modal-close-btn:hover:not(:disabled) {
@@ -139,21 +139,21 @@
   flex: 1 1 auto !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
-  padding: 22px 24px !important;
+  padding: 1.375rem 1.5rem !important;
   background-color: #FFFFFF !important;
   overscroll-behavior: contain !important;
 }
 
 /* Clean Custom Scrollbar */
 .edit-form-modal .modal-body-scrollable::-webkit-scrollbar {
-  width: 7px !important;
+  width: 0.4375rem !important;
 }
 .edit-form-modal .modal-body-scrollable::-webkit-scrollbar-track {
   background: #F8FAFC !important;
 }
 .edit-form-modal .modal-body-scrollable::-webkit-scrollbar-thumb {
   background: #CBD5E1 !important;
-  border-radius: 4px !important;
+  border-radius: 0.25rem !important;
 }
 .edit-form-modal .modal-body-scrollable::-webkit-scrollbar-thumb:hover {
   background: #94A3B8 !important;
@@ -163,10 +163,10 @@
 .edit-form-modal .modal-alert {
   display: flex !important;
   align-items: flex-start !important;
-  gap: 10px !important;
-  padding: 12px 16px !important;
-  border-radius: 8px !important;
-  margin-bottom: 20px !important;
+  gap: 0.625rem !important;
+  padding: 0.75rem 1rem !important;
+  border-radius: 0.5rem !important;
+  margin-bottom: 1.25rem !important;
   font-size: 0.9rem !important;
   line-height: 1.45 !important;
 }
@@ -195,15 +195,15 @@
 
 .edit-form-modal .alert-text strong {
   font-weight: 600 !important;
-  margin-right: 4px !important;
+  margin-right: 0.25rem !important;
 }
 
-/* Two-Column Form Grid (16-20px gaps) */
+/* Two-Column Form Grid (16-1.25rem gaps) */
 .edit-form-modal .form-grid {
   display: grid !important;
   grid-template-columns: repeat(2, 1fr) !important;
-  column-gap: 20px !important;
-  row-gap: 18px !important;
+  column-gap: 1.25rem !important;
+  row-gap: 1.125rem !important;
   width: 100% !important;
   box-sizing: border-box !important;
 }
@@ -228,7 +228,7 @@
   font-size: 0.875rem !important;
   font-weight: 600 !important;
   color: #334155 !important; /* Strictly #334155 */
-  margin-bottom: 6px !important;
+  margin-bottom: 0.375rem !important;
   line-height: 1.25 !important;
   text-align: left !important;
   letter-spacing: 0.01em !important;
@@ -242,11 +242,11 @@
 .edit-form-modal input[type="url"],
 .edit-form-modal select {
   width: 100% !important;
-  height: 44px !important; /* Strictly 42-44px input height */
-  line-height: 44px !important;
-  padding: 0 14px !important;
+  height: 2.75rem !important; /* Strictly 42-2.75rem input height */
+  line-height: 2.75rem !important;
+  padding: 0 0.875rem !important;
   border: 1px solid #CBD5E1 !important; /* Strictly #CBD5E1 */
-  border-radius: 8px !important; /* Strictly 8px radius */
+  border-radius: 0.5rem !important; /* Strictly 0.5rem radius */
   background-color: #FFFFFF !important; /* Strictly #FFFFFF */
   background: #FFFFFF !important;
   color: #0F172A !important; /* Strictly #0F172A */
@@ -262,7 +262,7 @@
   cursor: pointer !important;
   appearance: auto !important;
   -webkit-appearance: auto !important;
-  padding-right: 28px !important;
+  padding-right: 1.75rem !important;
 }
 
 .edit-form-modal select option {
@@ -270,17 +270,17 @@
   background: #FFFFFF !important;
   color: #0F172A !important;
   -webkit-text-fill-color: #0F172A !important;
-  padding: 8px 12px !important;
+  padding: 0.5rem 0.75rem !important;
   font-size: 0.95rem !important;
 }
 
 /* Textarea styling */
 .edit-form-modal textarea {
   width: 100% !important;
-  min-height: 100px !important;
-  padding: 12px 14px !important;
+  min-height: 6.25rem !important;
+  padding: 0.75rem 0.875rem !important;
   border: 1px solid #CBD5E1 !important; /* Strictly #CBD5E1 */
-  border-radius: 8px !important; /* Strictly 8px radius */
+  border-radius: 0.5rem !important; /* Strictly 0.5rem radius */
   background-color: #FFFFFF !important;
   background: #FFFFFF !important;
   color: #0F172A !important; /* Strictly #0F172A */
@@ -308,7 +308,7 @@
 .edit-form-modal textarea:focus {
   outline: none !important;
   border-color: #2563EB !important;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2) !important;
+  box-shadow: 0 0 0 0.1875rem rgba(37, 99, 235, 0.2) !important;
   background-color: #FFFFFF !important;
 }
 
@@ -317,7 +317,7 @@
   display: block !important;
   font-size: 0.825rem !important;
   color: #64748B !important;
-  margin-top: 5px !important;
+  margin-top: 0.3125rem !important;
   line-height: 1.4 !important;
   text-align: left !important;
 }
@@ -328,8 +328,8 @@
   display: flex !important;
   justify-content: flex-end !important;
   align-items: center !important;
-  gap: 12px !important;
-  padding: 16px 24px !important;
+  gap: 0.75rem !important;
+  padding: 1rem 1.5rem !important;
   border-top: 1px solid #E2E8F0 !important;
   background-color: #F8FAFC !important;
   position: sticky !important;
@@ -342,9 +342,9 @@
   background-color: #FFFFFF !important;
   color: #334155 !important;
   border: 1px solid #CBD5E1 !important;
-  border-radius: 8px !important;
-  height: 42px !important;
-  padding: 0 20px !important;
+  border-radius: 0.5rem !important;
+  height: 2.625rem !important;
+  padding: 0 1.25rem !important;
   font-size: 0.95rem !important;
   font-weight: 600 !important;
   cursor: pointer !important;
@@ -365,24 +365,24 @@
   background-color: #2563EB !important;
   color: #FFFFFF !important;
   border: 1px solid #2563EB !important;
-  border-radius: 8px !important;
-  height: 42px !important;
-  padding: 0 24px !important;
+  border-radius: 0.5rem !important;
+  height: 2.625rem !important;
+  padding: 0 1.5rem !important;
   font-size: 0.95rem !important;
   font-weight: 600 !important;
   cursor: pointer !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 8px !important;
+  gap: 0.5rem !important;
   transition: all 0.15s ease !important;
-  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2) !important;
+  box-shadow: 0 0.0625rem 0.125rem rgba(37, 99, 235, 0.2) !important;
 }
 
 .edit-form-modal .btn-save:hover:not(:disabled) {
   background-color: #1D4ED8 !important;
   border-color: #1D4ED8 !important;
-  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3) !important;
+  box-shadow: 0 0.25rem 0.375rem -0.0625rem rgba(37, 99, 235, 0.3) !important;
 }
 
 .edit-form-modal .btn-save:disabled,
@@ -393,8 +393,8 @@
 
 /* Spinner Icon */
 .edit-form-modal .btn-spinner {
-  width: 16px !important;
-  height: 16px !important;
+  width: 1rem !important;
+  height: 1rem !important;
   border: 2px solid rgba(255, 255, 255, 0.4) !important;
   border-top-color: #FFFFFF !important;
   border-radius: 50% !important;
@@ -411,7 +411,7 @@
 @keyframes editModalSlideIn {
   from {
     opacity: 0;
-    transform: translateY(-16px) scale(0.98);
+    transform: translateY(-1rem) scale(0.98);
   }
   to {
     opacity: 1;
@@ -427,19 +427,19 @@
    Responsive Adaptations for Mobile & Tablets
    Single-column layout, full width buttons, compact padding
    ========================================================================== */
-@media (max-width: 640px) {
+@media (max-width: 40rem) {
   .edit-form-modal.modal-overlay {
-    padding: 10px !important;
+    padding: 0.625rem !important;
   }
 
   .edit-form-modal .modal-content,
   .edit-form-modal .edit-modal-container {
     max-height: 95vh !important;
-    border-radius: 10px !important;
+    border-radius: 0.625rem !important;
   }
 
   .edit-form-modal .modal-header {
-    padding: 14px 16px !important;
+    padding: 0.875rem 1rem !important;
   }
 
   .edit-form-modal .modal-title {
@@ -447,17 +447,17 @@
   }
 
   .edit-form-modal .modal-subtitle {
-    max-width: 250px !important;
+    max-width: 15.625rem !important;
   }
 
   .edit-form-modal .modal-body-scrollable {
-    padding: 16px !important;
+    padding: 1rem !important;
   }
 
   /* Single Column Layout on Mobile */
   .edit-form-modal .form-grid {
     grid-template-columns: 1fr !important;
-    row-gap: 14px !important;
+    row-gap: 0.875rem !important;
     column-gap: 0 !important;
   }
 
@@ -466,14 +466,14 @@
   }
 
   .edit-form-modal .modal-footer {
-    padding: 12px 16px !important;
+    padding: 0.75rem 1rem !important;
     flex-direction: column-reverse !important;
-    gap: 10px !important;
+    gap: 0.625rem !important;
   }
 
   .edit-form-modal .btn-cancel,
   .edit-form-modal .btn-save {
     width: 100% !important;
-    height: 44px !important;
+    height: 2.75rem !important;
   }
 }

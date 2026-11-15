@@ -65,7 +65,7 @@ const DashboardOverview = () => {
 
   return (
     <div className="dashboard-overview">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
         <div>
           <h2>System Command Center</h2>
           <p style={{ color: '#64748b', margin: 0, fontSize: '0.95rem' }}>
@@ -77,11 +77,11 @@ const DashboardOverview = () => {
           style={{ 
             display: 'inline-flex', 
             alignItems: 'center', 
-            gap: '8px', 
+            gap: '0.5rem', 
             backgroundColor: '#2563eb', 
             color: 'white', 
-            padding: '10px 18px', 
-            borderRadius: '8px', 
+            padding: '0.625rem 1.125rem', 
+            borderRadius: '0.5rem', 
             textDecoration: 'none', 
             fontWeight: 600, 
             fontSize: '0.9rem' 
@@ -93,7 +93,7 @@ const DashboardOverview = () => {
 
       {loading ? (
         <div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(13.75rem, 1fr))', gap: '1.25rem', marginBottom: '1.5rem' }}>
             {[1, 2, 3, 4].map((n) => (
               <DashboardCardSkeleton key={n} />
             ))}
@@ -101,18 +101,18 @@ const DashboardOverview = () => {
           <TableSkeleton rows={4} columns={4} />
         </div>
       ) : error ? (
-        <div className="error-message" style={{ backgroundColor: '#fee2e2', padding: '20px', borderRadius: '8px', textAlign: 'center' }}>
+        <div className="error-message" style={{ backgroundColor: '#fee2e2', padding: '1.25rem', borderRadius: '0.5rem', textAlign: 'center' }}>
           Failed to load dashboard statistics. Please try again later.
           <button 
             className="retry-button" 
             onClick={fetchDashboardData}
             style={{ 
-              marginTop: '15px', 
+              marginTop: '0.9375rem', 
               backgroundColor: '#3b82f6', 
               color: 'white', 
               border: 'none', 
-              padding: '8px 20px', 
-              borderRadius: '4px', 
+              padding: '0.5rem 1.25rem', 
+              borderRadius: '0.25rem', 
               cursor: 'pointer',
               fontWeight: '500'
             }}
@@ -208,7 +208,7 @@ const DashboardOverview = () => {
                     recentActivity.recentProperties.map((p) => (
                       <div key={p._id} className="stream-item">
                         <div className="stream-item-main">
-                          <span style={{ maxWidth: '170px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <span style={{ maxWidth: '10.625rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {p.title}
                           </span>
                           <span style={{ color: '#059669', fontWeight: 600 }}>
@@ -264,7 +264,7 @@ const DashboardOverview = () => {
                     recentActivity.recentReports.map((r) => (
                       <div key={r._id} className="stream-item">
                         <div className="stream-item-main">
-                          <span style={{ maxWidth: '170px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <span style={{ maxWidth: '10.625rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {r.title}
                           </span>
                           <span className="status-badge">

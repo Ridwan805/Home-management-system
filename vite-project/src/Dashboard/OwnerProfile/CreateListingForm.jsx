@@ -665,7 +665,7 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
             </div>
 
             <div className="clf-field" style={{ justifyContent: 'flex-end' }}>
-              <label className={`clf-toggle-card ${form.utilitiesIncluded ? 'active' : ''}`} style={{ height: '42px', boxSizing: 'border-box' }}>
+              <label className={`clf-toggle-card ${form.utilitiesIncluded ? 'active' : ''}`} style={{ height: '2.625rem', boxSizing: 'border-box' }}>
                 <input
                   type="checkbox"
                   name="utilitiesIncluded"
@@ -784,7 +784,7 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
             </div>
 
             <div className="clf-field" style={{ justifyContent: 'flex-end' }}>
-              <label className={`clf-toggle-card ${form.hasBalcony ? 'active' : ''}`} style={{ height: '42px', boxSizing: 'border-box' }}>
+              <label className={`clf-toggle-card ${form.hasBalcony ? 'active' : ''}`} style={{ height: '2.625rem', boxSizing: 'border-box' }}>
                 <input
                   type="checkbox"
                   name="hasBalcony"

@@ -1,7 +1,7 @@
 .quick-dial-container {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
+  bottom: 1.25rem;
+  right: 1.25rem;
   z-index: 1000;
 }
 
@@ -9,24 +9,24 @@
   background: linear-gradient(135deg, #dc2626, #ef4444);
   color: white;
   border: none;
-  border-radius: 50px;
-  padding: 12px 20px;
+  border-radius: 3.125rem;
+  padding: 0.75rem 1.25rem;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+  box-shadow: 0 0.25rem 0.75rem rgba(220, 38, 38, 0.3);
   transition: all 0.3s ease;
   font-weight: 600;
-  font-size: 14px;
-  min-width: 120px;
+  font-size: 0.875rem;
+  min-width: 7.5rem;
   justify-content: center;
 }
 
 .quick-dial-button:hover {
   background: linear-gradient(135deg, #b91c1c, #dc2626);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(220, 38, 38, 0.4);
+  transform: translateY(-0.125rem);
+  box-shadow: 0 0.375rem 1rem rgba(220, 38, 38, 0.4);
 }
 
 .quick-dial-button:active {
@@ -34,7 +34,7 @@
 }
 
 .emergency-icon {
-  font-size: 18px;
+  font-size: 1.125rem;
   animation: pulse 2s infinite;
 }
 
@@ -48,21 +48,21 @@
 }
 
 .button-text {
-  font-size: 13px;
-  letter-spacing: 0.5px;
+  font-size: 0.8125rem;
+  letter-spacing: 0.0312rem;
 }
 
 .emergency-contacts-list {
   position: absolute;
-  bottom: 70px;
+  bottom: 4.375rem;
   right: 0;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  border-radius: 0.75rem;
+  box-shadow: 0 0.5rem 2rem rgba(0, 0, 0, 0.15);
   padding: 0;
-  min-width: 320px;
+  min-width: 20rem;
   max-width: 90vw;
-  max-height: 400px;
+  max-height: 25rem;
   overflow-y: auto;
   animation: slideUp 0.3s ease-out;
   transform: translateX(0);
@@ -71,7 +71,7 @@
 @keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(1.25rem);
   }
   to {
     opacity: 1;
@@ -83,28 +83,28 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
+  padding: 1rem 1.25rem;
   border-bottom: 1px solid #e5e7eb;
   background: #f8fafc;
-  border-radius: 12px 12px 0 0;
+  border-radius: 0.75rem 0.75rem 0 0;
 }
 
 .contacts-header h3 {
   margin: 0;
   color: #1f2937;
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 600;
 }
 
 .close-btn {
   background: none;
   border: none;
-  font-size: 24px;
+  font-size: 1.5rem;
   color: #6b7280;
   cursor: pointer;
   padding: 0;
-  width: 30px;
-  height: 30px;
+  width: 1.875rem;
+  height: 1.875rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -118,23 +118,23 @@
 }
 
 .contacts-grid {
-  padding: 12px;
+  padding: 0.75rem;
 }
 
 .contact-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  border-radius: 8px;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  margin-bottom: 4px;
+  margin-bottom: 0.25rem;
 }
 
 .contact-item:hover {
   background: #f3f4f6;
-  transform: translateX(4px);
+  transform: translateX(0.25rem);
 }
 
 .contact-item:active {
@@ -142,9 +142,9 @@
 }
 
 .contact-icon {
-  font-size: 24px;
-  width: 40px;
-  height: 40px;
+  font-size: 1.5rem;
+  width: 2.5rem;
+  height: 2.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -161,54 +161,54 @@
   display: block;
   font-weight: 600;
   color: #1f2937;
-  font-size: 14px;
-  margin-bottom: 2px;
+  font-size: 0.875rem;
+  margin-bottom: 0.125rem;
 }
 
 .contact-number {
   display: block;
   color: #6b7280;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-family: 'Courier New', monospace;
 }
 
 /* Responsive adjustments */
-@media (max-width: 768px) {
+@media (max-width: 48rem) {
   .quick-dial-container {
-    bottom: 15px;
-    right: 15px;
+    bottom: 0.9375rem;
+    right: 0.9375rem;
   }
   
   .emergency-contacts-list {
-    min-width: 280px;
-    max-width: calc(100vw - 30px);
-    max-height: 350px;
+    min-width: 17.5rem;
+    max-width: calc(100vw - 1.875rem);
+    max-height: 21.875rem;
     right: 0;
     transform: translateX(0);
   }
   
   .quick-dial-button {
-    padding: 10px 16px;
-    min-width: 100px;
+    padding: 0.625rem 1rem;
+    min-width: 6.25rem;
   }
   
   .button-text {
-    font-size: 12px;
+    font-size: 0.75rem;
   }
 }
 
 /* Responsive positioning for bottom right */
-@media (min-width: 769px) {
+@media (min-width: 48.0625rem) {
   .quick-dial-container {
-    right: 20px;
+    right: 1.25rem;
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 30rem) {
   .emergency-contacts-list {
-    min-width: calc(100vw - 40px);
+    min-width: calc(100vw - 2.5rem);
     right: 50%;
     transform: translateX(50%);
-    max-width: calc(100vw - 40px);
+    max-width: calc(100vw - 2.5rem);
   }
 }

@@ -404,7 +404,7 @@ const ViewDetails = () => {
                   disabled={wishlistLoading}
                 >
                   {wishlistLoading ? (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
                       <ButtonSpinner size="small" />
                       <span>Updating...</span>
                     </span>
@@ -422,7 +422,7 @@ const ViewDetails = () => {
                     disabled={hasApplied || applicationLoading || property.status === 'Rented'}
                   >
                     {applicationLoading ? (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
                         <ButtonSpinner size="small" />
                         <span>Checking...</span>
                       </span>
@@ -441,7 +441,7 @@ const ViewDetails = () => {
                     disabled={hasApplied || applicationLoading}
                   >
                     {applicationLoading ? (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
                         <ButtonSpinner size="small" />
                         <span>Checking...</span>
                       </span>

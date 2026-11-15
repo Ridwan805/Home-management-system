@@ -118,7 +118,7 @@ const TenantProfile = () => {
               type="submit"
               className="btn-primary"
               disabled={isSubmitting}
-              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
             >
               {isSubmitting ? (
                 <>

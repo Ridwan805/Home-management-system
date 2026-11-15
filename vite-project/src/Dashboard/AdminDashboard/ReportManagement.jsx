@@ -123,7 +123,7 @@ const ReportManagement = () => {
     <div className="report-management">
       <h2>Report Management</h2>
       {loading ? (
-        <div style={{ padding: '20px 0' }}>
+        <div style={{ padding: '1.25rem 0' }}>
           <TableSkeleton rows={4} columns={5} />
         </div>
       ) : error ? (

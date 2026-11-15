@@ -104,19 +104,19 @@ const HomePage = () => {
               // Progress: 0 (nextSec not visible) to 1 (nextSec fully covers sec)
               const progress = Math.max(0, Math.min(1, 1 - (nextRect.top / vh)));
 
-              // Cinematic depth-of-field calculations linked to scroll progress:
+              // Cinematic depth-of-field calculations linked to scroll progress (responsive rem units):
               const scale = (1 - (progress * 0.05)).toFixed(4); // 1.0 down to 0.95
-              const blurVal = (progress * 7.5).toFixed(2); // 0px up to 7.5px (6-8px range)
+              const blurVal = (progress * 0.4688).toFixed(4); // 0rem up to 0.4688rem (~7.5px)
               const brightness = (1 - (progress * 0.40)).toFixed(3); // 1.0 down to 0.60 (darker)
               const opacity = (1 - (progress * 0.45)).toFixed(3); // 1.0 down to 0.55 (0.5-0.65 range)
-              const translateY = (-progress * 24).toFixed(1); // Subtle recession drift
+              const translateY = (-progress * 1.5).toFixed(3); // -1.5rem subtle recession drift
 
               // Visual layer defocus: background image
               if (bgImg) {
                 if (progress > 0.005) {
                   bgImg.style.transform = `scale(${scale})`;
                   bgImg.style.transformOrigin = 'center center';
-                  bgImg.style.filter = `blur(${blurVal}px) brightness(${brightness})`;
+                  bgImg.style.filter = `blur(${blurVal}rem) brightness(${brightness})`;
                 } else {
                   bgImg.style.transform = 'none';
                   bgImg.style.filter = 'none';
@@ -126,10 +126,10 @@ const HomePage = () => {
               // Visual layer defocus: content cards & typography
               if (content) {
                 if (progress > 0.005) {
-                  content.style.transform = `scale(${scale}) translateY(${translateY}px)`;
+                  content.style.transform = `scale(${scale}) translateY(${translateY}rem)`;
                   content.style.transformOrigin = 'center center';
                   content.style.opacity = `${opacity}`;
-                  content.style.filter = `blur(${blurVal}px)`;
+                  content.style.filter = `blur(${blurVal}rem)`;
                 } else {
                   content.style.transform = 'none';
                   content.style.opacity = '1';

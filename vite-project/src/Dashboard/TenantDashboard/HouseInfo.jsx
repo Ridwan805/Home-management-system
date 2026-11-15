@@ -151,7 +151,7 @@ const HouseInfo = () => {
     return (
       <div className="house-info">
         <h2 className="section-title">House Information</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px', marginTop: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(17.5rem, 1fr))', gap: '1.25rem', marginTop: '1.25rem' }}>
           {[1, 2, 3].map((n) => (
             <PropertyCardSkeleton key={n} />
           ))}
@@ -251,7 +251,7 @@ const HouseInfo = () => {
             
             <div className="modal-body">
               {loadingDetails ? (
-                <div style={{ padding: '30px 0' }}>
+                <div style={{ padding: '1.875rem 0' }}>
                   <PageLoader message="Loading detailed property information..." minHeight="220px" />
                 </div>
               ) : (

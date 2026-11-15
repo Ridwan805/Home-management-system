@@ -7,9 +7,9 @@
   display: flex;
   flex-direction: column;
   background: #ffffff;
-  border-radius: 18px;
+  border-radius: 1.125rem;
   border: 1px solid #e2e8f0;
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 0.25rem 0.875rem rgba(15, 23, 42, 0.05), 0 0.0625rem 0.1875rem rgba(15, 23, 42, 0.04);
   overflow: hidden;
   cursor: pointer;
   transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
@@ -17,9 +17,9 @@
 }
 
 .property-card:hover {
-  transform: translateY(-6px);
+  transform: translateY(-0.375rem);
   border-color: #cbd5e1;
-  box-shadow: 0 20px 30px -8px rgba(15, 23, 42, 0.12), 0 10px 14px -5px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 1.25rem 1.875rem -0.5rem rgba(15, 23, 42, 0.12), 0 0.625rem 0.875rem -0.3125rem rgba(15, 23, 42, 0.06);
 }
 
 /* --------------------------------------------------------------------------
@@ -28,7 +28,7 @@
 .property-card-image-wrap {
   position: relative;
   width: 100%;
-  height: 220px;
+  height: 13.75rem;
   background-color: #f1f5f9;
   overflow: hidden;
 }
@@ -53,7 +53,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 0.5rem;
   background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
   color: #64748b;
   font-size: 0.85rem;
@@ -71,7 +71,7 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 70px;
+  height: 4.375rem;
   background: linear-gradient(to bottom, rgba(15, 23, 42, 0.48) 0%, rgba(15, 23, 42, 0) 100%);
   pointer-events: none;
   z-index: 1;
@@ -82,7 +82,7 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 60px;
+  height: 3.75rem;
   background: linear-gradient(to top, rgba(15, 23, 42, 0.42) 0%, rgba(15, 23, 42, 0) 100%);
   pointer-events: none;
   z-index: 1;
@@ -91,23 +91,23 @@
 /* Top Badges Bar */
 .property-card-badges-top {
   position: absolute;
-  top: 14px;
-  left: 14px;
+  top: 0.875rem;
+  left: 0.875rem;
   z-index: 2;
   pointer-events: none;
 }
 
 .listing-type-badge {
   display: inline-block;
-  padding: 5px 12px;
-  border-radius: 20px;
+  padding: 0.3125rem 0.75rem;
+  border-radius: 1.25rem;
   font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.025rem;
   text-transform: uppercase;
   color: #ffffff;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
-  backdrop-filter: blur(8px);
+  box-shadow: 0 0.25rem 0.625rem rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(0.5rem);
 }
 
 .listing-type-badge.badge-rent {
@@ -121,8 +121,8 @@
 /* Bottom Badges Bar */
 .property-card-badges-bottom {
   position: absolute;
-  bottom: 12px;
-  left: 12px;
+  bottom: 0.75rem;
+  left: 0.75rem;
   z-index: 2;
   pointer-events: none;
 }
@@ -130,16 +130,16 @@
 .availability-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
-  border-radius: 20px;
+  gap: 0.375rem;
+  padding: 0.3125rem 0.75rem;
+  border-radius: 1.25rem;
   font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.025rem;
   color: #ffffff;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(8px);
+  box-shadow: 0 0.25rem 0.625rem rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(0.5rem);
 }
 
 .availability-badge.available {
@@ -157,11 +157,11 @@
 }
 
 .status-dot {
-  width: 7px;
-  height: 7px;
+  width: 0.4375rem;
+  height: 0.4375rem;
   border-radius: 50%;
   background-color: #ffffff;
-  box-shadow: 0 0 8px #ffffff;
+  box-shadow: 0 0 0.5rem #ffffff;
   animation: pulseDot 2s infinite ease-in-out;
 }
 
@@ -173,10 +173,10 @@
 /* Wishlist Heart Button */
 .wishlist-btn {
   position: absolute;
-  top: 14px;
-  right: 14px;
-  width: 36px;
-  height: 36px;
+  top: 0.875rem;
+  right: 0.875rem;
+  width: 2.25rem;
+  height: 2.25rem;
   padding: 0;
   border-radius: 50%;
   background: #ffffff;
@@ -188,7 +188,7 @@
   font-size: 1rem;
   cursor: pointer;
   z-index: 3;
-  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 0.25rem 0.625rem rgba(15, 23, 42, 0.12);
   transition: all 0.25s ease;
   line-height: 1;
 }
@@ -197,7 +197,7 @@
   transform: scale(1.12);
   background: #ffffff;
   color: #ef4444;
-  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.22);
+  box-shadow: 0 0.375rem 1rem rgba(239, 68, 68, 0.22);
 }
 
 .wishlist-btn .heart-icon {
@@ -225,7 +225,7 @@
    Card Body Content
    -------------------------------------------------------------------------- */
 .property-card-body {
-  padding: 20px 22px;
+  padding: 1.25rem 1.375rem;
   display: flex;
   flex-direction: column;
   flex-grow: 1;
@@ -236,13 +236,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: 0.625rem;
 }
 
 .price-container {
   display: flex;
   align-items: baseline;
-  gap: 3px;
+  gap: 0.1875rem;
 }
 
 .currency-symbol {
@@ -255,7 +255,7 @@
   font-size: 1.65rem;
   font-weight: 800;
   color: #0f172a;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.0312rem;
   line-height: 1;
 }
 
@@ -263,7 +263,7 @@
   font-size: 0.88rem;
   font-weight: 600;
   color: #64748b;
-  margin-left: 4px;
+  margin-left: 0.25rem;
 }
 
 .property-type-pill {
@@ -273,9 +273,9 @@
   font-size: 0.74rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 4px 10px;
-  border-radius: 6px;
+  letter-spacing: 0.0312rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 0.375rem;
   white-space: nowrap;
 }
 
@@ -284,7 +284,7 @@
   font-size: 1.08rem;
   font-weight: 700;
   color: #1e293b;
-  margin: 0 0 6px 0;
+  margin: 0 0 0.375rem 0;
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -302,11 +302,11 @@
 .property-card-location {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 0.4375rem;
   color: #64748b;
   font-size: 0.88rem;
   font-weight: 500;
-  margin-bottom: 14px;
+  margin-bottom: 0.875rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -331,10 +331,10 @@
   justify-content: space-between !important;
   background-color: #f8fafc !important;
   border: 1px solid #e2e8f0 !important;
-  border-radius: 12px !important;
-  padding: 8px 10px !important;
-  margin-bottom: 14px !important;
-  gap: 4px !important;
+  border-radius: 0.75rem !important;
+  padding: 0.5rem 0.625rem !important;
+  margin-bottom: 0.875rem !important;
+  gap: 0.25rem !important;
 }
 
 .pcard-spec-item,
@@ -343,7 +343,7 @@
   flex-direction: row !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 5px !important;
+  gap: 0.3125rem !important;
   font-size: 0.8rem !important;
   font-weight: 600 !important;
   color: #334155 !important;
@@ -371,8 +371,8 @@
 
 .pcard-spec-divider,
 .property-card .spec-divider {
-  width: 1px !important;
-  height: 16px !important;
+  width: 0.0625rem !important;
+  height: 1rem !important;
   background-color: #cbd5e1 !important;
   flex-shrink: 0 !important;
 }
@@ -381,9 +381,9 @@
 .property-card-amenities {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 16px;
-  min-height: 28px;
+  gap: 0.375rem;
+  margin-bottom: 1rem;
+  min-height: 1.75rem;
 }
 
 .amenity-chip {
@@ -392,8 +392,8 @@
   color: #475569;
   font-size: 0.74rem;
   font-weight: 500;
-  padding: 4px 9px;
-  border-radius: 6px;
+  padding: 0.25rem 0.5625rem;
+  border-radius: 0.375rem;
 }
 
 .amenity-chip.more-chip {
@@ -407,32 +407,32 @@
    -------------------------------------------------------------------------- */
 .property-card-footer {
   margin-top: auto;
-  padding-top: 14px;
+  padding-top: 0.875rem;
   border-top: 1px solid #f1f5f9;
 }
 
 .public-actions-wrap {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0.625rem;
 }
 
 .btn-view-details {
   flex: 1;
-  height: 42px;
+  height: 2.625rem;
   background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
   color: #ffffff;
   border: none;
-  border-radius: 10px;
+  border-radius: 0.625rem;
   font-size: 0.92rem;
   font-weight: 600;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.0125rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 0.5rem;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.22);
+  box-shadow: 0 0.25rem 0.75rem rgba(37, 99, 235, 0.22);
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -443,12 +443,12 @@
 
 .btn-view-details:hover {
   background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
-  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.32);
-  transform: translateY(-1px);
+  box-shadow: 0 0.5rem 1.125rem rgba(37, 99, 235, 0.32);
+  transform: translateY(-0.0625rem);
 }
 
 .btn-view-details:hover .arrow-icon {
-  transform: translateX(4px);
+  transform: translateX(0.25rem);
 }
 
 .btn-view-details:active {
@@ -456,9 +456,9 @@
 }
 
 .btn-quick-call {
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
+  width: 2.625rem;
+  height: 2.625rem;
+  border-radius: 0.625rem;
   background-color: #f8fafc;
   border: 1px solid #e2e8f0;
   color: #2563eb;
@@ -475,22 +475,22 @@
   background-color: #eff6ff;
   border-color: #bfdbfe;
   color: #1d4ed8;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.15);
+  transform: translateY(-0.0625rem);
+  box-shadow: 0 0.25rem 0.625rem rgba(37, 99, 235, 0.15);
 }
 
 /* Owner Controls */
 .owner-actions-wrap {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
   width: 100%;
 }
 
 .card-btn {
   flex: 1;
-  height: 38px;
-  border-radius: 8px;
+  height: 2.375rem;
+  border-radius: 0.5rem;
   font-size: 0.85rem;
   font-weight: 600;
   border: none;

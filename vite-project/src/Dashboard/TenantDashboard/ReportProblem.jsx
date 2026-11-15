@@ -486,10 +486,10 @@ const ReportProblem = () => {
                 backgroundColor: '#007bff',
                 color: 'white',
                 border: 'none',
-                padding: '8px 16px',
-                borderRadius: '4px',
+                padding: '0.5rem 1rem',
+                borderRadius: '0.25rem',
                 cursor: 'pointer',
-                fontSize: '14px'
+                fontSize: '0.875rem'
               }}
             >
               Create Test Report

@@ -289,7 +289,7 @@ const PropertyFilter = () => {
             <div className="no-props-icon">🏠</div>
             <h3>No properties found</h3>
             <p>We couldn't find any properties matching your current filter criteria.</p>
-            <button className="filter-button filter-button-primary" onClick={handleClear} style={{ marginTop: '16px' }}>
+            <button className="filter-button filter-button-primary" onClick={handleClear} style={{ marginTop: '1rem' }}>
               Reset Filters
             </button>
           </div>

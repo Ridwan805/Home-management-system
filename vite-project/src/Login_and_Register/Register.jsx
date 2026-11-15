@@ -169,7 +169,7 @@ export default function Register() {
 
           <button type="submit" className="auth-button" disabled={isSubmitting}>
             {isSubmitting ? (
-              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                 <ButtonSpinner size="small" color="#FFFFFF" />
                 <span>Creating Account...</span>
               </span>

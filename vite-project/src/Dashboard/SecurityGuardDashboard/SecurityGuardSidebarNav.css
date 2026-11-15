@@ -1,10 +1,10 @@
 .security-guard-sidebar-nav {
-  width: 280px;
+  width: 17.5rem;
   background-color: #0f172a;
   color: white;
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100svh;
   position: sticky;
   top: 0;
   overflow-x: hidden;
@@ -42,7 +42,7 @@
   padding: 1rem 1.5rem;
   cursor: pointer;
   transition: background-color 0.2s;
-  border-left: 3px solid transparent;
+  border-left: 0.1875rem solid transparent;
 }
 
 .security-guard-sidebar-nav .sidebar-menu-item:hover {

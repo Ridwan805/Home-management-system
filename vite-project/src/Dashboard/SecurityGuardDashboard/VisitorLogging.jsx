@@ -340,7 +340,7 @@ const VisitorLogging = () => {
                 type="submit"
                 className="btn-primary"
                 disabled={loading}
-                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
               >
                 {loading ? (
                   <>
@@ -402,7 +402,7 @@ const VisitorLogging = () => {
 
       <div className="visitor-list">
         {loading ? (
-          <div style={{ padding: '20px 0' }}>
+          <div style={{ padding: '1.25rem 0' }}>
             <TableSkeleton rows={5} columns={7} />
           </div>
         ) : currentData.length === 0 ? (

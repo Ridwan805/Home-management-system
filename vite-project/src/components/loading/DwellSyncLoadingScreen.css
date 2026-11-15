@@ -21,19 +21,19 @@
   right: 0 !important;
   bottom: 0 !important;
   width: 100vw !important;
-  height: 100vh !important;
+  height: 100svh !important;
   background: #FFFFFF !important;
   background: radial-gradient(circle at 50% 45%, #FFFFFF 0%, #F8FAFC 65%, #EFF6FF 100%) !important;
   z-index: 999999 !important;
-  padding: 24px !important;
+  padding: 1.5rem !important;
 }
 
 .dwellsync-loading-wrapper.inline {
   width: 100% !important;
-  min-height: 280px !important;
-  padding: 32px 16px !important;
+  min-height: 17.5rem !important;
+  padding: 2rem 1rem !important;
   background: #FFFFFF !important;
-  border-radius: 12px !important;
+  border-radius: 0.75rem !important;
 }
 
 /* Centered Content Container */
@@ -43,7 +43,7 @@
   align-items: center !important;
   justify-content: center !important;
   text-align: center !important;
-  max-width: 440px !important;
+  max-width: 27.5rem !important;
   width: 100% !important;
   margin: 0 auto !important;
 }
@@ -51,25 +51,25 @@
 /* Icon Card Wrapper with Subtle Drop-Glow */
 .dwellsync-icon-card {
   position: relative !important;
-  width: 96px !important;
-  height: 96px !important;
+  width: 6rem !important;
+  height: 6rem !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   background: #FFFFFF !important;
-  border-radius: 24px !important;
+  border-radius: 1.5rem !important;
   box-shadow: 
-    0 10px 25px -5px rgba(37, 99, 235, 0.12),
-    0 8px 10px -6px rgba(37, 99, 235, 0.08),
-    0 0 0 1px rgba(226, 232, 240, 0.8) !important;
-  margin-bottom: 22px !important;
+    0 0.625rem 1.5625rem -0.3125rem rgba(37, 99, 235, 0.12),
+    0 0.5rem 0.625rem -0.375rem rgba(37, 99, 235, 0.08),
+    0 0 0 0.0625rem rgba(226, 232, 240, 0.8) !important;
+  margin-bottom: 1.375rem !important;
   animation: dwellsyncCardFloat 3s ease-in-out infinite;
 }
 
 /* SVG House Canvas */
 .dwellsync-house-svg {
-  width: 68px !important;
-  height: 68px !important;
+  width: 4.25rem !important;
+  height: 4.25rem !important;
   display: block !important;
   overflow: visible !important;
 }
@@ -101,7 +101,7 @@
 
 /* Accent Window Dot Pulse */
 .dwellsync-svg-accent-node {
-  transform-origin: 50px 35px !important;
+  transform-origin: 3.125rem 2.1875rem !important;
   animation: dwellsyncPulseNode 2.4s ease-in-out infinite !important;
 }
 
@@ -179,7 +179,7 @@
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-4px);
+    transform: translateY(-0.25rem);
   }
 }
 
@@ -190,7 +190,7 @@
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
-  gap: 4px !important;
+  gap: 0.25rem !important;
 }
 
 .dwellsync-brand-title {
@@ -223,14 +223,14 @@
 }
 
 .dwellsync-status-message {
-  margin: 12px 0 0 0 !important;
-  padding: 6px 14px !important;
+  margin: 0.75rem 0 0 0 !important;
+  padding: 0.375rem 0.875rem !important;
   background-color: #F1F5F9 !important;
   color: #334155 !important;
   -webkit-text-fill-color: #334155 !important;
   font-size: 0.825rem !important;
   font-weight: 500 !important;
-  border-radius: 9999px !important;
+  border-radius: 624.9375rem !important;
   border: 1px solid #E2E8F0 !important;
   animation: dwellsyncFadeIn 0.3s ease-out;
 }
@@ -242,14 +242,14 @@
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 6px !important;
-  margin-top: 18px !important;
-  height: 14px !important;
+  gap: 0.375rem !important;
+  margin-top: 1.125rem !important;
+  height: 0.875rem !important;
 }
 
 .dwellsync-loading-dot {
-  width: 7px !important;
-  height: 7px !important;
+  width: 0.4375rem !important;
+  height: 0.4375rem !important;
   border-radius: 50% !important;
   background-color: #2563EB !important;
   display: inline-block !important;
@@ -331,17 +331,17 @@
 /* ==========================================================================
    Mobile Responsiveness
    ========================================================================== */
-@media (max-width: 480px) {
+@media (max-width: 30rem) {
   .dwellsync-icon-card {
-    width: 82px !important;
-    height: 82px !important;
-    border-radius: 20px !important;
-    margin-bottom: 18px !important;
+    width: 5.125rem !important;
+    height: 5.125rem !important;
+    border-radius: 1.25rem !important;
+    margin-bottom: 1.125rem !important;
   }
 
   .dwellsync-house-svg {
-    width: 58px !important;
-    height: 58px !important;
+    width: 3.625rem !important;
+    height: 3.625rem !important;
   }
 
   .dwellsync-brand-title {

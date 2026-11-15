@@ -1,5 +1,5 @@
 .app {
-  max-width: 1200px;
+  max-width: 75rem;
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
@@ -8,7 +8,7 @@
 .app-wrapper {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  min-height: 100svh;
 }
 
 .main-content {
@@ -25,7 +25,7 @@
   display: flex;
   justify-content: space-around;
   gap: 2rem;
-  margin-top: 100px; /* Adjusted margin to account for taller header */
+  margin-top: 6.25rem; /* Adjusted margin to account for taller header */
 }
 
 .main-header {
@@ -37,8 +37,8 @@
   top: 0;
   left: 0;
   z-index: 1000;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-  height: 130px; /* Increased height */
+  box-shadow: 0 0.125rem 0.625rem rgba(0, 0, 0, 0.2);
+  height: 8.125rem; /* Increased height */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -49,17 +49,17 @@
   font-size: 3.5rem; /* Increased font size */
   font-weight: 700;
   text-shadow: 
-    2px 2px 4px rgba(0, 0, 0, 0.2),
-    -1px -1px 0 rgba(255, 255, 255, 0.1);
+    0.125rem 0.125rem 0.25rem rgba(0, 0, 0, 0.2),
+    -0.0625rem -0.0625rem 0 rgba(255, 255, 255, 0.1);
   font-family: 'Segoe UI', Arial, sans-serif;
   margin: 0;
-  letter-spacing: 2px;
+  letter-spacing: 0.125rem;
   transform: scale(1, 1.1); /* Slightly stretch vertically */
   background: linear-gradient(180deg, #ffffff 0%, #f0f0f0 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  filter: drop-shadow(0 0.125rem 0.25rem rgba(0, 0, 0, 0.3));
 }
 
 /* Add hover effect */
@@ -70,14 +70,14 @@
 
 .popup-message {
   position: fixed;
-  top: 30px;
+  top: 1.875rem;
   left: 50%;
   transform: translateX(-50%);
   background: #2563eb;
   color: #fff;
   padding: 1rem 2rem;
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  border-radius: 0.5rem;
+  box-shadow: 0 0.25rem 1rem rgba(0,0,0,0.15);
   font-size: 1.1rem;
   font-weight: 600;
   z-index: 2000;
@@ -85,20 +85,20 @@
 }
 
 @keyframes fadeInOut {
-  0% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+  0% { opacity: 0; transform: translateX(-50%) translateY(-1.25rem); }
   10% { opacity: 1; transform: translateX(-50%) translateY(0); }
   90% { opacity: 1; transform: translateX(-50%) translateY(0); }
-  100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-1.25rem); }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 48rem) {
   .auth-sections {
     flex-direction: column;
     align-items: center;
   }
 
   .main-header {
-    height: 60px; /* Smaller height on mobile */
+    height: 3.75rem; /* Smaller height on mobile */
     padding: 1rem;
   }
 

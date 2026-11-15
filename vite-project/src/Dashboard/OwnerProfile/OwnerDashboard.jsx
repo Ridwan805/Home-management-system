@@ -273,9 +273,9 @@ const OwnerDashboard = () => {
                   <div className="requests-list">
                     {loading ? (
                       Array.from({ length: 2 }).map((_, i) => (
-                        <div key={`req-skeleton-${i}`} style={{ padding: '16px', background: '#ffffff', borderRadius: '12px', marginBottom: '12px', border: '1px solid #e2e8f0' }}>
-                          <div style={{ height: '14px', width: '35%', background: '#e2e8f0', borderRadius: '4px', marginBottom: '8px' }} />
-                          <div style={{ height: '12px', width: '60%', background: '#f1f5f9', borderRadius: '4px' }} />
+                        <div key={`req-skeleton-${i}`} style={{ padding: '1rem', background: '#ffffff', borderRadius: '0.75rem', marginBottom: '0.75rem', border: '1px solid #e2e8f0' }}>
+                          <div style={{ height: '0.875rem', width: '35%', background: '#e2e8f0', borderRadius: '0.25rem', marginBottom: '0.5rem' }} />
+                          <div style={{ height: '0.75rem', width: '60%', background: '#f1f5f9', borderRadius: '0.25rem' }} />
                         </div>
                       ))
                     ) : requests.length > 0 ? (

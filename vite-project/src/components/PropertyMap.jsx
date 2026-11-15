@@ -311,7 +311,7 @@ const PropertyMap = ({
   if (isLoading) {
     return (
       <div className={`property-map-container ${className}`} style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div className="map-loading" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+        <div className="map-loading" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
           <InlineLoader message="Loading interactive map..." size="medium" />
           {geocodingError && (
             <div className="geocoding-status">{geocodingError}</div>
@@ -432,7 +432,7 @@ const PropertyMap = ({
         )}
       </MapContainer>
       {mapCenter && (
-        <div style={{ marginTop: '10px', textAlign: 'center' }}>
+        <div style={{ marginTop: '0.625rem', textAlign: 'center' }}>
           <a
             href={`https://www.openstreetmap.org/?mlat=${mapCenter[0]}&mlon=${mapCenter[1]}#map=17/${mapCenter[0]}/${mapCenter[1]}`}
             target="_blank"

@@ -568,7 +568,7 @@ const UnifiedInquiryForm = ({ property, requestType, onClose, onSubmit }) => {
                       value={member.name}
                       onChange={(e) => updateFamilyMember(index, 'name', e.target.value)}
                       className={`name-input ${errors[`familyMember_${index}_name`] ? 'error' : ''}`}
-                      style={{background: '#ffffff !important', color: '#1f2937 !important', border: '1px solid #e5e7eb !important', boxShadow: '0 2px 6px rgba(0, 0, 0, 0.03) !important', padding: '14px 18px !important', borderRadius: '10px !important'}}
+                      style={{background: '#ffffff !important', color: '#1f2937 !important', border: '1px solid #e5e7eb !important', boxShadow: '0 0.125rem 0.375rem rgba(0, 0, 0, 0.03) !important', padding: '0.875rem 1.125rem !important', borderRadius: '0.625rem !important'}}
                     />
                     {errors[`familyMember_${index}_name`] && (
                       <span className="error-message">{errors[`familyMember_${index}_name`]}</span>
@@ -779,7 +779,7 @@ const UnifiedInquiryForm = ({ property, requestType, onClose, onSubmit }) => {
                     }
                   }))}
                   className={`name-input ${errors.role ? 'error' : ''}`}
-                  style={{background: '#ffffff !important', color: '#1f2937 !important', border: '1px solid #e5e7eb !important', boxShadow: '0 2px 6px rgba(0, 0, 0, 0.03) !important', padding: '14px 18px !important', borderRadius: '10px !important'}}
+                  style={{background: '#ffffff !important', color: '#1f2937 !important', border: '1px solid #e5e7eb !important', boxShadow: '0 0.125rem 0.375rem rgba(0, 0, 0, 0.03) !important', padding: '0.875rem 1.125rem !important', borderRadius: '0.625rem !important'}}
                   placeholder="Your job title or role"
                 />
                 {errors.role && <span className="error-message">{errors.role}</span>}
@@ -1008,7 +1008,7 @@ const UnifiedInquiryForm = ({ property, requestType, onClose, onSubmit }) => {
                     }
                   }))}
                   className="name-input"
-                  style={{background: '#ffffff !important', color: '#1f2937 !important', border: '1px solid #e5e7eb !important', boxShadow: '0 2px 6px rgba(0, 0, 0, 0.03) !important', padding: '14px 18px !important', borderRadius: '10px !important'}}
+                  style={{background: '#ffffff !important', color: '#1f2937 !important', border: '1px solid #e5e7eb !important', boxShadow: '0 0.125rem 0.375rem rgba(0, 0, 0, 0.03) !important', padding: '0.875rem 1.125rem !important', borderRadius: '0.625rem !important'}}
                   placeholder="Your primary bank"
                 />
               </div>
@@ -1026,7 +1026,7 @@ const UnifiedInquiryForm = ({ property, requestType, onClose, onSubmit }) => {
                     }
                   }))}
                   className="name-input"
-                  style={{background: '#ffffff !important', color: '#1f2937 !important', border: '1px solid #e5e7eb !important', boxShadow: '0 2px 6px rgba(0, 0, 0, 0.03) !important', padding: '14px 18px !important', borderRadius: '10px !important'}}
+                  style={{background: '#ffffff !important', color: '#1f2937 !important', border: '1px solid #e5e7eb !important', boxShadow: '0 0.125rem 0.375rem rgba(0, 0, 0, 0.03) !important', padding: '0.875rem 1.125rem !important', borderRadius: '0.625rem !important'}}
                   placeholder="Your account number"
                 />
               </div>

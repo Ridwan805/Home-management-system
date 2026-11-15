@@ -1,13 +1,13 @@
 .tenant-profile {
-  max-width: 800px;
+  max-width: 50rem;
   margin: 0 auto;
 }
 
 .tenant-profile .profile-info {
   background-color: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border-radius: 0.75rem;
+  box-shadow: 0 0.0625rem 0.1875rem rgba(0, 0, 0, 0.05);
   padding: 2rem;
 }
 
@@ -18,8 +18,8 @@
 }
 
 .tenant-profile .profile-avatar {
-  width: 80px;
-  height: 80px;
+  width: 5rem;
+  height: 5rem;
   border-radius: 50%;
   background-color: #2563eb;
   color: white;
@@ -61,7 +61,7 @@
 
 .tenant-profile .detail-label {
   font-weight: 600;
-  width: 120px;
+  width: 7.5rem;
   color: #4b5563;
 }
 
@@ -76,8 +76,8 @@
 .tenant-profile .profile-form {
   background-color: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border-radius: 0.75rem;
+  box-shadow: 0 0.0625rem 0.1875rem rgba(0, 0, 0, 0.05);
   padding: 2rem;
 }
 
@@ -105,7 +105,7 @@
 .tenant-profile .form-group textarea:focus {
   outline: none;
   border-color: #60a5fa;
-  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
+  box-shadow: 0 0 0 0.1875rem rgba(96, 165, 250, 0.2);
 }
 
 .tenant-profile .form-actions {

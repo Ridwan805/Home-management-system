@@ -171,7 +171,7 @@ export default function ForgotPassword() {
 
         {/* Mode Toggle Switch */}
         {step === 1 && (
-          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', background: 'rgba(2, 6, 23, 0.5)', padding: '4px', borderRadius: '10px' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', background: 'rgba(2, 6, 23, 0.5)', padding: '0.25rem', borderRadius: '0.625rem' }}>
             <button
               type="button"
               onClick={() => { setResetMode('email'); setMessage(''); }}
@@ -179,7 +179,7 @@ export default function ForgotPassword() {
                 flex: 1,
                 padding: '0.5rem',
                 border: 'none',
-                borderRadius: '8px',
+                borderRadius: '0.5rem',
                 fontSize: '0.88rem',
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -197,7 +197,7 @@ export default function ForgotPassword() {
                 flex: 1,
                 padding: '0.5rem',
                 border: 'none',
-                borderRadius: '8px',
+                borderRadius: '0.5rem',
                 fontSize: '0.88rem',
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -227,7 +227,7 @@ export default function ForgotPassword() {
             </div>
             <button type="submit" className="auth-button" disabled={loading}>
               {loading ? (
-                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                   <ButtonSpinner size="small" color="#FFFFFF" />
                   <span>Sending code...</span>
                 </span>
@@ -254,7 +254,7 @@ export default function ForgotPassword() {
                 value={code}
                 onChange={e => setCode(e.target.value)}
                 placeholder="e.g. 123456"
-                style={{ letterSpacing: '4px', textAlign: 'center', fontSize: '1.25rem', fontWeight: 'bold' }}
+                style={{ letterSpacing: '0.25rem', textAlign: 'center', fontSize: '1.25rem', fontWeight: 'bold' }}
                 required
               />
             </div>
@@ -282,7 +282,7 @@ export default function ForgotPassword() {
             </div>
             <button type="submit" className="auth-button" disabled={loading}>
               {loading ? (
-                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                   <ButtonSpinner size="small" color="#FFFFFF" />
                   <span>Resetting...</span>
                 </span>
@@ -317,7 +317,7 @@ export default function ForgotPassword() {
             </div>
             <button type="submit" className="auth-button" disabled={loading}>
               {loading ? (
-                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                   <ButtonSpinner size="small" color="#FFFFFF" />
                   <span>Finding account...</span>
                 </span>
@@ -337,7 +337,7 @@ export default function ForgotPassword() {
           <form onSubmit={handleSecurityAnswerSubmit} className="auth-form">
             <div className="form-group">
               <label>Security Question</label>
-              <div style={{ padding: '0.8rem 1rem', background: 'rgba(2, 6, 23, 0.7)', borderRadius: '10px', color: '#f1f5f9', border: '1px solid rgba(255, 255, 255, 0.16)' }}>
+              <div style={{ padding: '0.8rem 1rem', background: 'rgba(2, 6, 23, 0.7)', borderRadius: '0.625rem', color: '#f1f5f9', border: '1px solid rgba(255, 255, 255, 0.16)' }}>
                 {securityQuestion}
               </div>
             </div>
@@ -376,7 +376,7 @@ export default function ForgotPassword() {
             </div>
             <button type="submit" className="auth-button" disabled={loading}>
               {loading ? (
-                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                   <ButtonSpinner size="small" color="#FFFFFF" />
                   <span>Resetting...</span>
                 </span>

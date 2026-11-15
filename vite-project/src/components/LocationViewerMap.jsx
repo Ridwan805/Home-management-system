@@ -12,8 +12,8 @@ const MAP_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright
 const fixedMarkerIcon = L.divIcon({
   className: 'custom-leaflet-marker',
   html: `
-    <div style="position: relative; width: 34px; height: 44px; transform: translate(-50%, -100%);">
-      <svg viewBox="0 0 384 512" width="34" height="44" style="filter: drop-shadow(0 3px 6px rgba(0,0,0,0.45));">
+    <div style="position: relative; width: 2.125rem; height: 2.75rem; transform: translate(-50%, -100%);">
+      <svg viewBox="0 0 384 512" width="34" height="44" style="filter: drop-shadow(0 0.1875rem 0.375rem rgba(0,0,0,0.45));">
         <path fill="#ef4444" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0z"/>
         <circle cx="192" cy="192" r="75" fill="#ffffff"/>
       </svg>
@@ -121,9 +121,9 @@ export default function LocationViewerMap({
           <MapResizer />
           <Marker position={position} icon={fixedMarkerIcon}>
             <Popup>
-              <div style={{ padding: '4px', textAlign: 'center' }}>
+              <div style={{ padding: '0.25rem', textAlign: 'center' }}>
                 <strong style={{ color: '#0f172a' }}>{displayAddress || 'Property Location'}</strong>
-                <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '4px' }}>
+                <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.25rem' }}>
                   {numericLat.toFixed(6)}, {numericLng.toFixed(6)}
                 </div>
               </div>

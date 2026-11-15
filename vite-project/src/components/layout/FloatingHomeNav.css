@@ -10,7 +10,7 @@
   left: 0;
   right: 0;
   z-index: 1000;
-  padding: 28px 36px;
+  padding: 1.75rem 2.25rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -20,7 +20,7 @@
 }
 
 .floating-home-nav.is-scrolled {
-  padding: 16px 32px;
+  padding: 1rem 2rem;
 }
 
 /* Left & Right Container Alignment */
@@ -37,10 +37,10 @@
 .floating-brand-link {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 0.625rem;
   text-decoration: none;
-  padding: 8px 16px 8px 10px;
-  border-radius: 9999px;
+  padding: 0.5rem 1rem 0.5rem 0.625rem;
+  border-radius: 624.9375rem;
   background: transparent;
   border: 1px solid transparent;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -48,15 +48,15 @@
 }
 
 .brand-building-box {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
+  width: 2.375rem;
+  height: 2.375rem;
+  border-radius: 0.625rem;
   background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #FFFFFF;
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+  box-shadow: 0 0.25rem 0.875rem rgba(37, 99, 235, 0.4);
   flex-shrink: 0;
   transition: transform 0.25s ease;
 }
@@ -71,13 +71,13 @@
   font-weight: 800;
   letter-spacing: -0.03em;
   color: #FFFFFF;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 0.125rem 0.625rem rgba(0, 0, 0, 0.5);
   transition: color 0.2s ease;
 }
 
 .wordmark-sync {
   color: #60A5FA;
-  text-shadow: 0 0 12px rgba(96, 165, 250, 0.4);
+  text-shadow: 0 0 0.75rem rgba(96, 165, 250, 0.4);
 }
 
 .floating-brand-link:hover .brand-building-box {
@@ -87,10 +87,10 @@
 /* Scrolled Compact Glass Badge for Brand */
 .floating-home-nav.is-scrolled .floating-brand-link {
   background: rgba(15, 23, 42, 0.78);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(0.875rem);
+  -webkit-backdrop-filter: blur(0.875rem);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0.625rem 1.75rem rgba(0, 0, 0, 0.3);
 }
 
 /* ==========================================================================
@@ -99,9 +99,9 @@
 .floating-auth-actions {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
-  padding: 4px;
-  border-radius: 9999px;
+  gap: 0.75rem;
+  padding: 0.25rem;
+  border-radius: 624.9375rem;
   background: transparent;
   border: 1px solid transparent;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -111,11 +111,11 @@
 /* Scrolled Compact Glass Pill for Auth Actions */
 .floating-home-nav.is-scrolled .floating-auth-actions {
   background: rgba(15, 23, 42, 0.78);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(0.875rem);
+  -webkit-backdrop-filter: blur(0.875rem);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3);
-  padding: 6px 8px;
+  box-shadow: 0 0.625rem 1.75rem rgba(0, 0, 0, 0.3);
+  padding: 0.375rem 0.5rem;
 }
 
 /* --- Unauthenticated Controls --- */
@@ -123,26 +123,26 @@
 /* Log In Button (Glass / Transparent Outlined Pill) */
 .btn-floating-login {
   background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(0.625rem);
+  -webkit-backdrop-filter: blur(0.625rem);
   color: #FFFFFF;
   border: 1.5px solid rgba(255, 255, 255, 0.35);
-  border-radius: 9999px;
-  padding: 9px 22px;
+  border-radius: 624.9375rem;
+  padding: 0.5625rem 1.375rem;
   font-size: 0.95rem;
   font-weight: 600;
   letter-spacing: 0.01em;
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  text-shadow: 0 0.0625rem 0.1875rem rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.15);
 }
 
 .btn-floating-login:hover {
   background: rgba(255, 255, 255, 0.2);
   border-color: rgba(255, 255, 255, 0.7);
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+  transform: translateY(-0.0625rem);
+  box-shadow: 0 0.375rem 1rem rgba(0, 0, 0, 0.25);
 }
 
 .btn-floating-login:active {
@@ -154,17 +154,17 @@
   background: #2563EB;
   color: #FFFFFF;
   border: 1.5px solid rgba(96, 165, 250, 0.5);
-  border-radius: 9999px;
-  padding: 9px 24px;
+  border-radius: 624.9375rem;
+  padding: 0.5625rem 1.5rem;
   font-size: 0.95rem;
   font-weight: 700;
   letter-spacing: 0.01em;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.45);
+  box-shadow: 0 0.25rem 1rem rgba(37, 99, 235, 0.45);
 }
 
 .btn-floating-get-started .btn-arrow {
@@ -175,12 +175,12 @@
 .btn-floating-get-started:hover {
   background: #1D4ED8;
   border-color: #93C5FD;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 22px rgba(37, 99, 235, 0.6);
+  transform: translateY(-0.0625rem);
+  box-shadow: 0 0.375rem 1.375rem rgba(37, 99, 235, 0.6);
 }
 
 .btn-floating-get-started:hover .btn-arrow {
-  transform: translate(2px, -2px);
+  transform: translate(0.125rem, -0.125rem);
 }
 
 .btn-floating-get-started:active {
@@ -194,23 +194,23 @@
   background: #2563EB;
   color: #FFFFFF;
   border: 1.5px solid rgba(147, 197, 253, 0.45);
-  border-radius: 9999px;
-  padding: 8px 18px;
+  border-radius: 624.9375rem;
+  padding: 0.5rem 1.125rem;
   font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 0.4375rem;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+  box-shadow: 0 0.25rem 0.875rem rgba(37, 99, 235, 0.4);
 }
 
 .btn-floating-dashboard:hover {
   background: #1D4ED8;
   border-color: #93C5FD;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.55);
+  transform: translateY(-0.0625rem);
+  box-shadow: 0 0.375rem 1.25rem rgba(37, 99, 235, 0.55);
 }
 
 .btn-floating-dashboard .btn-icon {
@@ -220,18 +220,18 @@
 /* User Profile Trigger Pill */
 .btn-floating-profile {
   background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(0.75rem);
+  -webkit-backdrop-filter: blur(0.75rem);
   border: 1.5px solid rgba(255, 255, 255, 0.3);
-  border-radius: 9999px;
-  padding: 5px 14px 5px 6px;
+  border-radius: 624.9375rem;
+  padding: 0.3125rem 0.875rem 0.3125rem 0.375rem;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
   color: #FFFFFF;
   cursor: pointer;
   transition: all 0.25s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.18);
 }
 
 .btn-floating-profile:hover,
@@ -241,8 +241,8 @@
 }
 
 .avatar-initial {
-  width: 28px;
-  height: 28px;
+  width: 1.75rem;
+  height: 1.75rem;
   border-radius: 50%;
   background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
   display: flex;
@@ -251,14 +251,14 @@
   font-size: 0.825rem;
   font-weight: 700;
   color: #FFFFFF;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0.125rem 0.375rem rgba(0, 0, 0, 0.2);
 }
 
 .user-firstname {
   font-size: 0.9rem;
   font-weight: 600;
   color: #F8FAFC;
-  max-width: 120px;
+  max-width: 7.5rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -277,16 +277,16 @@
 /* --- Floating Profile Dropdown Menu --- */
 .floating-profile-dropdown {
   position: absolute;
-  top: calc(100% + 10px);
+  top: calc(100% + 0.625rem);
   right: 0;
-  width: 240px;
+  width: 15rem;
   background: rgba(15, 23, 42, 0.94);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(1.25rem);
+  -webkit-backdrop-filter: blur(1.25rem);
   border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 18px;
-  box-shadow: 0 20px 48px -8px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
-  padding: 8px;
+  border-radius: 1.125rem;
+  box-shadow: 0 1.25rem 3rem -0.5rem rgba(0, 0, 0, 0.5), 0 0 0 0.0625rem rgba(255, 255, 255, 0.08);
+  padding: 0.5rem;
   display: flex;
   flex-direction: column;
   z-index: 1002;
@@ -297,7 +297,7 @@
 @keyframes dropdownPop {
   from {
     opacity: 0;
-    transform: translateY(-8px) scale(0.96);
+    transform: translateY(-0.5rem) scale(0.96);
   }
   to {
     opacity: 1;
@@ -306,10 +306,10 @@
 }
 
 .dropdown-user-header {
-  padding: 10px 12px 8px 12px;
+  padding: 0.625rem 0.75rem 0.5rem 0.75rem;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 0.1875rem;
 }
 
 .header-greeting {
@@ -332,33 +332,33 @@
 .header-role-badge {
   display: inline-block;
   align-self: flex-start;
-  margin-top: 2px;
+  margin-top: 0.125rem;
   background: rgba(37, 99, 235, 0.25);
   border: 1px solid rgba(96, 165, 250, 0.4);
   color: #93C5FD;
   font-size: 0.725rem;
   font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 20px;
+  padding: 0.125rem 0.5rem;
+  border-radius: 1.25rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
 .dropdown-divider {
-  height: 1px;
+  height: 0.0625rem;
   background: rgba(255, 255, 255, 0.1);
-  margin: 6px 0;
+  margin: 0.375rem 0;
 }
 
 .dropdown-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0.625rem;
   width: 100%;
-  padding: 10px 14px;
+  padding: 0.625rem 0.875rem;
   background: transparent;
   border: none;
-  border-radius: 10px;
+  border-radius: 0.625rem;
   font-size: 0.9rem;
   font-weight: 600;
   color: #E2E8F0;
@@ -399,13 +399,13 @@
 /* ==========================================================================
    3. RESPONSIVE DESIGN (MOBILE & TABLET)
    ========================================================================== */
-@media (max-width: 768px) {
+@media (max-width: 48rem) {
   .floating-home-nav {
-    padding: 16px 20px;
+    padding: 1rem 1.25rem;
   }
 
   .floating-home-nav.is-scrolled {
-    padding: 12px 16px;
+    padding: 0.75rem 1rem;
   }
 
   .brand-wordmark {
@@ -413,8 +413,8 @@
   }
 
   .brand-building-box {
-    width: 32px;
-    height: 32px;
+    width: 2rem;
+    height: 2rem;
   }
 
   .building-icon {
@@ -422,17 +422,17 @@
   }
 
   .btn-floating-login {
-    padding: 7px 16px;
+    padding: 0.4375rem 1rem;
     font-size: 0.85rem;
   }
 
   .btn-floating-get-started {
-    padding: 7px 18px;
+    padding: 0.4375rem 1.125rem;
     font-size: 0.85rem;
   }
 
   .btn-floating-dashboard {
-    padding: 7px 14px;
+    padding: 0.4375rem 0.875rem;
     font-size: 0.85rem;
   }
 
@@ -441,27 +441,27 @@
   }
 
   .btn-floating-profile {
-    padding: 5px 8px 5px 5px;
+    padding: 0.3125rem 0.5rem 0.3125rem 0.3125rem;
   }
 }
 
-@media (max-width: 440px) {
+@media (max-width: 27.5rem) {
   .floating-home-nav {
-    padding: 12px 14px;
+    padding: 0.75rem 0.875rem;
   }
 
   .floating-auth-actions {
-    gap: 8px;
+    gap: 0.5rem;
   }
 
   .btn-floating-login {
-    padding: 6px 12px;
+    padding: 0.375rem 0.75rem;
     font-size: 0.8rem;
   }
 
   .btn-floating-get-started {
-    padding: 6px 14px;
+    padding: 0.375rem 0.875rem;
     font-size: 0.8rem;
-    gap: 5px;
+    gap: 0.3125rem;
   }
 }

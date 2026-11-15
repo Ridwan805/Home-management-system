@@ -947,14 +947,14 @@ const OwnerRequestsInbox = () => {
       </div>
 
       {requestState === 'loading' ? (
-        <div className="requests-list" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div className="requests-list" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {[1, 2, 3, 4].map(n => (
             <ListItemSkeleton key={n} />
           ))}
         </div>
       ) : requestState === 'error' ? (
-        <div className="error-message" style={{ textAlign: 'center', padding: '40px 20px', background: '#fff', borderRadius: '12px', border: '1px solid #fee2e2' }}>
-          <p style={{ color: '#dc2626', fontWeight: 500, marginBottom: '16px' }}>{error || 'Failed to fetch requests'}</p>
+        <div className="error-message" style={{ textAlign: 'center', padding: '2.5rem 1.25rem', background: '#fff', borderRadius: '0.75rem', border: '1px solid #fee2e2' }}>
+          <p style={{ color: '#dc2626', fontWeight: 500, marginBottom: '1rem' }}>{error || 'Failed to fetch requests'}</p>
           <button onClick={fetchOwnerRequests} className="retry-btn">
             Try Again
           </button>
@@ -1051,7 +1051,7 @@ const OwnerRequestsInbox = () => {
 
                 {['Approved', 'Paid/Completed'].includes(request.status) && (
                   <>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: '#DCFCE7', color: '#166534', borderRadius: '6px', fontWeight: 600, fontSize: '0.85rem' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', padding: '0.375rem 0.75rem', background: '#DCFCE7', color: '#166534', borderRadius: '0.375rem', fontWeight: 600, fontSize: '0.85rem' }}>
                       ✓ Approved & Active Tenancy
                     </span>
                     <button
@@ -1065,13 +1065,13 @@ const OwnerRequestsInbox = () => {
                 )}
 
                 {request.status === 'Rejected' && (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', padding: '6px 12px', background: '#FEE2E2', color: '#991B1B', borderRadius: '6px', fontWeight: 600, fontSize: '0.85rem' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', padding: '0.375rem 0.75rem', background: '#FEE2E2', color: '#991B1B', borderRadius: '0.375rem', fontWeight: 600, fontSize: '0.85rem' }}>
                     ✕ Application Rejected
                   </span>
                 )}
 
                 {['Canceled', 'Withdrawn'].includes(request.status) && (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', padding: '6px 12px', background: '#F1F5F9', color: '#64748B', borderRadius: '6px', fontWeight: 600, fontSize: '0.85rem' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', padding: '0.375rem 0.75rem', background: '#F1F5F9', color: '#64748B', borderRadius: '0.375rem', fontWeight: 600, fontSize: '0.85rem' }}>
                     Withdrawn by Tenant
                   </span>
                 )}
@@ -1430,7 +1430,7 @@ const OwnerRequestsInbox = () => {
 
               {/* Direct Application Approval / Rejection from Detail Modal */}
               {['Submitted', 'Under Review', 'Info Requested'].includes(selectedRequest.status) && (
-                <div className="detail-section" style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', paddingTop: '16px', borderTop: '1px solid #E2E8F0', marginTop: '20px' }}>
+                <div className="detail-section" style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', paddingTop: '1rem', borderTop: '1px solid #E2E8F0', marginTop: '1.25rem' }}>
                   <button 
                     onClick={() => {
                       const req = selectedRequest;
@@ -1438,7 +1438,7 @@ const OwnerRequestsInbox = () => {
                       handleOpenApproveModal(req);
                     }}
                     className="action-btn approve-btn"
-                    style={{ padding: '10px 20px', background: '#16A34A', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
+                    style={{ padding: '0.625rem 1.25rem', background: '#16A34A', color: '#fff', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontWeight: 600 }}
                   >
                     Approve Application
                   </button>
@@ -1449,7 +1449,7 @@ const OwnerRequestsInbox = () => {
                       handleReject(req._id);
                     }}
                     className="action-btn reject-btn"
-                    style={{ padding: '10px 20px', background: '#DC2626', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
+                    style={{ padding: '0.625rem 1.25rem', background: '#DC2626', color: '#fff', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontWeight: 600 }}
                   >
                     Reject Application
                   </button>
@@ -1499,11 +1499,11 @@ const OwnerRequestsInbox = () => {
                   if (propertyPrice) {
                     maxAdvanceAmount = propertyPrice * maxPercentage;
                     return (
-                      <div className="property-info" style={{marginBottom: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef'}}>
-                        <h4 style={{margin: '0 0 10px 0', color: '#495057'}}>Property Information</h4>
-                        <p style={{margin: '5px 0', color: '#6c757d'}}><strong>Request Type:</strong> {requestType}</p>
-                        <p style={{margin: '5px 0', color: '#6c757d'}}><strong>{priceLabel}:</strong> BDT {propertyPrice.toLocaleString()}</p>
-                        <p style={{margin: '5px 0', color: '#28a745'}}><strong>Maximum Advance Payment ({maxPercentage * 100}%):</strong> BDT {maxAdvanceAmount.toLocaleString()}</p>
+                      <div className="property-info" style={{marginBottom: '1.25rem', padding: '0.9375rem', backgroundColor: '#f8f9fa', borderRadius: '0.5rem', border: '1px solid #e9ecef'}}>
+                        <h4 style={{margin: '0 0 0.625rem 0', color: '#495057'}}>Property Information</h4>
+                        <p style={{margin: '0.3125rem 0', color: '#6c757d'}}><strong>Request Type:</strong> {requestType}</p>
+                        <p style={{margin: '0.3125rem 0', color: '#6c757d'}}><strong>{priceLabel}:</strong> BDT {propertyPrice.toLocaleString()}</p>
+                        <p style={{margin: '0.3125rem 0', color: '#28a745'}}><strong>Maximum Advance Payment ({maxPercentage * 100}%):</strong> BDT {maxAdvanceAmount.toLocaleString()}</p>
                       </div>
                     );
                   }
@@ -1702,7 +1702,7 @@ const OwnerRequestsInbox = () => {
                   }}
                 />
                 {amountError && (
-                  <div style={{color: '#dc3545', fontSize: '12px', marginTop: '5px', fontWeight: 'bold'}}>
+                  <div style={{color: '#dc3545', fontSize: '0.75rem', marginTop: '0.3125rem', fontWeight: 'bold'}}>
                     {amountError}
                   </div>
                 )}
@@ -1726,7 +1726,7 @@ const OwnerRequestsInbox = () => {
                     if (propertyPrice) {
                       const maxAmount = propertyPrice * maxPercentage;
                       return (
-                        <small style={{color: '#28a745', fontSize: '12px', fontWeight: '500'}}>
+                        <small style={{color: '#28a745', fontSize: '0.75rem', fontWeight: '500'}}>
                           Maximum allowed: BDT {maxAmount.toLocaleString()} ({maxPercentage * 100}% of {priceLabel})
                         </small>
                       );
@@ -1807,7 +1807,7 @@ const OwnerRequestsInbox = () => {
       {/* Approve Application Confirmation Modal */}
       {showApproveModal && selectedRequestForApprove && (
         <div className="modal-overlay" onClick={() => setShowApproveModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '560px' }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '35rem' }}>
             <div className="modal-header">
               <h2>Approve Rental Application</h2>
               <button 
@@ -1819,8 +1819,8 @@ const OwnerRequestsInbox = () => {
             </div>
             
             <form onSubmit={handleApproveSubmit} className="modal-body">
-              <div style={{ padding: '14px 16px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '10px', marginBottom: '16px' }}>
-                <p style={{ margin: '0 0 6px 0', fontWeight: 600, color: '#166534', fontSize: '0.925rem' }}>
+              <div style={{ padding: '0.875rem 1rem', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '0.625rem', marginBottom: '1rem' }}>
+                <p style={{ margin: '0 0 0.375rem 0', fontWeight: 600, color: '#166534', fontSize: '0.925rem' }}>
                   ✓ Confirm Tenancy Activation
                 </p>
                 <p style={{ margin: 0, color: '#15803D', fontSize: '0.85rem', lineHeight: 1.5 }}>
@@ -1828,9 +1828,9 @@ const OwnerRequestsInbox = () => {
                 </p>
               </div>
 
-              <div className="form-group" style={{ marginBottom: '14px' }}>
+              <div className="form-group" style={{ marginBottom: '0.875rem' }}>
                 <label>Applicant Dossier</label>
-                <div style={{ padding: '10px 14px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.875rem', color: '#334155', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div style={{ padding: '0.625rem 0.875rem', background: '#F8FAFC', borderRadius: '0.5rem', border: '1px solid #E2E8F0', fontSize: '0.875rem', color: '#334155', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                   <div><strong>Name:</strong> {selectedRequestForApprove.tenantId?.firstName} {selectedRequestForApprove.tenantId?.lastName || selectedRequestForApprove.tenantId?.name}</div>
                   <div><strong>Email:</strong> {selectedRequestForApprove.tenantId?.email}</div>
                   <div><strong>Phone:</strong> {selectedRequestForApprove.tenantId?.phoneNumber || 'Not provided'}</div>
@@ -1838,7 +1838,7 @@ const OwnerRequestsInbox = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
                 <div className="form-group">
                   <label htmlFor="approve-rent">Monthly Rent (BDT ৳) *</label>
                   <input
@@ -1863,7 +1863,7 @@ const OwnerRequestsInbox = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
                 <div className="form-group">
                   <label htmlFor="approve-start">Lease Start Date *</label>
                   <input
@@ -1886,7 +1886,7 @@ const OwnerRequestsInbox = () => {
                 </div>
               </div>
 
-              <div className="form-group" style={{ marginBottom: '18px' }}>
+              <div className="form-group" style={{ marginBottom: '1.125rem' }}>
                 <label htmlFor="approve-note">Owner Welcome Note / Terms</label>
                 <textarea
                   id="approve-note"
@@ -1909,7 +1909,7 @@ const OwnerRequestsInbox = () => {
                 <button 
                   type="submit" 
                   className="approve-btn"
-                  style={{ padding: '10px 20px', background: '#16A34A', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
+                  style={{ padding: '0.625rem 1.25rem', background: '#16A34A', color: '#fff', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontWeight: 600 }}
                   disabled={approveLoading}
                 >
                   {approveLoading ? 'Approving & Activating...' : 'Approve & Activate Tenancy'}

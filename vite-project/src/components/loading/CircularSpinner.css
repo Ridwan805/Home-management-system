@@ -9,7 +9,7 @@
   align-items: center !important;
   justify-content: center !important;
   width: 100% !important;
-  padding: 24px 16px !important;
+  padding: 1.5rem 1rem !important;
   box-sizing: border-box !important;
   background: transparent !important;
   text-align: center !important;
@@ -22,7 +22,7 @@
   width: auto !important;
   padding: 0 !important;
   vertical-align: middle !important;
-  gap: 10px !important;
+  gap: 0.625rem !important;
 }
 
 /* Spinner Visual Wrapper */
@@ -33,15 +33,15 @@
   flex-shrink: 0 !important;
 }
 
-/* Standard 40px x 40px Spinner */
+/* Standard 2.5rem x 2.5rem Spinner */
 .dwellsync-circular-spinner {
   display: block !important;
-  width: 40px !important;
-  height: 40px !important;
-  min-width: 40px !important;
-  min-height: 40px !important;
-  max-width: 40px !important;
-  max-height: 40px !important;
+  width: 2.5rem !important;
+  height: 2.5rem !important;
+  min-width: 2.5rem !important;
+  min-height: 2.5rem !important;
+  max-width: 2.5rem !important;
+  max-height: 2.5rem !important;
   box-sizing: border-box !important;
   flex-shrink: 0 !important;
   aspect-ratio: 1 / 1 !important;
@@ -52,40 +52,40 @@
 
 /* Size Variants */
 .dwellsync-spinner-container.small .dwellsync-circular-spinner {
-  width: 20px !important;
-  height: 20px !important;
-  min-width: 20px !important;
-  min-height: 20px !important;
-  max-width: 20px !important;
-  max-height: 20px !important;
+  width: 1.25rem !important;
+  height: 1.25rem !important;
+  min-width: 1.25rem !important;
+  min-height: 1.25rem !important;
+  max-width: 1.25rem !important;
+  max-height: 1.25rem !important;
 }
 
 .dwellsync-spinner-container.medium .dwellsync-circular-spinner {
-  width: 40px !important;
-  height: 40px !important;
-  min-width: 40px !important;
-  min-height: 40px !important;
-  max-width: 40px !important;
-  max-height: 40px !important;
+  width: 2.5rem !important;
+  height: 2.5rem !important;
+  min-width: 2.5rem !important;
+  min-height: 2.5rem !important;
+  max-width: 2.5rem !important;
+  max-height: 2.5rem !important;
 }
 
 .dwellsync-spinner-container.large .dwellsync-circular-spinner {
-  width: 56px !important;
-  height: 56px !important;
-  min-width: 56px !important;
-  min-height: 56px !important;
-  max-width: 56px !important;
-  max-height: 56px !important;
+  width: 3.5rem !important;
+  height: 3.5rem !important;
+  min-width: 3.5rem !important;
+  min-height: 3.5rem !important;
+  max-width: 3.5rem !important;
+  max-height: 3.5rem !important;
 }
 
 /* Message typography and spacing */
 .dwellsync-spinner-message {
-  margin: 14px 0 0 0 !important;
+  margin: 0.875rem 0 0 0 !important;
   font-size: 0.925rem !important;
   font-weight: 500 !important;
   color: #64748B !important;
   line-height: 1.4 !important;
-  max-width: 380px !important;
+  max-width: 23.75rem !important;
   letter-spacing: -0.01em !important;
 }
 
@@ -107,7 +107,7 @@
 @keyframes dwellsyncFadeIn {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY(0.25rem);
   }
   to {
     opacity: 1;

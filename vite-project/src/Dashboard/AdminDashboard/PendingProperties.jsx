@@ -95,24 +95,24 @@ const PendingProperties = () => {
     <div className="pending-properties">
       <h2>Pending Properties</h2>
       {loading ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px', marginTop: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(17.5rem, 1fr))', gap: '1.25rem', marginTop: '1.25rem' }}>
           {[1, 2, 3].map((n) => (
             <PropertyCardSkeleton key={n} />
           ))}
         </div>
       ) : error ? (
-        <div className="error-message" style={{ backgroundColor: '#fee2e2', padding: '20px', borderRadius: '8px', textAlign: 'center' }}>
+        <div className="error-message" style={{ backgroundColor: '#fee2e2', padding: '1.25rem', borderRadius: '0.5rem', textAlign: 'center' }}>
           Failed to load pending properties. Please try again later.
           <button 
             className="retry-button" 
             onClick={fetchPendingProperties}
             style={{ 
-              marginTop: '15px', 
+              marginTop: '0.9375rem', 
               backgroundColor: '#3b82f6', 
               color: 'white', 
               border: 'none', 
-              padding: '8px 20px', 
-              borderRadius: '4px', 
+              padding: '0.5rem 1.25rem', 
+              borderRadius: '0.25rem', 
               cursor: 'pointer',
               fontWeight: '500'
             }}
@@ -126,8 +126,8 @@ const PendingProperties = () => {
             <p className="no-properties">No pending properties found.</p>
           ) : (
             properties.map((property) => (
-              <div key={property._id} className={`property-card ${actionInProgress ? 'action-in-progress' : ''}`} style={{ position: 'relative', padding: '20px', margin: '15px 0', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', backgroundColor: '#fff' }}>
-                <div className="property-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+              <div key={property._id} className={`property-card ${actionInProgress ? 'action-in-progress' : ''}`} style={{ position: 'relative', padding: '1.25rem', margin: '0.9375rem 0', borderRadius: '0.5rem', boxShadow: '0 0.125rem 0.5rem rgba(0,0,0,0.1)', backgroundColor: '#fff' }}>
+                <div className="property-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.9375rem' }}>
                   <h3>{property.displayName || `${property.propertyType} - ${property.address || 'Property'}`}</h3>
                   <div className="property-status">
                     <FaHourglass className="status-icon" />
@@ -135,7 +135,7 @@ const PendingProperties = () => {
                   </div>
                 </div>
                 
-                <div className="property-details" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', marginBottom: '15px' }}>
+                <div className="property-details" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(12.5rem, 1fr))', gap: '0.625rem', marginBottom: '0.9375rem' }}>
                   <div className="property-detail-item">
                     <FaUser className="detail-icon" />
                     <p><strong>Owner:</strong> {property.ownerUserId ? `${property.ownerUserId.firstName} ${property.ownerUserId.lastName}` : 'Unknown'}</p>
@@ -157,12 +157,12 @@ const PendingProperties = () => {
                   </div>
                 </div>
                 
-                <div className="property-description" style={{ marginBottom: '15px', padding: '10px', backgroundColor: '#f9f9f9', borderRadius: '4px' }}>
+                <div className="property-description" style={{ marginBottom: '0.9375rem', padding: '0.625rem', backgroundColor: '#f9f9f9', borderRadius: '0.25rem' }}>
                   <p><strong>Description:</strong></p>
                   <p>{property.description.substring(0, 150)}...</p>
                 </div>
                 
-                <div className="property-actions" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '15px' }}>
+                <div className="property-actions" style={{ display: 'flex', gap: '0.625rem', justifyContent: 'flex-end', marginTop: '0.9375rem' }}>
                   <button 
                     onClick={() => setSelectedProperty(property)} 
                     className="view-details-btn"
@@ -170,11 +170,11 @@ const PendingProperties = () => {
                       backgroundColor: '#2196F3', 
                       color: 'white', 
                       border: 'none', 
-                      padding: '8px 16px', 
-                      borderRadius: '4px', 
+                      padding: '0.5rem 1rem', 
+                      borderRadius: '0.25rem', 
                       display: 'flex', 
                       alignItems: 'center', 
-                      gap: '5px',
+                      gap: '0.3125rem',
                       cursor: 'pointer'
                     }}
                   >
@@ -188,11 +188,11 @@ const PendingProperties = () => {
                       backgroundColor: '#4CAF50', 
                       color: 'white', 
                       border: 'none', 
-                      padding: '8px 16px', 
-                      borderRadius: '4px', 
+                      padding: '0.5rem 1rem', 
+                      borderRadius: '0.25rem', 
                       display: 'flex', 
                       alignItems: 'center', 
-                      gap: '5px',
+                      gap: '0.3125rem',
                       cursor: actionInProgress ? 'not-allowed' : 'pointer',
                       opacity: actionInProgress ? 0.7 : 1
                     }}
@@ -207,11 +207,11 @@ const PendingProperties = () => {
                       backgroundColor: '#f44336', 
                       color: 'white', 
                       border: 'none', 
-                      padding: '8px 16px', 
-                      borderRadius: '4px', 
+                      padding: '0.5rem 1rem', 
+                      borderRadius: '0.25rem', 
                       display: 'flex', 
                       alignItems: 'center', 
-                      gap: '5px',
+                      gap: '0.3125rem',
                       cursor: actionInProgress ? 'not-allowed' : 'pointer',
                       opacity: actionInProgress ? 0.7 : 1
                     }}
@@ -241,9 +241,9 @@ const PendingProperties = () => {
         }}>
           <div className="modal-content" style={{
             backgroundColor: 'white',
-            borderRadius: '8px',
-            padding: '30px',
-            maxWidth: '800px',
+            borderRadius: '0.5rem',
+            padding: '1.875rem',
+            maxWidth: '50rem',
             maxHeight: '90vh',
             overflow: 'auto',
             position: 'relative',
@@ -253,11 +253,11 @@ const PendingProperties = () => {
               onClick={() => setSelectedProperty(null)}
               style={{
                 position: 'absolute',
-                top: '15px',
-                right: '15px',
+                top: '0.9375rem',
+                right: '0.9375rem',
                 background: 'none',
                 border: 'none',
-                fontSize: '24px',
+                fontSize: '1.5rem',
                 cursor: 'pointer',
                 color: '#666'
               }}
@@ -265,44 +265,44 @@ const PendingProperties = () => {
               ×
             </button>
             
-            <h2 style={{ marginBottom: '20px', color: '#333' }}>Property Details</h2>
+            <h2 style={{ marginBottom: '1.25rem', color: '#333' }}>Property Details</h2>
             
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
               {/* Left Column */}
               <div>
-                <h3 style={{ color: '#2196F3', marginBottom: '15px' }}>Basic Information</h3>
-                <div style={{ marginBottom: '10px' }}>
+                <h3 style={{ color: '#2196F3', marginBottom: '0.9375rem' }}>Basic Information</h3>
+                <div style={{ marginBottom: '0.625rem' }}>
                   <strong>Property Type:</strong> {selectedProperty.propertyType}
                 </div>
-                <div style={{ marginBottom: '10px' }}>
+                <div style={{ marginBottom: '0.625rem' }}>
                   <strong>Display Name:</strong> {selectedProperty.displayName || `${selectedProperty.propertyType} at ${selectedProperty.address}`}
                 </div>
-                <div style={{ marginBottom: '10px' }}>
+                <div style={{ marginBottom: '0.625rem' }}>
                   <strong>Address:</strong> {selectedProperty.address}
                 </div>
                 {selectedProperty.location && (
-                  <div style={{ marginBottom: '10px' }}>
+                  <div style={{ marginBottom: '0.625rem' }}>
                     <strong>Location:</strong> {selectedProperty.location.city}, {selectedProperty.location.state}
                   </div>
                 )}
-                <div style={{ marginBottom: '10px' }}>
+                <div style={{ marginBottom: '0.625rem' }}>
                   <strong>Status:</strong> <span style={{ color: '#ff9800', fontWeight: 'bold' }}>{selectedProperty.status}</span>
                 </div>
                 
-                <h3 style={{ color: '#2196F3', marginTop: '20px', marginBottom: '15px' }}>Specifications</h3>
+                <h3 style={{ color: '#2196F3', marginTop: '1.25rem', marginBottom: '0.9375rem' }}>Specifications</h3>
                 {selectedProperty.specifications && (
                   <>
-                    <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <div style={{ marginBottom: '0.625rem', display: 'flex', alignItems: 'center', gap: '0.3125rem' }}>
                       <FaBed /> <strong>Bedrooms:</strong> {selectedProperty.specifications.bedrooms}
                     </div>
-                    <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <div style={{ marginBottom: '0.625rem', display: 'flex', alignItems: 'center', gap: '0.3125rem' }}>
                       <FaBath /> <strong>Bathrooms:</strong> {selectedProperty.specifications.bathrooms}
                     </div>
-                    <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <div style={{ marginBottom: '0.625rem', display: 'flex', alignItems: 'center', gap: '0.3125rem' }}>
                       <FaRulerCombined /> <strong>Square Feet:</strong> {selectedProperty.specifications.squareFeet}
                     </div>
                     {selectedProperty.specifications.yearBuilt && (
-                      <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <div style={{ marginBottom: '0.625rem', display: 'flex', alignItems: 'center', gap: '0.3125rem' }}>
                         <FaCalendarAlt /> <strong>Year Built:</strong> {selectedProperty.specifications.yearBuilt}
                       </div>
                     )}
@@ -312,38 +312,38 @@ const PendingProperties = () => {
               
               {/* Right Column */}
               <div>
-                <h3 style={{ color: '#2196F3', marginBottom: '15px' }}>Owner Information</h3>
+                <h3 style={{ color: '#2196F3', marginBottom: '0.9375rem' }}>Owner Information</h3>
                 {selectedProperty.ownerUserId && (
                   <>
-                    <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <div style={{ marginBottom: '0.625rem', display: 'flex', alignItems: 'center', gap: '0.3125rem' }}>
                       <FaUser /> <strong>Name:</strong> {selectedProperty.ownerUserId.firstName} {selectedProperty.ownerUserId.lastName}
                     </div>
-                    <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <div style={{ marginBottom: '0.625rem', display: 'flex', alignItems: 'center', gap: '0.3125rem' }}>
                       <FaEnvelope /> <strong>Email:</strong> {selectedProperty.ownerUserId.email}
                     </div>
                     {selectedProperty.ownerUserId.phone && (
-                      <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <div style={{ marginBottom: '0.625rem', display: 'flex', alignItems: 'center', gap: '0.3125rem' }}>
                         <FaPhone /> <strong>Phone:</strong> {selectedProperty.ownerUserId.phone}
                       </div>
                     )}
                   </>
                 )}
                 
-                <h3 style={{ color: '#2196F3', marginTop: '20px', marginBottom: '15px' }}>Pricing</h3>
+                <h3 style={{ color: '#2196F3', marginTop: '1.25rem', marginBottom: '0.9375rem' }}>Pricing</h3>
                 {selectedProperty.pricing && (
                   <>
                     {selectedProperty.pricing.rent && (
-                      <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <div style={{ marginBottom: '0.625rem', display: 'flex', alignItems: 'center', gap: '0.3125rem' }}>
                         <FaMoneyBillWave /> <strong>Rent:</strong> ${selectedProperty.pricing.rent}/month
                       </div>
                     )}
                     {selectedProperty.pricing.sale && (
-                      <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <div style={{ marginBottom: '0.625rem', display: 'flex', alignItems: 'center', gap: '0.3125rem' }}>
                         <FaMoneyBillWave /> <strong>Sale Price:</strong> ${selectedProperty.pricing.sale}
                       </div>
                     )}
                     {selectedProperty.pricing.deposit && (
-                      <div style={{ marginBottom: '10px' }}>
+                      <div style={{ marginBottom: '0.625rem' }}>
                         <strong>Security Deposit:</strong> ${selectedProperty.pricing.deposit}
                       </div>
                     )}
@@ -352,10 +352,10 @@ const PendingProperties = () => {
                 
                 {selectedProperty.amenities && selectedProperty.amenities.length > 0 && (
                   <>
-                    <h3 style={{ color: '#2196F3', marginTop: '20px', marginBottom: '15px' }}>Amenities</h3>
-                    <ul style={{ paddingLeft: '20px' }}>
+                    <h3 style={{ color: '#2196F3', marginTop: '1.25rem', marginBottom: '0.9375rem' }}>Amenities</h3>
+                    <ul style={{ paddingLeft: '1.25rem' }}>
                       {selectedProperty.amenities.map((amenity, index) => (
-                        <li key={index} style={{ marginBottom: '5px' }}>{amenity}</li>
+                        <li key={index} style={{ marginBottom: '0.3125rem' }}>{amenity}</li>
                       ))}
                     </ul>
                   </>
@@ -364,14 +364,14 @@ const PendingProperties = () => {
             </div>
             
             {selectedProperty.description && (
-              <div style={{ marginTop: '20px' }}>
-                <h3 style={{ color: '#2196F3', marginBottom: '15px' }}>Description</h3>
+              <div style={{ marginTop: '1.25rem' }}>
+                <h3 style={{ color: '#2196F3', marginBottom: '0.9375rem' }}>Description</h3>
                 <p style={{ lineHeight: '1.6', color: '#666' }}>{selectedProperty.description}</p>
               </div>
             )}
             
             {/* Action Buttons in Modal */}
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '30px' }}>
+            <div style={{ display: 'flex', gap: '0.625rem', justifyContent: 'center', marginTop: '1.875rem' }}>
               <button 
                 onClick={() => {
                   handleApprove(selectedProperty._id);
@@ -382,14 +382,14 @@ const PendingProperties = () => {
                   backgroundColor: '#4CAF50', 
                   color: 'white', 
                   border: 'none', 
-                  padding: '12px 24px', 
-                  borderRadius: '4px', 
+                  padding: '0.75rem 1.5rem', 
+                  borderRadius: '0.25rem', 
                   display: 'flex', 
                   alignItems: 'center', 
-                  gap: '8px',
+                  gap: '0.5rem',
                   cursor: actionInProgress ? 'not-allowed' : 'pointer',
                   opacity: actionInProgress ? 0.7 : 1,
-                  fontSize: '16px'
+                  fontSize: '1rem'
                 }}
               >
                 <FaCheck /> Approve Property
@@ -404,14 +404,14 @@ const PendingProperties = () => {
                   backgroundColor: '#f44336', 
                   color: 'white', 
                   border: 'none', 
-                  padding: '12px 24px', 
-                  borderRadius: '4px', 
+                  padding: '0.75rem 1.5rem', 
+                  borderRadius: '0.25rem', 
                   display: 'flex', 
                   alignItems: 'center', 
-                  gap: '8px',
+                  gap: '0.5rem',
                   cursor: actionInProgress ? 'not-allowed' : 'pointer',
                   opacity: actionInProgress ? 0.7 : 1,
-                  fontSize: '16px'
+                  fontSize: '1rem'
                 }}
               >
                 <FaTimes /> Reject Property

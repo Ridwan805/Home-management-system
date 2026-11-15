@@ -335,7 +335,7 @@ const UserModeration = () => {
       </div>
 
       {loading ? (
-        <div style={{ padding: '20px 0' }}>
+        <div style={{ padding: '1.25rem 0' }}>
           <TableSkeleton rows={6} columns={5} />
         </div>
       ) : error ? (
@@ -495,7 +495,7 @@ const UserModeration = () => {
             </div>
 
             {loadingActivity ? (
-              <div style={{ padding: '40px 0' }}>
+              <div style={{ padding: '2.5rem 0' }}>
                 <PageLoader message="Aggregating live user activity..." minHeight="200px" />
               </div>
             ) : !selectedUserActivity ? (
@@ -782,7 +782,7 @@ const UserModeration = () => {
                   type="submit"
                   className="btn-save"
                   disabled={actionInProgress}
-                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
                 >
                   {actionInProgress ? (
                     <>
@@ -834,7 +834,7 @@ const UserModeration = () => {
                   type="submit"
                   className="btn-save"
                   disabled={actionInProgress || newAdminPassword.length < 6}
-                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
                 >
                   {actionInProgress ? (
                     <>

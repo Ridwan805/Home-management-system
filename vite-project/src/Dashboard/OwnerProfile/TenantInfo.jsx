@@ -539,11 +539,11 @@ const TenantInfo = () => {
                       <div className="tenant-name-col">
                         <span className="tenant-full-name">{tenant.fullName}</span>
                         <span className="tenant-contact-sub">
-                          <FaEnvelope style={{ fontSize: '10px' }} /> {tenant.email}
+                          <FaEnvelope style={{ fontSize: '0.625rem' }} /> {tenant.email}
                         </span>
                         {tenant.phoneNumber && (
                           <span className="tenant-contact-sub">
-                            <FaPhone style={{ fontSize: '10px' }} /> {tenant.phoneNumber}
+                            <FaPhone style={{ fontSize: '0.625rem' }} /> {tenant.phoneNumber}
                           </span>
                         )}
                       </div>
@@ -566,7 +566,7 @@ const TenantInfo = () => {
                       <span className="rent-cycle-sub"> / month</span>
                     </div>
                     {tenant.outstandingBalance > 0 && (
-                      <div style={{ fontSize: '0.75rem', color: '#DC2626', fontWeight: 600, marginTop: '2px' }}>
+                      <div style={{ fontSize: '0.75rem', color: '#DC2626', fontWeight: 600, marginTop: '0.125rem' }}>
                         Due: ৳{tenant.outstandingBalance.toLocaleString()}
                       </div>
                     )}
@@ -654,7 +654,7 @@ const TenantInfo = () => {
             <form onSubmit={handleSubmitTenantForm}>
               <div className="tenant-modal-body">
                 {formError && (
-                  <div className="tenant-error-banner" style={{ marginBottom: '16px' }}>
+                  <div className="tenant-error-banner" style={{ marginBottom: '1rem' }}>
                     {formError}
                   </div>
                 )}
@@ -858,7 +858,7 @@ const TenantInfo = () => {
 
                     <div style={{ textAlign: 'right' }}>
                       {renderPaymentBadge(selectedTenantRecord.paymentStatus)}
-                      <div style={{ marginTop: '6px' }}>
+                      <div style={{ marginTop: '0.375rem' }}>
                         {renderLeaseBadge(profileData.tenant?.leaseStatus)}
                       </div>
                     </div>
@@ -989,9 +989,9 @@ const TenantInfo = () => {
 
                       {/* Notes Box */}
                       {selectedTenantRecord.notes && (
-                        <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '14px', fontSize: '0.875rem' }}>
+                        <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '0.5rem', padding: '0.875rem', fontSize: '0.875rem' }}>
                           <strong style={{ color: '#334155' }}>Agreement Notes:</strong>
-                          <p style={{ margin: '4px 0 0 0', color: '#64748B' }}>{selectedTenantRecord.notes}</p>
+                          <p style={{ margin: '0.25rem 0 0 0', color: '#64748B' }}>{selectedTenantRecord.notes}</p>
                         </div>
                       )}
                     </div>
@@ -1000,7 +1000,7 @@ const TenantInfo = () => {
                   {/* TAB 2: PAYMENT HISTORY */}
                   {activeProfileTab === 'payments' && (
                     <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                         <h4 style={{ margin: 0, color: '#0F172A', fontSize: '1rem' }}>Invoices & Verified Payment Records</h4>
                         <button className="btn-primary-blue" onClick={() => handleOpenPaymentModal(selectedTenantRecord)}>
                           <FaPlus /> Record Payment
@@ -1008,7 +1008,7 @@ const TenantInfo = () => {
                       </div>
 
                       {profileData.invoices?.length === 0 ? (
-                        <div className="tenant-empty-state" style={{ padding: '36px' }}>
+                        <div className="tenant-empty-state" style={{ padding: '2.25rem' }}>
                           <p>No rent invoices recorded yet for this tenancy.</p>
                           <button className="btn-primary-blue" onClick={() => handleOpenPaymentModal(selectedTenantRecord)}>
                             Record First Payment
@@ -1069,7 +1069,7 @@ const TenantInfo = () => {
                   {/* TAB 3: NOTICES & COMMUNICATION */}
                   {activeProfileTab === 'notices' && (
                     <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                         <h4 style={{ margin: 0, color: '#0F172A', fontSize: '1rem' }}>Notice Delivery & Audit Trail</h4>
                         <button className="btn-navy-outline" onClick={() => handleOpenNoticeModal(selectedTenantRecord)}>
                           <FaBullhorn /> Compose Notice for Tenant
@@ -1077,7 +1077,7 @@ const TenantInfo = () => {
                       </div>
 
                       {profileData.notices?.length === 0 ? (
-                        <div className="tenant-empty-state" style={{ padding: '36px' }}>
+                        <div className="tenant-empty-state" style={{ padding: '2.25rem' }}>
                           <p>No notices issued to this tenant yet.</p>
                           <button className="btn-navy-outline" onClick={() => handleOpenNoticeModal(selectedTenantRecord)}>
                             Compose First Notice
@@ -1096,11 +1096,11 @@ const TenantInfo = () => {
                                 </span>
                               </div>
 
-                              <p style={{ margin: '6px 0', fontSize: '0.875rem', color: '#475569', lineHeight: 1.5 }}>
+                              <p style={{ margin: '0.375rem 0', fontSize: '0.875rem', color: '#475569', lineHeight: 1.5 }}>
                                 {ntc.message}
                               </p>
 
-                              <div style={{ display: 'flex', gap: '16px', fontSize: '0.75rem', color: '#94A3B8', marginTop: '8px' }}>
+                              <div style={{ display: 'flex', gap: '1rem', fontSize: '0.75rem', color: '#94A3B8', marginTop: '0.5rem' }}>
                                 <span>📅 Issued: {new Date(ntc.issuedDate || ntc.createdAt).toLocaleString()}</span>
                                 <span>Priority: <strong>{(ntc.priority || 'normal').toUpperCase()}</strong></span>
                                 {ntc.dueDate && <span>Deadline: {new Date(ntc.dueDate).toLocaleDateString()}</span>}
@@ -1144,7 +1144,7 @@ const TenantInfo = () => {
 
             <form onSubmit={handleSubmitPayment}>
               <div className="tenant-modal-body">
-                <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '12px 16px', marginBottom: '18px' }}>
+                <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '0.5rem', padding: '0.75rem 1rem', marginBottom: '1.125rem' }}>
                   <div style={{ fontWeight: 600, color: '#0F172A' }}>{selectedTenantRecord.fullName}</div>
                   <div style={{ fontSize: '0.825rem', color: '#64748B' }}>
                     {selectedTenantRecord.propertyName} &bull; {selectedTenantRecord.unitNumber}
@@ -1255,8 +1255,8 @@ const TenantInfo = () => {
 
             <div className="tenant-modal-body">
               {/* Notice Type Selector */}
-              <div style={{ marginBottom: '14px' }}>
-                <label style={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '8px' }}>
+              <div style={{ marginBottom: '0.875rem' }}>
+                <label style={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '0.5rem' }}>
                   Select Notice Type *
                 </label>
                 <div className="notice-type-grid">

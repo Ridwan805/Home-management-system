@@ -106,7 +106,7 @@ const OwnerProfile = () => {
 
   if (loading) {
     return (
-      <div className="op-card" style={{ padding: '24px' }}>
+      <div className="op-card" style={{ padding: '1.5rem' }}>
         <ProfileSkeleton />
       </div>
     );
@@ -263,7 +263,7 @@ const OwnerProfile = () => {
               type="submit"
               className="op-btn op-btn-primary"
               disabled={saving}
-              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
             >
               {saving ? (
                 <>

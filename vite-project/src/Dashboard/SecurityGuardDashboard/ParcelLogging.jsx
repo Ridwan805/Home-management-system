@@ -224,7 +224,7 @@ const ParcelLogging = () => {
                 type="submit"
                 className="btn-primary"
                 disabled={loading}
-                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
               >
                 {loading ? (
                   <>
@@ -268,7 +268,7 @@ const ParcelLogging = () => {
 
       <div className="parcel-list">
         {loading ? (
-          <div style={{ padding: '20px 0' }}>
+          <div style={{ padding: '1.25rem 0' }}>
             <TableSkeleton rows={5} columns={6} />
           </div>
         ) : parcels.length === 0 ? (

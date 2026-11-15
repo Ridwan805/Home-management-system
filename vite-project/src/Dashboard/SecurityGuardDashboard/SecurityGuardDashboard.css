@@ -1,6 +1,6 @@
 .security-guard-dashboard {
   display: flex;
-  min-height: 100vh;
+  min-height: 100svh;
   background-color: #f8fafc;
 }
 
@@ -18,7 +18,7 @@
 }
 
 /* Responsive design */
-@media (max-width: 768px) {
+@media (max-width: 48rem) {
   .security-guard-dashboard {
     flex-direction: column;
   }

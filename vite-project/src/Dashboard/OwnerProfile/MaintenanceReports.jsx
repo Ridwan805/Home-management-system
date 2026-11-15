@@ -165,7 +165,7 @@ const MaintenanceReports = () => {
 
   if (loading) {
     return (
-      <div className="maintenance-reports" style={{ padding: '24px' }}>
+      <div className="maintenance-reports" style={{ padding: '1.5rem' }}>
         <CircularSpinner message="Loading maintenance reports..." minHeight="240px" />
       </div>
     );

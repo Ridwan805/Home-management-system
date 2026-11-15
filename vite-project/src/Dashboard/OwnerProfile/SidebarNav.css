@@ -3,15 +3,15 @@
    ========================================================================== */
 
 .sidebar-nav {
-  width: 280px;
+  width: 17.5rem;
   background: #0f172a;
   color: #ffffff;
-  height: 100vh;
+  height: 100svh;
   position: sticky;
   top: 0;
   align-self: flex-start;
   padding: 1.75rem 1.25rem 1.5rem 1.25rem;
-  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.12);
+  box-shadow: 0.25rem 0 1.5rem rgba(0, 0, 0, 0.12);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -43,11 +43,11 @@
   font-size: 1.65rem;
   font-weight: 800;
   color: #ffffff;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.0312rem;
   text-decoration: none;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .sidebar-title span {
@@ -58,19 +58,19 @@
   font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.0375rem;
   background: rgba(59, 130, 246, 0.18);
   color: #60a5fa;
   border: 1px solid rgba(59, 130, 246, 0.3);
-  padding: 3px 8px;
-  border-radius: 9999px;
+  padding: 0.1875rem 0.5rem;
+  border-radius: 624.9375rem;
 }
 
 .sidebar-subtitle {
   font-size: 0.82rem;
   color: #94a3b8;
   font-weight: 500;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.0125rem;
 }
 
 .sidebar-nav .sidebar-menu,
@@ -100,7 +100,7 @@
   align-items: center;
   gap: 0.85rem;
   padding: 0.75rem 1rem;
-  border-radius: 10px;
+  border-radius: 0.625rem;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   color: #94a3b8;
@@ -121,13 +121,13 @@
 .sidebar-menu-item.active {
   background: linear-gradient(135deg, rgba(37, 99, 235, 0.9) 0%, rgba(29, 78, 216, 0.9) 100%);
   color: #ffffff;
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+  box-shadow: 0 0.25rem 0.875rem rgba(37, 99, 235, 0.35);
   border-color: rgba(96, 165, 250, 0.4);
 }
 
 .menu-item-icon {
   font-size: 1.15rem;
-  width: 24px;
+  width: 1.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -155,7 +155,7 @@
 .menu-description {
   font-size: 0.75rem;
   color: #64748b;
-  margin-top: 1px;
+  margin-top: 0.0625rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -189,7 +189,7 @@
   color: #f87171;
   border: 1px solid rgba(239, 68, 68, 0.25);
   padding: 0.7rem 1.25rem;
-  border-radius: 8px;
+  border-radius: 0.5rem;
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
@@ -201,14 +201,14 @@
   background: #dc2626;
   color: #ffffff;
   border-color: #dc2626;
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
-  transform: translateY(-1px);
+  box-shadow: 0 0.25rem 0.75rem rgba(220, 38, 38, 0.25);
+  transform: translateY(-0.0625rem);
 }
 
 /* Responsive design */
-@media (max-width: 900px) {
+@media (max-width: 56.25rem) {
   .sidebar-nav {
-    width: 240px;
+    width: 15rem;
     padding: 1.25rem 0.85rem;
   }
 }

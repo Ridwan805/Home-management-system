@@ -1176,29 +1176,29 @@ export default function LocationPickerMap({
               ref={markerRef}
             >
               <Popup>
-                <div style={{ textAlign: 'center', padding: '6px', maxWidth: '240px' }}>
+                <div style={{ textAlign: 'center', padding: '0.375rem', maxWidth: '15rem' }}>
                   {resolvedLocation ? (
                     <>
-                      <div style={{ fontSize: '1rem', marginBottom: '3px' }}>
+                      <div style={{ fontSize: '1rem', marginBottom: '0.1875rem' }}>
                         {resolvedLocation.icon || '📍'} <strong>{resolvedLocation.road || resolvedLocation.name}</strong>
                       </div>
                       {resolvedLocation.block && (
-                        <div style={{ fontSize: '0.82rem', color: '#1e40af', fontWeight: 600, marginBottom: '3px' }}>
+                        <div style={{ fontSize: '0.82rem', color: '#1e40af', fontWeight: 600, marginBottom: '0.1875rem' }}>
                           🏘️ {resolvedLocation.block}
                         </div>
                       )}
-                      <span style={{ fontSize: '0.78rem', background: '#eff6ff', color: '#1d4ed8', padding: '2px 8px', borderRadius: '4px', display: 'inline-block', marginBottom: '4px', border: '1px solid #bfdbfe' }}>
+                      <span style={{ fontSize: '0.78rem', background: '#eff6ff', color: '#1d4ed8', padding: '0.125rem 0.5rem', borderRadius: '0.25rem', display: 'inline-block', marginBottom: '0.25rem', border: '1px solid #bfdbfe' }}>
                         {resolvedLocation.category}
                       </span>
                     </>
                   ) : (
                     <strong>Property Location Pin</strong>
                   )}
-                  <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>
+                  <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.125rem' }}>
                     Lat: {position[0].toFixed(6)} | Lng: {position[1].toFixed(6)}
                   </div>
                   {!activeConfirmed && (
-                    <div style={{ fontSize: '0.78rem', color: '#059669', marginTop: '5px', fontWeight: 500 }}>
+                    <div style={{ fontSize: '0.78rem', color: '#059669', marginTop: '0.3125rem', fontWeight: 500 }}>
                       👉 Drag pin to any road or building to update
                     </div>
                   )}
@@ -1214,7 +1214,7 @@ export default function LocationPickerMap({
         <div className="realtime-resolved-card">
           <div className="resolved-card-header">
             <span className="resolved-card-badge">
-              <span className="live-pulse-dot" style={{ marginRight: '6px' }}></span>
+              <span className="live-pulse-dot" style={{ marginRight: '0.375rem' }}></span>
               Google Maps Style Pinned Location
             </span>
             {isResolvingAddress && <span className="resolving-indicator">Identifying road & block...</span>}
@@ -1230,7 +1230,7 @@ export default function LocationPickerMap({
                   <span className="resolved-block-tag">Area: {resolvedLocation.block}</span>
                 )}
                 {resolvedLocation.category && (
-                  <span className="search-landmark-category-tag" style={{ marginLeft: '6px' }}>
+                  <span className="search-landmark-category-tag" style={{ marginLeft: '0.375rem' }}>
                     {resolvedLocation.category}
                   </span>
                 )}

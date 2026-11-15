@@ -1,6 +1,6 @@
 .property-details-container {
   padding: 2rem;
-  max-width: 1200px;
+  max-width: 75rem;
   margin: 0 auto;
 }
 
@@ -57,14 +57,14 @@
 
 .properties-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(21.875rem, 1fr));
   gap: 2rem;
 }
 
 .property-card {
   border: 1px solid #e5e7eb;
   border-radius: 0.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 0.25rem 0.375rem -0.0625rem rgba(0, 0, 0, 0.1), 0 0.125rem 0.25rem -0.0625rem rgba(0, 0, 0, 0.06);
   transition: transform 0.3s, box-shadow 0.3s;
   background-color: white;
   display: flex;
@@ -74,13 +74,13 @@
 }
 
 .property-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  transform: translateY(-0.3125rem);
+  box-shadow: 0 0.625rem 0.9375rem -0.1875rem rgba(0, 0, 0, 0.1), 0 0.25rem 0.375rem -0.125rem rgba(0, 0, 0, 0.05);
 }
 
 .property-image {
   position: relative;
-  height: 200px;
+  height: 12.5rem;
   overflow: hidden;
   flex-shrink: 0; /* Prevent image from shrinking */
 }
@@ -109,10 +109,10 @@
 
 .status-badge {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 0.625rem;
+  right: 0.625rem;
   padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
+  border-radius: 624.9375rem;
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -202,7 +202,7 @@
 }
 
 .edit-btn, .delete-btn, .view-details-btn, .status-btn {
-  min-width: 110px;      /* prevent too small buttons */
+  min-width: 6.875rem;      /* prevent too small buttons */
   flex-grow: 1;          /* share available space equally */
   padding: 0.5rem 1rem;
   border-radius: 0.375rem;
@@ -261,7 +261,7 @@
   background-color: white;
   border: 1px solid #e5e7eb;
   border-radius: 0.375rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 0.25rem 0.375rem -0.0625rem rgba(0, 0, 0, 0.1), 0 0.125rem 0.25rem -0.0625rem rgba(0, 0, 0, 0.06);
   z-index: 30; /* Higher z-index to ensure visibility */
   margin-bottom: 0.5rem; /* Space between button and dropdown */
   overflow: hidden;
@@ -302,7 +302,7 @@
   background-color: white;
   padding: 2rem;
   border-radius: 0.75rem;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0.625rem 1.5625rem rgba(0, 0, 0, 0.3);
   max-width: 90%;
   max-height: 90%;
   overflow-y: auto;
@@ -333,14 +333,14 @@
 
 .modal-image-gallery {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(9.375rem, 1fr));
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
 
 .modal-image-gallery img {
   width: 100%;
-  height: 150px;
+  height: 9.375rem;
   object-fit: cover;
   border-radius: 0.5rem;
 }
@@ -382,7 +382,7 @@
 
 /* Edit Form Modal Specific Styles */
 .edit-form-modal .modal-content {
-  max-width: 700px; /* Adjust as needed for form */
+  max-width: 43.75rem; /* Adjust as needed for form */
 }
 
 .edit-form-modal .modal-content h2 {
@@ -419,7 +419,7 @@
 }
 
 .edit-form-modal textarea {
-  min-height: 100px;
+  min-height: 6.25rem;
   resize: vertical;
 }
 
@@ -463,22 +463,22 @@
 }
 
 .edit-form-modal .current-image-item img {
-  width: 80px;
-  height: 80px;
+  width: 5rem;
+  height: 5rem;
   object-fit: cover;
   border-radius: 0.25rem;
 }
 
 .edit-form-modal .remove-image-btn {
   position: absolute;
-  top: -5px;
-  right: -5px;
+  top: -0.3125rem;
+  right: -0.3125rem;
   background-color: #ef4444;
   color: white;
   border: none;
   border-radius: 50%;
-  width: 20px;
-  height: 20px;
+  width: 1.25rem;
+  height: 1.25rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -530,12 +530,12 @@
 }
 
 @keyframes slideIn {
-  from { transform: translateY(-50px); opacity: 0; }
+  from { transform: translateY(-3.125rem); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
 
 /* Responsive Adjustments */
-@media (max-width: 768px) {
+@media (max-width: 48rem) {
   .properties-grid {
     grid-template-columns: 1fr;
   }
@@ -558,13 +558,13 @@
 }
 
 .property-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  transform: translateY(-0.3125rem);
+  box-shadow: 0 0.625rem 0.9375rem -0.1875rem rgba(0, 0, 0, 0.1), 0 0.25rem 0.375rem -0.125rem rgba(0, 0, 0, 0.05);
 }
 
 .property-image {
   position: relative;
-  height: 200px;
+  height: 12.5rem;
   overflow: hidden;
 }
 
@@ -592,10 +592,10 @@
 
 .status-badge {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 0.625rem;
+  right: 0.625rem;
   padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
+  border-radius: 624.9375rem;
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -771,7 +771,7 @@
 
 .form-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(12.5rem, 1fr));
   gap: 1rem;
   margin-bottom: 1rem;
 }
@@ -802,7 +802,7 @@
 .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
   outline: none;
   border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 0 0 0.1875rem rgba(59, 130, 246, 0.3);
 }
 
 .form-actions {
@@ -840,7 +840,7 @@
   background-color: #6b7280;
 }
 .status-dropdown-btn {
-  min-width: 110px;
+  min-width: 6.875rem;
   flex-grow: 1;
   padding: 0.5rem 1rem;
   border-radius: 0.375rem;
@@ -851,7 +851,7 @@
   cursor: pointer;
   margin-bottom: 0.5rem;
   transition: background 0.2s;
-  box-shadow: 0 1px 4px rgba(59,130,246,0.06);
+  box-shadow: 0 0.0625rem 0.25rem rgba(59,130,246,0.06);
   text-align: center;
   display: flex;
   align-items: center;
@@ -870,9 +870,9 @@
   top: 110%;
   left: 0;
   z-index: 1000;
-  min-width: 150px;
+  min-width: 9.375rem;
   background: #fff;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 0.25rem 1.25rem rgba(0, 0, 0, 0.15);
   border-radius: 0.375rem;
   overflow: hidden;
   border: 1px solid #e5e7eb;
@@ -908,7 +908,7 @@
 }
 
 /* Responsive adjustments */
-@media (max-width: 768px) {
+@media (max-width: 48rem) {
   .properties-grid {
     grid-template-columns: 1fr;
   }
@@ -918,7 +918,7 @@
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 30rem) {
   .property-actions {
     flex-direction: column;
     gap: 0.5rem;
@@ -944,9 +944,9 @@
 }
 
 .property-map-container {
-  border-radius: 8px;
+  border-radius: 0.5rem;
   overflow: hidden;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 0.25rem 0.375rem -0.0625rem rgba(0, 0, 0, 0.1), 0 0.125rem 0.25rem -0.0625rem rgba(0, 0, 0, 0.06);
   background: #f9fafb;
   position: relative;
 }
@@ -954,8 +954,8 @@
 /* Ensure map container has proper dimensions */
 .property-map-container .leaflet-container {
   width: 100%;
-  height: 400px;
-  border-radius: 8px;
+  height: 25rem;
+  border-radius: 0.5rem;
 }
 
 /* Map loading and error states */
@@ -963,7 +963,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 400px;
+  height: 25rem;
   background: #f3f4f6;
   color: #6b7280;
   font-size: 1rem;
@@ -973,7 +973,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 400px;
+  height: 25rem;
   background: #fee2e2;
   color: #b91c1c;
   font-size: 1rem;
@@ -982,35 +982,35 @@
 }
 
 /* Responsive map adjustments */
-@media (max-width: 768px) {
+@media (max-width: 48rem) {
   .modal-map-section {
     margin-top: 1.5rem;
     padding-top: 1rem;
   }
   
   .property-map-container .leaflet-container {
-    height: 300px;
+    height: 18.75rem;
   }
   
   .property-map-container .map-loading,
   .property-map-container .map-error {
-    height: 300px;
+    height: 18.75rem;
     font-size: 0.9rem;
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 30rem) {
   .modal-map-section h3 {
     font-size: 1.1rem;
   }
   
   .property-map-container .leaflet-container {
-    height: 250px;
+    height: 15.625rem;
   }
   
   .property-map-container .map-loading,
   .property-map-container .map-error {
-    height: 250px;
+    height: 15.625rem;
     font-size: 0.85rem;
   }
 }
@@ -1022,9 +1022,9 @@
 }
 
 /* Adjust modal width for better map display */
-@media (min-width: 1024px) {
+@media (min-width: 64rem) {
   .modal-content {
-    max-width: 900px;
+    max-width: 56.25rem;
 
   }
 }}

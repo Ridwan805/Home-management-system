@@ -15,7 +15,7 @@
 /* Messages */
 .error-message {
   background-color: #fee2e2;
-  border-left: 4px solid #ef4444;
+  border-left: 0.25rem solid #ef4444;
   padding: 1rem 1.5rem;
   border-radius: 0.25rem;
   margin-bottom: 1rem;
@@ -24,7 +24,7 @@
 
 .success-message {
   background-color: #d1fae5;
-  border-left: 4px solid #10b981;
+  border-left: 0.25rem solid #10b981;
   padding: 1rem 1.5rem;
   border-radius: 0.25rem;
   margin-bottom: 1rem;
@@ -65,7 +65,7 @@
 .tab-content {
   background: #eed2cc;
   border-radius: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 0.0625rem 0.1875rem rgba(0, 0, 0, 0.1);
   padding: 2rem;
 }
 
@@ -115,12 +115,12 @@
 .form-group textarea:focus {
   outline: none;
   border-color: #1e40af;
-  box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+  box-shadow: 0 0 0 0.1875rem rgba(30, 64, 175, 0.1);
 }
 
 .form-group textarea {
   resize: vertical;
-  min-height: 80px;
+  min-height: 5rem;
 }
 
 .submit-btn {
@@ -147,7 +147,7 @@
 /* Jobs Grid */
 .jobs-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(21.875rem, 1fr));
   gap: 1.5rem;
   margin-top: 1rem;
 }
@@ -161,7 +161,7 @@
 }
 
 .job-card:hover {
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 0.25rem 0.375rem rgba(0, 0, 0, 0.1);
 }
 
 .job-header {
@@ -180,7 +180,7 @@
 
 .status-badge {
   padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
+  border-radius: 624.9375rem;
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -423,9 +423,9 @@
 .modal-content {
   background: white;
   border-radius: 0.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 0.25rem 0.375rem rgba(0, 0, 0, 0.1);
   width: 100%;
-  max-width: 600px;
+  max-width: 37.5rem;
   max-height: 90vh;
   overflow-y: auto;
 }
@@ -498,7 +498,7 @@
   background: #f8fafc;
   padding: 1rem;
   border-radius: 0.375rem;
-  border-left: 4px solid #1e40af;
+  border-left: 0.25rem solid #1e40af;
   margin-top: 0.5rem;
   font-style: italic;
 }
@@ -527,7 +527,7 @@
 }
 
 /* Responsive Design */
-@media (max-width: 768px) {
+@media (max-width: 48rem) {
   .security-guard-info {
     padding: 0.5rem;
   }
@@ -568,7 +568,7 @@
 .security-guards-container {
   background-color: #eed2cc;
   border-radius: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 0.0625rem 0.1875rem rgba(0, 0, 0, 0.1);
   padding: 1.5rem;
   margin-bottom: 2rem;
 }
@@ -582,7 +582,7 @@
 
 .security-guards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(18.75rem, 1fr));
   gap: 1.5rem;
 }
 
@@ -591,11 +591,11 @@
   background-color: #f8fafc;
   border-radius: 0.5rem;
   overflow: hidden;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 0.0625rem 0.125rem rgba(0, 0, 0, 0.05);
 }
 
 .guard-image {
-  width: 120px;
+  width: 7.5rem;
   overflow: hidden;
 }
 
@@ -641,7 +641,7 @@
 .security-info-section {
   background-color: white;
   border-radius: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 0.0625rem 0.1875rem rgba(0, 0, 0, 0.1);
   padding: 1.5rem;
 }
 
@@ -693,9 +693,9 @@
 .message-modal {
   background-color: white;
   border-radius: 0.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 0.25rem 0.375rem rgba(0, 0, 0, 0.1);
   width: 100%;
-  max-width: 500px;
+  max-width: 31.25rem;
   max-height: 90vh;
   overflow-y: auto;
 }
@@ -734,8 +734,8 @@
 }
 
 .guard-avatar {
-  width: 60px;
-  height: 60px;
+  width: 3.75rem;
+  height: 3.75rem;
   border-radius: 50%;
   object-fit: cover;
   margin-right: 1rem;
@@ -760,10 +760,10 @@
 
 /* Tenant read-only guard actions */
 .guard-actions-readonly {
-  margin-top: 15px;
-  padding: 15px;
+  margin-top: 0.9375rem;
+  padding: 0.9375rem;
   border: 1px solid #e0e0e0;
-  border-radius: 8px;
+  border-radius: 0.5rem;
   background-color: #f8f9fa;
 }
 
@@ -772,7 +772,7 @@
 }
 
 .guard-actions-readonly .contact-info p {
-  margin: 5px 0;
+  margin: 0.3125rem 0;
   font-size: 0.9rem;
   color: #666;
 }
@@ -780,16 +780,16 @@
 .guard-actions-readonly .contact-info p:first-child {
   font-weight: 600;
   color: #333;
-  margin-bottom: 10px;
+  margin-bottom: 0.625rem;
 }
 
 .no-guards-message {
   text-align: center;
-  padding: 40px 20px;
+  padding: 2.5rem 1.25rem;
   color: #666;
   background-color: #f8f9fa;
-  border-radius: 8px;
-  margin: 20px 0;
+  border-radius: 0.5rem;
+  margin: 1.25rem 0;
 }
 
 .no-guards-message p {

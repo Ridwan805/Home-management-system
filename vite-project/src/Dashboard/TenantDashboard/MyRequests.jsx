@@ -672,7 +672,7 @@ const MyRequests = () => {
     return (
       <div className="my-requests">
         <h2 className="section-title">My Requests</h2>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '20px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1.25rem' }}>
           {[1, 2, 3, 4].map((n) => (
             <ListItemSkeleton key={n} />
           ))}

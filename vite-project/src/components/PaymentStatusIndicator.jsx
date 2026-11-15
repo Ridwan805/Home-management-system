@@ -90,12 +90,12 @@ const PaymentStatusIndicator = ({
             onClick={onRetry}
             className="retry-btn"
             style={{
-              marginLeft: '8px',
-              padding: '4px 8px',
+              marginLeft: '0.5rem',
+              padding: '0.25rem 0.5rem',
               fontSize: '0.75rem',
               background: 'transparent',
               border: '1px solid currentColor',
-              borderRadius: '4px',
+              borderRadius: '0.25rem',
               color: 'inherit',
               cursor: 'pointer'
             }}
@@ -110,7 +110,7 @@ const PaymentStatusIndicator = ({
         <div style={{ 
           fontSize: '0.75rem', 
           color: '#666', 
-          marginTop: '4px',
+          marginTop: '0.25rem',
           textAlign: 'center'
         }}>
           Last updated: {new Date(lastUpdate).toLocaleTimeString()}
@@ -134,7 +134,7 @@ const PaymentStatusIndicator = ({
               cursor: 'pointer',
               marginLeft: 'auto',
               fontSize: '1.2rem',
-              padding: '0 4px'
+              padding: '0 0.25rem'
             }}
           >
             ×
