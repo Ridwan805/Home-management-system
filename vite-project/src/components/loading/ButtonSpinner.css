@@ -1,0 +1,45 @@
+/* ==========================================================================
+   ButtonSpinner Styles
+   ========================================================================== */
+
+.dwellsync-btn-spinner {
+  display: inline-block !important;
+  border-radius: 50% !important;
+  border-style: solid !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  border-top-color: currentColor !important;
+  animation: dwellsyncSpin 0.65s linear infinite !important;
+  flex-shrink: 0 !important;
+  vertical-align: middle !important;
+  box-sizing: border-box !important;
+}
+
+.dwellsync-btn-spinner.small {
+  width: 15px !important;
+  height: 15px !important;
+  border-width: 2px !important;
+}
+
+.dwellsync-btn-spinner.medium {
+  width: 18px !important;
+  height: 18px !important;
+  border-width: 2.5px !important;
+}
+
+.dwellsync-btn-spinner.large {
+  width: 24px !important;
+  height: 24px !important;
+  border-width: 3px !important;
+}
+
+@keyframes dwellsyncSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dwellsync-btn-spinner {
+    animation-duration: 1.5s !important;
+  }
+}

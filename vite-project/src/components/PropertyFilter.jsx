@@ -4,6 +4,7 @@ import './PropertyFilter.css';
 import { FaFilter } from 'react-icons/fa';
 import apiConfig from '../config/api';
 import PropertyCard from './PropertyCard';
+import { PropertyCardSkeleton } from './loading';
 
 const PropertyFilter = () => {
   // Add a visible element to the page to confirm rendering
@@ -247,13 +248,6 @@ const PropertyFilter = () => {
         )}
       </div>
 
-      {/* Loading and Error States */}
-      {loading && (
-        <div className="loading-state">
-          Loading properties...
-        </div>
-      )}
-      
       {error && (
         <div className="error-state">
           Error: {error}
@@ -276,7 +270,7 @@ const PropertyFilter = () => {
             </p>
           </div>
           <div className="results-count-badge">
-            <span className="count-number">{filteredProperties.length}</span>
+            <span className="count-number">{loading ? '...' : filteredProperties.length}</span>
             <span className="count-label">{filteredProperties.length === 1 ? 'Property' : 'Properties'}</span>
           </div>
         </div>
@@ -284,6 +278,12 @@ const PropertyFilter = () => {
 
       {/* Grid view for properties */}
       <div className="property-list">
+        {loading && (
+          Array.from({ length: 6 }).map((_, i) => (
+            <PropertyCardSkeleton key={`skeleton-${i}`} />
+          ))
+        )}
+
         {(!loading && !error && filteredProperties.length === 0) && (
           <div className="no-properties">
             <div className="no-props-icon">🏠</div>
@@ -295,7 +295,7 @@ const PropertyFilter = () => {
           </div>
         )}
         
-        {filteredProperties.map((property) => (
+        {!loading && filteredProperties.map((property) => (
           <PropertyCard key={property._id} property={property} />
         ))}
       </div>

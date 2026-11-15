@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './MaintenanceReports.css';
 import { getOwnerReports, updateReportStatus, resolveReport, addReportUpdate, API_BASE_URL } from '../../config/api';
+import { DashboardCardSkeleton } from '../../components/loading';
 
 const MaintenanceReports = () => {
   const [reports, setReports] = useState([]);
@@ -219,7 +220,11 @@ const MaintenanceReports = () => {
       {error && <div className="error-message">{error}</div>}
 
       <div className="reports-grid">
-        {!error && filteredReports.length === 0 ? (
+        {loading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <DashboardCardSkeleton key={`report-skeleton-${i}`} />
+          ))
+        ) : !error && filteredReports.length === 0 ? (
           <div className="no-reports">
             <p>No maintenance reports found.</p>
           </div>

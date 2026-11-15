@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import UnifiedInquiryForm from './UnifiedInquiryForm';
 import apiConfig from '../config/api';
 import LocationViewerMap from './LocationViewerMap';
+import { DwellSyncLoadingScreen, ButtonSpinner } from './loading';
 
 const ViewDetails = () => {
   const { propertyId } = useParams();
@@ -214,8 +215,8 @@ const ViewDetails = () => {
 
   if (loading) {
     return (
-      <div className="view-details-container">
-        <div className="loading-state">Loading property details...</div>
+      <div className="view-details-container" style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <DwellSyncLoadingScreen fullScreen={false} message="Loading property details..." />
       </div>
     );
   }
@@ -402,7 +403,16 @@ const ViewDetails = () => {
                   className={`action-btn wishlist-btn ${isInWishlist ? 'in-wishlist' : ''}`}
                   disabled={wishlistLoading}
                 >
-                  {wishlistLoading ? 'Processing...' : isInWishlist ? '❤️ Remove from Wishlist' : '❤️ Add to Wishlist'}
+                  {wishlistLoading ? (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <ButtonSpinner size="small" />
+                      <span>Updating...</span>
+                    </span>
+                  ) : isInWishlist ? (
+                    '❤️ Remove from Wishlist'
+                  ) : (
+                    '❤️ Add to Wishlist'
+                  )}
                 </button>
                 
                 {property.listingType === 'For Rent' ? (
@@ -411,9 +421,18 @@ const ViewDetails = () => {
                     className={`action-btn apply-rent-btn ${hasApplied ? 'already-applied' : ''} ${property.status === 'Rented' ? 'property-rented' : ''}`}
                     disabled={hasApplied || applicationLoading || property.status === 'Rented'}
                   >
-                    {applicationLoading ? 'Checking...' : 
-                     property.status === 'Rented' ? '🚫 Property Already Rented' :
-                     hasApplied ? '✓ Already Applied to Rent' : '📝 Apply to Rent'}
+                    {applicationLoading ? (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        <ButtonSpinner size="small" />
+                        <span>Checking...</span>
+                      </span>
+                    ) : property.status === 'Rented' ? (
+                      '🚫 Property Already Rented'
+                    ) : hasApplied ? (
+                      '✓ Already Applied to Rent'
+                    ) : (
+                      '📝 Apply to Rent'
+                    )}
                   </button>
                 ) : (
                   <button 
@@ -421,7 +440,16 @@ const ViewDetails = () => {
                     className={`action-btn apply-buy-btn ${hasApplied ? 'already-applied' : ''}`}
                     disabled={hasApplied || applicationLoading}
                   >
-                    {applicationLoading ? 'Checking...' : hasApplied ? '✓ Already Applied to Buy' : '💰 Apply to Buy'}
+                    {applicationLoading ? (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        <ButtonSpinner size="small" />
+                        <span>Checking...</span>
+                      </span>
+                    ) : hasApplied ? (
+                      '✓ Already Applied to Buy'
+                    ) : (
+                      '💰 Apply to Buy'
+                    )}
                   </button>
                 )}
               </>

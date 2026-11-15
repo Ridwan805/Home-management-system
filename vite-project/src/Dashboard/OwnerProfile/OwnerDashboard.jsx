@@ -3,6 +3,7 @@ import SidebarNav from './SidebarNav';
 import OwnerProfile from './OwnerProfile';
 import API from '../../config/api';
 import PropertyCard from '../../components/PropertyCard';
+import { PropertyCardSkeleton, DashboardCardSkeleton } from '../../components/loading';
 
 import './OwnerDashboard.css';
 import { useNavigate } from 'react-router-dom';
@@ -178,43 +179,51 @@ const OwnerDashboard = () => {
 
               {/* Quick Overview Metric Stats Bar */}
               <div className="dashboard-stats-grid">
-                <div className="stat-card">
-                  <div className="stat-icon-wrap blue">🏢</div>
-                  <div className="stat-details">
-                    <span className="stat-label">Total Properties</span>
-                    <span className="stat-value">{properties.length}</span>
-                    <span className="stat-subtext">Active in your portfolio</span>
-                  </div>
-                </div>
+                {loading ? (
+                  Array.from({ length: 4 }).map((_, i) => (
+                    <DashboardCardSkeleton key={`stat-skeleton-${i}`} />
+                  ))
+                ) : (
+                  <>
+                    <div className="stat-card">
+                      <div className="stat-icon-wrap blue">🏢</div>
+                      <div className="stat-details">
+                        <span className="stat-label">Total Properties</span>
+                        <span className="stat-value">{properties.length}</span>
+                        <span className="stat-subtext">Active in your portfolio</span>
+                      </div>
+                    </div>
 
-                <div className="stat-card">
-                  <div className="stat-icon-wrap emerald">🏷️</div>
-                  <div className="stat-details">
-                    <span className="stat-label">Listing Types</span>
-                    <span className="stat-value">
-                      {properties.filter(p => p.listingType === 'For Rent').length} <span style={{ fontSize: '0.95rem', fontWeight: 500, color: '#64748b' }}>Rent</span> • {properties.filter(p => p.listingType === 'For Sale').length} <span style={{ fontSize: '0.95rem', fontWeight: 500, color: '#64748b' }}>Sale</span>
-                    </span>
-                    <span className="stat-subtext">Rental vs For Sale properties</span>
-                  </div>
-                </div>
+                    <div className="stat-card">
+                      <div className="stat-icon-wrap emerald">🏷️</div>
+                      <div className="stat-details">
+                        <span className="stat-label">Listing Types</span>
+                        <span className="stat-value">
+                          {properties.filter(p => p.listingType === 'For Rent').length} <span style={{ fontSize: '0.95rem', fontWeight: 500, color: '#64748b' }}>Rent</span> • {properties.filter(p => p.listingType === 'For Sale').length} <span style={{ fontSize: '0.95rem', fontWeight: 500, color: '#64748b' }}>Sale</span>
+                        </span>
+                        <span className="stat-subtext">Rental vs For Sale properties</span>
+                      </div>
+                    </div>
 
-                <div className="stat-card">
-                  <div className="stat-icon-wrap amber">📩</div>
-                  <div className="stat-details">
-                    <span className="stat-label">Tenant Requests</span>
-                    <span className="stat-value">{requests.length}</span>
-                    <span className="stat-subtext">{requests.filter(r => r.status?.toLowerCase() === 'pending').length} pending review</span>
-                  </div>
-                </div>
+                    <div className="stat-card">
+                      <div className="stat-icon-wrap amber">📩</div>
+                      <div className="stat-details">
+                        <span className="stat-label">Tenant Requests</span>
+                        <span className="stat-value">{requests.length}</span>
+                        <span className="stat-subtext">{requests.filter(r => r.status?.toLowerCase() === 'pending').length} pending review</span>
+                      </div>
+                    </div>
 
-                <div className="stat-card" style={{ cursor: 'pointer' }} onClick={() => navigate('/create-listing')}>
-                  <div className="stat-icon-wrap purple">➕</div>
-                  <div className="stat-details">
-                    <span className="stat-label">Quick Action</span>
-                    <span className="stat-value" style={{ fontSize: '1.15rem', color: '#2563eb' }}>+ Add Listing</span>
-                    <span className="stat-subtext">Create a new property</span>
-                  </div>
-                </div>
+                    <div className="stat-card" style={{ cursor: 'pointer' }} onClick={() => navigate('/create-listing')}>
+                      <div className="stat-icon-wrap purple">➕</div>
+                      <div className="stat-details">
+                        <span className="stat-label">Quick Action</span>
+                        <span className="stat-value" style={{ fontSize: '1.15rem', color: '#2563eb' }}>+ Add Listing</span>
+                        <span className="stat-subtext">Create a new property</span>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="dashboard-grid">
@@ -223,7 +232,7 @@ const OwnerDashboard = () => {
                   <div className="section-header">
                     <div className="section-title-wrap">
                       <h2>Your Top Properties</h2>
-                      <span className="section-count-badge">{properties.length} Total</span>
+                      <span className="section-count-badge">{loading ? '...' : `${properties.length} Total`}</span>
                     </div>
                     {properties.length > 3 && (
                       <button 
@@ -236,7 +245,9 @@ const OwnerDashboard = () => {
                   </div>
                   <div className="properties-grid">
                     {loading ? (
-                      <div className="loading-state">Loading properties...</div>
+                      Array.from({ length: 3 }).map((_, i) => (
+                        <PropertyCardSkeleton key={`top-prop-skeleton-${i}`} />
+                      ))
                     ) : error ? (
                       <div className="error-state">{error}</div>
                     ) : properties.length > 0 ? (

@@ -3,6 +3,7 @@ import './HomePage.css';
 import { useNavigate, Link } from 'react-router-dom';
 import { FaSearch, FaHome, FaBuilding, FaMoneyBillWave } from 'react-icons/fa';
 import apiConfig from '../config/api';
+import { PropertyCardSkeleton } from '../components/loading';
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -95,9 +96,10 @@ const HomePage = () => {
         <h2 className="section-title">Featured Properties</h2>
         <div className="properties-container">
           {loading ? (
-            <div className="loading-container">
-              <div className="loading-spinner"></div>
-              <p>Loading top properties...</p>
+            <div className="property-cards">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <PropertyCardSkeleton key={`home-skeleton-${i}`} />
+              ))}
             </div>
           ) : error ? (
             <div className="error-container">

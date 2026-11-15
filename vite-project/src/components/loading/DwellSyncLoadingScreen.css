@@ -1,0 +1,358 @@
+/* ==========================================================================
+   DwellSync Branded Loading Screen Styles
+   Modern, premium Real Estate SaaS visual experience with SVG stroke drawing.
+   ========================================================================== */
+
+/* Fullscreen and Inline Wrappers */
+.dwellsync-loading-wrapper {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  color-scheme: light !important;
+  animation: dwellsyncFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: opacity 0.3s ease-out, visibility 0.3s ease-out;
+}
+
+.dwellsync-loading-wrapper.fullscreen {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: #FFFFFF !important;
+  background: radial-gradient(circle at 50% 45%, #FFFFFF 0%, #F8FAFC 65%, #EFF6FF 100%) !important;
+  z-index: 999999 !important;
+  padding: 24px !important;
+}
+
+.dwellsync-loading-wrapper.inline {
+  width: 100% !important;
+  min-height: 280px !important;
+  padding: 32px 16px !important;
+  background: #FFFFFF !important;
+  border-radius: 12px !important;
+}
+
+/* Centered Content Container */
+.dwellsync-loading-container {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  max-width: 440px !important;
+  width: 100% !important;
+  margin: 0 auto !important;
+}
+
+/* Icon Card Wrapper with Subtle Drop-Glow */
+.dwellsync-icon-card {
+  position: relative !important;
+  width: 96px !important;
+  height: 96px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #FFFFFF !important;
+  border-radius: 24px !important;
+  box-shadow: 
+    0 10px 25px -5px rgba(37, 99, 235, 0.12),
+    0 8px 10px -6px rgba(37, 99, 235, 0.08),
+    0 0 0 1px rgba(226, 232, 240, 0.8) !important;
+  margin-bottom: 22px !important;
+  animation: dwellsyncCardFloat 3s ease-in-out infinite;
+}
+
+/* SVG House Canvas */
+.dwellsync-house-svg {
+  width: 68px !important;
+  height: 68px !important;
+  display: block !important;
+  overflow: visible !important;
+}
+
+/* ==========================================================================
+   SVG Stroke Drawing Keyframe Animations
+   ========================================================================== */
+
+/* House Perimeter Stroke Animation */
+.dwellsync-svg-outline {
+  stroke-dasharray: 240 !important;
+  stroke-dashoffset: 240 !important;
+  animation: dwellsyncDrawHouse 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite !important;
+}
+
+/* Arched Doorway Stroke Animation */
+.dwellsync-svg-door {
+  stroke-dasharray: 85 !important;
+  stroke-dashoffset: 85 !important;
+  animation: dwellsyncDrawDoor 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite !important;
+}
+
+/* Chimney Stroke Animation */
+.dwellsync-svg-chimney {
+  stroke-dasharray: 45 !important;
+  stroke-dashoffset: 45 !important;
+  animation: dwellsyncDrawChimney 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite !important;
+}
+
+/* Accent Window Dot Pulse */
+.dwellsync-svg-accent-node {
+  transform-origin: 50px 35px !important;
+  animation: dwellsyncPulseNode 2.4s ease-in-out infinite !important;
+}
+
+@keyframes dwellsyncDrawHouse {
+  0% {
+    stroke-dashoffset: 240;
+    opacity: 0.2;
+  }
+  15% {
+    opacity: 1;
+  }
+  50%, 75% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  95%, 100% {
+    stroke-dashoffset: -240;
+    opacity: 0.2;
+  }
+}
+
+@keyframes dwellsyncDrawDoor {
+  0%, 15% {
+    stroke-dashoffset: 85;
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  52%, 78% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  95%, 100% {
+    stroke-dashoffset: -85;
+    opacity: 0;
+  }
+}
+
+@keyframes dwellsyncDrawChimney {
+  0%, 10% {
+    stroke-dashoffset: 45;
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  48%, 78% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  95%, 100% {
+    stroke-dashoffset: -45;
+    opacity: 0;
+  }
+}
+
+@keyframes dwellsyncPulseNode {
+  0%, 35% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50%, 75% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  90%, 100% {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+
+@keyframes dwellsyncCardFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+/* ==========================================================================
+   Brand Typography & Tagline
+   ========================================================================== */
+.dwellsync-brand-group {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+.dwellsync-brand-title {
+  margin: 0 !important;
+  padding: 0 !important;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+  font-size: 2rem !important;
+  font-weight: 700 !important;
+  color: #0F172A !important; /* Navy Blue Brand Base */
+  letter-spacing: -0.025em !important;
+  line-height: 1.2 !important;
+  -webkit-text-fill-color: #0F172A !important;
+}
+
+.dwellsync-brand-title .brand-sync-accent {
+  color: #2563EB !important; /* Royal Blue Accent */
+  -webkit-text-fill-color: #2563EB !important;
+}
+
+.dwellsync-tagline {
+  margin: 0 !important;
+  padding: 0 !important;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+  font-size: 0.95rem !important;
+  font-weight: 400 !important;
+  color: #64748B !important; /* Elegant Muted Slate */
+  -webkit-text-fill-color: #64748B !important;
+  letter-spacing: 0.01em !important;
+  line-height: 1.4 !important;
+}
+
+.dwellsync-status-message {
+  margin: 12px 0 0 0 !important;
+  padding: 6px 14px !important;
+  background-color: #F1F5F9 !important;
+  color: #334155 !important;
+  -webkit-text-fill-color: #334155 !important;
+  font-size: 0.825rem !important;
+  font-weight: 500 !important;
+  border-radius: 9999px !important;
+  border: 1px solid #E2E8F0 !important;
+  animation: dwellsyncFadeIn 0.3s ease-out;
+}
+
+/* ==========================================================================
+   Three Subtle Animated Loading Dots
+   ========================================================================== */
+.dwellsync-dots-cluster {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  margin-top: 18px !important;
+  height: 14px !important;
+}
+
+.dwellsync-loading-dot {
+  width: 7px !important;
+  height: 7px !important;
+  border-radius: 50% !important;
+  background-color: #2563EB !important;
+  display: inline-block !important;
+  opacity: 0.3 !important;
+  transform: scale(0.8) !important;
+  animation: dwellsyncDotPulse 1.4s ease-in-out infinite !important;
+}
+
+.dwellsync-loading-dot.dot-1 {
+  animation-delay: 0s !important;
+}
+
+.dwellsync-loading-dot.dot-2 {
+  animation-delay: 0.2s !important;
+}
+
+.dwellsync-loading-dot.dot-3 {
+  animation-delay: 0.4s !important;
+}
+
+@keyframes dwellsyncDotPulse {
+  0%, 100% {
+    opacity: 0.25;
+    transform: scale(0.8);
+    background-color: #93C5FD;
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.15);
+    background-color: #2563EB;
+  }
+}
+
+@keyframes dwellsyncFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ==========================================================================
+   Accessibility: Reduced Motion Preference
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .dwellsync-loading-wrapper {
+    animation: none !important;
+  }
+
+  .dwellsync-icon-card {
+    animation: none !important;
+    transform: none !important;
+  }
+
+  .dwellsync-svg-outline,
+  .dwellsync-svg-door,
+  .dwellsync-svg-chimney {
+    animation: none !important;
+    stroke-dashoffset: 0 !important;
+    opacity: 1 !important;
+  }
+
+  .dwellsync-svg-accent-node {
+    animation: none !important;
+    transform: scale(1) !important;
+    opacity: 1 !important;
+  }
+
+  .dwellsync-loading-dot {
+    animation: none !important;
+    opacity: 0.7 !important;
+    transform: scale(1) !important;
+  }
+}
+
+/* ==========================================================================
+   Mobile Responsiveness
+   ========================================================================== */
+@media (max-width: 480px) {
+  .dwellsync-icon-card {
+    width: 82px !important;
+    height: 82px !important;
+    border-radius: 20px !important;
+    margin-bottom: 18px !important;
+  }
+
+  .dwellsync-house-svg {
+    width: 58px !important;
+    height: 58px !important;
+  }
+
+  .dwellsync-brand-title {
+    font-size: 1.75rem !important;
+  }
+
+  .dwellsync-tagline {
+    font-size: 0.875rem !important;
+  }
+
+  .dwellsync-status-message {
+    font-size: 0.8rem !important;
+  }
+}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './EditPropertyModal.css';
+import { ButtonSpinner } from './loading';
 
 const PROPERTY_TYPE_OPTIONS = [
   { value: 'apartment_unit', label: 'Apartment Unit' },
@@ -458,7 +459,7 @@ const EditPropertyModal = ({ property, onClose, onUpdate }) => {
             >
               {isSubmitting ? (
                 <>
-                  <span className="btn-spinner" aria-hidden="true"></span>
+                  <ButtonSpinner size="small" color="#FFFFFF" />
                   <span>Saving Changes...</span>
                 </>
               ) : (

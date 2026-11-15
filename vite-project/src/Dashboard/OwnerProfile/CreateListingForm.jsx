@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../../config/api';
 import LocationPickerMap from '../../components/LocationPickerMap';
+import { ButtonSpinner } from '../../components/loading';
 import './CreateListingForm.css';
 
 const initialState = {
@@ -1343,11 +1344,8 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
           >
             {loading ? (
               <>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite' }}>
-                  <circle cx="12" cy="12" r="10" strokeOpacity="0.25" />
-                  <path d="M12 2a10 10 0 0 1 10 10" />
-                </svg>
-                Publishing Listing...
+                <ButtonSpinner size="small" color="#FFFFFF" />
+                <span>Publishing Listing...</span>
               </>
             ) : (
               'Publish Property Listing'

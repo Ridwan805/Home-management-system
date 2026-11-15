@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import '../components/auth.css';
 import { AuthContext } from '../App';
 import apiConfig from '../config/api';
+import { ButtonSpinner } from '../components/loading';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ export default function Login() {
     password: ''
   });
   const [message, setMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -19,6 +21,8 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
+    setMessage('');
     try {
       // Check if this is an admin login attempt
       const trimmedName = (formData.userName || '').trim();
@@ -74,9 +78,11 @@ export default function Login() {
         }, 2000);
       } else {
         setMessage(data.message);
+        setIsSubmitting(false);
       }
     } catch (err) {
       setMessage('Error in login');
+      setIsSubmitting(false);
     }
   };
 
@@ -119,7 +125,16 @@ export default function Login() {
             <Link to="/forgot-password">Forgot Password?</Link>
           </div>
 
-          <button type="submit" className="auth-button">Log In</button>
+          <button type="submit" className="auth-button" disabled={isSubmitting}>
+            {isSubmitting ? (
+              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                <ButtonSpinner size="small" color="#FFFFFF" />
+                <span>Signing In...</span>
+              </span>
+            ) : (
+              'Log In'
+            )}
+          </button>
           
           <div className="auth-divider">
             <span>OR</span>

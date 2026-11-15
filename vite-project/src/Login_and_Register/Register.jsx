@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import '../components/auth.css';
 import { AuthContext } from '../App';
 import apiConfig from '../config/api';
+import { ButtonSpinner } from '../components/loading';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -24,6 +25,7 @@ export default function Register() {
   });
 
   const [message, setMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isLoggedIn) navigate('/');
@@ -41,6 +43,9 @@ export default function Register() {
       return;
     }
 
+    setIsSubmitting(true);
+    setMessage('');
+
     try {
       const res = await fetch(apiConfig.getUrl('/api/auth/register'), {
         method: 'POST',
@@ -55,9 +60,12 @@ export default function Register() {
 
       if (res.ok) {
         setTimeout(() => navigate('/login'), 1500);
+      } else {
+        setIsSubmitting(false);
       }
     } catch (err) {
       setMessage('Registration failed.');
+      setIsSubmitting(false);
     }
   };
 
@@ -159,7 +167,16 @@ export default function Register() {
             <input type="text" name="securityAnswer" value={formData.securityAnswer} onChange={handleChange} required />
           </div>
 
-          <button type="submit" className="auth-button">Register</button>
+          <button type="submit" className="auth-button" disabled={isSubmitting}>
+            {isSubmitting ? (
+              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                <ButtonSpinner size="small" color="#FFFFFF" />
+                <span>Creating Account...</span>
+              </span>
+            ) : (
+              'Register'
+            )}
+          </button>
         </form>
 
         {message && (

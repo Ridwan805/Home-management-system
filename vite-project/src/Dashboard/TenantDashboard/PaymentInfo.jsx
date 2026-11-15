@@ -3,6 +3,7 @@ import { authenticatedFetch } from '../../config/api';
 import apiConfig from '../../config/api';
 import { useNavigate } from 'react-router-dom';
 import './PaymentInfo.css';
+import { TableSkeleton } from '../../components/loading';
 
 // Simple loading spinner component
 const LoadingSpinner = () => (
@@ -384,10 +385,7 @@ const PaymentInfo = () => {
         <div className="bills-container">
           <h3>Current Bills {loadingInvoices && <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>(Loading...)</span>}</h3>
           {loadingInvoices ? (
-            <div style={{ textAlign: 'center', padding: '2rem' }}>
-              <LoadingSpinner />
-              <p style={{ marginTop: '1rem', color: '#6b7280' }}>Loading invoices...</p>
-            </div>
+            <TableSkeleton rows={4} columns={6} />
           ) : invoices.length === 0 ? (
             <p>No invoices found.</p>
           ) : (
@@ -448,10 +446,7 @@ const PaymentInfo = () => {
             )}
           </h3>
           {loadingHistory ? (
-            <div style={{ textAlign: 'center', padding: '2rem' }}>
-              <LoadingSpinner />
-              <p style={{ marginTop: '1rem', color: '#6b7280' }}>Loading payment history...</p>
-            </div>
+            <TableSkeleton rows={5} columns={5} />
           ) : paymentHistory.length === 0 ? (
             <p>No payment history found.</p>
           ) : (

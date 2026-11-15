@@ -27,6 +27,7 @@ import AdminDashboard from './Dashboard/AdminDashboard/AdminDashboard';
 import MaintenanceReports from './Dashboard/OwnerProfile/MaintenanceReports';
 import Footer from './components/layout/Footer';
 import API from './config/api';
+import { DwellSyncLoadingScreen } from './components/loading';
 
  
 
@@ -162,19 +163,9 @@ function AppRoutes() {
     );
   }
 
-  // Show loading screen while validating authentication
+  // Show branded loading screen while validating authentication
   if (authLoading) {
-    return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh', 
-        fontSize: '1.2rem' 
-      }}>
-        Loading...
-      </div>
-    );
+    return <DwellSyncLoadingScreen message="Verifying session..." />;
   }
 
   return (

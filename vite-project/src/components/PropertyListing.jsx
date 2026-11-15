@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import './PropertyListing.css';
 import PropertyCard from './PropertyCard';
 import EditPropertyModal from './EditPropertyModal';
+import { PropertyCardSkeleton } from './loading';
 import API from '../config/api';
 
 // Using API configuration from config/api.js
@@ -210,7 +211,13 @@ const PropertyListing = () => {
         </button>
       </div>
       
-      {loading && <div className="loading-state">Loading properties...</div>}
+      {loading && (
+        <div className="properties-grid" aria-label="Loading properties">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <PropertyCardSkeleton key={index} />
+          ))}
+        </div>
+      )}
       
 
       

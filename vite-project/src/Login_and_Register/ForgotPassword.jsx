@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import '../components/auth.css';
 import apiConfig from '../config/api';
+import { ButtonSpinner } from '../components/loading';
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
@@ -225,7 +226,14 @@ export default function ForgotPassword() {
               />
             </div>
             <button type="submit" className="auth-button" disabled={loading}>
-              {loading ? 'Sending code...' : 'Send Verification Code'}
+              {loading ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                  <ButtonSpinner size="small" color="#FFFFFF" />
+                  <span>Sending code...</span>
+                </span>
+              ) : (
+                'Send Verification Code'
+              )}
             </button>
             <div className="auth-divider"><span>OR</span></div>
             <button type="button" className="auth-button secondary" onClick={() => navigate('/login')}>
@@ -273,7 +281,14 @@ export default function ForgotPassword() {
               />
             </div>
             <button type="submit" className="auth-button" disabled={loading}>
-              {loading ? 'Resetting...' : 'Reset Password'}
+              {loading ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                  <ButtonSpinner size="small" color="#FFFFFF" />
+                  <span>Resetting...</span>
+                </span>
+              ) : (
+                'Reset Password'
+              )}
             </button>
             <button
               type="button"
@@ -301,7 +316,14 @@ export default function ForgotPassword() {
               />
             </div>
             <button type="submit" className="auth-button" disabled={loading}>
-              {loading ? 'Finding account...' : 'Get Security Question'}
+              {loading ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                  <ButtonSpinner size="small" color="#FFFFFF" />
+                  <span>Finding account...</span>
+                </span>
+              ) : (
+                'Get Security Question'
+              )}
             </button>
             <div className="auth-divider"><span>OR</span></div>
             <button type="button" className="auth-button secondary" onClick={() => navigate('/login')}>
@@ -353,7 +375,14 @@ export default function ForgotPassword() {
               />
             </div>
             <button type="submit" className="auth-button" disabled={loading}>
-              {loading ? 'Resetting...' : 'Reset Password'}
+              {loading ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                  <ButtonSpinner size="small" color="#FFFFFF" />
+                  <span>Resetting...</span>
+                </span>
+              ) : (
+                'Reset Password'
+              )}
             </button>
             <div className="auth-divider"><span>OR</span></div>
             <button type="button" className="auth-button secondary" onClick={() => navigate('/login')}>
