@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './TenantInfo.css';
 import { authenticatedFetch, API_BASE_URL } from '../../config/api';
@@ -37,7 +37,8 @@ import {
   AlertCircle,
   Scale,
   CheckCircle2,
-  Calendar
+  Calendar,
+  Plus
 } from 'lucide-react';
 
 const NOTICE_TYPES = [
@@ -108,10 +109,6 @@ const TenantInfo = () => {
   });
   const [noticeSubmitting, setNoticeSubmitting] = useState(false);
 
-  // Notice Details / Audit Modal
-  const [showNoticeDetailsModal, setShowNoticeDetailsModal] = useState(false);
-  const [activeNoticeDetail, setActiveNoticeDetail] = useState(null);
-
   // Move-Out & Deposit Settlement Modal
   const [showMoveOutSettlementModal, setShowMoveOutSettlementModal] = useState(false);
   const [selectedTenantForSettlement, setSelectedTenantForSettlement] = useState(null);
@@ -179,6 +176,7 @@ const TenantInfo = () => {
 
   useEffect(() => {
     fetchTenantsData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propertyFilter, paymentStatusFilter, leaseStatusFilter]);
 
   // Open Detailed Profile
@@ -1184,7 +1182,7 @@ const TenantInfo = () => {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                         <h4 style={{ margin: 0, color: '#0F172A', fontSize: '1rem' }}>Invoices & Verified Payment Records</h4>
                         <button className="btn-primary-blue" onClick={() => handleOpenPaymentModal(selectedTenantRecord)}>
-                          <FaPlus /> Record Payment
+                          <Plus size={14} /> Record Payment
                         </button>
                       </div>
 
