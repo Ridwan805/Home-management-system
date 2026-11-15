@@ -69,25 +69,35 @@
 }
 
 /* Loading and Error States */
-.loading-spinner {
+.requests-loading-container,
+.requests-inbox-loading {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 20px;
+  padding: 32px 20px;
+  min-height: 200px;
 }
 
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #007bff;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 15px;
+.requests-inbox-loading .spinner,
+.requests-loading-container .spinner {
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  max-width: 40px !important;
+  max-height: 40px !important;
+  aspect-ratio: 1 / 1 !important;
+  box-sizing: border-box !important;
+  flex-shrink: 0 !important;
+  border: 3.5px solid #E2E8F0 !important;
+  border-top: 3.5px solid #2563EB !important;
+  border-radius: 50% !important;
+  animation: dwellsyncSpinRequests 0.85s linear infinite !important;
+  margin-bottom: 14px;
 }
 
-@keyframes spin {
+@keyframes dwellsyncSpinRequests {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }

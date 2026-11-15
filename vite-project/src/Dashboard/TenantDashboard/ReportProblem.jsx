@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './ReportProblem.css';
 import { authenticatedFetch, createMaintenanceReport, getTenantReports, getTenantProperties } from '../../config/api';
 import { useNavigate } from 'react-router-dom';
+import { CircularSpinner } from '../../components/loading';
 
 const ReportProblem = () => {
   const navigate = useNavigate();
@@ -498,7 +499,7 @@ const ReportProblem = () => {
 
           
           {loadingReports ? (
-            <div className="loading-message">Loading reports...</div>
+            <CircularSpinner message="Loading reports..." minHeight="180px" />
           ) : previousReports.length === 0 ? (
             <div className="no-reports">No previous reports found.</div>
           ) : (

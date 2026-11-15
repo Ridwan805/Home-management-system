@@ -405,13 +405,13 @@
   color: #666;
 }
 
-.loading-spinner {
+.house-info-spinner {
   font-size: 32px;
-  animation: spin 1s linear infinite;
+  animation: houseInfoSpin 1s linear infinite;
   margin-bottom: 16px;
 }
 
-@keyframes spin {
+@keyframes houseInfoSpin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }

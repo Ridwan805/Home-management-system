@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../../App';
 import apiConfig from '../../config/api';
 import './LookingForJob.css';
+import { CircularSpinner } from '../../components/loading';
 
 const LookingForJob = () => {
   const { user } = useContext(AuthContext);
@@ -230,7 +231,7 @@ const LookingForJob = () => {
   if (loading) {
     return (
       <div className="looking-for-job">
-        <div className="loading">Loading available jobs...</div>
+        <CircularSpinner message="Loading available jobs..." minHeight="240px" />
       </div>
     );
   }

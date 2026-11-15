@@ -466,7 +466,7 @@
   pointer-events: none;
 }
 
-.loading-spinner {
+.admin-loading-container {
   text-align: center;
   padding: 40px;
   color: #6b7280;
@@ -839,7 +839,7 @@
 }
 
 /* Error and Loading States */
-.loading-spinner {
+.admin-loading-spinner-wrap {
   display: flex;
   justify-content: center;
   align-items: center;

@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 import UnifiedInquiryForm from './UnifiedInquiryForm';
 import apiConfig from '../config/api';
 import LocationViewerMap from './LocationViewerMap';
-import { DwellSyncLoadingScreen, ButtonSpinner } from './loading';
+import { PageLoader, ButtonSpinner } from './loading';
 
 const ViewDetails = () => {
   const { propertyId } = useParams();
@@ -216,7 +216,7 @@ const ViewDetails = () => {
   if (loading) {
     return (
       <div className="view-details-container" style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <DwellSyncLoadingScreen fullScreen={false} message="Loading property details..." />
+        <PageLoader message="Loading property details..." minHeight="300px" />
       </div>
     );
   }

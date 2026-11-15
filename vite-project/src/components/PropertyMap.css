@@ -27,7 +27,7 @@
   color: #dc2626;
 }
 
-.loading-spinner {
+.map-loading-icon {
   font-size: 2rem;
   margin-bottom: 1rem;
   animation: pulse 2s infinite;
@@ -418,15 +418,20 @@
 }
 
 .map-loading-overlay .spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid #007bff;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  aspect-ratio: 1 / 1 !important;
+  box-sizing: border-box !important;
+  border: 3.5px solid #E2E8F0 !important;
+  border-top: 3.5px solid #2563EB !important;
+  border-radius: 50% !important;
+  animation: dwellsyncMapSpin 0.85s linear infinite !important;
+  flex-shrink: 0 !important;
 }
 
-@keyframes spin {
+@keyframes dwellsyncMapSpin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }

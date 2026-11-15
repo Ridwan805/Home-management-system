@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import apiConfig from '../../config/api';
 import './SecurityGuardInfo.css';
+import { CircularSpinner } from '../../components/loading';
 
 const TenantSecurityGuardInfo = () => {
   const [assignedGuards, setAssignedGuards] = useState([]);
@@ -68,7 +69,7 @@ const TenantSecurityGuardInfo = () => {
     return (
       <div className="security-guard-info">
         <h2 className="section-title">Security Guard Information</h2>
-        <div className="loading-message">Loading assigned guards...</div>
+        <CircularSpinner message="Loading assigned guards..." minHeight="200px" />
       </div>
     );
   }

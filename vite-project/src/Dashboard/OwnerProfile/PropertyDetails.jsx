@@ -4,6 +4,7 @@ import API from '../../config/api';
 import LocationPickerMap from '../../components/LocationPickerMap';
 import LocationViewerMap from '../../components/LocationViewerMap';
 import './PropertyDetails.css';
+import { CircularSpinner } from '../../components/loading';
 
 const PropertyDetails = () => {
   const [properties, setProperties] = useState([]);
@@ -267,7 +268,7 @@ const PropertyDetails = () => {
       <h1>Property Details</h1>
       <p className="subtitle">View and manage your property listings</p>
 
-      {loading && <div className="loading-state">Loading properties...</div>}
+      {loading && <CircularSpinner message="Loading properties..." minHeight="240px" />}
 
       {error && <div className="error-state">Error: {error}</div>}
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './MaintenanceReports.css';
 import { getOwnerReports, updateReportStatus, resolveReport, addReportUpdate, API_BASE_URL } from '../../config/api';
-import { DashboardCardSkeleton } from '../../components/loading';
+import { DashboardCardSkeleton, CircularSpinner } from '../../components/loading';
 
 const MaintenanceReports = () => {
   const [reports, setReports] = useState([]);
@@ -164,7 +164,11 @@ const MaintenanceReports = () => {
   };
 
   if (loading) {
-    return <div className="maintenance-reports-loading">Loading maintenance reports...</div>;
+    return (
+      <div className="maintenance-reports" style={{ padding: '24px' }}>
+        <CircularSpinner message="Loading maintenance reports..." minHeight="240px" />
+      </div>
+    );
   }
 
   return (

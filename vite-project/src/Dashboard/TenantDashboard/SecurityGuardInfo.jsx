@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import apiConfig from '../../config/api';
 import './SecurityGuardInfo.css';
+import { CircularSpinner } from '../../components/loading';
 
 const SecurityGuardInfo = () => {
   const [activeTab, setActiveTab] = useState('post-job');
@@ -369,7 +370,7 @@ const SecurityGuardInfo = () => {
         <div className="tab-content">
           <h3>Your Job Posts</h3>
           {loading ? (
-            <div className="loading">Loading job posts...</div>
+            <CircularSpinner message="Loading job posts..." minHeight="180px" />
           ) : jobPosts.length === 0 ? (
             <div className="no-jobs">
               <p>No job posts yet. Create your first security guard job posting!</p>

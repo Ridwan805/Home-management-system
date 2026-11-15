@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../../config/api';
 import './ParcelLogs.css';
+import { CircularSpinner } from '../../components/loading';
 
 const ParcelLogs = () => {
   const [parcels, setParcels] = useState([]);
@@ -133,7 +134,7 @@ const ParcelLogs = () => {
 
       <div className="parcel-list">
         {loading ? (
-          <div className="loading">Loading parcels...</div>
+          <CircularSpinner message="Loading parcels..." minHeight="180px" />
         ) : parcels.length === 0 ? (
           <div className="no-data">No parcels found</div>
         ) : (

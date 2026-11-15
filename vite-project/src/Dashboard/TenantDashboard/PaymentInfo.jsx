@@ -3,27 +3,7 @@ import { authenticatedFetch } from '../../config/api';
 import apiConfig from '../../config/api';
 import { useNavigate } from 'react-router-dom';
 import './PaymentInfo.css';
-import { TableSkeleton } from '../../components/loading';
-
-// Simple loading spinner component
-const LoadingSpinner = () => (
-  <div style={{
-    width: '40px',
-    height: '40px',
-    border: '4px solid #f3f4f6',
-    borderTop: '4px solid #3b82f6',
-    borderRadius: '50%',
-    animation: 'spin 1s linear infinite',
-    margin: '0 auto'
-  }}>
-    <style>{`
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-    `}</style>
-  </div>
-);
+import { TableSkeleton, CircularSpinner } from '../../components/loading';
 
 const PaymentInfo = () => {
   const [invoices, setInvoices] = useState([]);

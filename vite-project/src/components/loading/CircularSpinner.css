@@ -1,0 +1,126 @@
+/* ==========================================================================
+   DwellSync Circular Spinner Styles
+   Distortion-proof, component-scoped loading indicator.
+   ========================================================================== */
+
+.dwellsync-spinner-container {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  padding: 24px 16px !important;
+  box-sizing: border-box !important;
+  background: transparent !important;
+  text-align: center !important;
+  animation: dwellsyncFadeIn 0.2s ease-out forwards;
+}
+
+.dwellsync-spinner-container.is-inline {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  width: auto !important;
+  padding: 0 !important;
+  vertical-align: middle !important;
+  gap: 10px !important;
+}
+
+/* Spinner Visual Wrapper */
+.dwellsync-spinner-visual {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+/* Standard 40px x 40px Spinner */
+.dwellsync-circular-spinner {
+  display: block !important;
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  max-width: 40px !important;
+  max-height: 40px !important;
+  box-sizing: border-box !important;
+  flex-shrink: 0 !important;
+  aspect-ratio: 1 / 1 !important;
+  transform-origin: center center !important;
+  animation: dwellsyncCircularSpin 0.85s linear infinite !important;
+  will-change: transform;
+}
+
+/* Size Variants */
+.dwellsync-spinner-container.small .dwellsync-circular-spinner {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+  max-width: 20px !important;
+  max-height: 20px !important;
+}
+
+.dwellsync-spinner-container.medium .dwellsync-circular-spinner {
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  max-width: 40px !important;
+  max-height: 40px !important;
+}
+
+.dwellsync-spinner-container.large .dwellsync-circular-spinner {
+  width: 56px !important;
+  height: 56px !important;
+  min-width: 56px !important;
+  min-height: 56px !important;
+  max-width: 56px !important;
+  max-height: 56px !important;
+}
+
+/* Message typography and spacing */
+.dwellsync-spinner-message {
+  margin: 14px 0 0 0 !important;
+  font-size: 0.925rem !important;
+  font-weight: 500 !important;
+  color: #64748B !important;
+  line-height: 1.4 !important;
+  max-width: 380px !important;
+  letter-spacing: -0.01em !important;
+}
+
+.dwellsync-spinner-container.is-inline .dwellsync-spinner-message {
+  margin: 0 !important;
+  font-size: 0.875rem !important;
+}
+
+/* Rotation Animation */
+@keyframes dwellsyncCircularSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes dwellsyncFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Accessibility: Support prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .dwellsync-circular-spinner {
+    animation-duration: 2.2s !important;
+  }
+  .dwellsync-spinner-container {
+    animation: none !important;
+  }
+}

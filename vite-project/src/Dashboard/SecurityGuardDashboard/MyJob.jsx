@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import apiConfig from '../../config/api';
 import './MyJob.css';
+import { CircularSpinner } from '../../components/loading';
 
 const MyJob = () => {
   const [currentJob, setCurrentJob] = useState(null);
@@ -71,10 +72,7 @@ const MyJob = () => {
   if (loading) {
     return (
       <div className="my-job-container">
-        <div className="loading-spinner">
-          <div className="spinner"></div>
-          <p>Loading your job details...</p>
-        </div>
+        <CircularSpinner message="Loading your job details..." minHeight="240px" />
       </div>
     );
   }

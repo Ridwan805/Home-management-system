@@ -1,12 +1,31 @@
 import React from 'react';
+import CircularSpinner from './loading/CircularSpinner';
 import './LoadingSpinner.css';
 
-const LoadingSpinner = ({ size = 'medium', color = '#3498db', text = '' }) => {
+/**
+ * Standard DwellSync LoadingSpinner
+ * Backward-compatible wrapper around CircularSpinner ensuring strict 40px circular rendering.
+ */
+const LoadingSpinner = ({
+  size = 'medium',
+  color = '#2563EB',
+  text = '',
+  message = '',
+  minHeight,
+  className = '',
+  ...props
+}) => {
+  const displayMessage = message || text;
+
   return (
-    <div className={`loading-spinner-container ${size}`}>
-      <div className="loading-spinner" style={{ borderTopColor: color }}></div>
-      {text && <span className="loading-text">{text}</span>}
-    </div>
+    <CircularSpinner
+      size={size}
+      color={color}
+      message={displayMessage}
+      minHeight={minHeight}
+      className={className}
+      {...props}
+    />
   );
 };
 

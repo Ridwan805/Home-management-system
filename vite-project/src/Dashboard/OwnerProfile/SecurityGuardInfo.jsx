@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import apiConfig, { authenticatedFetch } from '../../config/api';
 import './SecurityGuardInfo.css';
-import { DashboardCardSkeleton } from '../../components/loading';
+import { DashboardCardSkeleton, CircularSpinner } from '../../components/loading';
 
 const SecurityGuardInfo = () => {
   const [activeTab, setActiveTab] = useState('jobs');
@@ -610,7 +610,7 @@ const SecurityGuardInfo = () => {
             </div>
             <div className="modal-body">
               {loading ? (
-                <div className="loading">Loading applications...</div>
+                <CircularSpinner message="Loading applications..." minHeight="160px" />
               ) : applications.length === 0 ? (
                 <div className="empty-state">
                   <p>No applications received yet.</p>

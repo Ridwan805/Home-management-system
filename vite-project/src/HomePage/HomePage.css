@@ -200,17 +200,22 @@
   box-shadow: 0 2px 12px rgba(0,0,0,0.07);
 }
 
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #006aff;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
+.home-loading-spinner {
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  aspect-ratio: 1 / 1 !important;
+  box-sizing: border-box !important;
+  border: 3.5px solid #E2E8F0 !important;
+  border-top: 3.5px solid #2563EB !important;
+  border-radius: 50% !important;
+  animation: dwellsyncHomeSpin 0.85s linear infinite !important;
   margin-bottom: 1rem;
+  flex-shrink: 0 !important;
 }
 
-@keyframes spin {
+@keyframes dwellsyncHomeSpin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }

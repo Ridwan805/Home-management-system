@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../../config/api';
 import './GuestPreApproval.css';
+import { CircularSpinner } from '../../components/loading';
 
 const GuestPreApproval = () => {
   const [guests, setGuests] = useState([]);
@@ -289,7 +290,7 @@ const GuestPreApproval = () => {
 
       <div className="guest-list">
         {loading ? (
-          <div className="loading">Loading...</div>
+          <CircularSpinner message="Loading visitor data..." minHeight="180px" />
         ) : currentData.length === 0 ? (
           <div className="no-data">
             {activeTab === 'pre-approved' ? 'No pre-approved guests found' : 'No visitor logs found'}

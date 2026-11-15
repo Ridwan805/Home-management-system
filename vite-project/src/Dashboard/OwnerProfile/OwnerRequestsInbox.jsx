@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import API from '../../config/api';
 import './OwnerRequestsInbox.css';
 import { FaReceipt, FaPrint } from 'react-icons/fa';
-import { ListItemSkeleton } from '../../components/loading';
+import { ListItemSkeleton, CircularSpinner, ButtonLoader } from '../../components/loading';
 
 const OwnerRequestsInbox = () => {
   const [requests, setRequests] = useState([]);
@@ -995,7 +995,9 @@ const OwnerRequestsInbox = () => {
                       disabled={receiptLoading}
                     >
                       {receiptLoading ? (
-                        'Loading...'
+                        <>
+                          <ButtonLoader size="small" /> Loading...
+                        </>
                       ) : (
                         <>
                           <FaReceipt /> Show Receipt
@@ -1039,7 +1041,9 @@ const OwnerRequestsInbox = () => {
                       disabled={receiptLoading}
                     >
                       {receiptLoading ? (
-                        'Loading...'
+                        <>
+                          <ButtonLoader size="small" /> Loading...
+                        </>
                       ) : (
                         <>
                           <FaReceipt /> Show Receipt
@@ -1255,7 +1259,7 @@ const OwnerRequestsInbox = () => {
                   <div className="messaging-container">
                     <div className="messages-list">
                       {messagesLoading ? (
-                        <div className="loading-messages">Loading messages...</div>
+                        <CircularSpinner size="small" message="Loading messages..." minHeight="120px" />
                       ) : messages.length > 0 ? (
                         messages.map((message, index) => {
                           const isOwner = message.senderId === getCurrentUserId();

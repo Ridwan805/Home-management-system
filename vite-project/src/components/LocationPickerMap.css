@@ -282,10 +282,10 @@
   border: 2px solid #e2e8f0;
   border-top-color: #2563eb;
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  animation: searchInputSpin 0.8s linear infinite;
 }
 
-@keyframes spin {
+@keyframes searchInputSpin {
   to { transform: rotate(360deg); }
 }
 

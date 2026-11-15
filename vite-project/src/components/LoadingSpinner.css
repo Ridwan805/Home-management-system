@@ -1,65 +1,115 @@
-/* Loading Spinner Styles */
+/* ==========================================================================
+   Loading Spinner Styles - Hardened & Component Scoped
+   Guarantees perfect circular 40px dimensions with #2563EB & #E2E8F0.
+   ========================================================================== */
+
 .loading-spinner-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 12px !important;
+  padding: 24px 16px !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  text-align: center !important;
 }
 
+/* Strict circular spinner dimensions preventing any oval distortion */
 .loading-spinner {
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid #3498db;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
+  display: block !important;
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  max-width: 40px !important;
+  max-height: 40px !important;
+  aspect-ratio: 1 / 1 !important;
+  box-sizing: border-box !important;
+  flex-shrink: 0 !important;
+  border: 3.5px solid #E2E8F0 !important;
+  border-top: 3.5px solid #2563EB !important;
+  border-radius: 50% !important;
+  animation: dwellsyncSpinLegacy 0.85s linear infinite !important;
+  transform-origin: center center !important;
+  margin: 0 auto !important;
 }
 
 /* Size variants */
-.loading-spinner-container.small .loading-spinner {
-  width: 16px;
-  height: 16px;
-  border-width: 2px;
+.loading-spinner-container.small .loading-spinner,
+.loading-spinner.small {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+  max-width: 20px !important;
+  max-height: 20px !important;
+  border-width: 2.5px !important;
 }
 
-.loading-spinner-container.medium .loading-spinner {
-  width: 24px;
-  height: 24px;
-  border-width: 3px;
+.loading-spinner-container.medium .loading-spinner,
+.loading-spinner.medium {
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  max-width: 40px !important;
+  max-height: 40px !important;
+  border-width: 3.5px !important;
 }
 
-.loading-spinner-container.large .loading-spinner {
-  width: 40px;
-  height: 40px;
-  border-width: 4px;
+.loading-spinner-container.large .loading-spinner,
+.loading-spinner.large {
+  width: 56px !important;
+  height: 56px !important;
+  min-width: 56px !important;
+  min-height: 56px !important;
+  max-width: 56px !important;
+  max-height: 56px !important;
+  border-width: 4px !important;
 }
 
 .loading-text {
-  font-size: 0.875rem;
-  color: #666;
-  font-weight: 500;
-  margin-top: 4px;
+  font-size: 0.925rem !important;
+  color: #64748B !important;
+  font-weight: 500 !important;
+  margin-top: 8px !important;
+  line-height: 1.4 !important;
 }
 
 /* Inline spinner for buttons */
 .loading-spinner-container.inline {
-  flex-direction: row;
-  gap: 6px;
+  display: inline-flex !important;
+  flex-direction: row !important;
+  gap: 8px !important;
+  padding: 0 !important;
+  width: auto !important;
+  vertical-align: middle !important;
 }
 
 .loading-spinner-container.inline .loading-spinner {
-  width: 16px;
-  height: 16px;
-  border-width: 2px;
+  width: 16px !important;
+  height: 16px !important;
+  min-width: 16px !important;
+  min-height: 16px !important;
+  border-width: 2px !important;
+  margin: 0 !important;
 }
 
 .loading-spinner-container.inline .loading-text {
-  margin-top: 0;
-  font-size: 0.875rem;
+  margin-top: 0 !important;
+  font-size: 0.875rem !important;
 }
 
-@keyframes spin {
+@keyframes dwellsyncSpinLegacy {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-spinner {
+    animation-duration: 2s !important;
+  }
 }
 
 /* Payment status indicator */
@@ -148,7 +198,6 @@
   }
   to {
     transform: translateX(0);
-    opacity: 1;
   }
 }
 
