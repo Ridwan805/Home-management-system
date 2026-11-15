@@ -113,15 +113,13 @@ const PropertyListing = () => {
       const data = await response.json();
       const updatedProperty = data.property || data;
       
-      // Update the properties list with the updated property
-      setProperties(properties.map(prop => 
+      // Update the properties list with the updated property without requiring a page refresh
+      setProperties(prev => prev.map(prop => 
         prop._id === propertyId ? updatedProperty : prop
       ));
       
       console.log('Property updated successfully:', updatedProperty);
-      
-      // Close the edit modal
-      setEditingProperty(null);
+      return updatedProperty;
     } catch (err) {
       console.error('Error updating property:', err);
       throw err;
