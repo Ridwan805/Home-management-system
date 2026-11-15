@@ -25,6 +25,7 @@ import landscapeImg from '../assets/landscape.jpg';
 import landscape2Img from '../assets/landscape2.jpg';
 import openFieldImg from '../assets/open field.jpg';
 import parkImg from '../assets/a park.jpg';
+import calculatingImg from '../assets/calculating.jpg';
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -101,6 +102,7 @@ const HomePage = () => {
     // Section base Gaussian blur map (in rem units)
     // Section requirements:
     // - Active section background: blur(0.25rem) (resting cinematic bokeh defocus)
+    // - Affordability section background: blur(0.625rem) (0.5rem to 0.875rem soft modern interior defocus)
     // - Transitioning section background: smoothly increases to 0.75rem - 1.25rem
     // - Outgoing highlights expand into soft circular bokeh blooms
     const SECTION_BASE_BLUR = {
@@ -109,6 +111,7 @@ const HomePage = () => {
       rentals: 0.25,
       buying: 0.25,
       land: 0.25,
+      affordability: 0.625,
       lifestyle: 0.25,
       cta: 0.25
     };
@@ -234,16 +237,7 @@ const HomePage = () => {
                 }
               }
 
-              // 5. Affordability Section background subtle dimming
-              if (sec.id === 'affordability') {
-                if (progress > 0.005) {
-                  sec.style.filter = `brightness(${(1 - (progress * 0.12)).toFixed(3)})`;
-                } else {
-                  sec.style.filter = 'none';
-                }
-              }
-
-              // 6. Click-interception prevention: disable pointer events when heavily covered
+              // 5. Click-interception prevention: disable pointer events when heavily covered
               if (progress > 0.85) {
                 sec.style.pointerEvents = 'none';
               } else {
@@ -581,6 +575,17 @@ const HomePage = () => {
           6. AFFORDABILITY CALCULATOR SECTION — Find homes within your budget
           ===================================================================== */}
       <section id="affordability" className="cinematic-section section-affordability">
+        <div className="section-bg-wrap">
+          <img
+            src={calculatingImg}
+            alt="Modern luxury apartment living room with floor-to-ceiling windows and warm natural lighting"
+            className="section-bg-img affordability-bg-img"
+            loading="lazy"
+          />
+          <div className="section-bokeh-layer affordability-bokeh" aria-hidden="true" />
+          <div className="section-overlay affordability-overlay" />
+        </div>
+
         <div className="section-container affordability-section-container">
           <div className="section-content affordability-card">
             {/* Left Content Side */}
