@@ -1,129 +1,236 @@
-.tenant-profile {
-  max-width: 50rem;
+/* ==========================================================================
+   Tenant Profile Page Styles — Professional & Accessible
+   ========================================================================== */
+
+.tenant-profile-page {
+  max-width: 56rem;
   margin: 0 auto;
 }
 
-.tenant-profile .profile-info {
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.75rem;
-  box-shadow: 0 0.0625rem 0.1875rem rgba(0, 0, 0, 0.05);
-  padding: 2rem;
-}
-
-.tenant-profile .profile-header {
+/* --------------------------------------------------------------------------
+   Alert Messages
+   -------------------------------------------------------------------------- */
+.profile-alert {
   display: flex;
   align-items: center;
-  margin-bottom: 2rem;
-}
-
-.tenant-profile .profile-avatar {
-  width: 5rem;
-  height: 5rem;
-  border-radius: 50%;
-  background-color: #2563eb;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2rem;
-  font-weight: 600;
-  margin-right: 1.5rem;
-}
-
-.tenant-profile .profile-name {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin: 0 0 0.5rem 0;
-  color: #1e40af;
-}
-
-.tenant-profile .profile-role {
+  gap: 0.75rem;
+  padding: 0.875rem 1.25rem;
+  border-radius: var(--ds-radius-md);
   font-size: 0.875rem;
-  color: #6b7280;
-  margin: 0;
-}
-
-.tenant-profile .profile-details {
-  margin-bottom: 2rem;
-}
-
-.tenant-profile .detail-item {
-  display: flex;
-  margin-bottom: 1rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.tenant-profile .detail-item:last-child {
-  border-bottom: none;
-}
-
-.tenant-profile .detail-label {
-  font-weight: 600;
-  width: 7.5rem;
-  color: #4b5563;
-}
-
-.tenant-profile .detail-value {
-  flex: 1;
-}
-
-.tenant-profile .edit-profile-btn {
-  margin-top: 1rem;
-}
-
-.tenant-profile .profile-form {
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.75rem;
-  box-shadow: 0 0.0625rem 0.1875rem rgba(0, 0, 0, 0.05);
-  padding: 2rem;
-}
-
-.tenant-profile .form-group {
+  font-weight: 500;
   margin-bottom: 1.5rem;
 }
 
-.tenant-profile .form-group label {
-  display: block;
-  font-weight: 500;
-  margin-bottom: 0.5rem;
-  color: #4b5563;
+.profile-alert.alert-error {
+  background-color: var(--ds-danger-bg);
+  border: 1px solid var(--ds-danger-border);
+  color: var(--ds-danger);
 }
 
-.tenant-profile .form-group input,
-.tenant-profile .form-group textarea {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.25rem;
-  font-size: 1rem;
+.profile-alert.alert-success {
+  background-color: var(--ds-success-bg);
+  border: 1px solid var(--ds-success-border);
+  color: var(--ds-success);
 }
 
-.tenant-profile .form-group input:focus,
-.tenant-profile .form-group textarea:focus {
-  outline: none;
-  border-color: #60a5fa;
-  box-shadow: 0 0 0 0.1875rem rgba(96, 165, 250, 0.2);
-}
-
-.tenant-profile .form-actions {
+/* --------------------------------------------------------------------------
+   Profile Hero Card (Replaces old green header)
+   -------------------------------------------------------------------------- */
+.profile-view-layout {
   display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.profile-hero-card {
+  background: var(--ds-card-bg);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  padding: 1.75rem 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  box-shadow: var(--ds-shadow-sm);
+}
+
+.profile-hero-avatar-wrap {
+  flex-shrink: 0;
+}
+
+.profile-avatar-circle {
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0F172A 0%, #2563EB 100%);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.875rem;
+  font-weight: 700;
+  box-shadow: 0 0.25rem 0.75rem rgba(37, 99, 235, 0.25);
+}
+
+.profile-hero-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-hero-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.profile-hero-name {
+  margin: 0;
+  font-size: clamp(1.25rem, 2vw, 1.625rem);
+  font-weight: 700;
+  color: var(--ds-navy);
+  letter-spacing: -0.02em;
+}
+
+.profile-hero-email {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.9375rem;
+  color: var(--ds-text-secondary);
+}
+
+/* --------------------------------------------------------------------------
+   Profile Details Card
+   -------------------------------------------------------------------------- */
+.profile-details-card {
+  background: var(--ds-card-bg);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  padding: 1.75rem 2rem;
+  box-shadow: var(--ds-shadow-sm);
+}
+
+.details-card-title {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--ds-navy);
+  letter-spacing: -0.015em;
+  border-bottom: 1px solid var(--ds-border-light);
+  padding-bottom: 0.75rem;
+}
+
+.profile-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
+  gap: 1.25rem 1.75rem;
+}
+
+.profile-field-item {
+  display: flex;
+  align-items: flex-start;
   gap: 1rem;
-  margin-top: 2rem;
+  padding: 0.75rem;
+  border-radius: var(--ds-radius-md);
+  background-color: #FAFAFA;
+  border: 1px solid var(--ds-border-light);
 }
 
-.tenant-profile .loading {
-  text-align: center;
+.field-icon-circle {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--ds-radius-sm);
+  background-color: var(--ds-blue-soft);
+  color: var(--ds-blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.field-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1875rem;
+  min-width: 0;
+}
+
+.field-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ds-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.field-value {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--ds-text-primary);
+  word-break: break-word;
+}
+
+/* --------------------------------------------------------------------------
+   Profile Edit Form Card
+   -------------------------------------------------------------------------- */
+.profile-edit-card {
+  background: var(--ds-card-bg);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
   padding: 2rem;
-  color: #6b7280;
+  box-shadow: var(--ds-shadow-sm);
 }
 
-.tenant-profile .error {
-  color: #ef4444;
-  padding: 1rem;
-  background-color: #fee2e2;
-  border-radius: 0.25rem;
-  margin-bottom: 1rem;
+.edit-card-header {
+  margin-bottom: 1.75rem;
+  border-bottom: 1px solid var(--ds-border-light);
+  padding-bottom: 0.75rem;
+}
+
+.edit-card-subtitle {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.875rem;
+  color: var(--ds-text-secondary);
+}
+
+.profile-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem 1.5rem;
+}
+
+.form-action-row {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--ds-border-light);
+}
+
+/* --------------------------------------------------------------------------
+   Responsive Layout
+   -------------------------------------------------------------------------- */
+@media (max-width: 48rem) {
+  .profile-hero-card {
+    flex-direction: column;
+    text-align: center;
+    padding: 1.5rem 1.25rem;
+  }
+
+  .profile-hero-name-row {
+    justify-content: center;
+  }
+
+  .profile-details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-details-card,
+  .profile-edit-card {
+    padding: 1.25rem;
+  }
 }

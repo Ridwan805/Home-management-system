@@ -14,6 +14,7 @@
     "axios": "^1.20.0",
     "home-management-system": "file:..",
     "leaflet": "^1.9.4",
+    "lucide-react": "^1.73.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-icons": "^5.5.0",

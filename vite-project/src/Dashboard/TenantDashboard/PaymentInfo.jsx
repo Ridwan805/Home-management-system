@@ -1,9 +1,25 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { 
+  CreditCard, 
+  Clock, 
+  AlertTriangle, 
+  RotateCw, 
+  FileText, 
+  Printer, 
+  X, 
+  CheckCircle2, 
+  AlertCircle,
+  ExternalLink
+} from 'lucide-react';
 import { authenticatedFetch } from '../../config/api';
 import apiConfig from '../../config/api';
-import { useNavigate } from 'react-router-dom';
 import './PaymentInfo.css';
-import { TableSkeleton, CircularSpinner } from '../../components/loading';
+import { TableSkeleton, DashboardCardSkeleton } from '../../components/loading';
+import TenantPageHeader from './components/TenantPageHeader';
+import TenantStatCard from './components/TenantStatCard';
+import TenantStatusBadge from './components/TenantStatusBadge';
+import TenantEmptyState from './components/TenantEmptyState';
 
 const PaymentInfo = () => {
   const [invoices, setInvoices] = useState([]);
@@ -16,111 +32,69 @@ const PaymentInfo = () => {
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [processingPayment, setProcessingPayment] = useState(false);
-  const [activeTab, setActiveTab] = useState('invoices'); // New state for tab management
+  const [activeTab, setActiveTab] = useState('invoices'); // 'invoices' | 'history'
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    // Use a single API call to fetch both invoices and payment history
-    const fetchAllData = async () => {
-      try {
-        const response = await authenticatedFetch(
-          apiConfig.getUrl('/api/payments/my-payments'),
-          { method: 'GET' },
-          navigate
-        );
-        
+  const fetchAllData = async (isManualRefresh = false) => {
+    if (isManualRefresh) {
+      setLoadingInvoices(true);
+      setLoadingHistory(true);
+    }
+    try {
+      const response = await authenticatedFetch(
+        apiConfig.getUrl('/api/payments/my-payments'),
+        { method: 'GET' },
+        navigate
+      );
+      
+      setInvoices(response.data?.pendingInvoices || []);
+      setPaymentHistory(response.data?.paymentHistory || []);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      setError('Failed to load payment data. Please try refreshing the page.');
+    } finally {
+      setLoading(false);
+      setLoadingInvoices(false);
+      setLoadingHistory(false);
+    }
+  };
 
-        
-        setInvoices(response.data?.pendingInvoices || []);
-        setPaymentHistory(response.data?.paymentHistory || []);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching data:', err);
-        setError('Failed to load data. Please try refreshing the page.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
+  useEffect(() => {
     fetchAllData();
     
     // Handle Stripe checkout return
     const urlParams = new URLSearchParams(window.location.search);
     const status = urlParams.get('status');
     const sessionId = urlParams.get('session_id');
-    const paymentId = urlParams.get('payment_id');
     
     if (status === 'success' && sessionId) {
       setError('');
-      setSuccessMessage('Payment completed successfully! Your invoice has been updated.');
-      // Refresh data after successful payment
+      setSuccessMessage('Payment completed successfully. Your invoice records have been updated.');
       setTimeout(() => {
         fetchAllData();
-      }, 1000);
+      }, 1200);
       
-      // Clear success message after 5 seconds
       setTimeout(() => {
         setSuccessMessage(null);
       }, 5000);
       
-      // Clear URL parameters
       window.history.replaceState({}, document.title, window.location.pathname);
     } else if (status === 'cancelled') {
       setError('Payment was cancelled. You can try again anytime.');
-      // Clear error message after 5 seconds
       setTimeout(() => {
         setError(null);
       }, 5000);
-      // Clear URL parameters
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
 
-  const fetchInvoices = async () => {
-    setLoadingInvoices(true);
-    try {
-      const response = await authenticatedFetch(
-          apiConfig.getUrl('/api/payments/my-payments'),
-          { method: 'GET' },
-          navigate
-        );
-      setInvoices(response.data?.pendingInvoices || []);
-      setError(null); // Clear any previous errors
-    } catch (err) {
-      console.error('Error fetching invoices:', err);
-      setError('Failed to load invoices. Please try refreshing the page.');
-    } finally {
-      setLoadingInvoices(false);
-    }
-  };
-
-  const fetchPaymentHistory = async () => {
-    setLoadingHistory(true);
-    try {
-      const response = await authenticatedFetch(
-          apiConfig.getUrl('/api/payments/my-payments'),
-          { method: 'GET' },
-          navigate
-        );
-      setPaymentHistory(response.data?.paymentHistory || []);
-      setError(null); // Clear any previous errors
-    } catch (err) {
-      console.error('Error fetching payment history:', err);
-      setError('Failed to load payment history. Please try refreshing the page.');
-    } finally {
-      setLoadingHistory(false);
-      setLoading(false);
-    }
-  };
-
   const handlePayInvoice = (invoice) => {
     if (invoice.payment && invoice.payment._id) {
-      // Direct payment processing for invoices with payment objects
       processPaymentDirect(invoice.payment._id);
     } else {
-      // Fallback to modal for legacy invoices
       setSelectedInvoice(invoice);
       setShowPaymentModal(true);
     }
@@ -145,14 +119,13 @@ const PaymentInfo = () => {
           },
           body: JSON.stringify({
             amount: selectedInvoice.total,
-            currency: 'USD'
+            currency: selectedInvoice.currency || 'USD'
           })
         },
         navigate
       );
       
       if (response.success && response.url) {
-        // Redirect to Stripe checkout
         window.location.href = response.url;
       } else {
         setError('Failed to create payment session. Please try again.');
@@ -185,7 +158,6 @@ const PaymentInfo = () => {
       );
       
       if (response.success && response.url) {
-        // Redirect to Stripe checkout
         window.location.href = response.url;
       } else {
         setError('Failed to create payment session. Please try again.');
@@ -198,33 +170,25 @@ const PaymentInfo = () => {
     }
   };
 
-  const getStatusBadgeClass = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'paid':
-      case 'completed':
-      case 'succeeded':
-        return 'status-badge status-paid';
-      case 'overdue':
-        return 'status-badge status-overdue';
-      case 'pending':
-      case 'processing':
-        return 'status-badge status-pending';
-      case 'failed':
-      case 'cancelled':
-        return 'status-badge status-overdue';
-      default:
-        return 'status-badge status-pending';
+  // Currency helper respecting actual invoice/payment currency
+  const formatMoney = (amount, currency = 'USD') => {
+    if (amount === undefined || amount === null) return '—';
+    const curr = String(currency || 'USD').toUpperCase();
+    if (curr === 'BDT') {
+      return `৳${Number(amount).toLocaleString('en-US')}`;
+    }
+    try {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: curr
+      }).format(amount);
+    } catch {
+      return `$${Number(amount).toFixed(2)}`;
     }
   };
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount || 0);
-  };
-
   const formatDate = (dateString) => {
+    if (!dateString) return '—';
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -233,392 +197,470 @@ const PaymentInfo = () => {
   };
 
   const calculateSummary = () => {
+    // Group invoices by currency
     const totalOutstanding = invoices
-      .filter(inv => inv.status !== 'paid')
-      .reduce((sum, inv) => sum + (inv.total || 0), 0);
+      .filter(inv => inv.status !== 'paid' && inv.status !== 'completed')
+      .reduce((sum, inv) => sum + (inv.total || inv.amount || 0), 0);
     
     const totalPaid = paymentHistory
       .reduce((sum, payment) => sum + (payment.amount || 0), 0);
     
     const overdueAmount = invoices
       .filter(inv => inv.status === 'overdue')
-      .reduce((sum, inv) => sum + (inv.total || 0), 0);
+      .reduce((sum, inv) => sum + (inv.total || inv.amount || 0), 0);
 
-    return { totalOutstanding, totalPaid, overdueAmount };
+    // Primary currency detected
+    const primaryCurrency = invoices[0]?.currency || paymentHistory[0]?.currency || 'USD';
+
+    return { totalOutstanding, totalPaid, overdueAmount, primaryCurrency };
   };
 
-  // Add a refresh button to manually refresh invoices and payment history
-  const refreshData = () => {
-    setLoadingInvoices(true);
-    setLoadingHistory(true);
-    // Use a single API call to refresh both invoices and payment history
-    const refreshAll = async () => {
-      try {
-        const response = await authenticatedFetch(
-          apiConfig.getUrl('/api/payments/my-payments'),
-          { method: 'GET' },
-          navigate
-        );
-        setInvoices(response.data?.pendingInvoices || []);
-        setPaymentHistory(response.data?.paymentHistory || []);
-        setError(null);
-      } catch (err) {
-        console.error('Error refreshing data:', err);
-        setError('Failed to refresh data. Please try again.');
-      } finally {
-        setLoadingInvoices(false);
-        setLoadingHistory(false);
-      }
-    };
-    refreshAll();
-  };
-
-  const { totalOutstanding, totalPaid, overdueAmount } = calculateSummary();
+  const { totalOutstanding, totalPaid, overdueAmount, primaryCurrency } = calculateSummary();
+  const isRefreshing = loadingInvoices || loadingHistory;
 
   return (
-    <div className="payment-info">
-      <h2 className="section-title">Payment Information</h2>
-      
+    <div className="tenant-payment-page">
+      <TenantPageHeader 
+        title="Payments & Billing" 
+        subtitle="Manage rent invoices, view payment history, and download official receipts."
+        action={
+          <button
+            type="button"
+            className="ds-btn ds-btn-secondary"
+            onClick={() => fetchAllData(true)}
+            disabled={loading || isRefreshing}
+            title="Refresh payment data"
+          >
+            <RotateCw size={16} className={isRefreshing ? 'spin-icon' : ''} />
+            <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
+          </button>
+        }
+      />
+
       {error && (
-        <div className="error-message" style={{ 
-          backgroundColor: '#fee2e2', 
-          color: '#dc2626', 
-          padding: '1rem', 
-          borderRadius: '0.5rem', 
-          marginBottom: '1rem',
-          border: '1px solid #fecaca'
-        }}>
-          <strong>Error:</strong> {error}
+        <div className="payment-alert alert-error" role="alert">
+          <AlertCircle size={18} />
+          <span>{error}</span>
         </div>
       )}
       
       {successMessage && (
-        <div className="success-message" style={{ 
-          backgroundColor: '#dcfce7', 
-          color: '#16a34a', 
-          padding: '1rem', 
-          borderRadius: '0.5rem', 
-          marginBottom: '1rem',
-          border: '1px solid #bbf7d0'
-        }}>
-          <strong>Success:</strong> {successMessage}
+        <div className="payment-alert alert-success" role="status">
+          <CheckCircle2 size={18} />
+          <span>{successMessage}</span>
         </div>
       )}
 
-      {/* Payment Summary */}
-      <div className="payment-summary">
-        <div className="summary-card">
-          <h3>Outstanding Balance</h3>
-          <p className="amount">{formatCurrency(totalOutstanding)}</p>
-        </div>
-        <div className="summary-card">
-          <h3>Total Paid</h3>
-          <p className="amount">{formatCurrency(totalPaid)}</p>
-        </div>
-        <div className="summary-card">
-          <h3>Overdue Amount</h3>
-          <p className="amount" style={{ color: overdueAmount > 0 ? '#dc2626' : '#059669' }}>
-            {formatCurrency(overdueAmount)}
-          </p>
-        </div>
+      {/* 3 Metric Summary Cards */}
+      <div className="payment-metrics-grid">
+        {loading ? (
+          <>
+            <DashboardCardSkeleton />
+            <DashboardCardSkeleton />
+            <DashboardCardSkeleton />
+          </>
+        ) : (
+          <>
+            <TenantStatCard 
+              title="Outstanding Balance"
+              value={formatMoney(totalOutstanding, primaryCurrency)}
+              subtitle={
+                invoices.filter(i => i.status !== 'paid' && i.status !== 'completed').length > 0 
+                  ? `${invoices.filter(i => i.status !== 'paid' && i.status !== 'completed').length} unpaid invoice(s)`
+                  : 'All caught up'
+              }
+              icon={Clock}
+              variant="blue"
+            />
+            <TenantStatCard 
+              title="Total Paid"
+              value={formatMoney(totalPaid, primaryCurrency)}
+              subtitle={`${paymentHistory.length} successful payment(s)`}
+              icon={CreditCard}
+              variant="emerald"
+            />
+            <TenantStatCard 
+              title="Overdue Amount"
+              value={formatMoney(overdueAmount, primaryCurrency)}
+              subtitle={overdueAmount > 0 ? 'Immediate payment required' : 'No overdue invoices'}
+              icon={AlertTriangle}
+              variant={overdueAmount > 0 ? 'rose' : 'emerald'}
+              highlightColor={overdueAmount > 0 ? '#DC2626' : '#059669'}
+            />
+          </>
+        )}
       </div>
 
       {/* Tab Navigation */}
-      <div className="tab-navigation">
-        <button
-          className={`tab-btn ${activeTab === 'invoices' ? 'active' : ''}`}
-          onClick={() => setActiveTab('invoices')}
-        >
-          Invoices
-        </button>
-        <button
-          className={`tab-btn ${activeTab === 'history' ? 'active' : ''}`}
-          onClick={() => setActiveTab('history')}
-        >
-        
-          Payment History
-          {loadingHistory ? (
-            <span style={{ fontSize: '0.8rem', color: '#6b7280', marginLeft: '0.5rem' }}>(Loading...)</span>
-          ) : (
-            <span style={{ fontSize: '0.9rem', color: '#374151', marginLeft: '0.5rem' }}>({paymentHistory.length})</span>
-          )}
-        </button>
-        <button
-          className="refresh-btn"
-          onClick={refreshData}
-        >
-          <span role="img" aria-label="refresh" style={{ marginRight: '0.5rem' }}>🔄</span>
-          Refresh
-        </button>
+      <div className="payment-tabs-container">
+        <div className="payment-tab-buttons" role="tablist">
+          <button
+            role="tab"
+            aria-selected={activeTab === 'invoices'}
+            className={`payment-tab-btn ${activeTab === 'invoices' ? 'active' : ''}`}
+            onClick={() => setActiveTab('invoices')}
+          >
+            <span>Current Invoices</span>
+            <span className="tab-count-pill">{invoices.length}</span>
+          </button>
+
+          <button
+            role="tab"
+            aria-selected={activeTab === 'history'}
+            className={`payment-tab-btn ${activeTab === 'history' ? 'active' : ''}`}
+            onClick={() => setActiveTab('history')}
+          >
+            <span>Payment History</span>
+            <span className="tab-count-pill">{paymentHistory.length}</span>
+          </button>
+        </div>
       </div>
 
-      {/* Invoices Tab */}
+      {/* Invoices Tab Content */}
       {activeTab === 'invoices' && (
-        <div className="bills-container">
-          <h3>Current Bills {(loading || loadingInvoices) && <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>(Loading...)</span>}</h3>
+        <div className="payment-table-card">
+          <div className="table-card-header">
+            <h3 className="table-card-title">Pending & Recent Invoices</h3>
+            <span className="table-card-meta">
+              {invoices.length} {invoices.length === 1 ? 'record' : 'records'}
+            </span>
+          </div>
+
           {(loading || loadingInvoices) ? (
             <TableSkeleton rows={4} columns={6} />
           ) : invoices.length === 0 ? (
-            <p>No invoices found.</p>
+            <TenantEmptyState 
+              icon={FileText}
+              title="No Invoices Available"
+              description="You have no pending bills or invoices at this time. New rent invoices will appear here when issued."
+            />
           ) : (
-            <table className="bills-table">
-              <thead>
-                <tr>
-                  <th>Invoice #</th>
-                  <th>Property</th>
-                  <th>Amount</th>
-                  <th>Due Date</th>
-                  <th>Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {invoices.map((invoice) => (
-                  <tr key={invoice._id}>
-                    <td>#{invoice.invoiceNo || invoice._id.slice(-6)}</td>
-                    <td>{invoice.propertyId?.displayName || invoice.propertyId?.title || invoice.property?.title || 'N/A'}</td>
-                    <td>{formatCurrency(invoice.total || invoice.amount)}</td>
-                    <td>{formatDate(invoice.dueDate)}</td>
-                    <td>
-                      <span className={getStatusBadgeClass(invoice.status)}>
-                        {invoice.status || 'pending'}
-                      </span>
-                    </td>
-                    <td>
-                      {invoice.status !== 'paid' && invoice.status !== 'completed' ? (
-                        <button
-                          className="pay-btn"
-                          onClick={() => handlePayInvoice(invoice)}
-                          disabled={processingPayment}
-                        >
-                          Pay Online
-                        </button>
-                      ) : (
-                        <span className="paid-date">
-                          Paid {formatDate(invoice.paidAt)}
-                        </span>
-                      )}
-                    </td>
+            <div className="responsive-table-wrapper">
+              <table className="ds-table">
+                <thead>
+                  <tr>
+                    <th>Invoice No</th>
+                    <th>Property</th>
+                    <th>Amount</th>
+                    <th>Due Date</th>
+                    <th>Status</th>
+                    <th className="align-right">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {invoices.map((invoice) => {
+                    const isPaid = invoice.status === 'paid' || invoice.status === 'completed';
+                    return (
+                      <tr key={invoice._id}>
+                        <td>
+                          <span className="invoice-id-badge">
+                            #{invoice.invoiceNo || invoice._id.slice(-6).toUpperCase()}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="property-cell-title">
+                            {invoice.propertyId?.displayName || invoice.propertyId?.title || invoice.property?.title || 'Residential Unit'}
+                          </span>
+                        </td>
+                        <td className="amount-cell">
+                          {formatMoney(invoice.total || invoice.amount, invoice.currency)}
+                        </td>
+                        <td>{formatDate(invoice.dueDate)}</td>
+                        <td>
+                          <TenantStatusBadge status={invoice.status || 'pending'} size="sm" />
+                        </td>
+                        <td className="align-right">
+                          {!isPaid ? (
+                            <button
+                              type="button"
+                              className="ds-btn ds-btn-primary ds-btn-sm"
+                              onClick={() => handlePayInvoice(invoice)}
+                              disabled={processingPayment}
+                            >
+                              <CreditCard size={14} />
+                              <span>Pay Now</span>
+                            </button>
+                          ) : (
+                            <span className="paid-timestamp">
+                              Paid {formatDate(invoice.paidAt)}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}
 
-      {/* Payment History Tab */}
+      {/* Payment History Tab Content */}
       {activeTab === 'history' && (
-        <div className="bills-container">
-          <h3>
-            Payment History {(loading || loadingHistory) ? (
-              <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>(Loading...)</span>
-            ) : (
-              <span style={{ fontSize: '0.9rem', color: '#374151' }}>({paymentHistory.length})</span>
-            )}
-          </h3>
-          {(loading || loadingHistory) ? (
-            <TableSkeleton rows={5} columns={5} />
-          ) : paymentHistory.length === 0 ? (
-            <p>No payment history found.</p>
-          ) : (
-            <table className="bills-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Property</th>
-                  <th>Amount</th>
-                  <th>Method</th>
-                  <th>Status</th>
-                  <th>Receipt</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paymentHistory.map((payment) => {
+        <div className="payment-table-card">
+          <div className="table-card-header">
+            <h3 className="table-card-title">Completed Payments</h3>
+            <span className="table-card-meta">
+              {paymentHistory.length} {paymentHistory.length === 1 ? 'transaction' : 'transactions'}
+            </span>
+          </div>
 
-                  
-                  return (
-                    <tr key={payment._id}>
-                      <td>{formatDate(payment.paidAt || payment.createdAt)}</td>
-                      <td>{payment.invoiceId?.propertyId?.displayName || payment.invoiceId?.propertyId?.address || payment.rentId?.propertyId?.displayName || payment.rentId?.propertyId?.address || 'N/A'}</td>
-                      <td>{formatCurrency(payment.amount)}</td>
-                      <td>{payment.method || payment.provider || 'Stripe'}</td>
-                      <td>
-                        <span className={getStatusBadgeClass(payment.status)}>
-                          {payment.status || 'completed'}
-                        </span>
-                      </td>
-                      <td>
-                        <button
-                          className="receipt-btn"
-                          onClick={() => handleViewReceipt(payment)}
-                          title="View Receipt"
-                        >
-                          📄 Receipt
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          {(loading || loadingHistory) ? (
+            <TableSkeleton rows={5} columns={6} />
+          ) : paymentHistory.length === 0 ? (
+            <TenantEmptyState 
+              icon={CreditCard}
+              title="No Payment History Found"
+              description="Completed rent transactions and processed payments will be listed here with downloadable receipts."
+            />
+          ) : (
+            <div className="responsive-table-wrapper">
+              <table className="ds-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Property</th>
+                    <th>Amount</th>
+                    <th>Payment Method</th>
+                    <th>Status</th>
+                    <th className="align-right">Receipt</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paymentHistory.map((payment) => {
+                    const propTitle = payment.invoiceId?.propertyId?.displayName || 
+                      payment.invoiceId?.propertyId?.address || 
+                      payment.rentId?.propertyId?.displayName || 
+                      payment.rentId?.propertyId?.address || 
+                      'Rental Property';
+
+                    return (
+                      <tr key={payment._id}>
+                        <td>{formatDate(payment.paidAt || payment.createdAt)}</td>
+                        <td>
+                          <span className="property-cell-title">{propTitle}</span>
+                        </td>
+                        <td className="amount-cell font-emerald">
+                          {formatMoney(payment.amount, payment.currency || payment.invoiceId?.currency)}
+                        </td>
+                        <td>
+                          <span className="method-tag">
+                            {payment.method || payment.provider || 'Stripe Card'}
+                          </span>
+                        </td>
+                        <td>
+                          <TenantStatusBadge status={payment.status || 'completed'} size="sm" />
+                        </td>
+                        <td className="align-right">
+                          <button
+                            type="button"
+                            className="ds-btn ds-btn-secondary ds-btn-sm"
+                            onClick={() => handleViewReceipt(payment)}
+                            title="View official receipt"
+                          >
+                            <FileText size={14} />
+                            <span>Receipt</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}
 
-      {/* Payment Modal */}
+      {/* Payment Checkout Modal */}
       {showPaymentModal && selectedInvoice && (
-        <div className="payment-modal-overlay">
-          <div className="payment-modal">
-            <div className="modal-header">
-              <h3>Pay Invoice</h3>
+        <div className="ds-modal-backdrop" onClick={() => setShowPaymentModal(false)}>
+          <div className="ds-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="ds-modal-header">
+              <div className="modal-title-wrap">
+                <CreditCard size={20} className="modal-header-icon" />
+                <h3 className="ds-modal-title">Pay Invoice</h3>
+              </div>
               <button
-                className="close-btn"
+                type="button"
+                className="ds-modal-close"
                 onClick={() => setShowPaymentModal(false)}
+                aria-label="Close dialog"
               >
-                ×
+                <X size={18} />
               </button>
             </div>
-            <div className="modal-body">
-              <div className="payment-details">
-                <p><strong>Invoice #:</strong> #{selectedInvoice.invoiceNo || selectedInvoice._id.slice(-6)}</p>
-                <p><strong>Property:</strong> {selectedInvoice.propertyId?.displayName || selectedInvoice.propertyId?.title || selectedInvoice.property?.title || 'N/A'}</p>
-                <p><strong>Amount:</strong> {formatCurrency(selectedInvoice.total)}</p>
-                <p><strong>Due Date:</strong> {formatDate(selectedInvoice.dueDate)}</p>
+
+            <div className="ds-modal-body">
+              <div className="payment-checkout-details">
+                <div className="checkout-row">
+                  <span className="checkout-label">Invoice Number</span>
+                  <span className="checkout-value font-mono">
+                    #{selectedInvoice.invoiceNo || selectedInvoice._id.slice(-6).toUpperCase()}
+                  </span>
+                </div>
+                <div className="checkout-row">
+                  <span className="checkout-label">Property</span>
+                  <span className="checkout-value">
+                    {selectedInvoice.propertyId?.displayName || selectedInvoice.propertyId?.title || selectedInvoice.property?.title || 'Residential Property'}
+                  </span>
+                </div>
+                <div className="checkout-row">
+                  <span className="checkout-label">Due Date</span>
+                  <span className="checkout-value">{formatDate(selectedInvoice.dueDate)}</span>
+                </div>
+                <div className="checkout-row highlight-row">
+                  <span className="checkout-label">Total Due</span>
+                  <span className="checkout-amount">
+                    {formatMoney(selectedInvoice.total || selectedInvoice.amount, selectedInvoice.currency)}
+                  </span>
+                </div>
               </div>
-              
-              <div className="form-actions">
-                <button
-                  className="pay-btn"
-                  onClick={processPayment}
-                  disabled={processingPayment}
-                  style={{ width: '100%', padding: '0.75rem' }}
-                >
-                  {processingPayment ? 'Processing...' : 'Pay with Stripe'}
-                </button>
-                <button
-                  className="close-btn"
-                  onClick={() => setShowPaymentModal(false)}
-                  style={{ width: '100%', padding: '0.75rem', marginTop: '0.5rem' }}
-                >
-                  Cancel
-                </button>
-              </div>
+
+              <p className="checkout-note">
+                You will be securely redirected to Stripe to complete this payment using your credit or debit card.
+              </p>
+            </div>
+
+            <div className="ds-modal-footer">
+              <button
+                type="button"
+                className="ds-btn ds-btn-primary"
+                onClick={processPayment}
+                disabled={processingPayment}
+                style={{ flex: 1 }}
+              >
+                <ExternalLink size={16} />
+                <span>{processingPayment ? 'Redirecting to Stripe...' : 'Proceed to Stripe Checkout'}</span>
+              </button>
+              <button
+                type="button"
+                className="ds-btn ds-btn-secondary"
+                onClick={() => setShowPaymentModal(false)}
+                disabled={processingPayment}
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Receipt Modal */}
+      {/* Official Receipt Modal */}
       {showReceiptModal && selectedPayment && (
-        <div className="payment-modal-overlay">
-          <div className="payment-modal receipt-modal">
-            <div className="modal-header">
-              <h3>Payment Receipt</h3>
+        <div className="ds-modal-backdrop" onClick={() => setShowReceiptModal(false)}>
+          <div className="ds-modal-card receipt-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="ds-modal-header no-print">
+              <div className="modal-title-wrap">
+                <FileText size={20} className="modal-header-icon" />
+                <h3 className="ds-modal-title">Payment Receipt</h3>
+              </div>
               <button
-                className="close-btn"
+                type="button"
+                className="ds-modal-close"
                 onClick={() => setShowReceiptModal(false)}
+                aria-label="Close dialog"
               >
-                ×
+                <X size={18} />
               </button>
             </div>
-            <div className="modal-body">
-              <div className="receipt-details">
-                <div className="receipt-header">
-                  <div className="receipt-meta">
-                    <span className="receipt-time">{new Date(selectedPayment.paidAt || selectedPayment.createdAt).toLocaleString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit', hour: 'numeric', minute: '2-digit', hour12: true })}</span>
-                    <span className="receipt-id">Payment Receipt - {selectedPayment.paymentId || selectedPayment._id.slice(-8)}</span>
-                  </div>
-                  <h4>Payment Receipt</h4>
-                  <div className="receipt-info">
-                    <span className="receipt-id-label">Receipt ID: {selectedPayment.paymentId || selectedPayment._id.slice(-8)}</span>
-                    <span className="receipt-generated">Generated on: {new Date(selectedPayment.paidAt || selectedPayment.createdAt).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })} {new Date(selectedPayment.paidAt || selectedPayment.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: false })}</span>
-                  </div>
-                </div>
-                
-                <div className="receipt-section">
-                  <h5>Payment Details</h5>
-                  <div className="receipt-row">
-                    <span className="label">Amount:</span>
-                    <span className="value amount">{formatCurrency(selectedPayment.amount)}</span>
-                  </div>
-                  <div className="receipt-row">
-                    <span className="label">Payment Status:</span>
-                    <span className="value status-success">{selectedPayment.status?.toUpperCase() || 'COMPLETED'}</span>
-                  </div>
-                  <div className="receipt-row">
-                    <span className="label">Payment Method:</span>
-                    <span className="value">{selectedPayment.method || selectedPayment.provider || 'stripe'}</span>
-                  </div>
-                  <div className="receipt-row">
-                    <span className="label">Payment Date:</span>
-                    <span className="value">{formatDate(selectedPayment.paidAt || selectedPayment.createdAt)}</span>
-                  </div>
-                  {selectedPayment.stripeDetails?.paymentIntentId && (
-                    <div className="receipt-row">
-                      <span className="label">Transaction ID:</span>
-                      <span className="value">{selectedPayment.stripeDetails.paymentIntentId}</span>
-                    </div>
-                  )}
-                </div>
 
-                <div className="receipt-section">
-                  <h5>Request Details</h5>
-                  <div className="receipt-row">
-                    <span className="label">Request ID:</span>
-                    <span className="value">{selectedPayment.paymentId || selectedPayment._id.slice(-8)}</span>
-                  </div>
-                  <div className="receipt-row">
-                    <span className="label">Request Type:</span>
-                    <span className="value">{selectedPayment.type?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Rent'}</span>
-                  </div>
-                  <div className="receipt-row">
-                    <span className="label">Request Status:</span>
-                    <span className="value status-success">Paid/Completed</span>
-                  </div>
-                  <div className="receipt-row">
-                    <span className="label">Submitted Date:</span>
-                    <span className="value">{formatDate(selectedPayment.createdAt)}</span>
-                  </div>
+            <div className="receipt-paper" id="printable-receipt">
+              <div className="receipt-brand-row">
+                <div>
+                  <h2 className="receipt-brand-logo">
+                    <span>Dwell</span><span style={{ color: '#2563EB' }}>Sync</span>
+                  </h2>
+                  <p className="receipt-brand-sub">Official Payment Confirmation</p>
                 </div>
-
-                <div className="receipt-section">
-                  <h5>Property Details</h5>
-                  <div className="receipt-row">
-                    <span className="label">Address:</span>
-                    <span className="value">{selectedPayment.invoiceId?.propertyId?.displayName || selectedPayment.invoiceId?.propertyId?.address || selectedPayment.rentId?.propertyId?.displayName || selectedPayment.rentId?.propertyId?.address || 'N/A'}</span>
-                  </div>
-                  {selectedPayment.invoiceId?.invoiceNo && (
-                    <div className="receipt-row">
-                      <span className="label">Invoice #:</span>
-                      <span className="value">#{selectedPayment.invoiceId.invoiceNo}</span>
-                    </div>
-                  )}
-                  <div className="receipt-row">
-                    <span className="label">Property Price:</span>
-                    <span className="value">৳{selectedPayment.amount?.toLocaleString() || '0'}</span>
-                  </div>
-                  <div className="receipt-row">
-                    <span className="label">Description:</span>
-                    <span className="value">{selectedPayment.type?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Rent Payment'}</span>
-                  </div>
-                </div>
-
-                <div className="receipt-actions">
-                  <button
-                    className="print-btn"
-                    onClick={() => window.print()}
-                  >
-                    🖨️ Print Receipt
-                  </button>
-                  <button
-                    className="close-btn"
-                    onClick={() => setShowReceiptModal(false)}
-                  >
-                    Close
-                  </button>
+                <div className="receipt-stamp-box">
+                  <CheckCircle2 size={16} color="#059669" />
+                  <span>PAID</span>
                 </div>
               </div>
+
+              <div className="receipt-meta-grid">
+                <div>
+                  <span className="receipt-meta-label">Receipt ID</span>
+                  <span className="receipt-meta-value font-mono">
+                    {selectedPayment.paymentId || selectedPayment._id.slice(-8).toUpperCase()}
+                  </span>
+                </div>
+                <div>
+                  <span className="receipt-meta-label">Payment Date</span>
+                  <span className="receipt-meta-value">
+                    {formatDate(selectedPayment.paidAt || selectedPayment.createdAt)}
+                  </span>
+                </div>
+                <div>
+                  <span className="receipt-meta-label">Method</span>
+                  <span className="receipt-meta-value">
+                    {selectedPayment.method || selectedPayment.provider || 'Stripe Card'}
+                  </span>
+                </div>
+                {selectedPayment.stripeDetails?.paymentIntentId && (
+                  <div>
+                    <span className="receipt-meta-label">Transaction Reference</span>
+                    <span className="receipt-meta-value font-mono font-xs">
+                      {selectedPayment.stripeDetails.paymentIntentId}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="receipt-section-box">
+                <h4 className="receipt-box-heading">Property & Tenancy</h4>
+                <div className="receipt-line-item">
+                  <span>Address:</span>
+                  <strong>
+                    {selectedPayment.invoiceId?.propertyId?.displayName || 
+                     selectedPayment.invoiceId?.propertyId?.address || 
+                     selectedPayment.rentId?.propertyId?.displayName || 
+                     selectedPayment.rentId?.propertyId?.address || 
+                     'Residence'}
+                  </strong>
+                </div>
+                {selectedPayment.invoiceId?.invoiceNo && (
+                  <div className="receipt-line-item">
+                    <span>Invoice Ref:</span>
+                    <span>#{selectedPayment.invoiceId.invoiceNo}</span>
+                  </div>
+                )}
+                <div className="receipt-line-item">
+                  <span>Payment Purpose:</span>
+                  <span>{selectedPayment.type ? selectedPayment.type.replace('_', ' ') : 'Rent Payment'}</span>
+                </div>
+              </div>
+
+              <div className="receipt-total-box">
+                <span className="receipt-total-label">Total Amount Paid</span>
+                <span className="receipt-total-val">
+                  {formatMoney(selectedPayment.amount, selectedPayment.currency || selectedPayment.invoiceId?.currency)}
+                </span>
+              </div>
+
+              <p className="receipt-footer-disclaimer">
+                This document serves as an electronic receipt for payment processed through the DwellSync property management platform.
+              </p>
+            </div>
+
+            <div className="ds-modal-footer no-print">
+              <button
+                type="button"
+                className="ds-btn ds-btn-primary"
+                onClick={() => window.print()}
+              >
+                <Printer size={16} />
+                <span>Print Receipt</span>
+              </button>
+              <button
+                type="button"
+                className="ds-btn ds-btn-secondary"
+                onClick={() => setShowReceiptModal(false)}
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

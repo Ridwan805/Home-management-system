@@ -1,4 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { 
+  Clock, 
+  CheckCircle2, 
+  AlertCircle, 
+  PauseCircle, 
+  Info,
+  X
+} from 'lucide-react';
 import { InlineLoader } from './loading';
 import './LoadingSpinner.css';
 
@@ -44,7 +52,7 @@ const PaymentStatusIndicator = ({
       case 'pending':
         return {
           className: 'processing',
-          icon: '⏳',
+          icon: Clock,
           text: 'Processing payment...'
         };
       case 'completed':
@@ -52,25 +60,26 @@ const PaymentStatusIndicator = ({
       case 'Paid/Completed':
         return {
           className: 'success',
-          icon: '✅',
+          icon: CheckCircle2,
           text: 'Payment completed'
         };
       case 'failed':
         return {
           className: 'error',
-          icon: '❌',
+          icon: AlertCircle,
           text: 'Payment failed'
         };
       default:
         return {
           className: 'waiting',
-          icon: '⏸️',
+          icon: PauseCircle,
           text: status || 'Waiting for update'
         };
     }
   };
 
   const statusConfig = getStatusConfig(status);
+  const StatusIcon = statusConfig.icon;
 
   return (
     <>
@@ -79,7 +88,7 @@ const PaymentStatusIndicator = ({
         {isPolling ? (
           <InlineLoader size="small" />
         ) : (
-          <span>{statusConfig.icon}</span>
+          <StatusIcon size={14} style={{ display: 'inline-block', verticalAlign: 'middle' }} />
         )}
         <span>{statusConfig.text}</span>
         {isPolling && (
@@ -120,9 +129,9 @@ const PaymentStatusIndicator = ({
       {/* Notification Toast */}
       {notification && (
         <div className={`payment-update-notification ${notification.type}`}>
-          <span>
-            {notification.type === 'success' ? '✅' : 
-             notification.type === 'error' ? '❌' : 'ℹ️'}
+          <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+            {notification.type === 'success' ? <CheckCircle2 size={16} /> : 
+             notification.type === 'error' ? <AlertCircle size={16} /> : <Info size={16} />}
           </span>
           <span>{notification.message}</span>
           <button 
@@ -133,11 +142,13 @@ const PaymentStatusIndicator = ({
               color: 'inherit',
               cursor: 'pointer',
               marginLeft: 'auto',
-              fontSize: '1.2rem',
+              display: 'inline-flex',
+              alignItems: 'center',
               padding: '0 0.25rem'
             }}
+            aria-label="Close notification"
           >
-            ×
+            <X size={14} />
           </button>
         </div>
       )}
