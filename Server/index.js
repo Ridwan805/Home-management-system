@@ -193,6 +193,7 @@ const paymentRoutes = require('./routes/payment.routes');
 const parcelLogRoutes = require('./routes/parcelLog.routes');
 const visitorLogRoutes = require('./routes/visitorLog.routes');
 const quickDialRoutes = require('./routes/quickDial.routes');
+const tenantManagementRoutes = require('./routes/tenantManagement.routes');
 
 
 let requestManagementRoutes;
@@ -253,6 +254,8 @@ app.use('/api/parcel-logs', parcelLogRoutes);
 app.use('/api/visitor-logs', visitorLogRoutes);
 // Quick dial routes
 app.use('/api/quick-dial', quickDialRoutes);
+// Owner tenant and notice management routes
+app.use('/api/owner', tenantManagementRoutes);
 
 
 
