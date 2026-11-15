@@ -225,15 +225,16 @@ function AppRoutes() {
   }
 
   const isDashboard = isDashboardPath(location.pathname);
+  const isPropertiesExplorer = location.pathname === '/properties';
 
   return (
     <AuthContext.Provider value={{ isLoggedIn, login, logout, setPopupMessage, userRole, authLoading, currentUser }}>
       <div className="app-wrapper">
-        {!isDashboard && location.pathname !== '/' && <Navbar />}
+        {!isDashboard && location.pathname !== '/' && !isPropertiesExplorer && <Navbar />}
 
         {popupMessage && <div className="popup-message">{popupMessage}</div>}
 
-        <main className={`main-content ${isDashboard ? 'dashboard-page' : ''} ${location.pathname === '/' ? 'homepage-main' : ''}`}>
+        <main className={`main-content ${isDashboard ? 'dashboard-page' : ''} ${location.pathname === '/' ? 'homepage-main' : ''} ${isPropertiesExplorer ? 'explorer-main' : ''}`}>
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<Login />} />
@@ -305,12 +306,13 @@ function AppRoutes() {
           </Routes>
         </main>
         
-        {/* Footer - exclude from homepage, login, register, forgot-password and dashboard pages */}
+        {/* Footer - exclude from homepage, login, register, forgot-password, dashboard, and map explorer */}
         {!isDashboard && 
          location.pathname !== '/' && 
          location.pathname !== '/login' && 
          location.pathname !== '/register' && 
          location.pathname !== '/forgot-password' && 
+         !isPropertiesExplorer && 
          <Footer />}
       </div>
     </AuthContext.Provider>

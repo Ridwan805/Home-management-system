@@ -1,0 +1,49 @@
+/* ==========================================================================
+   DwellSync Mobile List / Map Floating Pill Toggle
+   ========================================================================== */
+
+.mobile-view-toggle-container {
+  display: none; /* Desktop default */
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #0F172A;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 624.9375rem;
+  padding: 0.25rem;
+  box-shadow: 0 0.5rem 1.5rem rgba(15, 23, 42, 0.35);
+  z-index: 1500;
+  gap: 0.25rem;
+}
+
+.mobile-view-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: transparent;
+  border: none;
+  color: #94A3B8;
+  padding: 0.45rem 1rem;
+  border-radius: 624.9375rem;
+  font-size: 0.825rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mobile-view-pill-btn:hover {
+  color: #FFFFFF;
+}
+
+.mobile-view-pill-btn.active {
+  background: #2563EB;
+  color: #FFFFFF;
+  box-shadow: 0 0.125rem 0.5rem rgba(37, 99, 235, 0.4);
+}
+
+@media (max-width: 48rem) {
+  .mobile-view-toggle-container {
+    display: inline-flex;
+  }
+}

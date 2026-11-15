@@ -1,0 +1,103 @@
+/* ==========================================================================
+   DwellSync Map-First Property Discovery Root Layout
+   Structure: 3-Column Responsive Grid beneath Header
+   Suggested Proportions: Sidebar ~19%, Results ~29%, Interactive Map ~52%
+   Convention: rem-first responsive design, independent scrolling panels
+   ========================================================================== */
+
+.property-explorer-layout {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  background: #F8FAFC;
+  overflow: hidden;
+  box-sizing: border-box;
+  position: relative;
+}
+
+/* 3-Column Content Body */
+.explorer-body-container {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(16rem, 19fr) minmax(24rem, 29fr) minmax(28rem, 52fr);
+  width: 100%;
+  height: calc(100vh - 4rem);
+  height: calc(100dvh - 4rem);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* 1. Left: Filter Sidebar Column */
+.explorer-sidebar-pane {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 2. Center: Property Results Column */
+.explorer-results-pane {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 3. Right: Interactive Map Column */
+.explorer-map-pane {
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ==========================================================================
+   Responsive Adaptations
+   ========================================================================== */
+
+/* Tablet (Large to Intermediate: 68rem / 1088px to 80rem / 1280px) */
+@media (max-width: 78rem) {
+  .explorer-body-container {
+    grid-template-columns: minmax(15rem, 18fr) minmax(22rem, 32fr) minmax(24rem, 50fr);
+  }
+}
+
+/* Tablet (Intermediate: 48rem / 768px to 68rem / 1088px)
+   Hide sidebar into drawer trigger, display 2 columns: Results (45%) + Map (55%) */
+@media (max-width: 68rem) {
+  .explorer-body-container {
+    grid-template-columns: minmax(22rem, 45fr) minmax(24rem, 55fr);
+  }
+
+  .explorer-sidebar-pane {
+    display: none; /* Accessible via header "Filters" button & drawer */
+  }
+}
+
+/* Mobile (< 48rem / 768px)
+   Full-width single column toggled between Results and Map */
+@media (max-width: 48rem) {
+  .explorer-body-container {
+    grid-template-columns: 1fr;
+    height: calc(100vh - 4rem);
+    height: calc(100dvh - 4rem);
+  }
+
+  .explorer-sidebar-pane {
+    display: none;
+  }
+
+  .explorer-results-pane.mobile-hidden,
+  .explorer-map-pane.mobile-hidden {
+    display: none !important;
+  }
+
+  .explorer-results-pane,
+  .explorer-map-pane {
+    width: 100%;
+    height: 100%;
+  }
+}

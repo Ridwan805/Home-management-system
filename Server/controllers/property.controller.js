@@ -24,6 +24,11 @@ const getAllProperties = async (req, res) => {
       filter.listingType = req.query.listingType;
     }
 
+    // Add propertyType filter if provided
+    if (req.query.propertyType && req.query.propertyType !== 'all') {
+      filter.propertyType = req.query.propertyType;
+    }
+
     // Build additional filters using $and to combine multiple conditions properly
     const additionalFilters = [];
     
@@ -107,11 +112,20 @@ const getAllProperties = async (req, res) => {
       filter.$and = additionalFilters;
     }
     
+    let sortOptions = { createdAt: -1 };
+    if (req.query.sort === 'price_asc') {
+      sortOptions = { price: 1, 'pricing.rent': 1, 'pricing.sale': 1 };
+    } else if (req.query.sort === 'price_desc') {
+      sortOptions = { price: -1, 'pricing.rent': -1, 'pricing.sale': -1 };
+    } else if (req.query.sort === 'newest') {
+      sortOptions = { createdAt: -1 };
+    }
+
     const properties = await Property.find(filter)
       .populate('ownerUserId', 'firstName lastName email phoneNumber')
       .populate('currentRentId')
       .populate('buildingId', 'name address')
-      .sort({ createdAt: -1 });
+      .sort(sortOptions);
     
     res.json({
       success: true,

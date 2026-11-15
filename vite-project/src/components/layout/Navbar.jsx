@@ -27,11 +27,12 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [isHomePage]);
 
-  // Hide navbar on homepage, login and register pages, and dashboard routes
+  // Hide navbar on homepage, login and register pages, map discovery explorer, and dashboard routes
   if (
     location.pathname === '/' ||
     location.pathname === '/login' ||
     location.pathname === '/register' ||
+    location.pathname === '/properties' ||
     location.pathname.startsWith('/dashboard') ||
     location.pathname === '/create-listing' ||
     location.pathname.startsWith('/tenant') ||
