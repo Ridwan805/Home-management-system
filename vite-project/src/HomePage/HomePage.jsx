@@ -1,280 +1,245 @@
-import React, { useEffect, useState, useRef } from 'react';
-import './HomePage.css';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useEffect, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  FaSearch,
-  FaHome,
+  FaArrowRight,
+  FaChevronDown,
   FaBuilding,
+  FaUsers,
   FaCheckCircle,
-  FaShieldAlt,
-  FaKey,
   FaTree,
-  FaFileContract,
-  FaUserCheck,
-  FaTools,
-  FaArrowRight
+  FaShieldAlt,
+  FaCompass
 } from 'react-icons/fa';
-import apiConfig from '../config/api';
-import { PropertyCardSkeleton } from '../components/loading';
+import { AuthContext } from '../App';
+import './HomePage.css';
 
-// Assets from local assets directory
-import heroBg from '../assets/flats.jpg';
-import elevatorImg from '../assets/elevator.jpg';
+// Exact image assets as required
 import flatsImg from '../assets/flats.jpg';
+import elevatorImg from '../assets/elevator.jpg';
 import landscapeImg from '../assets/landscape.jpg';
-import openFieldImg from '../assets/open field.avif';
+import landscape2Img from '../assets/landscape2.jpg';
+import openFieldImg from '../assets/open field.jpg';
 import parkImg from '../assets/a park.jpg';
-import skylineImg from '../assets/landscape2.jpg';
 
 const HomePage = () => {
   const navigate = useNavigate();
-  const [recommended, setRecommended] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeIntent, setActiveIntent] = useState('all'); // 'all' | 'rent' | 'buy' | 'land'
+  const { isLoggedIn, userRole } = useContext(AuthContext);
 
-  // Scroll reveal observer
+  // Smooth scroll handler for hero explore indicator
+  const scrollTo = (id) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  // List property routing logic
+  const handleListProperty = () => {
+    if (!isLoggedIn) {
+      navigate('/login');
+    } else if (userRole === 'Owner') {
+      navigate('/create-listing');
+    } else {
+      navigate('/dashboard');
+    }
+  };
+
+  // Get started routing logic
+  const handleGetStarted = () => {
+    if (isLoggedIn) {
+      navigate('/dashboard');
+    } else {
+      navigate('/register');
+    }
+  };
+
+  // Scroll reveal observer & Overlapping scroll scaling
   useEffect(() => {
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const sections = document.querySelectorAll('.cinematic-section');
+
+    // 1. Entrance reveal observer for staggered entrance
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            entry.target.classList.add('is-visible');
+            entry.target.classList.add('is-revealed');
           }
         });
       },
-      {
-        threshold: 0.12,
-        rootMargin: '0px 0px -40px 0px'
-      }
+      { threshold: 0.15 }
     );
 
-    const revealElements = document.querySelectorAll('.scroll-reveal');
-    revealElements.forEach((el) => observer.observe(el));
+    sections.forEach((sec) => observer.observe(sec));
+
+    // If reduced motion is requested, stop here
+    if (prefersReduced) {
+      return () => {
+        sections.forEach((sec) => observer.unobserve(sec));
+      };
+    }
+
+    // 2. Cinematic overlapping scroll transforms (scales down and darkens outgoing sections)
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const vh = window.innerHeight || 1;
+          sections.forEach((sec, idx) => {
+            const nextSec = sections[idx + 1];
+            const bgImg = sec.querySelector('.section-bg-img');
+            const content = sec.querySelector('.section-content');
+
+            if (nextSec) {
+              const nextRect = nextSec.getBoundingClientRect();
+              // Progress: 0 (nextSec not visible) to 1 (nextSec fully covers sec)
+              const progress = Math.max(0, Math.min(1, 1 - (nextRect.top / vh)));
+
+              if (bgImg) {
+                const scale = 1 - (progress * 0.05); // 1.0 down to 0.95
+                const brightness = 1 - (progress * 0.35); // 1.0 down to 0.65
+                bgImg.style.transform = `scale(${scale})`;
+                bgImg.style.filter = `brightness(${brightness})`;
+              }
+
+              if (content) {
+                const opacity = Math.max(0, 1 - (progress * 1.25));
+                const translateY = -progress * 35;
+                content.style.opacity = `${opacity}`;
+                content.style.transform = `translateY(${translateY}px)`;
+              }
+            }
+          });
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
 
     return () => {
-      revealElements.forEach((el) => observer.unobserve(el));
+      sections.forEach((sec) => observer.unobserve(sec));
+      window.removeEventListener('scroll', handleScroll);
     };
-  }, [recommended, loading]);
-
-  // Fetch live properties from backend
-  const fetchTopProperties = async () => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-    try {
-      setLoading(true);
-      setError(null);
-      const url = apiConfig.getUrl(apiConfig.endpoints.topProperties);
-      const response = await fetch(url, {
-        signal: controller.signal,
-        headers: { Accept: 'application/json' }
-      });
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error(`Failed to load properties (${response.status}: ${response.statusText})`);
-      }
-      const data = await response.json();
-      const list = Array.isArray(data) ? data : (data?.properties || data?.data || []);
-      setRecommended(list);
-      setError(null);
-    } catch (err) {
-      console.error('Error fetching properties:', err);
-      const isTimeout = err.name === 'AbortError';
-      setError(
-        isTimeout
-          ? 'Connecting to cloud service took longer than expected. Please retry.'
-          : (err.message || 'Unable to load properties at this time.')
-      );
-      setRecommended([]);
-    } finally {
-      clearTimeout(timeoutId);
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchTopProperties();
   }, []);
 
-  // Handle Search Submission with Intent
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    const params = new URLSearchParams();
-    if (searchQuery.trim()) {
-      params.append('search', searchQuery.trim());
-    }
-    if (activeIntent === 'rent') {
-      params.append('listingType', 'For Rent');
-    } else if (activeIntent === 'buy') {
-      params.append('listingType', 'For Sale');
-    } else if (activeIntent === 'land') {
-      params.append('propertyType', 'land');
-    }
-    navigate(`/properties?${params.toString()}`);
-  };
-
   return (
-    <div className="dwellsync-home-wrapper">
+    <div className="dwellsync-cinematic-home">
       {/* =====================================================================
-          1. HERO SECTION (Full-Screen Immersive Canvas)
+          1. CINEMATIC HERO SECTION — flats.jpg
           ===================================================================== */}
-      <section
-        className="home-hero-section"
-        style={{ backgroundImage: `url(${heroBg})` }}
-      >
-        <div className="home-hero-overlay" />
+      <section id="hero" className="cinematic-section section-hero is-revealed">
+        <div className="section-bg-wrap">
+          <img
+            src={flatsImg}
+            alt="DwellSync luxury city apartments"
+            className="section-bg-img"
+            loading="eager"
+            fetchpriority="high"
+          />
+          <div className="section-overlay hero-overlay" />
+        </div>
 
-        <div className="home-hero-content scroll-reveal is-visible">
-          <div className="hero-pill-badge">
-            ✦ All-in-One Real Estate & Property Ecosystem
+        <div className="section-container hero-container">
+          <div className="section-content hero-content">
+            <span className="section-eyebrow hero-eyebrow">
+              ✦ ALL-IN-ONE REAL ESTATE ECOSYSTEM
+            </span>
+            <h1 className="hero-headline">
+              Your Property Journey <span className="text-gradient">Starts Here.</span>
+            </h1>
+            <p className="hero-supporting-text">
+              Discover beautiful apartments, find the perfect rental, explore land opportunities, and manage your properties effortlessly with DwellSync.
+            </p>
+            <div className="hero-cta-group">
+              <button
+                type="button"
+                className="btn-cinematic-primary"
+                onClick={() => navigate('/properties')}
+              >
+                Explore Properties <FaArrowRight className="btn-icon" />
+              </button>
+              <button
+                type="button"
+                className="btn-cinematic-glass"
+                onClick={handleListProperty}
+              >
+                List Your Property
+              </button>
+            </div>
           </div>
 
-          <h1 className="home-hero-title">
-            Smart Living, <span className="title-accent">Seamless</span> Property Management
-          </h1>
-
-          <p className="home-hero-desc">
-            Find move-in ready flats for rent, invest in luxury apartments, acquire verified land plots,
-            and manage tenancies, invoices, and operations—all from one intuitive digital platform.
-          </p>
-
-          {/* Interactive Search Card */}
-          <div className="hero-search-card">
-            <div className="search-intent-pills">
-              <button
-                type="button"
-                className={`intent-pill ${activeIntent === 'all' ? 'active' : ''}`}
-                onClick={() => setActiveIntent('all')}
-              >
-                All Properties
-              </button>
-              <button
-                type="button"
-                className={`intent-pill ${activeIntent === 'rent' ? 'active' : ''}`}
-                onClick={() => setActiveIntent('rent')}
-              >
-                Rent Flat
-              </button>
-              <button
-                type="button"
-                className={`intent-pill ${activeIntent === 'buy' ? 'active' : ''}`}
-                onClick={() => setActiveIntent('buy')}
-              >
-                Buy Apartment
-              </button>
-              <button
-                type="button"
-                className={`intent-pill ${activeIntent === 'land' ? 'active' : ''}`}
-                onClick={() => setActiveIntent('land')}
-              >
-                Land & Plots
-              </button>
-            </div>
-
-            <form onSubmit={handleSearchSubmit} className="search-form-row">
-              <div className="search-input-wrap">
-                <FaSearch className="search-input-icon" />
-                <input
-                  type="text"
-                  className="hero-main-search-input"
-                  placeholder="Enter neighborhood, city, address, or apartment type..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-              <button type="submit" className="hero-search-submit-btn">
-                Search Properties
-              </button>
-            </form>
-          </div>
-
-          {/* Primary Action Buttons */}
-          <div className="hero-cta-group">
-            <Link to="/properties" className="btn-hero-primary">
-              Browse Properties <FaArrowRight />
-            </Link>
-            <Link to="/dashboard/create-listing" className="btn-hero-glass">
-              List Your Property
-            </Link>
-          </div>
-
-          {/* Trust Highlights Ribbon */}
-          <div className="hero-stats-ribbon">
-            <div className="hero-stat-item">
-              <strong>500+</strong> Verified Listings
-            </div>
-            <div className="hero-stat-item">
-              <strong>৳0</strong> Hidden Charges
-            </div>
-            <div className="hero-stat-item">
-              <strong>100%</strong> Digital Invoicing
-            </div>
-            <div className="hero-stat-item">
-              <strong>24/7</strong> In-App Management
-            </div>
+          <div
+            className="hero-scroll-indicator"
+            onClick={() => scrollTo('about')}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === 'Enter' && scrollTo('about')}
+            aria-label="Scroll to explore"
+          >
+            <span className="scroll-text">Scroll to Explore</span>
+            <FaChevronDown className="scroll-chevron" />
           </div>
         </div>
       </section>
 
       {/* =====================================================================
-          2. ABOUT / INTRO SECTION (Elevator & Architectural Convenience)
+          2. ABOUT SECTION — elevator.jpg
           ===================================================================== */}
-      <section
-        className="home-about-section panel-overlapping"
-        style={{ backgroundImage: `url(${elevatorImg})` }}
-      >
-        <div className="about-backdrop-overlay" />
+      <section id="about" className="cinematic-section section-about">
+        <div className="section-bg-wrap">
+          <img
+            src={elevatorImg}
+            alt="Modern architectural living elevator"
+            className="section-bg-img"
+            loading="lazy"
+          />
+          <div className="section-overlay about-overlay" />
+        </div>
 
-        <div className="home-about-container">
-          <div className="about-glass-card scroll-reveal">
-            <div className="about-header-group">
+        <div className="section-container about-container">
+          <div className="section-content about-content">
+            <div className="about-glass-panel">
               <span className="section-eyebrow">ABOUT DWELLSYNC</span>
-              <h2 className="about-title">
-                Elevating Convenience, Modern Living & Seamless Operations
+              <h2 className="section-headline">
+                Elevating the Way <span className="text-gradient">You Live.</span>
               </h2>
-              <p className="about-desc">
-                From high-speed vertical living to automated monthly rent cycles, DwellSync bridges
-                the gap between property owners, tenants, renters, buyers, and security guards. We
-                replace messy paperwork, unverified brokers, and payment headaches with a streamlined,
-                intelligent real estate experience.
+              <p className="section-supporting-text">
+                DwellSync brings property discovery and management together in one seamless experience. Whether you're searching for your next home or managing multiple properties, everything you need is connected.
               </p>
-            </div>
 
-            <div className="about-pillars-grid">
-              <div className="about-pillar-card">
-                <div className="pillar-icon-box">
-                  <FaBuilding />
+              <div className="about-highlights-grid">
+                <div className="highlight-card">
+                  <div className="highlight-icon-box">
+                    <FaCompass />
+                  </div>
+                  <h3 className="highlight-title">Discover Properties</h3>
+                  <p className="highlight-desc">
+                    Explore curated rental flats, modern residential apartments, and verified plots with clear details and pricing.
+                  </p>
                 </div>
-                <h3>Unified Tenancy Management</h3>
-                <p>
-                  Centralized tenant directories, digital lease agreements, automated monthly invoicing,
-                  and verified online or cash rent tracking with audit receipts.
-                </p>
-              </div>
 
-              <div className="about-pillar-card">
-                <div className="pillar-icon-box">
-                  <FaKey />
+                <div className="highlight-card">
+                  <div className="highlight-icon-box">
+                    <FaBuilding />
+                  </div>
+                  <h3 className="highlight-title">Manage Your Rentals</h3>
+                  <p className="highlight-desc">
+                    Simplify tenant workflows, automate invoicing, track payments, and resolve maintenance tickets from one portal.
+                  </p>
                 </div>
-                <h3>Verified Flat & Land Sales</h3>
-                <p>
-                  Explore transparent property ownership transfers with comprehensive legal title records,
-                  precise square footage, and direct verified owner communication.
-                </p>
-              </div>
 
-              <div className="about-pillar-card">
-                <div className="pillar-icon-box">
-                  <FaShieldAlt />
+                <div className="highlight-card">
+                  <div className="highlight-icon-box">
+                    <FaUsers />
+                  </div>
+                  <h3 className="highlight-title">Stay Connected</h3>
+                  <p className="highlight-desc">
+                    Foster direct communication between owners, tenants, and staff with official notice dispatch and message trails.
+                  </p>
                 </div>
-                <h3>Security & Service Integration</h3>
-                <p>
-                  Integrated visitor logging, parcel tracking, maintenance ticket tracking, and official
-                  notice dispatch across all building properties.
-                </p>
               </div>
             </div>
           </div>
@@ -282,262 +247,221 @@ const HomePage = () => {
       </section>
 
       {/* =====================================================================
-          3. SERVICE STORY SECTIONS (Alternating Visual Storytelling)
+          3. FLAT RENTALS SECTION — landscape.jpg
           ===================================================================== */}
-      <section className="home-story-wrapper panel-overlapping">
-        <div className="story-container">
-          {/* Story 1: Flat Renting */}
-          <div className="story-row scroll-reveal">
-            <div className="story-text-col">
-              <span className="story-tag-pill blue">Residential Rentals</span>
-              <h2 className="story-heading">
-                Find Your Ideal Rental Flat Without the Broker Hassle
-              </h2>
-              <p className="story-paragraph">
-                Browse hand-picked apartments, studios, and multi-bedroom flats in prime residential
-                neighborhoods. Inspect high-resolution photos, verified monthly rents, floor levels,
-                and advance deposit terms before taking a tour.
-              </p>
-              <ul className="story-feature-list">
-                <li>
-                  <FaCheckCircle className="story-check-icon" /> Verified landlord identities & real photos
-                </li>
-                <li>
-                  <FaCheckCircle className="story-check-icon" /> Transparent advance payment & lease terms
-                </li>
-                <li>
-                  <FaCheckCircle className="story-check-icon" /> Secure digital payments with automated invoices
-                </li>
-              </ul>
+      <section id="rentals" className="cinematic-section section-rentals">
+        <div className="section-bg-wrap">
+          <img
+            src={landscapeImg}
+            alt="Scenic residential apartments for rent"
+            className="section-bg-img"
+            loading="lazy"
+          />
+          <div className="section-overlay rentals-overlay" />
+        </div>
+
+        <div className="section-container align-left">
+          <div className="section-content story-glass-card">
+            <span className="section-eyebrow tag-blue">RESIDENTIAL RENTALS</span>
+            <h2 className="section-headline">
+              Find a Place to <span className="text-gradient">Call Home.</span>
+            </h2>
+            <p className="section-supporting-text">
+              Explore rental apartments across your preferred locations. Compare properties, discover available spaces, and find a home that matches your lifestyle and budget.
+            </p>
+
+            <ul className="story-specs-list">
+              <li>
+                <FaCheckCircle className="spec-icon" />
+                <span>Move-in ready apartments & studios across prime neighborhoods</span>
+              </li>
+              <li>
+                <FaCheckCircle className="spec-icon" />
+                <span>Transparent monthly rent, advance deposit, and lease terms</span>
+              </li>
+              <li>
+                <FaCheckCircle className="spec-icon" />
+                <span>Direct inquiries with property owners—no broker runarounds</span>
+              </li>
+            </ul>
+
+            <div className="story-cta-wrap">
               <button
-                className="btn-story-cta"
+                type="button"
+                className="btn-cinematic-primary"
                 onClick={() => navigate('/properties?listingType=For%20Rent')}
               >
-                Explore Rentals <FaArrowRight />
+                Explore Rentals <FaArrowRight className="btn-icon" />
               </button>
             </div>
-
-            <div className="story-visual-col">
-              <div className="story-image-card">
-                <img src={flatsImg} alt="Modern flats for rent" />
-                <div className="story-floating-badge">
-                  🏢 100% Verified Rental Units
-                </div>
-              </div>
-            </div>
           </div>
+        </div>
+      </section>
 
-          {/* Story 2: Flat Buying (Reversed) */}
-          <div className="story-row reversed scroll-reveal">
-            <div className="story-text-col">
-              <span className="story-tag-pill emerald">Home Ownership</span>
-              <h2 className="story-heading">
-                Invest in Your Permanent Home with Complete Transparency
-              </h2>
-              <p className="story-paragraph">
-                Discover contemporary family apartments, penthouses, and duplexes ready for purchase.
-                Review detailed building specifications, square footage, neighborhood amenities,
-                and legal ownership transfer trails directly on DwellSync.
-              </p>
-              <ul className="story-feature-list">
-                <li>
-                  <FaCheckCircle className="story-check-icon" /> Verified ownership transfer records
-                </li>
-                <li>
-                  <FaCheckCircle className="story-check-icon" /> Clear breakdown of purchase price & dues
-                </li>
-                <li>
-                  <FaCheckCircle className="story-check-icon" /> Direct inquiry & application workflow
-                </li>
-              </ul>
+      {/* =====================================================================
+          4. APARTMENT BUYING SECTION — landscape2.jpg
+          ===================================================================== */}
+      <section id="buying" className="cinematic-section section-buying">
+        <div className="section-bg-wrap">
+          <img
+            src={landscape2Img}
+            alt="Contemporary city skyline and premium apartments"
+            className="section-bg-img"
+            loading="lazy"
+          />
+          <div className="section-overlay buying-overlay" />
+        </div>
+
+        <div className="section-container align-right">
+          <div className="section-content story-glass-card">
+            <span className="section-eyebrow tag-emerald">PERMANENT RESIDENCES</span>
+            <h2 className="section-headline">
+              Own the Space <span className="text-gradient">You Deserve.</span>
+            </h2>
+            <p className="section-supporting-text">
+              Discover apartments and residential properties designed for your future. Explore locations, compare listings, and take the next step toward owning your ideal home.
+            </p>
+
+            <ul className="story-specs-list">
+              <li>
+                <FaCheckCircle className="spec-icon" />
+                <span>Premium multi-bedroom flats, penthouses, and family duplexes</span>
+              </li>
+              <li>
+                <FaCheckCircle className="spec-icon" />
+                <span>Verified building specifications, floor plans, and square footage</span>
+              </li>
+              <li>
+                <FaCheckCircle className="spec-icon" />
+                <span>Transparent purchase pricing with direct owner negotiation</span>
+              </li>
+            </ul>
+
+            <div className="story-cta-wrap">
               <button
-                className="btn-story-cta"
+                type="button"
+                className="btn-cinematic-primary"
                 onClick={() => navigate('/properties?listingType=For%20Sale')}
               >
-                View Apartments <FaArrowRight />
+                Explore Apartments for Sale <FaArrowRight className="btn-icon" />
               </button>
-            </div>
-
-            <div className="story-visual-col">
-              <div className="story-image-card">
-                <img src={landscapeImg} alt="Contemporary apartment buildings" />
-                <div className="story-floating-badge">
-                  🏠 Verified Ownership Records
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Story 3: Land Buying & Land Rent */}
-          <div className="story-row scroll-reveal">
-            <div className="story-text-col">
-              <span className="story-tag-pill amber">Land & Development</span>
-              <h2 className="story-heading">
-                Prime Land Plots for Lease, Commercial & Residential Use
-              </h2>
-              <p className="story-paragraph">
-                Explore demarcated plots, commercial acreage, and residential building land.
-                Whether you are planning to build your custom residence or secure agricultural
-                and commercial land leases, find verified plots mapped with geolocation accuracy.
-              </p>
-              <ul className="story-feature-list">
-                <li>
-                  <FaCheckCircle className="story-check-icon" /> Geolocation-mapped plot coordinates
-                </li>
-                <li>
-                  <FaCheckCircle className="story-check-icon" /> Clear demarcation & zoning specifications
-                </li>
-                <li>
-                  <FaCheckCircle className="story-check-icon" /> Direct communication with verified plot owners
-                </li>
-              </ul>
-              <button
-                className="btn-story-cta"
-                onClick={() => navigate('/properties?propertyType=land')}
-              >
-                Browse Land Listings <FaArrowRight />
-              </button>
-            </div>
-
-            <div className="story-visual-col">
-              <div className="story-image-card">
-                <img src={openFieldImg} alt="Prime land and open plots" />
-                <div className="story-floating-badge">
-                  🌾 Verified Land Demarcations
-                </div>
-              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* =====================================================================
-          4. FEATURED PROPERTIES (Live Database Listings)
+          5. LAND BUYING AND RENTING SECTION — open field.jpg
           ===================================================================== */}
-      <section className="home-featured-section panel-overlapping">
-        <div className="featured-container">
-          <div className="featured-section-header scroll-reveal">
-            <span className="section-eyebrow">CURATED SELECTION</span>
-            <h2 className="featured-section-title">Featured Property Listings</h2>
-            <p className="featured-section-subtitle">
-              Explore freshly verified homes, rental flats, and plots available across prime locations.
+      <section id="land" className="cinematic-section section-land">
+        <div className="section-bg-wrap">
+          <img
+            src={openFieldImg}
+            alt="Scenic expansive open land plot"
+            className="section-bg-img"
+            loading="lazy"
+          />
+          <div className="section-overlay land-overlay" />
+        </div>
+
+        <div className="section-container align-left">
+          <div className="section-content story-glass-card">
+            <span className="section-eyebrow tag-amber">LAND & DEVELOPMENT</span>
+            <h2 className="section-headline">
+              Build Your Future <span className="text-gradient">From the Ground Up.</span>
+            </h2>
+            <p className="section-supporting-text">
+              Discover land opportunities for residential, commercial, or long-term investment purposes. Explore available land for purchase or rent in locations that suit your plans.
             </p>
-          </div>
 
-          {loading ? (
-            <div className="featured-grid">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <PropertyCardSkeleton key={`home-skel-${i}`} />
-              ))}
-            </div>
-          ) : error ? (
-            <div style={{ textAlign: 'center', padding: '40px 20px', background: '#FFFFFF', borderRadius: '16px', border: '1px solid #FCA5A5' }}>
-              <p style={{ margin: '0 0 16px 0', color: '#DC2626', fontWeight: 600 }}>⚠️ {error}</p>
-              <button className="btn-hero-primary" onClick={fetchTopProperties} style={{ fontSize: '0.9rem', padding: '10px 20px' }}>
-                Try Again
+            <ul className="story-specs-list">
+              <li>
+                <FaCheckCircle className="spec-icon" />
+                <span>Demarcated plots with verified boundaries and acreage details</span>
+              </li>
+              <li>
+                <FaCheckCircle className="spec-icon" />
+                <span>Opportunities zoned for commercial development or custom residential build</span>
+              </li>
+              <li>
+                <FaCheckCircle className="spec-icon" />
+                <span>Flexible arrangements for outright purchase or long-term lease</span>
+              </li>
+            </ul>
+
+            <div className="story-button-row">
+              <button
+                type="button"
+                className="btn-cinematic-primary"
+                onClick={() => navigate('/properties?listingType=For%20Sale&search=land')}
+              >
+                Buy Land <FaArrowRight className="btn-icon" />
+              </button>
+              <button
+                type="button"
+                className="btn-cinematic-glass"
+                onClick={() => navigate('/properties?listingType=For%20Rent&search=land')}
+              >
+                Rent Land
               </button>
             </div>
-          ) : recommended.length > 0 ? (
-            <div className="featured-grid">
-              {recommended.slice(0, 3).map((prop) => {
-                const imgUrl = apiConfig.getImageUrl(prop.images?.[0] || prop.media?.images?.[0]?.url) || flatsImg;
-                const price = prop.price ? `৳${prop.price.toLocaleString()}` : (prop.pricing?.monthlyRent ? `৳${prop.pricing.monthlyRent.toLocaleString()} / mo` : 'Price on request');
-
-                return (
-                  <div
-                    className="property-live-card scroll-reveal"
-                    key={prop._id}
-                    onClick={() => navigate(`/properties/${prop._id}`)}
-                  >
-                    <div className="property-card-img-wrap">
-                      <img src={imgUrl} alt={prop.title || prop.address} loading="lazy" />
-                      <span className="property-card-type-tag">
-                        {prop.listingType || 'For Rent'}
-                      </span>
-                    </div>
-
-                    <div className="property-card-body">
-                      <h3 className="property-card-price">{price}</h3>
-                      <div className="property-card-specs">
-                        <span><strong>{prop.specifications?.bedrooms || 2}</strong> Beds</span> &bull;
-                        <span><strong>{prop.specifications?.bathrooms || 2}</strong> Baths</span> &bull;
-                        <span><strong>{prop.specifications?.squareFootage || 1200}</strong> sqft</span>
-                      </div>
-                      <p className="property-card-address">
-                        {prop.title ? `${prop.title} - ` : ''}{prop.address}
-                      </p>
-                      <div className="property-card-footer">
-                        <span>{prop.city || 'Dhaka'}</span>
-                        <span>View Details →</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '48px 20px', background: '#FFFFFF', borderRadius: '16px', border: '1px dashed #CBD5E1' }}>
-              <p style={{ color: '#64748B', fontSize: '1.05rem', margin: '0 0 16px 0' }}>No active properties listed yet.</p>
-              <Link to="/properties" className="btn-hero-primary" style={{ fontSize: '0.925rem', padding: '10px 20px' }}>
-                Browse All Properties
-              </Link>
-            </div>
-          )}
-
-          <div className="featured-cta-wrap scroll-reveal">
-            <Link to="/properties" className="btn-hero-primary">
-              View All Properties <FaArrowRight />
-            </Link>
           </div>
         </div>
       </section>
 
       {/* =====================================================================
-          5. LIFESTYLE / TRUST SECTION (Park, Serenity, Peace of Mind)
+          6. LIFESTYLE AND COMMUNITY SECTION — a park.jpg
           ===================================================================== */}
-      <section
-        className="home-lifestyle-section panel-overlapping"
-        style={{ backgroundImage: `url(${parkImg})` }}
-      >
-        <div className="lifestyle-backdrop-overlay" />
+      <section id="lifestyle" className="cinematic-section section-lifestyle">
+        <div className="section-bg-wrap">
+          <img
+            src={parkImg}
+            alt="Tranquil park with lush green trees"
+            className="section-bg-img"
+            loading="lazy"
+          />
+          <div className="section-overlay lifestyle-overlay" />
+        </div>
 
-        <div className="lifestyle-container">
-          <div className="lifestyle-card scroll-reveal">
-            <div className="lifestyle-header-group">
-              <span className="section-eyebrow">LIFESTYLE & PEACE OF MIND</span>
-              <h2 className="lifestyle-title">
-                Live in Harmony, Backed by Uncompromised Trust
-              </h2>
-              <p className="lifestyle-desc">
-                A home is more than square footage—it is your everyday sanctuary. DwellSync connects you
-                with peaceful communities, green spaces, verified owners, and transparent digital contracts,
-                ensuring your property journey is grounded in security and peace of mind.
-              </p>
-            </div>
+        <div className="section-container align-center">
+          <div className="section-content lifestyle-panel">
+            <span className="section-eyebrow tag-green">LIFESTYLE & COMMUNITY</span>
+            <h2 className="section-headline">
+              More Than a Home. <span className="text-gradient">A Better Way to Live.</span>
+            </h2>
+            <p className="section-supporting-text centered-text">
+              Finding the right property is about more than walls and rooms. It's about comfort, convenience, community, and choosing a place where life can flourish.
+            </p>
 
-            <div className="lifestyle-trust-grid">
-              <div className="trust-item">
-                <div className="trust-icon-box">🛡️</div>
-                <h4>Verified Ownership</h4>
-                <p>Every listed flat and land parcel is verified with authentic ownership records.</p>
+            <div className="lifestyle-benefits-grid">
+              <div className="benefit-card">
+                <div className="benefit-icon-box">
+                  <FaTree />
+                </div>
+                <h3 className="benefit-title">Comfortable Living</h3>
+                <p className="benefit-desc">
+                  Thoughtfully planned residential environments surrounded by open spaces and peaceful greenery.
+                </p>
               </div>
 
-              <div className="trust-item">
-                <div className="trust-icon-box">📜</div>
-                <h4>Digital Contracts</h4>
-                <p>Formal digital lease agreements and instant automated payment receipts.</p>
+              <div className="benefit-card">
+                <div className="benefit-icon-box">
+                  <FaUsers />
+                </div>
+                <h3 className="benefit-title">Connected Communities</h3>
+                <p className="benefit-desc">
+                  Neighborhoods close to essential schools, medical facilities, transport links, and active communities.
+                </p>
               </div>
 
-              <div className="trust-item">
-                <div className="trust-icon-box">🌳</div>
-                <h4>Serene Neighborhoods</h4>
-                <p>Discover homes situated near lush parks, clean roads, and peaceful environments.</p>
-              </div>
-
-              <div className="trust-item">
-                <div className="trust-icon-box">⚡</div>
-                <h4>Rapid Maintenance</h4>
-                <p>In-app problem reporting connects tenants directly to property owners in minutes.</p>
+              <div className="benefit-card">
+                <div className="benefit-icon-box">
+                  <FaShieldAlt />
+                </div>
+                <h3 className="benefit-title">Simplified Management</h3>
+                <p className="benefit-desc">
+                  Digital payment processing, organized tenancy records, and prompt maintenance support in one app.
+                </p>
               </div>
             </div>
           </div>
@@ -545,38 +469,45 @@ const HomePage = () => {
       </section>
 
       {/* =====================================================================
-          6. FINAL CTA SECTION (Clean City Skyline Background)
+          7. FINAL CALL TO ACTION SECTION — landscape2.jpg
           ===================================================================== */}
-      <section
-        className="home-final-cta-section panel-overlapping"
-        style={{ backgroundImage: `url(${skylineImg})` }}
-      >
-        <div className="cta-backdrop-overlay" />
+      <section id="cta" className="cinematic-section section-cta">
+        <div className="section-bg-wrap">
+          <img
+            src={landscape2Img}
+            alt="City skyline at dusk"
+            className="section-bg-img"
+            loading="lazy"
+          />
+          <div className="section-overlay cta-overlay" />
+        </div>
 
-        <div className="cta-container scroll-reveal">
-          <span className="hero-pill-badge" style={{ marginBottom: '18px' }}>
-            ✦ Get Started with DwellSync
-          </span>
+        <div className="section-container align-center">
+          <div className="section-content cta-panel">
+            <span className="section-eyebrow">START TODAY</span>
+            <h2 className="section-headline cta-headline">
+              Your Next Chapter Begins with <span className="text-gradient">DwellSync.</span>
+            </h2>
+            <p className="section-supporting-text centered-text cta-subtext">
+              Explore properties, discover new opportunities, or list your space with a platform built to make property management simpler.
+            </p>
 
-          <h2 className="cta-heading">
-            Ready to Experience Seamless Property Living?
-          </h2>
-
-          <p className="cta-description">
-            Join thousands of property owners, tenants, buyers, and renters who have simplified their
-            real estate journey with DwellSync. Discover verified homes or manage your portfolio today.
-          </p>
-
-          <div className="cta-actions">
-            <Link to="/properties" className="btn-hero-primary">
-              Browse Properties <FaArrowRight />
-            </Link>
-            <Link to="/dashboard/create-listing" className="btn-hero-glass">
-              List Your Property
-            </Link>
-            <Link to="/login" className="btn-hero-glass">
-              Sign In to Portal
-            </Link>
+            <div className="cta-button-group">
+              <button
+                type="button"
+                className="btn-cinematic-primary"
+                onClick={() => navigate('/properties')}
+              >
+                Browse Properties <FaArrowRight className="btn-icon" />
+              </button>
+              <button
+                type="button"
+                className="btn-cinematic-glass"
+                onClick={handleGetStarted}
+              >
+                Get Started
+              </button>
+            </div>
           </div>
         </div>
       </section>

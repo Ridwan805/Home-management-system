@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FaBuilding } from 'react-icons/fa';
 import './Navbar.css';
@@ -8,6 +8,24 @@ const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { isLoggedIn, logout, setPopupMessage, userRole } = useContext(AuthContext);
+
+  const isHomePage = location.pathname === '/';
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    if (!isHomePage) {
+      setIsScrolled(true);
+      return;
+    }
+
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 40);
+    };
+
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isHomePage]);
 
   // Hide navbar on login and register pages and dashboard routes
   if (
@@ -45,7 +63,7 @@ const Navbar = () => {
   const isPropertiesActive = location.pathname === '/properties' && !location.search;
 
   return (
-    <nav className="navbar">
+    <nav className={`navbar ${isHomePage ? 'navbar-homepage' : ''} ${isHomePage ? (isScrolled ? 'navbar-scrolled' : 'navbar-transparent') : ''}`}>
       <div className="navbar-container">
         {/* Brand Logo */}
         <div className="navbar-logo">
