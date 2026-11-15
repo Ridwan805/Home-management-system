@@ -104,10 +104,10 @@
 
 .section-bg-img {
   position: absolute;
-  /* 1.25rem overscan prevents blur edge-bleed artifacts without artificial scale distortion */
-  inset: -1.25rem;
-  width: calc(100% + 2.5rem);
-  height: calc(100% + 2.5rem);
+  /* 3rem overscan prevents blur edge-bleed artifacts during 1.25rem Gaussian defocus */
+  inset: -3rem;
+  width: calc(100% + 6rem);
+  height: calc(100% + 6rem);
   max-width: none;
   object-fit: cover;
   object-position: center;
@@ -120,52 +120,119 @@
   transition: none;
 }
 
-/* Section-specific resting background image Gaussian blur (0rem - 0.0625rem) & framing */
+/* Section-specific resting background image Gaussian blur (0.25rem) & framing */
+.hero-bg-img,
+.about-bg-img,
+.rentals-bg-img,
+.buying-bg-img,
+.land-bg-img,
+.lifestyle-bg-img,
+.cta-bg-img {
+  filter: blur(0.25rem);
+}
+
 .hero-bg-img {
   object-position: center 30%;
-  filter: blur(0.0625rem);
 }
 
-.about-bg-img {
-  object-position: center center;
-  filter: blur(0.0625rem);
-}
-
-.rentals-bg-img {
-  object-position: center center;
-  filter: blur(0rem);
-}
-
-.buying-bg-img {
-  object-position: center center;
-  filter: blur(0rem);
-}
-
-.land-bg-img {
-  object-position: center center;
-  filter: blur(0rem);
-}
-
-.lifestyle-bg-img {
-  object-position: center center;
-  filter: blur(0rem);
-}
-
+.about-bg-img,
+.rentals-bg-img,
+.buying-bg-img,
+.land-bg-img,
+.lifestyle-bg-img,
 .cta-bg-img {
   object-position: center center;
-  filter: blur(0.0625rem);
 }
 
 @media (max-width: 48rem) {
   .section-bg-img {
-    inset: -0.75rem;
-    width: calc(100% + 1.5rem);
-    height: calc(100% + 1.5rem);
+    inset: -1.75rem;
+    width: calc(100% + 3.5rem);
+    height: calc(100% + 3.5rem);
   }
 
   .hero-bg-img {
     object-position: center 25%;
   }
+}
+
+/* --- Cinematic Bokeh Optical Highlight Diffusion Layers --- */
+.section-bokeh-layer {
+  position: absolute;
+  inset: -3rem;
+  width: calc(100% + 6rem);
+  height: calc(100% + 6rem);
+  pointer-events: none;
+  z-index: 2;
+  mix-blend-mode: screen;
+  opacity: 0.55;
+  filter: blur(0.125rem);
+  transform: translateZ(0);
+  will-change: transform, opacity, filter;
+  transition: none;
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
+}
+
+@media (max-width: 48rem) {
+  .section-bokeh-layer {
+    inset: -1.75rem;
+    width: calc(100% + 3.5rem);
+    height: calc(100% + 3.5rem);
+    opacity: 0.45;
+  }
+}
+
+/* 1. Hero: Soft daylight skylight & architectural glass bloom */
+.hero-bokeh {
+  background:
+    radial-gradient(ellipse 65% 45% at 50% 16%, rgba(210, 235, 255, 0.28) 0%, rgba(180, 220, 250, 0.08) 50%, transparent 80%),
+    radial-gradient(circle 32% at 76% 30%, rgba(240, 245, 255, 0.18) 0%, transparent 65%),
+    radial-gradient(circle 24% at 24% 34%, rgba(230, 240, 255, 0.14) 0%, transparent 60%);
+}
+
+/* 2. About: Elevator atrium glass light shaft & ambient ceiling fixtures */
+.about-bokeh {
+  background:
+    radial-gradient(circle 38% at 50% 28%, rgba(255, 248, 235, 0.25) 0%, rgba(255, 240, 215, 0.07) 50%, transparent 75%),
+    radial-gradient(ellipse 45% 65% at 50% 72%, rgba(240, 245, 255, 0.16) 0%, transparent 70%);
+}
+
+/* 3. Flat Rentals: City lake water specular reflections & skyline glow */
+.rentals-bokeh {
+  background:
+    radial-gradient(ellipse 52% 38% at 54% 56%, rgba(185, 225, 255, 0.32) 0%, rgba(150, 205, 250, 0.10) 50%, transparent 78%),
+    radial-gradient(ellipse 70% 28% at 48% 20%, rgba(210, 235, 255, 0.22) 0%, transparent 70%),
+    radial-gradient(circle 22% at 30% 64%, rgba(200, 235, 255, 0.16) 0%, transparent 60%);
+}
+
+/* 4. Flat Buying: Sunset golden sun disc & warm twilight horizon bloom */
+.buying-bokeh {
+  background:
+    radial-gradient(circle 24% at 46% 76%, rgba(255, 225, 160, 0.48) 0%, rgba(255, 185, 95, 0.25) 38%, rgba(255, 140, 50, 0.09) 65%, transparent 80%),
+    radial-gradient(ellipse 85% 45% at 50% 80%, rgba(255, 160, 70, 0.26) 0%, rgba(220, 110, 40, 0.08) 55%, transparent 80%),
+    radial-gradient(circle 28% at 30% 72%, rgba(255, 200, 130, 0.18) 0%, transparent 65%);
+}
+
+/* 5. Land Buying/Renting: Wide open meadow sky & soft horizon diffusion */
+.land-bokeh {
+  background:
+    radial-gradient(ellipse 90% 48% at 50% 16%, rgba(235, 248, 255, 0.30) 0%, rgba(215, 240, 250, 0.10) 55%, transparent 85%),
+    radial-gradient(circle 35% at 65% 28%, rgba(245, 252, 255, 0.18) 0%, transparent 70%);
+}
+
+/* 6. Lifestyle: Dappled sunlight circular patches through lush tree canopy */
+.lifestyle-bokeh {
+  background:
+    radial-gradient(circle 28% at 64% 26%, rgba(255, 250, 215, 0.35) 0%, rgba(255, 245, 195, 0.12) 45%, transparent 70%),
+    radial-gradient(circle 20% at 34% 35%, rgba(255, 248, 210, 0.26) 0%, rgba(255, 240, 180, 0.08) 50%, transparent 65%),
+    radial-gradient(circle 24% at 50% 42%, rgba(255, 252, 230, 0.20) 0%, transparent 60%);
+}
+
+/* 7. Final CTA: Twilight skyline glow */
+.cta-bokeh {
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 25%, rgba(195, 225, 255, 0.24) 0%, rgba(160, 200, 245, 0.07) 50%, transparent 75%);
 }
 
 /* --- Section Overlays --- */
@@ -174,7 +241,7 @@
   inset: 0;
   width: 100%;
   height: 100%;
-  z-index: 2;
+  z-index: 3;
   border-top-left-radius: inherit;
   border-top-right-radius: inherit;
 }

@@ -81,26 +81,36 @@ const HomePage = () => {
 
     sections.forEach((sec) => observer.observe(sec));
 
-    // If reduced motion is requested, stop here
+    // If reduced motion is requested, apply subtle resting blur and avoid scroll transforms
     if (prefersReduced) {
+      sections.forEach((sec) => {
+        const bgImg = sec.querySelector('.section-bg-img');
+        const bokehLayer = sec.querySelector('.section-bokeh-layer');
+        const baseBlur = SECTION_BASE_BLUR[sec.id] ?? 0.25;
+        if (bgImg) bgImg.style.filter = `blur(${baseBlur}rem)`;
+        if (bokehLayer) {
+          bokehLayer.style.opacity = '0.55';
+          bokehLayer.style.filter = 'blur(0.125rem)';
+        }
+      });
       return () => {
         sections.forEach((sec) => observer.unobserve(sec));
       };
     }
 
     // Section base Gaussian blur map (in rem units)
-    // Section 3 requirements:
-    // - Active section background: 0rem to 0.125rem blur (subtle resting blur)
-    // - Outgoing section background: gradually increase to approximately 0.375rem
-    // - Do not blur the incoming section (resting blur 0rem)
+    // Section requirements:
+    // - Active section background: blur(0.25rem) (resting cinematic bokeh defocus)
+    // - Transitioning section background: smoothly increases to 0.75rem - 1.25rem
+    // - Outgoing highlights expand into soft circular bokeh blooms
     const SECTION_BASE_BLUR = {
-      hero: 0.0625,
-      about: 0.0625,
-      rentals: 0,
-      buying: 0,
-      land: 0,
-      lifestyle: 0,
-      cta: 0.0625
+      hero: 0.25,
+      about: 0.25,
+      rentals: 0.25,
+      buying: 0.25,
+      land: 0.25,
+      lifestyle: 0.25,
+      cta: 0.25
     };
 
     // 2. Cinematic overlapping scroll transitions with background defocus & depth-of-field
@@ -114,14 +124,20 @@ const HomePage = () => {
           sections.forEach((sec, idx) => {
             const nextSec = sections[idx + 1];
             const bgImg = sec.querySelector('.section-bg-img');
+            const bokehLayer = sec.querySelector('.section-bokeh-layer');
             const content = sec.querySelector('.section-content');
-            const baseBlur = SECTION_BASE_BLUR[sec.id] ?? 0;
+            const baseBlur = SECTION_BASE_BLUR[sec.id] ?? 0.25;
 
             if (isMobile) {
               // On mobile, ensure stable natural scrolling without sticky transform conflicts
               if (bgImg) {
                 bgImg.style.transform = 'none';
-                bgImg.style.filter = baseBlur > 0 ? `blur(${baseBlur}rem)` : 'none';
+                bgImg.style.filter = `blur(${baseBlur}rem)`;
+              }
+              if (bokehLayer) {
+                bokehLayer.style.transform = 'none';
+                bokehLayer.style.opacity = '0.55';
+                bokehLayer.style.filter = 'blur(0.125rem)';
               }
               if (content) {
                 content.style.transform = 'none';
@@ -163,28 +179,47 @@ const HomePage = () => {
                 sec.style.borderTopRightRadius = secTop <= 1 ? '0' : '2rem';
               }
 
-              // 2. Photographic Background Layer Defocus & Darkening
+              // 2. Photographic Background Layer Defocus & Optical Bokeh Bloom
               if (bgImg) {
                 if (progress > 0.005) {
-                  // Gradually increase blur up to 0.375rem as section transitions out
-                  const maxBlur = 0.375;
+                  // Gradually increase blur up to 1.0625rem (within 0.75rem - 1.25rem range)
+                  const maxBlur = 1.0625;
                   const currentBlur = (baseBlur + (progress * (maxBlur - baseBlur))).toFixed(4);
-                  // Slightly darken outgoing section (1.0 down to 0.75)
-                  const brightness = (1 - (progress * 0.25)).toFixed(3);
-                  // Subtle recession scale (1.0 down to 0.98)
-                  const scale = (1 - (progress * 0.02)).toFixed(4);
+                  // Soft, gentle brightness reduction (1.0 down to 0.82) - avoids excessive darkening
+                  const brightness = (1 - (progress * 0.18)).toFixed(3);
+                  // Subtle contrast & saturation preservation for rich, dreamy photographic color depth
+                  const contrast = (1 + (progress * 0.06)).toFixed(3);
+                  const saturate = (1 + (progress * 0.08)).toFixed(3);
+                  // Subtle recession scale (1.0 down to 0.985)
+                  const scale = (1 - (progress * 0.015)).toFixed(4);
 
                   bgImg.style.transform = `scale(${scale}) translateZ(0)`;
                   bgImg.style.transformOrigin = 'center center';
-                  bgImg.style.filter = `blur(${currentBlur}rem) brightness(${brightness})`;
+                  bgImg.style.filter = `blur(${currentBlur}rem) brightness(${brightness}) contrast(${contrast}) saturate(${saturate})`;
                 } else {
-                  // Reset to resting state with subtle resting blur (or none)
+                  // Reset to resting state with subtle resting blur (0.25rem)
                   bgImg.style.transform = 'translateZ(0)';
-                  bgImg.style.filter = baseBlur > 0 ? `blur(${baseBlur}rem) brightness(1)` : 'none';
+                  bgImg.style.filter = `blur(${baseBlur}rem) brightness(1) contrast(1) saturate(1)`;
                 }
               }
 
-              // 3. Content Layer: STABLE vertical positioning (NO translateY drift)
+              // 3. Bokeh Optical Highlight Layer: expands natural light into soft circular highlights
+              if (bokehLayer) {
+                if (progress > 0.005) {
+                  const bokehScale = (1 + (progress * 0.08)).toFixed(4);
+                  const bokehOpacity = (0.55 + (progress * 0.3)).toFixed(3);
+                  const bokehBlur = (0.125 + (progress * 0.5)).toFixed(4);
+                  bokehLayer.style.transform = `scale(${bokehScale}) translateZ(0)`;
+                  bokehLayer.style.opacity = `${bokehOpacity}`;
+                  bokehLayer.style.filter = `blur(${bokehBlur}rem)`;
+                } else {
+                  bokehLayer.style.transform = 'translateZ(0)';
+                  bokehLayer.style.opacity = '0.55';
+                  bokehLayer.style.filter = 'blur(0.125rem)';
+                }
+              }
+
+              // 4. Content Layer: STABLE vertical positioning (NO translateY drift)
               // Only gently reduce prominence via opacity as the next section covers it
               if (content) {
                 if (progress > 0.005) {
@@ -199,7 +234,7 @@ const HomePage = () => {
                 }
               }
 
-              // 4. Affordability Section background subtle dimming
+              // 5. Affordability Section background subtle dimming
               if (sec.id === 'affordability') {
                 if (progress > 0.005) {
                   sec.style.filter = `brightness(${(1 - (progress * 0.12)).toFixed(3)})`;
@@ -208,7 +243,7 @@ const HomePage = () => {
                 }
               }
 
-              // 5. Click-interception prevention: disable pointer events when heavily covered
+              // 6. Click-interception prevention: disable pointer events when heavily covered
               if (progress > 0.85) {
                 sec.style.pointerEvents = 'none';
               } else {
@@ -218,7 +253,12 @@ const HomePage = () => {
               // Final section (CTA) has no next section and always remains 100% focused
               if (bgImg) {
                 bgImg.style.transform = 'translateZ(0)';
-                bgImg.style.filter = baseBlur > 0 ? `blur(${baseBlur}rem) brightness(1)` : 'none';
+                bgImg.style.filter = `blur(${baseBlur}rem) brightness(1) contrast(1) saturate(1)`;
+              }
+              if (bokehLayer) {
+                bokehLayer.style.transform = 'translateZ(0)';
+                bokehLayer.style.opacity = '0.55';
+                bokehLayer.style.filter = 'blur(0.125rem)';
               }
               if (content) {
                 content.style.transform = 'none';
@@ -262,6 +302,7 @@ const HomePage = () => {
             loading="eager"
             fetchpriority="high"
           />
+          <div className="section-bokeh-layer hero-bokeh" aria-hidden="true" />
           <div className="section-overlay hero-overlay" />
         </div>
 
@@ -319,6 +360,7 @@ const HomePage = () => {
             className="section-bg-img about-bg-img"
             loading="lazy"
           />
+          <div className="section-bokeh-layer about-bokeh" aria-hidden="true" />
           <div className="section-overlay about-overlay" />
         </div>
 
@@ -380,6 +422,7 @@ const HomePage = () => {
             className="section-bg-img rentals-bg-img"
             loading="lazy"
           />
+          <div className="section-bokeh-layer rentals-bokeh" aria-hidden="true" />
           <div className="section-overlay rentals-overlay" />
         </div>
 
@@ -432,6 +475,7 @@ const HomePage = () => {
             className="section-bg-img buying-bg-img"
             loading="lazy"
           />
+          <div className="section-bokeh-layer buying-bokeh" aria-hidden="true" />
           <div className="section-overlay buying-overlay" />
         </div>
 
@@ -484,6 +528,7 @@ const HomePage = () => {
             className="section-bg-img land-bg-img"
             loading="lazy"
           />
+          <div className="section-bokeh-layer land-bokeh" aria-hidden="true" />
           <div className="section-overlay land-overlay" />
         </div>
 
@@ -620,6 +665,7 @@ const HomePage = () => {
             className="section-bg-img lifestyle-bg-img"
             loading="lazy"
           />
+          <div className="section-bokeh-layer lifestyle-bokeh" aria-hidden="true" />
           <div className="section-overlay lifestyle-overlay" />
         </div>
 
@@ -679,6 +725,7 @@ const HomePage = () => {
             className="section-bg-img cta-bg-img"
             loading="lazy"
           />
+          <div className="section-bokeh-layer cta-bokeh" aria-hidden="true" />
           <div className="section-overlay cta-overlay" />
         </div>
 
