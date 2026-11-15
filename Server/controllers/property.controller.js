@@ -5,29 +5,19 @@ const Rent = require('../models/Rent');
 const OwnershipTransfer = require('../models/OwnershipTransfer');
 const User = require('../models/User');
 const Request = require('../models/Request');
+const {
+  getPublicPropertiesFilter,
+  enrichPropertyWithAvailability,
+  calculateOwnerMetrics
+} = require('../services/propertyAvailabilityService');
 
 // Get all properties (public route)
 const getAllProperties = async (req, res) => {
   try {
     console.log('Query parameters:', req.query);
     
-    // Build filter object (only public statuses)
-    const filter = {
-      status: { 
-        $in: ['Available', 'Sold', 'Rented'] 
-      },
-      isDeleted: { $ne: true }
-    };
-    
-    // Add listingType filter if provided
-    if (req.query.listingType && req.query.listingType !== 'All') {
-      filter.listingType = req.query.listingType;
-    }
-
-    // Add propertyType filter if provided
-    if (req.query.propertyType && req.query.propertyType !== 'all') {
-      filter.propertyType = req.query.propertyType;
-    }
+    // Authoritative public availability filter (enforces Available, Processing, and 24-hr Rented window)
+    const filter = getPublicPropertiesFilter(req.query);
 
     // Build additional filters using $and to combine multiple conditions properly
     const additionalFilters = [];
@@ -109,6 +99,10 @@ const getAllProperties = async (req, res) => {
     
     // Combine all filters using $and if there are additional filters
     if (additionalFilters.length > 0) {
+      if (filter.$or) {
+        additionalFilters.push({ $or: filter.$or });
+        delete filter.$or;
+      }
       filter.$and = additionalFilters;
     }
     
@@ -127,10 +121,12 @@ const getAllProperties = async (req, res) => {
       .populate('buildingId', 'name address')
       .sort(sortOptions);
     
+    const enrichedProperties = properties.map(enrichPropertyWithAvailability);
+
     res.json({
       success: true,
-      count: properties.length,
-      properties
+      count: enrichedProperties.length,
+      properties: enrichedProperties
     });
   } catch (err) {
     console.error('Error in getAllProperties:', err);
@@ -147,18 +143,18 @@ const getTopProperties = async (req, res) => {
     console.log('🔍 getTopProperties called - looking for Available properties...');
     
     const properties = await Property.find({ 
-      status: 'Available' 
+      status: 'Available',
+      isDeleted: { $ne: true }
     })
       .sort({ createdAt: -1 })
       .limit(5);
     
     console.log(`📊 Found ${properties.length} Available properties for homepage`);
     
-    // Convert to JSON to ensure virtual fields are included
+    // Convert to JSON to ensure virtual fields are included and enrich with availability
     const propertiesWithVirtuals = properties.map(property => {
       const propertyObj = property.toObject({ virtuals: true });
-      console.log('Property images:', propertyObj.images);
-      return propertyObj;
+      return enrichPropertyWithAvailability(propertyObj);
     });
     
     if (propertiesWithVirtuals.length > 0) {
@@ -209,17 +205,15 @@ const getUserProperties = async (req, res) => {
     
     console.log('getUserProperties - Found properties:', properties.length);
     
-    // Simplified response without complex async operations for now
-    const propertiesWithContext = properties.map(property => {
-      const propertyObj = property.toObject();
-      return propertyObj;
-    });
+    const propertiesWithContext = properties.map(enrichPropertyWithAvailability);
+    const metrics = calculateOwnerMetrics(properties);
     
-    console.log('getUserProperties - Sending response with', propertiesWithContext.length, 'properties');
+    console.log('getUserProperties - Sending response with', propertiesWithContext.length, 'properties. Metrics:', metrics);
     
     res.json({
       success: true,
       count: propertiesWithContext.length,
+      metrics,
       properties: propertiesWithContext
     });
   } catch (err) {
@@ -561,9 +555,11 @@ const getPropertyById = async (req, res) => {
       });
     }
     
+    const enriched = enrichPropertyWithAvailability(property);
+
     res.json({
       success: true,
-      property
+      property: enriched
     });
   } catch (err) {
     res.status(500).json({ 
@@ -1032,10 +1028,25 @@ const getTenantAssignments = async (req, res) => {
   try {
     const userId = req.user._id || req.user.userId || req.user.id;
     
-    // Find approved requests (Approved or Paid/Completed status) where user is the tenant
+    // Find active tenancies for this tenant
+    const activeRents = await Rent.find({
+      tenants: userId,
+      status: 'Active'
+    })
+      .populate({
+        path: 'propertyId',
+        populate: {
+          path: 'ownerUserId',
+          select: 'firstName lastName email phoneNumber'
+        }
+      })
+      .populate('ownerId', 'firstName lastName email phoneNumber')
+      .populate('requestId');
+
+    // Find approved/paid purchase requests where user is the buyer
     const approvedRequests = await Request.find({
       tenantId: userId,
-      status: { $in: ['Approved', 'Paid/Completed', 'AdvancePaid'] }
+      status: { $in: ['Paid/Completed', 'AdvancePaid', 'Confirmed for Sale'] }
     }).populate({
       path: 'propertyId',
       populate: {
@@ -1052,19 +1063,25 @@ const getTenantAssignments = async (req, res) => {
     });
     
     const assignments = {
-      rentedProperties: approvedRequests
-        .filter(request => request.requestType === 'Rent')
-        .map(request => ({
-          property: request.propertyId,
-          request: {
-            _id: request._id,
-            requestId: request.requestId,
-            status: request.status,
-            approvedAt: request.updatedAt,
-            requestType: request.requestType
-          },
-          type: 'rental'
-        })),
+      rentedProperties: activeRents.map(rentDoc => ({
+        property: rentDoc.propertyId,
+        request: rentDoc.requestId ? {
+          _id: rentDoc.requestId._id,
+          requestId: rentDoc.requestId.requestId,
+          status: rentDoc.requestId.status,
+          approvedAt: rentDoc.requestId.updatedAt,
+          requestType: 'Rent'
+        } : null,
+        rent: {
+          _id: rentDoc._id,
+          term: rentDoc.term,
+          rent: rentDoc.rent,
+          securityDeposit: rentDoc.securityDeposit,
+          moveOut: rentDoc.moveOut,
+          status: rentDoc.status
+        },
+        type: 'rental'
+      })),
       ownedProperties: [
         // Include properties purchased through approved requests
         ...approvedRequests
@@ -1414,11 +1431,31 @@ const searchProperties = async (req, res) => {
       limit = 20
     } = req.query;
 
-    // Build comprehensive filter
+    // Build comprehensive filter with public visibility
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const filter = { isDeleted: { $ne: true } };
 
-    // Basic filters
-    if (status) filter.status = status;
+    // Availability / Status filter
+    if (status && status !== 'All') {
+      if (status.toLowerCase() === 'available') {
+        filter.status = 'Available';
+      } else if (status.toLowerCase() === 'processing' || status.toLowerCase() === 'reserved') {
+        filter.status = { $in: ['Processing', 'Reserved'] };
+      } else if (status.toLowerCase() === 'rented') {
+        filter.status = 'Rented';
+        filter.rentedAt = { $gte: twentyFourHoursAgo };
+      } else {
+        filter.status = status;
+      }
+    } else {
+      filter.$or = [
+        { status: 'Available' },
+        { status: { $in: ['Processing', 'Reserved'] } },
+        { status: 'Rented', rentedAt: { $gte: twentyFourHoursAgo } },
+        { listingType: 'For Sale', status: 'Sold' }
+      ];
+    }
+
     if (propertyType) filter.propertyType = propertyType;
     if (listingType) filter.listingType = listingType;
     if (buildingId) filter.buildingId = buildingId;
@@ -1477,7 +1514,7 @@ const searchProperties = async (req, res) => {
       total,
       page: Number(page),
       totalPages: Math.ceil(total / Number(limit)),
-      properties
+      properties: properties.map(enrichPropertyWithAvailability)
     });
   } catch (err) {
     console.error('Error in searchProperties:', err);

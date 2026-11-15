@@ -3,6 +3,7 @@ import OwnerProfile from './OwnerProfile';
 import API from '../../config/api';
 import PropertyCard from '../../components/PropertyCard';
 import { PropertyCardSkeleton, DashboardCardSkeleton } from '../../components/loading';
+import { Building2, CheckCircle2, Clock, KeyRound } from 'lucide-react';
 
 import './OwnerDashboard.css';
 import { useNavigate } from 'react-router-dom';
@@ -170,7 +171,9 @@ const OwnerDashboard = () => {
                 ) : (
                   <>
                     <div className="stat-card">
-                      <div className="stat-icon-wrap blue">🏢</div>
+                      <div className="stat-icon-wrap blue">
+                        <Building2 size={24} color="#2563EB" />
+                      </div>
                       <div className="stat-details">
                         <span className="stat-label">Total Properties</span>
                         <span className="stat-value">{properties.length}</span>
@@ -179,31 +182,41 @@ const OwnerDashboard = () => {
                     </div>
 
                     <div className="stat-card">
-                      <div className="stat-icon-wrap emerald">🏷️</div>
+                      <div className="stat-icon-wrap emerald">
+                        <CheckCircle2 size={24} color="#059669" />
+                      </div>
                       <div className="stat-details">
-                        <span className="stat-label">Listing Types</span>
+                        <span className="stat-label">Available Listings</span>
                         <span className="stat-value">
-                          {properties.filter(p => p.listingType === 'For Rent').length} <span style={{ fontSize: '0.95rem', fontWeight: 500, color: '#64748b' }}>Rent</span> • {properties.filter(p => p.listingType === 'For Sale').length} <span style={{ fontSize: '0.95rem', fontWeight: 500, color: '#64748b' }}>Sale</span>
+                          {properties.filter(p => (p.effectiveAvailability || p.status) === 'Available').length}
                         </span>
-                        <span className="stat-subtext">Rental vs For Sale properties</span>
+                        <span className="stat-subtext">Open for applications</span>
                       </div>
                     </div>
 
                     <div className="stat-card">
-                      <div className="stat-icon-wrap amber">📩</div>
+                      <div className="stat-icon-wrap amber">
+                        <Clock size={24} color="#D97706" />
+                      </div>
                       <div className="stat-details">
-                        <span className="stat-label">Tenant Requests</span>
-                        <span className="stat-value">{requests.length}</span>
-                        <span className="stat-subtext">{requests.filter(r => r.status?.toLowerCase() === 'pending').length} pending review</span>
+                        <span className="stat-label">Processing Reservations</span>
+                        <span className="stat-value">
+                          {properties.filter(p => ['Processing', 'Reserved'].includes(p.effectiveAvailability || p.status)).length}
+                        </span>
+                        <span className="stat-subtext">Approved offers awaiting payment</span>
                       </div>
                     </div>
 
-                    <div className="stat-card" style={{ cursor: 'pointer' }} onClick={() => navigate('/create-listing')}>
-                      <div className="stat-icon-wrap purple">➕</div>
+                    <div className="stat-card">
+                      <div className="stat-icon-wrap" style={{ background: '#F1F5F9' }}>
+                        <KeyRound size={24} color="#0F172A" />
+                      </div>
                       <div className="stat-details">
-                        <span className="stat-label">Quick Action</span>
-                        <span className="stat-value" style={{ fontSize: '1.15rem', color: '#2563eb' }}>+ Add Listing</span>
-                        <span className="stat-subtext">Create a new property</span>
+                        <span className="stat-label">Active Rented Units</span>
+                        <span className="stat-value">
+                          {properties.filter(p => (p.effectiveAvailability || p.status) === 'Rented').length}
+                        </span>
+                        <span className="stat-subtext">Occupied under active lease</span>
                       </div>
                     </div>
                   </>

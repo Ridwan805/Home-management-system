@@ -149,3 +149,60 @@
 .explorer-custom-marker.is-selected .marker-pin-tip {
   border-top-color: #0F172A;
 }
+
+/* Availability Marker Variants */
+.status-processing .marker-price-text {
+  background: #D97706 !important;
+  border-color: #FEF3C7 !important;
+}
+
+.status-processing .marker-pin-tip {
+  border-top-color: #D97706 !important;
+}
+
+.status-rented .marker-price-text {
+  background: #64748B !important;
+  border-color: #F1F5F9 !important;
+}
+
+.status-rented .marker-pin-tip {
+  border-top-color: #64748B !important;
+}
+
+.status-sold .marker-price-text {
+  background: #1E293B !important;
+  border-color: #94A3B8 !important;
+}
+
+.status-sold .marker-pin-tip {
+  border-top-color: #1E293B !important;
+}
+
+.marker-status-tag {
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.25rem;
+  margin-top: 0.2rem;
+  white-space: nowrap;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.2);
+}
+
+.tag-processing {
+  background: #FEF3C7;
+  color: #92400E;
+  border: 1px solid #FDE68A;
+}
+
+.tag-rented {
+  background: #F1F5F9;
+  color: #475569;
+  border: 1px solid #CBD5E1;
+}
+
+.tag-sold {
+  background: #E2E8F0;
+  color: #1E293B;
+  border: 1px solid #94A3B8;
+}

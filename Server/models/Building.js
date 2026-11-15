@@ -158,6 +158,7 @@ const buildingSchema = new mongoose.Schema({
       rented: { type: Number, default: 0, min: 0 },
       sold: { type: Number, default: 0, min: 0 },
       reserved: { type: Number, default: 0, min: 0 },
+      processing: { type: Number, default: 0, min: 0 },
       unavailable: { type: Number, default: 0, min: 0 }
     },
     floorCounts: {
@@ -166,6 +167,7 @@ const buildingSchema = new mongoose.Schema({
       rented: { type: Number, default: 0, min: 0 },
       sold: { type: Number, default: 0, min: 0 },
       reserved: { type: Number, default: 0, min: 0 },
+      processing: { type: Number, default: 0, min: 0 },
       unavailable: { type: Number, default: 0, min: 0 }
     },
     pricing: {
@@ -282,10 +284,10 @@ buildingSchema.methods.updateSummaries = async function() {
   
   // Reset counts
   this.summaries.unitCounts = {
-    total: 0, available: 0, rented: 0, sold: 0, reserved: 0, unavailable: 0
+    total: 0, available: 0, rented: 0, sold: 0, reserved: 0, processing: 0, unavailable: 0
   };
   this.summaries.floorCounts = {
-    total: 0, available: 0, rented: 0, sold: 0, reserved: 0, unavailable: 0
+    total: 0, available: 0, rented: 0, sold: 0, reserved: 0, processing: 0, unavailable: 0
   };
   
   const rentPrices = [];
@@ -295,13 +297,19 @@ buildingSchema.methods.updateSummaries = async function() {
   properties.forEach(property => {
     const isUnit = property.propertyType === 'apartment_unit';
     const isFloor = property.propertyType === 'floor';
+    const rawStatus = (property.status || 'available').toLowerCase();
+    const statusKey = rawStatus === 'reserved' ? 'processing' : rawStatus;
     
     if (isUnit) {
       this.summaries.unitCounts.total++;
-      this.summaries.unitCounts[property.status.toLowerCase()]++;
+      if (this.summaries.unitCounts[statusKey] !== undefined) {
+        this.summaries.unitCounts[statusKey]++;
+      }
     } else if (isFloor) {
       this.summaries.floorCounts.total++;
-      this.summaries.floorCounts[property.status.toLowerCase()]++;
+      if (this.summaries.floorCounts[statusKey] !== undefined) {
+        this.summaries.floorCounts[statusKey]++;
+      }
     }
     
     // Collect pricing data

@@ -5,6 +5,7 @@ const VALID_STATUSES = [
   'Submitted',
   'Under Review',
   'Info Requested',
+  'Offer Sent',
   'Approved',
   'Approved – Pay Advance',
   'Payment Submitted',
@@ -32,9 +33,11 @@ const TimelineEventSchema = new mongoose.Schema({
 // Message schema for tenant-owner communication
 const MessageSchema = new mongoose.Schema({
   senderId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  message: { type: String, required: true, maxlength: 1000 },
+  message: { type: String, required: true, maxlength: 2000 },
   timestamp: { type: Date, default: Date.now },
-  isRead: { type: Boolean, default: false },
+  readBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // Distinct participant read tracking
+  isRead: { type: Boolean, default: false }, // Backwards compatibility: true when recipient has read
+  readAt: { type: Date },
   attachments: [{ type: String }] // URLs to uploaded files
 }, { _id: true });
 
@@ -71,6 +74,65 @@ const FullPaymentSchema = new mongoose.Schema({
   verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   verificationNote: { type: String, default: '' },
   canPayAgain: { type: Boolean, default: false }
+}, { _id: false });
+
+// Offer schema for tenancy / purchase offers
+const OfferSchema = new mongoose.Schema({
+  status: {
+    type: String,
+    enum: ['Draft', 'Sent', 'Awaiting Form', 'Awaiting Advance', 'Payment Processing', 'Paid', 'Expired', 'Withdrawn', 'Canceled'],
+    default: 'Sent'
+  },
+  monthlyRent: { type: Number },
+  securityDeposit: { type: Number },
+  advanceAmount: { type: Number },
+  currency: { type: String, default: 'BDT' },
+  startDate: { type: Date },
+  endDate: { type: Date },
+  dueDay: { type: Number, default: 1 },
+  noticeDays: { type: Number, default: 60 },
+  refundTerms: { type: String, default: 'Refundable at move-out inspection minus any lawful deductions for damages or unpaid utilities.' },
+  specialTerms: { type: String, default: '' },
+  instructions: { type: String, default: '' },
+  paymentDeadline: { type: Date, required: true },
+  issuedAt: { type: Date, default: Date.now },
+  issuedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  formCompleted: { type: Boolean, default: false },
+  formCompletedAt: { type: Date },
+  formData: {
+    emergencyContact: {
+      name: { type: String, default: '' },
+      relationship: { type: String, default: '' },
+      phone: { type: String, default: '' }
+    },
+    occupancyDetails: {
+      adults: { type: Number, default: 1 },
+      children: { type: Number, default: 0 },
+      hasPets: { type: Boolean, default: false },
+      petDetails: { type: String, default: '' }
+    },
+    additionalNotes: { type: String, default: '' }
+  },
+  acceptedAt: { type: Date },
+  acceptedVersion: { type: String, default: 'v1.0' },
+  acceptedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  acceptanceConsent: { type: Boolean, default: false },
+  reservationId: { type: mongoose.Schema.Types.ObjectId }
+}, { _id: false });
+
+// Temporary Unit Reservation Schema
+const ReservationSchema = new mongoose.Schema({
+  propertyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Property' },
+  unitNumber: { type: String },
+  status: {
+    type: String,
+    enum: ['Active', 'Converted', 'Released', 'Expired'],
+    default: 'Active'
+  },
+  reservedAt: { type: Date, default: Date.now },
+  expiresAt: { type: Date, required: true },
+  convertedAt: { type: Date },
+  releasedAt: { type: Date }
 }, { _id: false });
 
 // Main Request schema
@@ -201,6 +263,18 @@ const RequestSchema = new mongoose.Schema({
   
   // Advance Payment Details
   advancePayment: AdvancePaymentSchema,
+
+  // Offer Details
+  offer: {
+    type: OfferSchema,
+    default: null
+  },
+
+  // Temporary Unit Reservation
+  reservation: {
+    type: ReservationSchema,
+    default: null
+  },
   
   // Full payment details (only for Buy requests)
   fullPayment: {

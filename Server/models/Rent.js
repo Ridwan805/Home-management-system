@@ -117,7 +117,43 @@ const RentSchema = new mongoose.Schema({
     releasedAt: { 
       type: Date 
     },
-    deductions: [DeductionSchema]
+    deductions: [DeductionSchema],
+    refundedAmount: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    refundStatus: {
+      type: String,
+      enum: ['none', 'pending', 'partial', 'completed'],
+      default: 'none'
+    },
+    refundTransactions: [{
+      amount: { type: Number, required: true },
+      method: { type: String, default: 'manual_transfer' },
+      transactionRef: { type: String, default: '' },
+      refundedAt: { type: Date, default: Date.now },
+      note: { type: String, default: '' },
+      processedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+    }]
+  },
+
+  // Move-out and termination tracking
+  moveOut: {
+    noticeSubmitted: { type: Boolean, default: false },
+    noticeDate: { type: Date },
+    intendedMoveOutDate: { type: Date },
+    noticeDaysGiven: { type: Number },
+    meetsRequirement: { type: Boolean },
+    reason: { type: String, default: '' },
+    forwardingAddress: { type: String, default: '' },
+    ownerAcknowledged: { type: Boolean, default: false },
+    acknowledgedAt: { type: Date },
+    handoverScheduledDate: { type: Date },
+    handoverCompletedDate: { type: Date },
+    handoverNotes: { type: String, default: '' },
+    settlementCompleted: { type: Boolean, default: false },
+    settlementDate: { type: Date }
   },
   
   // Billing configuration

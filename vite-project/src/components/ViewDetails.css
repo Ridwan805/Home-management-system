@@ -234,14 +234,49 @@
 }
 
 .status-badge {
-  background: #10b981;
+  background: #059669;
   color: white;
   padding: 0.5rem 1rem;
   border-radius: 1.25rem;
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
   display: inline-block;
   margin-bottom: 0.9375rem;
+}
+
+.status-badge.badge-available {
+  background: #059669;
+  color: #FFFFFF;
+}
+
+.status-badge.badge-processing {
+  background: #D97706;
+  color: #FFFFFF;
+}
+
+.status-badge.badge-rented {
+  background: #64748B;
+  color: #FFFFFF;
+}
+
+.status-badge.badge-sold {
+  background: #1E293B;
+  color: #FFFFFF;
+}
+
+.status-badge.badge-unavailable {
+  background: #DC2626;
+  color: #FFFFFF;
+}
+
+.action-btn.btn-disabled-status {
+  background-color: #E2E8F0 !important;
+  color: #64748B !important;
+  border-color: #CBD5E1 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
 }
 
 .status-description {

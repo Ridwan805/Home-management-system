@@ -314,10 +314,21 @@ export default {
     approveRequest: (id) => `/api/request-management/owner-requests/${id}/approve`,
     requestStatusUpdate: (id) => `/api/request-management/owner-requests/${id}/status`,
     advancePayment: (id) => `/api/request-management/owner-requests/${id}/advance-payment`,
+    completeOfferForm: (id) => `/api/request-management/my-requests/${id}/complete-form`,
+    acceptOffer: (id) => `/api/request-management/my-requests/${id}/accept-offer`,
+    offerDetails: (id) => `/api/request-management/my-requests/${id}/offer`,
+    
+    // Tenancy & Move-Out endpoints
+    myTenancy: '/api/owner/my-tenancy',
+    submitMoveOutNotice: (rentId) => `/api/owner/tenancy/${rentId}/move-out-notice`,
+    acknowledgeMoveOut: (rentId) => `/api/owner/tenants/${rentId}/acknowledge-move-out`,
+    recordHandover: (rentId) => `/api/owner/tenants/${rentId}/record-handover`,
+    settleDeposit: (rentId) => `/api/owner/tenants/${rentId}/settle-deposit`,
     
     // Payment endpoints
     getStripeKey: '/api/stripe/publishable-key',
     createPayment: (requestId) => `/api/stripe/payment-session/${requestId}`,
+    verifySession: (sessionId) => `/api/stripe/verify-session/${sessionId}`,
     paymentHistory: '/api/payments/history',
     paymentDetails: (paymentId) => `/api/payments/${paymentId}`,
     

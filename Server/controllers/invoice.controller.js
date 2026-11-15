@@ -5,18 +5,9 @@ const Property = require('../models/Property');
 const Payment = require('../models/Payment');
 const User = require('../models/User');
 const InvoiceService = require('../services/invoiceService');
+const stripePaymentService = require('../services/stripePaymentService');
+const PDFService = require('../services/pdf/pdfService');
 const mongoose = require('mongoose');
-let stripe = null;
-if (process.env.STRIPE_SECRET_KEY) {
-  try {
-    stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-  } catch (e) {
-    console.error('❌ Failed to initialize Stripe client in invoice.controller:', e && e.message ? e.message : e);
-    stripe = null;
-  }
-} else {
-  console.warn('⚠️ STRIPE_SECRET_KEY not set. Stripe features are disabled in invoice.controller.');
-}
 
 // Create a new invoice
 const createInvoice = async (req, res) => {
@@ -413,76 +404,48 @@ const addLineItem = async (req, res) => {
 };
 
 // Process payment for invoice
-// Create Stripe checkout session for invoice payment
+// Create Stripe checkout session for invoice payment via centralized Stripe service
 const processPayment = async (req, res) => {
   try {
     const { invoiceId } = req.params;
-    const { amount, paymentMethod, originUrl } = req.body;
+    const { originUrl } = req.body;
     const userId = req.user.userId;
 
-    const invoice = await Invoice.findById(invoiceId)
-      .populate('propertyId', 'title address')
-      .populate('billTo', 'firstName lastName email');
-      
-    if (!invoice) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Invoice not found' 
-      });
-    }
-
-    // Check authorization (bill-to user can process payments)
-    if (invoice.billTo._id.toString() !== userId) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Not authorized to process payment for this invoice' 
-      });
-    }
-
-    // Validate payment amount
-    if (amount !== invoice.total) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Payment amount does not match invoice total' 
-      });
-    }
-
-    // Create Stripe checkout session
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [{
-        price_data: {
-          currency: 'usd',
-          product_data: {
-            name: `Invoice #${invoice.invoiceNumber || invoice._id.slice(-6)}`,
-            description: `Payment for ${invoice.propertyId?.title || 'Property'} - ${invoice.description || 'Rent Payment'}`,
-          },
-          unit_amount: Math.round(amount * 100), // Convert to cents
-        },
-        quantity: 1,
-      }],
-      mode: 'payment',
-      success_url: `${originUrl || process.env.FRONTEND_URL}/tenant/payment?session_id={CHECKOUT_SESSION_ID}&status=success`,
-      cancel_url: `${originUrl || process.env.FRONTEND_URL}/tenant/payment?status=cancelled`,
-      metadata: {
-        invoiceId: invoice._id.toString(),
-        userId: userId,
-        type: 'invoice_payment'
-      },
-      customer_email: invoice.billTo.email,
+    const result = await stripePaymentService.createPaymentSession({
+      purpose: 'MONTHLY_RENT',
+      invoiceId,
+      userId,
+      customerEmail: req.user.email,
+      reqOrigin: originUrl || req.headers.origin
     });
 
     res.json({
       success: true,
-      checkoutUrl: session.url,
-      sessionId: session.id
+      url: result.url,
+      checkoutUrl: result.checkoutUrl,
+      sessionId: result.sessionId
     });
   } catch (error) {
     console.error('Error creating payment session:', error);
-    res.status(500).json({ 
+    res.status(error.statusCode || 500).json({ 
       success: false, 
-      message: 'Failed to create payment session',
+      message: error.message || 'Failed to create payment session',
       error: error.message 
+    });
+  }
+};
+
+// Stream downloadable PDF for authorized invoice
+const downloadInvoicePDF = async (req, res) => {
+  try {
+    const { invoiceId } = req.params;
+    const userId = req.user.userId;
+    await PDFService.streamInvoicePDF(invoiceId, userId, res);
+  } catch (error) {
+    console.error('Error generating invoice PDF:', error);
+    res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || 'Failed to generate invoice PDF'
     });
   }
 };
@@ -758,5 +721,6 @@ module.exports = {
   generateMonthlyRentInvoices,
   generateOwnershipTransferInvoice,
   processInvoicePaymentService,
-  markOverdueInvoices
+  markOverdueInvoices,
+  downloadInvoicePDF
 };

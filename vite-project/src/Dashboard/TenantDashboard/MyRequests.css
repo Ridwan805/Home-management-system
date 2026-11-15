@@ -598,6 +598,273 @@
 }
 
 /* --------------------------------------------------------------------------
+   Actionable Offer Callout & Agreement Modal Styles
+   -------------------------------------------------------------------------- */
+.request-offer-callout {
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  border-radius: var(--ds-radius-md);
+  padding: 1.125rem 1.25rem;
+  margin: 0.875rem 0 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.offer-callout-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.offer-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+}
+
+.offer-title-row .offer-icon {
+  color: #2563EB;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.offer-title-row h4 {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.offer-title-row p {
+  margin: 0.125rem 0 0 0;
+  font-size: 0.8125rem;
+  color: #475569;
+}
+
+.offer-deadline-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.offer-deadline-pill.active {
+  background: #FEF3C7;
+  color: #92400E;
+  border: 1px solid #FDE68A;
+}
+
+.offer-deadline-pill.expired {
+  background: #FEE2E2;
+  color: #991B1B;
+  border: 1px solid #FECACA;
+}
+
+.offer-terms-snippet {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: 0.75rem;
+  background: #FFFFFF;
+  border: 1px solid #DBEAFE;
+  border-radius: var(--ds-radius-sm);
+  padding: 0.75rem 1rem;
+}
+
+.offer-terms-snippet .term-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.offer-terms-snippet .term-lbl {
+  font-size: 0.6875rem;
+  color: #64748B;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.offer-terms-snippet .term-val {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #0F172A;
+  margin-top: 0.125rem;
+}
+
+.offer-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.offer-expired-notice {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  color: #DC2626;
+  font-weight: 500;
+}
+
+/* Agreement Modal */
+.agreement-modal-card {
+  max-width: 48rem;
+  width: 95%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.agreement-offer-banner {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: var(--ds-radius-md);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.offer-banner-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.offer-banner-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.offer-banner-sub {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.8125rem;
+  color: #64748B;
+}
+
+.agreement-terms-box,
+.agreement-form-section {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: var(--ds-radius-md);
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.terms-box-title {
+  margin: 0 0 1rem 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #0F172A;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.terms-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+.terms-sub-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.875rem;
+  padding-top: 0.875rem;
+  border-top: 1px solid #F1F5F9;
+}
+
+.term-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.term-cell-lbl {
+  font-size: 0.75rem;
+  color: #64748B;
+  font-weight: 600;
+}
+
+.term-cell-val {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #0F172A;
+  margin-top: 0.125rem;
+}
+
+.agreement-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 1rem;
+}
+
+.agreement-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.agreement-input-group label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #1E293B;
+}
+
+.agreement-input-group input,
+.agreement-input-group select,
+.agreement-input-group textarea {
+  padding: 0.625rem 0.875rem;
+  border: 1px solid #CBD5E1;
+  border-radius: var(--ds-radius-sm);
+  font-size: 0.875rem;
+  font-family: inherit;
+  color: #0F172A;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.agreement-input-group input:focus,
+.agreement-input-group select:focus,
+.agreement-input-group textarea:focus {
+  border-color: #2563EB;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+.agreement-consent-box {
+  background: #F8FAFC;
+  border: 1px solid #CBD5E1;
+  border-radius: var(--ds-radius-md);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.agreement-checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  font-size: 0.8125rem;
+  color: #334155;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.agreement-checkbox-label input[type="checkbox"] {
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: 0.125rem;
+  accent-color: #2563EB;
+  cursor: pointer;
+}
+
+/* --------------------------------------------------------------------------
    Responsive Breakpoints
    -------------------------------------------------------------------------- */
 @media (max-width: 48rem) {
@@ -618,4 +885,59 @@
   .modal-grid-box {
     grid-template-columns: 1fr;
   }
+}
+
+/* --------------------------------------------------------------------------
+   Messaging Action & Unread Indicators
+   -------------------------------------------------------------------------- */
+.ds-btn-message-unread {
+  background-color: #EFF6FF !important;
+  color: #2563EB !important;
+  border: 1px solid #93C5FD !important;
+  font-weight: 600 !important;
+}
+
+.ds-btn-message-unread:hover {
+  background-color: #DBEAFE !important;
+  border-color: #60A5FA !important;
+}
+
+.ds-msg-unread-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #2563EB;
+  color: #FFFFFF;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  min-width: 1.125rem;
+  height: 1.125rem;
+  padding: 0 0.25rem;
+  border-radius: 9999px;
+  line-height: 1;
+  margin-left: 0.3125rem;
+  box-shadow: 0 0 0 2px #FFFFFF;
+  animation: dsPulseUnread 2s infinite;
+}
+
+@keyframes dsPulseUnread {
+  0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.5); }
+  70% { box-shadow: 0 0 0 4px rgba(37, 99, 235, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+}
+
+.ds-msg-count-subtle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #F1F5F9;
+  color: #64748B;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  min-width: 1.125rem;
+  height: 1.125rem;
+  padding: 0 0.25rem;
+  border-radius: 9999px;
+  line-height: 1;
+  margin-left: 0.3125rem;
 }

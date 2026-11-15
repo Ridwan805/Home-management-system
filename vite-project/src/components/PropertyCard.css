@@ -146,8 +146,10 @@
   background: rgba(16, 185, 129, 0.95);
 }
 
+.availability-badge.processing,
+.availability-badge.reserved,
 .availability-badge.pending {
-  background: rgba(245, 158, 11, 0.95);
+  background: rgba(217, 119, 6, 0.95);
 }
 
 .availability-badge.rented,

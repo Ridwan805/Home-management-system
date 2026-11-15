@@ -120,19 +120,25 @@
 }
 
 .status-badge.available {
-  background-color: #10b981;
+  background-color: #059669;
 }
 
-.status-badge.not {
-  background-color: #f59e0b;
+.status-badge.processing,
+.status-badge.reserved {
+  background-color: #D97706;
+}
+
+.status-badge.not,
+.status-badge.unavailable {
+  background-color: #DC2626;
 }
 
 .status-badge.sold {
-  background-color: #ef4444;
+  background-color: #1E293B;
 }
 
 .status-badge.rented {
-  background-color: #8b5cf6;
+  background-color: #64748B;
 }
 
 .property-info {
@@ -603,19 +609,25 @@
 }
 
 .status-badge.available {
-  background-color: #10b981;
+  background-color: #059669;
 }
 
-.status-badge.not {
-  background-color: #f59e0b;
+.status-badge.processing,
+.status-badge.reserved {
+  background-color: #D97706;
+}
+
+.status-badge.not,
+.status-badge.unavailable {
+  background-color: #DC2626;
 }
 
 .status-badge.sold {
-  background-color: #ef4444;
+  background-color: #1E293B;
 }
 
 .status-badge.rented {
-  background-color: #8b5cf6;
+  background-color: #64748B;
 }
 
 .property-info {

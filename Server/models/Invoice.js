@@ -148,6 +148,10 @@ const InvoiceSchema = new mongoose.Schema({
   },
   
   // Related entities
+  requestId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Request'
+  },
   rentId: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'Rent' 
@@ -160,6 +164,19 @@ const InvoiceSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'Property', 
     required: true 
+  },
+  
+  // Payment purpose categorization
+  paymentPurpose: {
+    type: String,
+    enum: [
+      'RENTAL_ADVANCE',
+      'MONTHLY_RENT',
+      'PURCHASE_BOOKING_DEPOSIT',
+      'OUTSTANDING_INVOICE',
+      'OTHER_AUTHORIZED_PROPERTY_CHARGE'
+    ],
+    default: 'MONTHLY_RENT'
   },
   
   // Billing information
@@ -230,6 +247,12 @@ const InvoiceSchema = new mongoose.Schema({
     type: Number, 
     default: 0, 
     min: 0 
+  },
+  paidAt: {
+    type: Date
+  },
+  receiptNumber: {
+    type: String
   },
   balance: { 
     type: Number, 
@@ -518,5 +541,8 @@ InvoiceSchema.statics.generateForRent = function(rentData, period) {
   
   return invoice;
 };
+
+InvoiceSchema.index({ requestId: 1 });
+InvoiceSchema.index({ paymentPurpose: 1 });
 
 module.exports = mongoose.model('Invoice', InvoiceSchema);

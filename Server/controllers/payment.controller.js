@@ -1,6 +1,9 @@
 const Payment = require('../models/Payment');
 const Invoice = require('../models/Invoice');
+const Property = require('../models/Property');
 const PaymentService = require('../services/paymentService');
+const stripePaymentService = require('../services/stripePaymentService');
+const PDFService = require('../services/pdf/pdfService');
 const mongoose = require('mongoose');
 
 class PaymentController {
@@ -232,6 +235,136 @@ class PaymentController {
         success: false,
         message: 'Failed to retrieve payment details',
         error: error.message
+      });
+    }
+  }
+
+  /**
+   * Get payments and invoices for properties owned by authenticated owner
+   */
+  static async getOwnerPayments(req, res) {
+    try {
+      const ownerId = req.user.userId;
+      if (!ownerId) {
+        return res.status(401).json({ success: false, message: 'Authentication required' });
+      }
+
+      // Find properties owned by this owner
+      const ownedProperties = await Property.find({
+        $or: [
+          { ownerUserId: ownerId },
+          { ownerId: ownerId }
+        ],
+        isDeleted: { $ne: true }
+      }).select('_id title displayName address location price');
+
+      const propertyIds = ownedProperties.map(p => p._id);
+
+      // Find payments related to these properties or where payee/receiver is the owner
+      const payments = await Payment.find({
+        $or: [
+          { propertyId: { $in: propertyIds } },
+          { payeeId: ownerId },
+          { receiverId: ownerId }
+        ],
+        isDeleted: { $ne: true }
+      })
+      .populate('payerId', 'firstName lastName email phoneNumber')
+      .populate('propertyId', 'title displayName address location')
+      .populate({
+        path: 'invoiceId',
+        select: 'invoiceNo total balance status dueDate period paymentPurpose'
+      })
+      .sort({ paidAt: -1, createdAt: -1 });
+
+      // Find invoices issued for these properties
+      const invoices = await Invoice.find({
+        $or: [
+          { propertyId: { $in: propertyIds } },
+          { billFrom: ownerId }
+        ],
+        isDeleted: { $ne: true }
+      })
+      .populate('billTo', 'firstName lastName email phoneNumber')
+      .populate('propertyId', 'title displayName address location')
+      .sort({ dueDate: -1, createdAt: -1 });
+
+      // Calculate authoritative financial metrics
+      const verifiedPayments = payments.filter(p => ['completed', 'paid', 'succeeded'].includes(p.status));
+      const totalCollected = verifiedPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+
+      const openInvoices = invoices.filter(inv => ['open', 'overdue'].includes(inv.status));
+      const outstandingBalance = openInvoices.reduce((sum, inv) => sum + (Number(inv.balance || inv.total) || 0), 0);
+
+      const pendingSettlements = payments.filter(p => p.status === 'processing');
+      const pendingSettlementAmount = pendingSettlements.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+
+      res.status(200).json({
+        success: true,
+        metrics: {
+          totalCollected,
+          outstandingBalance,
+          verifiedPaymentsCount: verifiedPayments.length,
+          openInvoicesCount: openInvoices.length,
+          pendingSettlementAmount,
+          currency: 'BDT'
+        },
+        payments,
+        invoices
+      });
+    } catch (error) {
+      console.error('Error getting owner payments:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve owner payments',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * Stream official payment receipt PDF
+   */
+  static async downloadReceiptPDF(req, res) {
+    try {
+      const { paymentId } = req.params;
+      const userId = req.user.userId;
+      await PDFService.streamReceiptPDF(paymentId, userId, res);
+    } catch (error) {
+      console.error('Error generating receipt PDF:', error);
+      res.status(error.statusCode || 500).json({
+        success: false,
+        message: error.message || 'Failed to generate receipt PDF'
+      });
+    }
+  }
+
+  /**
+   * Process refund via Stripe
+   */
+  static async refundPayment(req, res) {
+    try {
+      const { paymentId } = req.params;
+      const { amount, reason } = req.body;
+      const userId = req.user.userId;
+
+      const result = await stripePaymentService.processRefund({
+        paymentId,
+        amount,
+        reason,
+        requestingUserId: userId
+      });
+
+      res.status(200).json({
+        success: true,
+        data: result,
+        message: 'Refund processed successfully via Stripe'
+      });
+    } catch (error) {
+      console.error('Error processing refund:', error);
+      res.status(error.statusCode || 500).json({
+        success: false,
+        message: error.message || 'Failed to process refund'
       });
     }
   }

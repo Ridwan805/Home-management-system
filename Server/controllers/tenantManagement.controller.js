@@ -6,6 +6,7 @@ const Invoice = require('../models/Invoice');
 const Payment = require('../models/Payment');
 const Notification = require('../models/Notification');
 const Notice = require('../models/Notice');
+const Request = require('../models/Request');
 const { sendTenantNoticeEmail } = require('../services/emailService');
 
 /**
@@ -176,6 +177,8 @@ const getOwnerTenants = async (req, res) => {
         monthlyRent: rent.rent?.amount || property.pricing?.monthlyRent || property.pricing?.rent || 0,
         currency: rent.rent?.currency || 'BDT',
         securityDeposit: rent.securityDeposit?.amount || 0,
+        securityDepositDetails: rent.securityDeposit || null,
+        moveOut: rent.moveOut || null,
         leaseStartDate: rent.term?.startDate || rent.createdAt,
         leaseEndDate: rent.term?.endDate || null,
         leaseType: rent.term?.type || 'fixed',
@@ -322,6 +325,7 @@ const getTenantDetails = async (req, res) => {
         term: rent.term,
         rent: rent.rent,
         securityDeposit: rent.securityDeposit,
+        moveOut: rent.moveOut || null,
         billing: rent.billing,
         leaseStatus: rent.status,
         notes: rent.notes,
@@ -940,6 +944,386 @@ const getNoticeDetails = async (req, res) => {
   }
 };
 
+/**
+ * 9. Tenant submits Move-Out Notice
+ * POST /api/owner/tenancy/:rentId/move-out-notice
+ */
+const submitMoveOutNotice = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { rentId } = req.params;
+    const { intendedMoveOutDate, reason, forwardingAddress } = req.body;
+
+    if (!intendedMoveOutDate) {
+      return res.status(400).json({ success: false, message: 'Intended move-out date is required' });
+    }
+
+    const rent = await Rent.findById(rentId)
+      .populate('propertyId', 'title address unitNumber')
+      .populate('ownerId', 'firstName lastName email phoneNumber');
+
+    if (!rent) {
+      return res.status(404).json({ success: false, message: 'Tenancy record not found' });
+    }
+
+    // Verify tenant authorization
+    const isTenant = rent.tenants.some(t => t.toString() === userId.toString());
+    if (!isTenant) {
+      return res.status(403).json({ success: false, message: 'Not authorized for this tenancy' });
+    }
+
+    if (rent.status !== 'Active') {
+      return res.status(400).json({ success: false, message: `Cannot submit move-out notice for tenancy with status "${rent.status}"` });
+    }
+
+    const targetDate = new Date(intendedMoveOutDate);
+    const now = new Date();
+    const diffTime = targetDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 1) {
+      return res.status(400).json({ success: false, message: 'Move-out date must be in the future' });
+    }
+
+    const requiredNotice = rent.term?.noticeDays || 60;
+    const meetsRequirement = diffDays >= requiredNotice;
+
+    rent.moveOut = {
+      noticeSubmitted: true,
+      noticeDate: now,
+      intendedMoveOutDate: targetDate,
+      noticeDaysGiven: diffDays,
+      meetsRequirement,
+      reason: reason || 'End of lease / Tenant requested relocation',
+      forwardingAddress: forwardingAddress || '',
+      ownerAcknowledged: false,
+      settlementCompleted: false
+    };
+
+    await rent.save();
+
+    // Create Notification for Owner
+    try {
+      const tenantUser = await User.findById(userId);
+      const tenantName = tenantUser ? `${tenantUser.firstName} ${tenantUser.lastName}` : 'Tenant';
+      await Notification.create({
+        userId: rent.ownerId._id || rent.ownerId,
+        title: `[Move-Out Notice] ${rent.propertyId?.title || 'Property'}`,
+        message: `${tenantName} has submitted a move-out notice for ${targetDate.toLocaleDateString()} (${diffDays} days notice provided; ${meetsRequirement ? 'meets standard 60-day requirement' : 'below standard 60-day requirement'}).`,
+        type: 'general'
+      });
+    } catch (notifErr) {
+      console.warn('Notification warning:', notifErr.message);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Move-out notice submitted successfully',
+      rent,
+      moveOut: rent.moveOut
+    });
+  } catch (error) {
+    console.error('Error submitting move-out notice:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * 10. Owner acknowledges Move-Out Notice & schedules handover
+ * POST /api/owner/tenants/:rentId/acknowledge-move-out
+ */
+const acknowledgeMoveOut = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { rentId } = req.params;
+    const { handoverScheduledDate, notes } = req.body;
+
+    const rent = await Rent.findById(rentId)
+      .populate('propertyId', 'title address ownerUserId owner')
+      .populate('tenants', 'firstName lastName email phoneNumber');
+
+    if (!rent) {
+      return res.status(404).json({ success: false, message: 'Tenancy record not found' });
+    }
+
+    const isOwner = rent.ownerId.toString() === userId.toString() ||
+                    rent.propertyId?.ownerUserId?.toString() === userId.toString() ||
+                    rent.propertyId?.owner?.toString() === userId.toString();
+
+    if (!isOwner) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    if (!rent.moveOut?.noticeSubmitted) {
+      return res.status(400).json({ success: false, message: 'No move-out notice has been submitted for this tenancy' });
+    }
+
+    rent.moveOut.ownerAcknowledged = true;
+    rent.moveOut.acknowledgedAt = new Date();
+    if (handoverScheduledDate) {
+      rent.moveOut.handoverScheduledDate = new Date(handoverScheduledDate);
+    }
+    if (notes) {
+      rent.moveOut.handoverNotes = notes;
+    }
+
+    await rent.save();
+
+    // Notify tenant
+    try {
+      if (rent.tenants && rent.tenants.length > 0) {
+        await Notification.create({
+          userId: rent.tenants[0]._id,
+          title: '[Move-Out Acknowledged] Handover Inspection Scheduled',
+          message: `The owner has acknowledged your move-out notice.${handoverScheduledDate ? ` Handover inspection is scheduled for ${new Date(handoverScheduledDate).toLocaleDateString()}.` : ''}`,
+          type: 'general'
+        });
+      }
+    } catch (notifErr) {
+      console.warn('Tenant notification warning:', notifErr.message);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Move-out notice acknowledged and handover inspection scheduled',
+      rent
+    });
+  } catch (error) {
+    console.error('Error acknowledging move-out:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * 11. Owner records handover inspection
+ * POST /api/owner/tenants/:rentId/record-handover
+ */
+const recordHandover = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { rentId } = req.params;
+    const { handoverCompletedDate, handoverNotes } = req.body;
+
+    const rent = await Rent.findById(rentId).populate('propertyId');
+    if (!rent) {
+      return res.status(404).json({ success: false, message: 'Tenancy record not found' });
+    }
+
+    const isOwner = rent.ownerId.toString() === userId.toString() ||
+                    rent.propertyId?.ownerUserId?.toString() === userId.toString();
+
+    if (!isOwner) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    rent.moveOut = rent.moveOut || {};
+    rent.moveOut.handoverCompletedDate = handoverCompletedDate ? new Date(handoverCompletedDate) : new Date();
+    if (handoverNotes) {
+      rent.moveOut.handoverNotes = handoverNotes;
+    }
+
+    await rent.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Handover inspection recorded successfully',
+      rent
+    });
+  } catch (error) {
+    console.error('Error recording handover:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * 12. Owner settles security deposit deductions, processes refund, and terminates tenancy
+ * POST /api/owner/tenants/:rentId/settle-deposit
+ */
+const settleDepositAndTerminate = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { rentId } = req.params;
+    const {
+      deductions = [],
+      refundAmount = 0,
+      method = 'Bank Transfer',
+      transactionRef = '',
+      note = '',
+      terminateTenancy = true
+    } = req.body;
+
+    const rent = await Rent.findById(rentId)
+      .populate('propertyId')
+      .populate('tenants', 'firstName lastName email phoneNumber');
+
+    if (!rent) {
+      return res.status(404).json({ success: false, message: 'Tenancy record not found' });
+    }
+
+    const property = rent.propertyId;
+    const isOwner = rent.ownerId.toString() === userId.toString() ||
+                    property?.ownerUserId?.toString() === userId.toString();
+
+    if (!isOwner) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    const depositHeld = Number(rent.securityDeposit?.amount || 0);
+
+    // Calculate deductions
+    let parsedDeductions = [];
+    let totalDeductions = 0;
+    if (Array.isArray(deductions)) {
+      parsedDeductions = deductions.map(d => ({
+        description: d.description || 'Deduction',
+        amount: Number(d.amount || 0),
+        date: d.date ? new Date(d.date) : new Date()
+      }));
+      totalDeductions = parsedDeductions.reduce((sum, d) => sum + d.amount, 0);
+    }
+
+    const netRefundable = Math.max(0, depositHeld - totalDeductions);
+    const parsedRefund = Number(refundAmount || 0);
+
+    rent.securityDeposit = rent.securityDeposit || {};
+    rent.securityDeposit.deductions = parsedDeductions;
+    rent.securityDeposit.refundedAmount = (rent.securityDeposit.refundedAmount || 0) + parsedRefund;
+
+    if (rent.securityDeposit.refundedAmount >= netRefundable) {
+      rent.securityDeposit.refundStatus = 'completed';
+      rent.securityDeposit.releasedAt = new Date();
+    } else if (rent.securityDeposit.refundedAmount > 0) {
+      rent.securityDeposit.refundStatus = 'partial';
+    } else {
+      rent.securityDeposit.refundStatus = 'none';
+    }
+
+    if (parsedRefund > 0) {
+      if (!rent.securityDeposit.refundTransactions) {
+        rent.securityDeposit.refundTransactions = [];
+      }
+      rent.securityDeposit.refundTransactions.push({
+        amount: parsedRefund,
+        method,
+        transactionRef,
+        refundedAt: new Date(),
+        note,
+        processedBy: userId
+      });
+    }
+
+    rent.moveOut = rent.moveOut || {};
+    rent.moveOut.settlementCompleted = true;
+    rent.moveOut.settlementDate = new Date();
+
+    // Terminate tenancy and release property
+    if (terminateTenancy) {
+      rent.status = 'Ended';
+      rent.term = rent.term || {};
+      rent.term.actualEndDate = new Date();
+
+      if (property) {
+        property.status = 'Available';
+        property.state = 'Available';
+        property.currentRentId = null;
+        property.rentedAt = null;
+        property.reservedAt = null;
+        property.reservedBy = null;
+        if (!property.stateHistory) property.stateHistory = [];
+        property.stateHistory.push({
+          state: 'Available',
+          status: 'Available',
+          timestamp: new Date(),
+          note: `Tenancy ${rentId} concluded and deposit settled. Property returned to Available.`,
+          updatedBy: userId
+        });
+        await property.save();
+      }
+
+      // Also update linked request timeline if any
+      if (rent.requestId) {
+        try {
+          const linkedRequest = await Request.findById(rent.requestId);
+          if (linkedRequest) {
+            linkedRequest.timeline.push({
+              event: 'Tenancy Concluded',
+              actor: userId,
+              timestamp: new Date(),
+              note: `Tenancy ended. Deposit settlement: ৳${depositHeld.toLocaleString()} original, ৳${totalDeductions.toLocaleString()} deductions, ৳${parsedRefund.toLocaleString()} refunded.`
+            });
+            await linkedRequest.save();
+          }
+        } catch (reqErr) {
+          console.warn('Linked request update warning:', reqErr.message);
+        }
+      }
+    }
+
+    await rent.save();
+
+    // Notify tenant
+    try {
+      if (rent.tenants && rent.tenants.length > 0) {
+        await Notification.create({
+          userId: rent.tenants[0]._id,
+          title: '[Deposit Settlement] Tenancy Concluded',
+          message: `Your security deposit settlement has been finalized. Original deposit: ৳${depositHeld.toLocaleString()}, Deductions: ৳${totalDeductions.toLocaleString()}, Net refunded: ৳${parsedRefund.toLocaleString()}. Tenancy has concluded.`,
+          type: 'general'
+        });
+      }
+    } catch (notifErr) {
+      console.warn('Tenant notification warning:', notifErr.message);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Deposit settled and tenancy concluded successfully. Property released back to Available.',
+      rent,
+      property
+    });
+  } catch (error) {
+    console.error('Error settling deposit and terminating tenancy:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * 13. Tenant retrieves active tenancy, lease terms, invoices, and move-out status
+ * GET /api/owner/my-tenancy
+ */
+const getMyTenancy = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const rent = await Rent.findOne({
+      tenants: userId,
+      status: 'Active'
+    })
+      .populate('propertyId', 'title address unitNumber floorNumber specifications pricing price images')
+      .populate('ownerId', 'firstName lastName email phoneNumber name');
+
+    if (!rent) {
+      return res.status(200).json({
+        success: true,
+        hasActiveTenancy: false,
+        rent: null
+      });
+    }
+
+    const invoices = await Invoice.find({ rentId: rent._id }).sort({ dueDate: -1 });
+
+    return res.status(200).json({
+      success: true,
+      hasActiveTenancy: true,
+      rent,
+      invoices
+    });
+  } catch (error) {
+    console.error('Error fetching tenant tenancy details:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   getOwnerTenants,
   getTenantDetails,
@@ -948,5 +1332,10 @@ module.exports = {
   recordManualPayment,
   getOwnerNotices,
   createOrSendNotice,
-  getNoticeDetails
+  getNoticeDetails,
+  submitMoveOutNotice,
+  acknowledgeMoveOut,
+  recordHandover,
+  settleDepositAndTerminate,
+  getMyTenancy
 };

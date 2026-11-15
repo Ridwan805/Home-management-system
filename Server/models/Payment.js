@@ -129,6 +129,17 @@ const PaymentSchema = new mongoose.Schema({
   
   // Payment basic information
   type: { type: String, enum: PAYMENT_TYPES, required: true },
+  paymentPurpose: {
+    type: String,
+    enum: [
+      'RENTAL_ADVANCE',
+      'MONTHLY_RENT',
+      'PURCHASE_BOOKING_DEPOSIT',
+      'OUTSTANDING_INVOICE',
+      'OTHER_AUTHORIZED_PROPERTY_CHARGE'
+    ],
+    default: 'MONTHLY_RENT'
+  },
   status: { type: String, enum: [...PAYMENT_STATUSES, ...Object.values(PAYMENT_STATUSES_NEW)], default: 'completed', required: true },
   method: { type: String, enum: [...PAYMENT_METHODS, ...Object.values(PAYMENT_METHODS_NEW)], required: true },
   
@@ -574,6 +585,8 @@ PaymentSchema.statics.findRefunds = function() {
 PaymentSchema.statics.findByExternalRef = function(provider, externalRef) {
   return this.findOne({ provider, externalRef });
 };
+
+PaymentSchema.index({ paymentPurpose: 1, status: 1 });
 
 const Payment = mongoose.model('Payment', PaymentSchema);
 

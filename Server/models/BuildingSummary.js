@@ -356,14 +356,14 @@ BuildingSummarySchema.methods.updateFromProperties = async function(properties) 
       this.counts.totalUnits++;
       if (property.status === 'Available') this.counts.availableUnits++;
       else if (property.status === 'Rented') this.counts.rentedUnits++;
-      else if (property.status === 'Reserved') this.counts.reservedUnits++;
+      else if (property.status === 'Reserved' || property.status === 'Processing') this.counts.reservedUnits++;
       else if (property.status === 'Sold') this.counts.soldUnits++;
       else if (property.status === 'Unavailable') this.counts.unavailableUnits++;
     } else if (property.propertyType === 'floor') {
       this.counts.totalFloors++;
       if (property.status === 'Available') this.counts.availableFloors++;
       else if (property.status === 'Rented') this.counts.rentedFloors++;
-      else if (property.status === 'Reserved') this.counts.reservedFloors++;
+      else if (property.status === 'Reserved' || property.status === 'Processing') this.counts.reservedFloors++;
       else if (property.status === 'Sold') this.counts.soldFloors++;
       else if (property.status === 'Unavailable') this.counts.unavailableFloors++;
     }
@@ -372,7 +372,11 @@ BuildingSummarySchema.methods.updateFromProperties = async function(properties) 
     const typeKey = property.propertyType;
     if (this.propertyTypes[typeKey]) {
       this.propertyTypes[typeKey].total++;
-      this.propertyTypes[typeKey][property.status.toLowerCase()]++;
+      const rawStatus = (property.status || 'available').toLowerCase();
+      const statusKey = rawStatus === 'processing' ? 'reserved' : rawStatus;
+      if (this.propertyTypes[typeKey][statusKey] !== undefined) {
+        this.propertyTypes[typeKey][statusKey]++;
+      }
     }
     
     // Collect pricing data

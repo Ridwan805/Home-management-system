@@ -17,7 +17,7 @@ const NotificationSchema = new mongoose.Schema({
   },
   type: { 
     type: String, 
-    enum: ['general', 'property_status', 'request_status', 'payment', 'system'], 
+    enum: ['general', 'property_status', 'request_status', 'payment', 'system', 'message'], 
     default: 'general' 
   },
   relatedId: { 

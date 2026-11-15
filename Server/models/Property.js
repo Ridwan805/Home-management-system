@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 // Define valid property statuses
-const PROPERTY_STATUSES = ['pending', 'Available', 'Reserved', 'Rented', 'Sold', 'Unavailable', 'rejected'];
+const PROPERTY_STATUSES = ['pending', 'Available', 'Processing', 'Reserved', 'Rented', 'Sold', 'Unavailable', 'rejected'];
 
 // Define valid property types
 const PROPERTY_TYPES = [
@@ -389,6 +389,7 @@ const PropertySchema = new mongoose.Schema({
 
 // Indexes for better query performance
 PropertySchema.index({ status: 1 });
+PropertySchema.index({ status: 1, rentedAt: 1 });
 PropertySchema.index({ ownerUserId: 1 });
 PropertySchema.index({ buildingId: 1 });
 PropertySchema.index({ currentRentId: 1 });

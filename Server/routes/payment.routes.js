@@ -16,6 +16,15 @@ router.get('/tenant/:tenantId/all', authMiddleware, PaymentController.getAllPaym
 // Get all payment data for the authenticated user (no tenantId required)
 router.get(['/my-payments', '/history'], authMiddleware, PaymentController.getMyPayments);
 
+// Get owner payment data (collected payments, property invoices, summary metrics)
+router.get('/owner-payments', authMiddleware, PaymentController.getOwnerPayments);
+
+// Download payment receipt PDF
+router.get('/:paymentId/receipt/pdf', authMiddleware, PaymentController.downloadReceiptPDF);
+
+// Process refund via Stripe
+router.post('/:paymentId/refund', authMiddleware, PaymentController.refundPayment);
+
 // Get payment details by ID
 router.get('/:paymentId', authMiddleware, PaymentController.getPaymentById);
 

@@ -10,13 +10,16 @@ import {
   ArrowRight,
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Clock,
+  CheckCircle2
 } from 'lucide-react';
 import {
   getPropertyImages,
   formatPropertyPrice,
   getPropertyAddress,
-  humanizePropertyType
+  humanizePropertyType,
+  getAvailabilityBadgeInfo
 } from './propertyUtils';
 import './PropertyMapPreview.css';
 
@@ -41,6 +44,7 @@ const PropertyMapPreview = ({
   const currentImg = hasImages ? images[activeImgIndex] : null;
 
   const isRent = property.listingType === 'For Rent';
+  const badgeInfo = getAvailabilityBadgeInfo(property);
   const bedrooms = property.specifications?.bedrooms ?? property.bedrooms;
   const bathrooms = property.specifications?.bathrooms ?? property.bathrooms;
   const area = property.specifications?.squareFootage ?? property.squareFootage ?? property.size;
@@ -94,10 +98,15 @@ const PropertyMapPreview = ({
           </div>
         )}
 
-        {/* Listing Type Tag */}
-        <span className={`preview-type-pill ${isRent ? 'pill-rent' : 'pill-sale'}`}>
-          {property.listingType || 'For Rent'}
-        </span>
+        {/* Listing Type & Availability Tag Stack */}
+        <div className="preview-badge-stack">
+          <span className={`preview-type-pill ${isRent ? 'pill-rent' : 'pill-sale'}`}>
+            {property.listingType || 'For Rent'}
+          </span>
+          <span className={`preview-availability-pill ${badgeInfo.className}`}>
+            {badgeInfo.label}
+          </span>
+        </div>
 
         {/* Wishlist Button */}
         <button
@@ -190,6 +199,20 @@ const PropertyMapPreview = ({
                 {am}
               </span>
             ))}
+          </div>
+        )}
+
+        {/* Status Callout for Processing / Rented */}
+        {badgeInfo.label === 'Processing' && (
+          <div className="preview-status-callout callout-processing">
+            <Clock size={13} />
+            <span>Under active reservation &bull; Advance payment pending</span>
+          </div>
+        )}
+        {badgeInfo.label === 'Rented' && (
+          <div className="preview-status-callout callout-rented">
+            <CheckCircle2 size={13} />
+            <span>Rented &bull; Visible for 24 hours</span>
           </div>
         )}
 

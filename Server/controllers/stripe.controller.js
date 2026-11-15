@@ -14,11 +14,13 @@ const User = require('../models/User');
 const Property = require('../models/Property');
 const Payment = require('../models/Payment');
 const Invoice = require('../models/Invoice');
+const Rent = require('../models/Rent');
 const NotificationService = require('../services/notificationService');
 const GuardrailsService = require('../services/guardrailsService');
 const PaymentStatusChecker = require('../services/paymentStatusChecker');
 const PaymentService = require('../services/paymentService');
 const InvoiceService = require('../services/invoiceService');
+const stripePaymentService = require('../services/stripePaymentService');
 // Long polling functionality removed
 
 // Get Stripe publishable key
@@ -53,169 +55,31 @@ const getPublishableKey = async (req, res) => {
 // Create Stripe checkout session for advance payment
 const createPaymentSession = async (req, res) => {
   try {
-    if (!stripe) {
-      console.warn('⚠️ Stripe client not available when creating payment session');
-      return res.status(500).json({ success: false, message: 'Stripe not configured' });
-    }
     const { requestId } = req.params;
-    const { amount: providedAmount, currency: providedCurrency = 'BDT', originUrl } = req.body;
+    const { originUrl } = req.body;
     const userId = req.user.userId;
-    console.log('🧭 createPaymentSession called', { requestId, userId, providedAmount, providedCurrency });
-    
-    console.log('🔄 STRIPE CONTROLLER: Creating ADVANCE payment session for:', { requestId, userId });
-    console.log('🔑 Stripe keys check:', {
-      secretKeyExists: !!process.env.STRIPE_SECRET_KEY,
-      publishableKeyExists: !!process.env.STRIPE_PUBLISHABLE_KEY,
-      frontendUrlExists: !!process.env.FRONTEND_URL
-    });
 
-    const request = await Request.findById(requestId)
-      .populate('propertyId', 'address')
-      .populate('ownerId', 'firstName lastName email');
-
+    const request = await Request.findById(requestId);
     if (!request) {
-      return res.status(404).json({
-        success: false,
-        message: 'Request not found'
-      });
+      return res.status(404).json({ success: false, message: 'Request not found' });
     }
 
-    // Check if user is the tenant
-    if (request.tenantId.toString() !== String(userId)) {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to pay for this request'
-      });
-    }
+    const purpose = request.requestType === 'Buy' ? 'PURCHASE_BOOKING_DEPOSIT' : 'RENTAL_ADVANCE';
 
-    // Get amount and currency from request's advancePayment (ignore body to prevent tampering)
-    let amount = request.advancePayment?.amount;
-    let currency = (request.advancePayment?.currency || 'USD').toUpperCase();
-
-    // New: derive checkout currency and amount for Stripe
-    let checkoutCurrency = currency;
-    let amountForCheckout = amount;
-
-    // Convert BDT -> USD at fixed rate 120 BDT = 1 USD
-    if (checkoutCurrency === 'BDT') {
-      console.log('🔁 Converting BDT to USD for Stripe Checkout at 120 BDT = 1 USD');
-      checkoutCurrency = 'USD';
-      amountForCheckout = amount / 120;
-    }
-
-    // Ensure currency is supported by Stripe Checkout in test/dev; fallback to USD if not
-    const supportedCurrencies = new Set(['USD', 'EUR', 'GBP', 'CAD', 'AUD']);
-    if (!supportedCurrencies.has(checkoutCurrency)) {
-      console.warn(`⚠️ Unsupported currency "${checkoutCurrency}" for Stripe Checkout. Falling back to USD.`);
-      checkoutCurrency = 'USD';
-    }
-
-    console.log('🧮 Advance payment details:', { amount, currency, checkoutCurrency, amountForCheckout });
-
-    if (!amount || amount <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid advance payment amount'
-      });
-    }
-
-    // Convert amount to the smallest currency unit (e.g., cents)
-    const amountInCents = Math.round(amountForCheckout * 100);
-
-    // Ensure we pass a valid customer email (fallback to DB lookup)
-    let customerEmail = req.user.email;
-    if (!customerEmail) {
-      try {
-        const userDoc = await User.findById(userId).select('email');
-        customerEmail = userDoc?.email;
-      } catch (e) {
-        console.warn('⚠️ Could not fetch user email for Stripe session (advance):', e.message);
-      }
-    }
-    console.log('📧 [Advance] Using customer email for Stripe (may be undefined):', customerEmail);
-
-    // Get property name and address for display
-    const propertyName = request.propertyId?.name || 'Property';
-    const propertyAddress = request.propertyId?.address || 'Address not available';
-    const displayName = `${propertyName} - ${propertyAddress}`;
-    
-    // Use the originUrl from the request body if provided, otherwise fall back to FRONTEND_URL
-    const frontendUrl = originUrl || process.env.FRONTEND_URL;
-    
-    if (!frontendUrl) {
-      return res.status(500).json({
-        success: false,
-        error: 'FRONTEND_URL_NOT_CONFIGURED',
-        message: 'Frontend URL is not configured. Please set FRONTEND_URL environment variable.'
-      });
-    }
-    console.log('🔗 Using frontend URL for redirects:', frontendUrl);
-    
-    const successUrl = `${frontendUrl}/tenant/request-info?payment=success&session_id={CHECKOUT_SESSION_ID}`;
-    const cancelUrl = `${frontendUrl}/tenant/request-info?payment=cancelled`;
-    
-    // Create Stripe checkout session
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price_data: {
-            currency: checkoutCurrency.toLowerCase(),
-            product_data: {
-              name: `Advance Payment - ${displayName}`,
-              description: currency === 'BDT' 
-              ? `Amount: ${amount.toLocaleString()} BDT (≈ $${(amount / 120).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD)`
-              : `Amount: ${amount.toLocaleString()} ${currency}`,
-            },
-            unit_amount: amountInCents,
-          },
-          quantity: 1,
-        },
-      ],
-      mode: 'payment',
-      success_url: successUrl,
-      cancel_url: cancelUrl,
-      metadata: {
-        requestId: request._id.toString(),
-        tenantId: userId.toString(),
-        ownerId: request.ownerId._id.toString(),
-        requestType: 'advance_payment',
-        amount: amount.toString(),
-        currency,
-        amountInUsd: currency === 'BDT' ? (amount / 120).toString() : amount.toString(),
-        bdtToUsdRate: currency === 'BDT' ? '120' : '1'
-      },
-      customer_email: customerEmail,
+    const result = await stripePaymentService.createPaymentSession({
+      purpose,
+      requestId,
+      userId,
+      customerEmail: req.user.email,
+      reqOrigin: originUrl || req.headers.origin
     });
 
-    // Store session id and add timeline event
-    request.advancePayment = request.advancePayment || {};
-    request.advancePayment.stripeSessionId = session.id;
-
-    request.timeline.push({
-      event: 'Advance payment session created',
-      actor: userId,
-      timestamp: new Date(),
-      note: currency === 'BDT' 
-        ? `Amount: ${amount.toLocaleString()} BDT (≈ $${(amount / 120).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD)`
-        : `Amount: ${amount.toLocaleString()} ${currency}`
-    });
-
-    await request.save();
-
-    res.status(200).json({
-      success: true,
-      sessionId: session.id,
-      url: session.url
-    });
-
+    res.status(200).json(result);
   } catch (error) {
     console.error('Error creating advance payment session:', error?.message || error);
-    if (error?.stack) console.error(error.stack);
-    if (error?.raw) console.error('Stripe error details:', error.raw);
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
-      message: 'Failed to create payment session'
+      message: error.message || 'Failed to create payment session'
     });
   }
 };
@@ -707,22 +571,14 @@ const handleWebhook = async (req, res) => {
         
         const paymentType = sessionData.metadata.type || sessionData.metadata.requestType || 'advance_payment';
         
-        if (paymentType === 'invoice_payment') {
-          console.log('🔄 [WEBHOOK] Handling invoice payment...');
-          await handleInvoicePaymentSuccess(sessionData);
-          console.log('✅ [WEBHOOK] Invoice payment handled successfully');
-        } else if (paymentType === 'full_payment') {
-          console.log('🔄 [WEBHOOK] Handling full payment...');
-          await handleFullPaymentSuccess(sessionData);
-          console.log('✅ [WEBHOOK] Full payment handled successfully');
-        } else if (paymentType === 'security_guard_payment') {
+        if (paymentType === 'security_guard_payment') {
           console.log('🔄 [WEBHOOK] Handling security guard payment...');
           await handleSecurityGuardPaymentSuccess(sessionData);
           console.log('✅ [WEBHOOK] Security guard payment handled successfully');
         } else {
-          console.log('🔄 [WEBHOOK] Handling advance payment...');
-          await handlePaymentSuccess(sessionData);
-          console.log('✅ [WEBHOOK] Advance payment handled successfully');
+          console.log('🔄 [WEBHOOK] Processing property payment through centralized StripePaymentService...');
+          await stripePaymentService.handlePaymentSuccess(sessionData);
+          console.log('✅ [WEBHOOK] Payment handled successfully');
         }
         break;
         
@@ -818,51 +674,36 @@ const handlePaymentSuccess = async (session) => {
     request.advancePayment.paymentIntentId = session.payment_intent;
     request.advancePayment.stripeSessionId = session.id;
     request.advancePayment.isPaid = true;
-    // Prevent multiple payments for the same advance
     request.advancePayment.canPayAgain = false;
-    
-    // Stripe completed -> mark request as AdvancePaid (not Payment Submitted)
-    const oldRequestStatus = request.status;
-    request.status = 'AdvancePaid';
+
+    if (request.offer) {
+      request.offer.status = 'Paid';
+    }
+    if (request.reservation) {
+      request.reservation.status = 'Converted';
+      request.reservation.convertedAt = new Date();
+    }
     
     // Add timeline event
     request.timeline.push({
-      event: 'Advance payment completed via Stripe webhook',
+      event: 'Advance payment completed via Stripe',
       actor: tenantId,
       timestamp: new Date(),
-      note: `Amount: ${request.advancePayment.amount} ${request.advancePayment.currency} - Processed immediately via webhook`
-    });
-    
-    console.log('💾 [WEBHOOK] Saving request updates...');
-    await request.save();
-    console.log('✅ [WEBHOOK] Request updated successfully', {
-      requestId,
-      oldStatus: oldRequestStatus,
-      newStatus: request.status,
-      advancePaymentStatus: request.advancePayment.status,
-      processingTime: `${Date.now() - startTime}ms`
+      note: `Amount: ${request.advancePayment.amount} ${request.advancePayment.currency} - Verified successfully`
     });
 
     // Also update the corresponding Payment record from pending -> completed
     console.log('🔄 [WEBHOOK] Updating Payment record...');
     try {
-      // Prefer lookup by linked paymentId on the request, fallback to requestId/type
       let payment;
       if (request.advancePayment?.paymentId) {
-        console.log('🔍 [WEBHOOK] Looking up payment by paymentId:', request.advancePayment.paymentId);
         payment = await Payment.findOne({ paymentId: request.advancePayment.paymentId });
       }
       if (!payment) {
-        console.log('🔍 [WEBHOOK] Looking up payment by requestId and type...');
         payment = await Payment.findOne({ requestId: request._id, type: 'advance_payment' }).sort({ createdAt: -1 });
       }
       
       if (payment) {
-        console.log('✅ [WEBHOOK] Found Payment record to update:', {
-          paymentId: payment.paymentId,
-          currentStatus: payment.status
-        });
-        
         const oldStatus = payment.status;
         payment.status = 'completed';
         payment.paidAt = new Date();
@@ -874,87 +715,142 @@ const handlePaymentSuccess = async (session) => {
           paymentIntentId: session.payment_intent
         };
         
-        // Manually add to history to ensure it's tracked
         payment.history.push({
           status: 'completed',
           timestamp: new Date(),
-          note: `Advance payment completed via Stripe webhook. Changed from ${oldStatus} to completed - Processed immediately`,
+          note: `Advance payment completed via Stripe. Changed from ${oldStatus} to completed.`,
           updatedBy: tenantId
         });
         
-        console.log('💾 [WEBHOOK] Saving Payment record...');
         await payment.save();
-        console.log('✅ [WEBHOOK] Payment record updated successfully', {
-          paymentId: payment.paymentId || payment._id?.toString?.(),
-          oldStatus,
-          newStatus: payment.status,
-          historyEntries: payment.history.length
-        });
-      } else {
-        console.warn('⚠️ [WEBHOOK] No Payment record found to update for request:', request._id.toString());
+        console.log('✅ [WEBHOOK] Payment record updated to completed:', payment.paymentId);
       }
     } catch (paymentUpdateErr) {
-      console.error('❌ [WEBHOOK] Failed updating Payment record:', {
-        error: paymentUpdateErr.message,
-        stack: paymentUpdateErr.stack,
-        requestId
-      });
+      console.error('❌ [WEBHOOK] Failed updating Payment record:', paymentUpdateErr.message);
     }
     
-    // Automatically update property status and generate invoice for rental properties
+    // Tenancy establishment for Rent vs Reservation progression for Buy
     try {
-      console.log('🏠 [WEBHOOK] Updating property status after advance payment...');
       const property = await Property.findById(request.propertyId);
-      
-      if (property) {
-        const listingType = property.listingType;
-        let newStatus;
-        
-        if (listingType === 'For Sale') {
-          newStatus = 'Sold';
-        } else if (listingType === 'For Rent') {
-          newStatus = 'Rented';
-        }
-        
-        if (newStatus) {
-           // Update property status to indicate advance payment received, but don't transfer ownership yet
-           if (newStatus === 'Sold') {
-             // For sale properties, mark as reserved/under contract after advance payment
-             property.status = 'Reserved';
-             property.stateHistory.push({
-               status: 'Reserved',
-               timestamp: new Date(),
-               note: `Property reserved after advance payment completion for request ${requestId}`,
-               updatedBy: tenantId
-             });
-             await property.save();
-           } else if (newStatus === 'Rented') {
-             // Note: Property status will be updated to 'Rented' only when owner approves the request
-             // This webhook should not change property status for rental properties
-             console.log('🏠 [WEBHOOK] Skipping property status update for rental - will be handled on owner approval');
-             // Do not update property status here for rentals
-           }
-          
-          console.log('✅ [WEBHOOK] Property status updated successfully', {
-            propertyId: property._id,
-            listingType,
-            newStatus,
-            requestId
-          });
-        } else {
-          console.log('⚠️ [WEBHOOK] No status update needed for listing type:', listingType);
-        }
-      } else {
-        console.error('❌ [WEBHOOK] Property not found for status update:', request.propertyId);
+      if (!property) {
+        console.error('❌ [WEBHOOK] Property not found:', request.propertyId);
+        await request.save();
+        return;
       }
-    } catch (propertyUpdateErr) {
-      console.error('❌ [WEBHOOK] Failed to update property status:', {
-        error: propertyUpdateErr.message,
-        stack: propertyUpdateErr.stack,
-        requestId,
-        propertyId: request.propertyId
-      });
+
+      if (request.requestType === 'Rent') {
+        // Core Business Rule: Verified advance payment triggers tenancy activation
+        let rent = null;
+        if (request.rentId) {
+          rent = await Rent.findById(request.rentId);
+        }
+        if (!rent) {
+          rent = await Rent.findOne({ requestId: request._id, status: 'Active' });
+        }
+
+        if (!rent) {
+          console.log('🏠 [PAYMENT] Activating tenancy upon verified advance payment...');
+          const rentAmount = Number(request.offer?.monthlyRent || property.pricing?.rent || property.pricing?.monthlyRent || property.price || request.advancePayment.amount || 0);
+          const depositAmount = Number(request.offer?.securityDeposit || request.advancePayment.amount || rentAmount);
+          const startDate = request.offer?.startDate ? new Date(request.offer.startDate) : new Date();
+          const endDate = request.offer?.endDate ? new Date(request.offer.endDate) : new Date(startDate.getTime() + 365 * 24 * 60 * 60 * 1000);
+          const noticeDays = Number(request.offer?.noticeDays) || 60;
+          const dueDay = Number(request.offer?.dueDay) || 1;
+          const currency = (request.offer?.currency || request.advancePayment.currency || 'BDT').toUpperCase();
+
+          rent = new Rent({
+            propertyId: property._id,
+            ownerId: request.ownerId._id || request.ownerId,
+            tenants: [tenantId],
+            requestId: request._id,
+            term: {
+              type: 'fixed',
+              startDate,
+              endDate,
+              noticeDays
+            },
+            rent: {
+              amount: rentAmount,
+              currency,
+              dueDay,
+              graceDays: 5,
+              lateFee: { amount: 0, type: 'fixed' }
+            },
+            securityDeposit: {
+              amount: depositAmount,
+              held: depositAmount,
+              refundedAmount: 0,
+              refundStatus: 'none',
+              deductions: [],
+              refundTransactions: []
+            },
+            billing: {
+              frequency: 'monthly',
+              nextInvoiceDate: new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000),
+              autoGenerate: true
+            },
+            status: 'Active'
+          });
+
+          await rent.save();
+          console.log('✅ [PAYMENT] Active Rent created:', rent._id);
+        }
+
+        request.rentId = rent._id;
+        request.status = 'Paid/Completed';
+        request.timeline.push({
+          event: 'Tenancy Activated',
+          actor: tenantId,
+          timestamp: new Date(),
+          note: `Tenancy active. Security deposit held: ৳${rent.securityDeposit?.amount?.toLocaleString()}.`
+        });
+
+        property.status = 'Rented';
+        property.currentRentId = rent._id;
+        property.rentedAt = new Date();
+        if (!property.stateHistory) property.stateHistory = [];
+        property.stateHistory.push({
+          status: 'Rented',
+          timestamp: new Date(),
+          note: `Property marked Rented upon advance payment verification for request ${requestId}`,
+          updatedBy: tenantId
+        });
+        await property.save();
+
+        // Generate first monthly rent invoice
+        try {
+          console.log('🧾 Generating first monthly invoice after advance payment...');
+          await InvoiceService.generateFirstMonthlyInvoiceAfterAdvance(request._id);
+          console.log('✅ First monthly invoice generated successfully');
+        } catch (invoiceErr) {
+          console.warn('First invoice generation warning:', invoiceErr.message);
+        }
+      } else if (request.requestType === 'Buy') {
+        // For purchase requests: DO NOT create Rent or rental invoice
+        request.status = 'AdvancePaid';
+        request.timeline.push({
+          event: 'Booking Deposit Paid',
+          actor: tenantId,
+          timestamp: new Date(),
+          note: `Booking deposit received. Property reserved for sale completion.`
+        });
+
+        property.status = 'Processing';
+        if (!property.stateHistory) property.stateHistory = [];
+        property.stateHistory.push({
+          status: 'Processing',
+          state: 'Processing',
+          timestamp: new Date(),
+          note: `Property marked Processing upon booking deposit for purchase request ${requestId}`,
+          updatedBy: tenantId
+        });
+        await property.save();
+      }
+    } catch (activationErr) {
+      console.error('❌ [PAYMENT] Error activating tenancy or updating property:', activationErr);
     }
+
+    await request.save();
     
     console.log('Payment processed successfully for request:', requestId);
     
@@ -1311,561 +1207,143 @@ const handleInvoicePaymentSuccess = async (session) => {
  */
 const createInvoicePaymentSession = async (req, res) => {
   try {
-    const { paymentId, originUrl } = req.body;
+    const { paymentId, invoiceId, originUrl } = req.body;
     const userId = req.user?.userId;
 
-    if (!paymentId) {
+    if (!paymentId && !invoiceId) {
       return res.status(400).json({
         success: false,
-        message: 'Payment ID is required'
+        message: 'Payment ID or Invoice ID is required'
       });
     }
 
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
-    }
-
-    // Find the payment and populate related data
-    const payment = await Payment.findById(paymentId)
-      .populate('invoiceId', 'lineItems total dueDate period')
-      .populate('rentId', 'propertyId')
-      .populate({
-        path: 'rentId',
-        populate: {
-          path: 'propertyId',
-          select: 'title address'
-        }
-      });
-
-    if (!payment) {
-      return res.status(404).json({
-        success: false,
-        message: 'Payment not found'
-      });
-    }
-
-    // Verify the user is authorized to pay this invoice
-    if (payment.payerId.toString() !== userId) {
-      return res.status(403).json({
-        success: false,
-        message: 'Unauthorized to pay this invoice'
-      });
-    }
-
-    // Check if payment is still pending
-    if (payment.status !== 'pending') {
-      return res.status(400).json({
-        success: false,
-        message: `Payment is already ${payment.status}`
-      });
-    }
-
-    // Use the originUrl from the request body if provided, otherwise fall back to FRONTEND_URL
-    const frontendUrl = originUrl || process.env.FRONTEND_URL;
-    
-    if (!frontendUrl) {
-      return res.status(500).json({
-        success: false,
-        error: 'FRONTEND_URL_NOT_CONFIGURED',
-        message: 'Frontend URL is not configured. Please set FRONTEND_URL environment variable.'
-      });
-    }
-    console.log('🔗 Using frontend URL for invoice payment redirects:', frontendUrl);
-    
-    const successUrl = `${frontendUrl}/tenant/payment?session_id={CHECKOUT_SESSION_ID}&status=success&payment_id=${paymentId}`;
-    const cancelUrl = `${frontendUrl}/tenant/payment?status=cancelled&payment_id=${paymentId}`;
-
-    // Create Stripe checkout session
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-              line_items: [{
-          price_data: {
-            currency: payment.currency.toLowerCase(),
-            product_data: {
-              name: `Monthly Rent - ${payment.rentId.propertyId.displayName || payment.rentId.propertyId.address || 'Property'}`,
-              description: `Invoice for period: ${new Date(payment.invoiceId.period.start).toLocaleDateString()} - ${new Date(payment.invoiceId.period.end).toLocaleDateString()}`
-            },
-            unit_amount: Math.round(payment.amount * 100) // Convert to cents
-          },
-          quantity: 1
-        }],
-      mode: 'payment',
-      success_url: successUrl,
-      cancel_url: cancelUrl,
-      metadata: {
-        paymentId: paymentId,
-        userId: userId,
-        type: 'invoice_payment'
-      }
+    const result = await stripePaymentService.createPaymentSession({
+      purpose: 'MONTHLY_RENT',
+      paymentId,
+      invoiceId,
+      userId,
+      customerEmail: req.user?.email,
+      reqOrigin: originUrl || req.headers.origin
     });
 
-    console.log('✅ Created Stripe session for invoice payment:', {
-      sessionId: session.id,
-      paymentId: paymentId,
-      amount: payment.amount
-    });
-
-    res.status(200).json({
-      success: true,
-      sessionId: session.id,
-      url: session.url
-    });
-
+    res.status(200).json(result);
   } catch (error) {
     console.error('❌ Error creating invoice payment session:', error);
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
-      message: 'Failed to create payment session',
-      error: error.message
+      message: error.message || 'Failed to create payment session'
     });
   }
 };
 
-const handlePaymentExpired = async (session) => {
+const verifyPaymentSession = async (req, res) => {
   try {
-    const { requestId } = session.metadata;
-    
-    const request = await Request.findById(requestId);
-    if (!request) {
-      console.error('Request not found for payment expiry:', requestId);
-      return;
-    }
-    
-    // Add timeline event
-    request.timeline.push({
-      event: 'Payment session expired',
-      actor: request.tenantId,
-      timestamp: new Date(),
-      note: 'Stripe checkout session expired without payment'
+    const { sessionId } = req.params;
+    const session = await stripePaymentService.verifySession(sessionId);
+    res.status(200).json({
+      success: true,
+      session
     });
-    
-    await request.save();
-    
-    console.log('Payment session expired for request:', requestId);
-    
   } catch (error) {
-    console.error('Error handling payment expiry:', error);
+    console.error('Error verifying session:', error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// Handle failed payment
-const handlePaymentFailed = async (paymentIntent) => {
-  try {
-    // Find request by payment intent ID
-    const request = await Request.findOne({
-      'advancePayment.paymentIntentId': paymentIntent.id
-    });
-    
-    if (!request) {
-      console.error('Request not found for payment failure:', paymentIntent.id);
-      return;
-    }
-    
-    // Add timeline event
-    request.timeline.push({
-      event: 'Payment failed',
-      actor: request.tenantId,
-      timestamp: new Date(),
-      note: `Payment failed: ${paymentIntent.last_payment_error?.message || 'Unknown error'}`
-    });
-    
-    await request.save();
-    
-    console.log('Payment failed for request:', request._id);
-    
-  } catch (error) {
-    console.error('Error handling payment failure:', error);
-  }
-};
-
-// Get payment session status
 const getPaymentStatus = async (req, res) => {
   try {
     const { sessionId } = req.params;
-    
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
-    
+    if (!sessionId) {
+      return res.status(400).json({ success: false, message: 'Session ID is required' });
+    }
+    const payment = await Payment.findOne({ stripeSessionId: sessionId });
+    if (payment) {
+      return res.status(200).json({
+        success: true,
+        paymentStatus: payment.paymentStatus || payment.status,
+        payment
+      });
+    }
+    const session = await stripePaymentService.verifySession(sessionId);
     res.status(200).json({
       success: true,
-      status: session.payment_status,
+      paymentStatus: session.payment_status === 'paid' ? 'completed' : 'pending',
       session
     });
-    
   } catch (error) {
-    console.error('Error retrieving payment status:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve payment status'
-    });
+    console.error('Error getting payment status:', error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-
-
-// Upload payment proof
 const uploadPaymentProof = async (req, res) => {
   try {
     const { paymentId } = req.params;
     const { proofUrl, note } = req.body;
-    const userId = req.user.userId || req.user._id || req.user.id;
-    
-    // Validate input
-    if (!proofUrl) {
-      return res.status(400).json({
-        success: false,
-        message: 'Payment proof URL is required'
-      });
-    }
-    
-    // Find the payment record
-    const payment = await Payment.findOne({ paymentId });
+    const payment = await Payment.findById(paymentId);
     if (!payment) {
-      return res.status(404).json({
-        success: false,
-        message: 'Payment not found'
-      });
+      return res.status(404).json({ success: false, message: 'Payment not found' });
     }
-    
-    // Verify the user is the payer
-    if (payment.payerId.toString() !== userId.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'You are not authorized to upload proof for this payment'
-      });
-    }
-    
-    // Update payment with proof
-    payment.proofUrls = payment.proofUrls || [];
-    payment.proofUrls.push(proofUrl);
-    if (note) {
-      payment.notes = note;
-    }
-    
-    // Add to payment history
-    payment.history = payment.history || [];
-    payment.history.push({
-      status: payment.status,
-      timestamp: new Date(),
-      note: 'Payment proof uploaded by tenant',
-      updatedBy: userId
-    });
-    
+    if (proofUrl) payment.paymentProof = proofUrl;
+    if (note) payment.note = note;
     await payment.save();
-    
-    res.status(200).json({
-      success: true,
-      message: 'Payment proof uploaded successfully'
-    });
-    
+    res.status(200).json({ success: true, message: 'Payment proof uploaded', payment });
   } catch (error) {
     console.error('Error uploading payment proof:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to upload payment proof'
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// Update payment status
 const updatePaymentStatus = async (req, res) => {
   try {
     const { paymentId } = req.params;
     const { status, note } = req.body;
-    const userId = req.user.userId || req.user._id || req.user.id;
-    
-    // Validate input
-    if (!status) {
-      return res.status(400).json({
-        success: false,
-        message: 'Payment status is required'
-      });
-    }
-    
-    // Find the payment record
     const payment = await Payment.findById(paymentId);
     if (!payment) {
-      return res.status(404).json({
-        success: false,
-        message: 'Payment not found'
-      });
+      return res.status(404).json({ success: false, message: 'Payment not found' });
     }
-    
-    // Update payment status
-    const oldStatus = payment.status;
+    payment.paymentStatus = status;
     payment.status = status;
-    
-    // Add to payment history
-    payment.history = payment.history || [];
-    payment.history.push({
-      status: oldStatus,
-      timestamp: new Date(),
-      note: note || `Status updated from ${oldStatus} to ${status}`,
-      updatedBy: userId
-    });
-    
+    if (status === 'completed') payment.paidAt = new Date();
+    if (note) payment.note = note;
     await payment.save();
-    
-    res.status(200).json({
-      success: true,
-      message: 'Payment status updated successfully',
-      payment
-    });
-    
+    res.status(200).json({ success: true, message: 'Payment status updated', payment });
   } catch (error) {
     console.error('Error updating payment status:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update payment status'
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// The webhook-based system provides real-time updates without the need for manual polling
-// Get receipt data for a payment
 const getReceipt = async (req, res) => {
   try {
     const { paymentId } = req.params;
-    const userId = req.user.userId || req.user._id || req.user.id;
-    
-    console.log('🧾 Receipt request received:');
-    console.log('- Payment ID:', paymentId);
-    console.log('- User ID:', userId);
-    
-    // Find the payment record
-    const payment = await Payment.findOne({ paymentId }).populate({
-      path: 'requestId',
-      populate: [
-        { path: 'tenantId', select: 'name email phone' },
-        { path: 'ownerId', select: 'name email phone' },
-        { path: 'propertyId', select: 'address price description images' }
-      ]
-    });
-    
-    console.log('💳 Payment found:', payment ? 'Yes' : 'No');
-    if (payment) {
-      console.log('- Payment details:', {
-        paymentId: payment.paymentId,
-        status: payment.status,
-        amount: payment.amount,
-        requestId: payment.requestId?._id
-      });
-    } else {
-      // Try to find payment by different criteria
-      console.log('🔍 Searching for payment with alternative methods...');
-      const allPayments = await Payment.find({}).limit(5);
-      console.log('- Sample payments in DB:', allPayments.map(p => ({ paymentId: p.paymentId, status: p.status })));
-    }
-    
+    const payment = await Payment.findById(paymentId)
+      .populate('payerId', 'firstName lastName email')
+      .populate('payeeId', 'firstName lastName email')
+      .populate('propertyId', 'title address city');
     if (!payment) {
-      return res.status(404).json({
-        success: false,
-        message: 'Payment receipt not found'
-      });
+      return res.status(404).json({ success: false, message: 'Payment not found' });
     }
-    
-    // Check authorization - user must be tenant or owner of the request
-    const request = payment.requestId;
-    if (!request || 
-        (request.tenantId._id.toString() !== userId.toString() && 
-         request.ownerId._id.toString() !== userId.toString())) {
-      return res.status(403).json({
-        success: false,
-        message: 'You are not authorized to view this receipt'
-      });
-    }
-    
-    // Prepare receipt data
-    const receiptData = {
-      receiptId: payment.paymentId,
-      paymentId: payment.paymentId,
-      transactionId: payment.stripeDetails?.paymentIntentId || payment.stripeDetails?.sessionId || 'N/A',
-      paymentStatus: payment.status,
-      paymentMethod: payment.method,
-      amount: payment.amount,
-      currency: payment.currency,
-      paidAt: payment.paidAt,
-      createdAt: payment.createdAt,
-      
-      // Request details
-      request: {
-        requestId: request.requestId,
-        requestType: request.requestType,
-        status: request.status,
-        submittedAt: request.createdAt
-      },
-      
-      // Property details
-      property: {
-        address: request.propertyId?.address || 'N/A',
-        price: request.propertyId?.price || 0,
-        description: request.propertyId?.description || 'N/A'
-      },
-      
-      // Tenant details
-      tenant: {
-        name: request.tenantId?.name || 'N/A',
-        email: request.tenantId?.email || 'N/A',
-        phone: request.tenantId?.phone || 'N/A'
-      },
-      
-      // Owner details
-      owner: {
-        name: request.ownerId?.name || 'N/A',
-        email: request.ownerId?.email || 'N/A',
-        phone: request.ownerId?.phone || 'N/A'
-      }
-    };
-    
     res.status(200).json({
       success: true,
-      receiptData,
-      message: 'Receipt retrieved successfully'
-    });
-    
-  } catch (error) {
-    console.error('Error retrieving receipt:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve receipt'
-    });
-  }
-};
-
-// Handle successful security guard payment
-const handleSecurityGuardPaymentSuccess = async (session) => {
-  const startTime = Date.now();
-  try {
-    console.log('➡️ [WEBHOOK] handleSecurityGuardPaymentSuccess invoked at', new Date().toISOString(), {
-      sessionId: session?.id,
-      paymentIntent: session?.payment_intent,
-      paymentStatus: session?.payment_status,
-      metadata: session?.metadata
-    });
-
-    const { paymentId, jobPostId, guardId, ownerId, amount, frequency } = session.metadata;
-
-    if (!paymentId || !jobPostId || !guardId || !ownerId) {
-      console.error('❌ [WEBHOOK] Missing required metadata:', { paymentId, jobPostId, guardId, ownerId });
-      return;
-    }
-
-    // Find and update the payment record
-    const payment = await Payment.findById(paymentId);
-    if (!payment) {
-      console.error('❌ [WEBHOOK] Payment not found:', paymentId);
-      return;
-    }
-
-    // Check if payment is already processed
-    if (payment.status === 'completed') {
-      console.log('⚠️ [WEBHOOK] Payment already processed, skipping update:', {
-        paymentId,
-        currentStatus: payment.status
-      });
-      return;
-    }
-
-    console.log('🔄 [WEBHOOK] Updating security guard payment status...');
-
-    // Update payment status
-    payment.status = 'completed';
-    payment.paidAt = new Date();
-    payment.stripeDetails = {
-      ...payment.stripeDetails,
-      paymentIntentId: session.payment_intent
-    };
-
-    // Add to payment history
-    payment.history.push({
-      status: 'completed',
-      timestamp: new Date(),
-      note: 'Security guard payment completed via Stripe webhook',
-      updatedBy: ownerId
-    });
-
-    await payment.save();
-    console.log('✅ [WEBHOOK] Security guard payment updated successfully');
-
-    // Update job post payment info
-    const JobPost = require('../models/JobPost');
-    const jobPost = await JobPost.findById(jobPostId);
-    if (jobPost) {
-      jobPost.paymentInfo.lastPaymentDate = new Date();
-      jobPost.paymentInfo.totalPaid += parseFloat(amount);
-      jobPost.paymentInfo.paymentStatus = 'current';
-
-      // Calculate next payment due date based on frequency
-      if (frequency && frequency !== 'one-time') {
-        const nextDue = new Date();
-        switch (frequency) {
-          case 'daily':
-            nextDue.setDate(nextDue.getDate() + 1);
-            break;
-          case 'weekly':
-            nextDue.setDate(nextDue.getDate() + 7);
-            break;
-          case 'monthly':
-            nextDue.setMonth(nextDue.getMonth() + 1);
-            break;
-        }
-        jobPost.paymentInfo.nextPaymentDue = nextDue;
+      receiptData: {
+        receiptNumber: payment.receiptNumber || `REC-${payment._id.toString().slice(-6).toUpperCase()}`,
+        amount: payment.amount,
+        currency: payment.currency || 'BDT',
+        paymentDate: payment.paidAt || payment.createdAt,
+        paymentMethod: payment.paymentMethod || 'Stripe',
+        transactionId: payment.transactionId || payment.stripePaymentIntentId,
+        payer: payment.payerId,
+        payee: payment.payeeId,
+        property: payment.propertyId,
+        status: payment.paymentStatus || payment.status
       }
-
-      await jobPost.save();
-      console.log('✅ [WEBHOOK] Job post payment info updated');
-    }
-
-    // Send notifications
-    try {
-      // Notify the guard about payment received
-      await NotificationService.createNotification({
-        userId: guardId,
-        type: 'payment_received',
-        title: 'Payment Received',
-        message: `You have received a payment of ${amount} BDT for your security guard services.`,
-        metadata: {
-          paymentId: payment._id,
-          jobPostId: jobPostId,
-          amount: amount
-        }
-      });
-
-      // Notify the owner about successful payment
-      await NotificationService.createNotification({
-        userId: ownerId,
-        type: 'payment_completed',
-        title: 'Payment Completed',
-        message: `Your payment of ${amount} BDT to the security guard has been processed successfully.`,
-        metadata: {
-          paymentId: payment._id,
-          jobPostId: jobPostId,
-          amount: amount
-        }
-      });
-
-      console.log('✅ [WEBHOOK] Notifications sent successfully');
-    } catch (notificationError) {
-      console.error('❌ [WEBHOOK] Failed to send notifications:', notificationError.message);
-    }
-
-    console.log('✅ [WEBHOOK] Security guard payment processing completed', {
-      paymentId,
-      processingTime: `${Date.now() - startTime}ms`
     });
-
   } catch (error) {
-    console.error('❌ [WEBHOOK] Error handling security guard payment success:', {
-      error: error.message,
-      stack: error.stack,
-      sessionId: session?.id
-    });
+    console.error('Error getting receipt:', error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
-
-// Long polling functionality removed
 
 module.exports = {
   getPublishableKey,
@@ -1876,5 +1354,6 @@ module.exports = {
   uploadPaymentProof,
   updatePaymentStatus,
   getReceipt,
-  createInvoicePaymentSession
+  createInvoicePaymentSession,
+  verifyPaymentSession
 };

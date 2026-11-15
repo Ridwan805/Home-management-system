@@ -2,16 +2,27 @@ import React, { useContext } from 'react';
 import './SidebarNav.css';
 import { AuthContext } from '../../App';
 import { useNavigate, Link } from 'react-router-dom';
+import {
+  User,
+  PlusCircle,
+  Building2,
+  Users,
+  ShieldCheck,
+  ClipboardList,
+  Wrench,
+  CreditCard,
+  LogOut
+} from 'lucide-react';
 
 const menuItems = [
-  { key: 'profile', label: 'Profile', description: 'Owner Information', icon: '👤' },
-  { key: 'create-listing', label: 'Create Listing', description: 'Add New Property', icon: '➕' },
-  { key: 'property-details', label: 'Property Details', description: 'View Listed Properties', icon: '🏢' },
-  { key: 'tenant-info', label: 'Tenant Info', description: 'Manage Tenants', icon: '👥' },
-  { key: 'security-guard-info', label: 'Security Guard Info', description: 'Manage Security Guards', icon: '🛡️' },
-  { key: 'request-info', label: 'Request Info', description: 'View Requests', icon: '📋' },
-  { key: 'maintenance-reports', label: 'Maintenance Reports', description: 'View & Manage Reports', icon: '🔧' },
-  { key: 'payments', label: 'Payments', description: 'Manage Payments', icon: '💳' },
+  { key: 'profile', label: 'Profile', description: 'Owner Information', icon: <User size={18} /> },
+  { key: 'create-listing', label: 'Create Listing', description: 'Add New Property', icon: <PlusCircle size={18} /> },
+  { key: 'property-details', label: 'Property Details', description: 'View Listed Properties', icon: <Building2 size={18} /> },
+  { key: 'tenant-info', label: 'Tenant Info', description: 'Manage Tenants', icon: <Users size={18} /> },
+  { key: 'security-guard-info', label: 'Security Guard Info', description: 'Manage Security Guards', icon: <ShieldCheck size={18} /> },
+  { key: 'request-info', label: 'Request Info', description: 'View Requests', icon: <ClipboardList size={18} /> },
+  { key: 'maintenance-reports', label: 'Maintenance Reports', description: 'View & Manage Reports', icon: <Wrench size={18} /> },
+  { key: 'payments', label: 'Payments', description: 'Manage Payments', icon: <CreditCard size={18} /> },
 ];
 
 const SidebarNav = ({ activeSection, setActiveSection }) => {
@@ -53,7 +64,7 @@ const SidebarNav = ({ activeSection, setActiveSection }) => {
 
       <div className="sidebar-logout">
         <button className="logout-btn" onClick={handleLogout}>
-          <span>🚪</span> Logout
+          <LogOut size={16} /> Logout
         </button>
       </div>
     </aside>

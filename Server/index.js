@@ -20,6 +20,7 @@ const fs = require('fs');
 const PaymentScheduler = require('./services/paymentScheduler');
 // Invoice service for automatic invoice generation
 const InvoiceService = require('./services/invoiceService');
+const OfferExpiryService = require('./services/offerExpiryService');
 // Scheduled jobs service for automated tasks
 const ScheduledJobsService = require('./services/scheduledJobs');
 // Periodic property cleanup service for orphaned properties
@@ -339,6 +340,9 @@ app.listen(port, () => {
   // Initialize invoice service cron jobs
   InvoiceService.initializeCronJobs();
   console.log('🧾 Invoice service cron jobs initialized');
+  
+  // Start offer expiry service (checks and expires overdue offers)
+  OfferExpiryService.start();
   
   // Start periodic property cleanup (runs every 5 minutes)
   // PeriodicPropertyCleanup.start('*/5 * * * *');

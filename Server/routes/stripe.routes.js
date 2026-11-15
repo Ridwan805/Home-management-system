@@ -9,7 +9,8 @@ const {
   uploadPaymentProof,
   updatePaymentStatus,
   getReceipt,
-  createInvoicePaymentSession
+  createInvoicePaymentSession,
+  verifyPaymentSession
 } = require('../controllers/stripe.controller');
 const authMiddleware = require('../middleware/authMiddleware');
 
@@ -25,8 +26,9 @@ router.post('/create-full-payment-session/:requestId', authMiddleware, createFul
 // Webhook is now handled directly in index.js with proper raw body parsing
 // router.post('/webhook', express.raw({type: 'application/json'}), handleWebhook);
 
-// Get payment status
+// Get payment status / verify session
 router.get('/payment-status/:sessionId', authMiddleware, getPaymentStatus);
+router.get('/verify-session/:sessionId', authMiddleware, verifyPaymentSession);
 
 // Update payment status
 router.put('/payment-status/:paymentId', authMiddleware, updatePaymentStatus);

@@ -16,7 +16,11 @@ import {
   Tag, 
   Home, 
   FileText,
-  AlertCircle
+  AlertCircle,
+  AlertTriangle,
+  ShieldCheck,
+  CheckCircle2,
+  Clock
 } from 'lucide-react';
 import './HouseInfo.css';
 import API from '../../config/api';
@@ -35,6 +39,24 @@ const HouseInfo = () => {
   const [selectedPropertyDetails, setSelectedPropertyDetails] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [loadingDetails, setLoadingDetails] = useState(false);
+
+  // Move-Out Notice states
+  const [showMoveOutModal, setShowMoveOutModal] = useState(false);
+  const [selectedRentForMoveOut, setSelectedRentForMoveOut] = useState(null);
+  const [moveOutForm, setMoveOutForm] = useState({
+    intendedMoveOutDate: '',
+    reason: '',
+    forwardingAddress: ''
+  });
+  const [moveOutLoading, setMoveOutLoading] = useState(false);
+  const [moveOutError, setMoveOutError] = useState('');
+  const [moveOutNoticeSuccess, setMoveOutNoticeSuccess] = useState('');
+
+  const calculateNoticeDays = (dateStr) => {
+    if (!dateStr) return 0;
+    const diff = new Date(dateStr).getTime() - Date.now();
+    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+  };
 
   const fetchAssignedProperties = useCallback(async (silent = false) => {
     try {
@@ -75,9 +97,10 @@ const HouseInfo = () => {
           allAssignments.push({
             ...item.property,
             assignmentType: 'Rent',
-            assignedAt: item.request?.approvedAt || item.property.updatedAt,
-            leaseEnd: item.request?.leaseEnd || null,
-            status: 'Approved',
+            rentData: item.rent || null,
+            assignedAt: item.rent?.term?.startDate || item.request?.approvedAt || item.property.updatedAt,
+            leaseEnd: item.rent?.term?.endDate || item.request?.leaseEnd || null,
+            status: item.rent?.status || 'Active',
             owner: item.property.ownerUserId,
             requestInfo: item.request
           });
@@ -110,6 +133,70 @@ const HouseInfo = () => {
       setRefreshing(false);
     }
   }, []);
+
+  const handleOpenMoveOutModal = (property) => {
+    if (!property.rentData?._id) return;
+    setSelectedRentForMoveOut(property);
+    setMoveOutError('');
+    setMoveOutNoticeSuccess('');
+    // Default to 60 days from now
+    const defaultDate = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    setMoveOutForm({
+      intendedMoveOutDate: defaultDate,
+      reason: 'End of lease / Relocation',
+      forwardingAddress: ''
+    });
+    setShowMoveOutModal(true);
+  };
+
+  const handleSubmitMoveOutNotice = async (e) => {
+    e.preventDefault();
+    if (!selectedRentForMoveOut?.rentData?._id) return;
+    setMoveOutError('');
+
+    const days = calculateNoticeDays(moveOutForm.intendedMoveOutDate);
+    if (days < 1) {
+      setMoveOutError('Move-out date must be in the future.');
+      return;
+    }
+
+    try {
+      setMoveOutLoading(true);
+      const userData = JSON.parse(localStorage.getItem('dwellSyncUser'));
+      const token = userData?.token;
+      if (!token) throw new Error('Authentication required');
+
+      const rentId = selectedRentForMoveOut.rentData._id;
+      const res = await fetch(API.getUrl(API.endpoints.submitMoveOutNotice(rentId)), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          intendedMoveOutDate: moveOutForm.intendedMoveOutDate,
+          reason: moveOutForm.reason.trim(),
+          forwardingAddress: moveOutForm.forwardingAddress.trim()
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to submit move-out notice');
+      }
+
+      setMoveOutNoticeSuccess('Move-out notice submitted successfully! Your property owner has been notified.');
+      setTimeout(() => {
+        setShowMoveOutModal(false);
+        fetchAssignedProperties(true);
+      }, 1500);
+    } catch (err) {
+      console.error('Error submitting move-out notice:', err);
+      setMoveOutError(err.message || 'Failed to submit move-out notice.');
+    } finally {
+      setMoveOutLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchAssignedProperties();
@@ -284,7 +371,61 @@ const HouseInfo = () => {
                         <span className="meta-val">{formatDate(property.leaseEnd)}</span>
                       </div>
                     )}
+
+                    {property.assignmentType === 'Rent' && property.rentData?.securityDeposit?.amount && (
+                      <div className="meta-box-item">
+                        <span className="meta-label">Deposit Held</span>
+                        <span className="meta-val font-bold">৳{Number(property.rentData.securityDeposit.amount).toLocaleString()}</span>
+                      </div>
+                    )}
                   </div>
+
+                  {/* Tenancy & Move-Out Management Block */}
+                  {property.assignmentType === 'Rent' && (
+                    <div className="tenancy-moveout-box" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '0.5rem', padding: '0.875rem 1rem', marginTop: '0.75rem' }}>
+                      {property.rentData?.moveOut?.noticeSubmitted ? (
+                        <div className="moveout-status-active">
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.8125rem', fontWeight: 600, color: '#D97706' }}>
+                              <Clock size={14} /> Move-Out Notice Filed
+                            </span>
+                            <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
+                              Departure: {formatDate(property.rentData.moveOut.intendedMoveOutDate)}
+                            </span>
+                          </div>
+                          <p style={{ margin: '0.375rem 0 0 0', fontSize: '0.75rem', color: '#475569' }}>
+                            Notice provided: {property.rentData.moveOut.noticeDaysGiven} days ({property.rentData.moveOut.meetsRequirement ? 'Standard 60-day notice met' : 'Under 60 days standard'})
+                            • Status: {property.rentData.moveOut.ownerAcknowledged ? 'Owner Acknowledged' : 'Pending Owner Review'}
+                          </p>
+                          {property.rentData.moveOut.handoverScheduledDate && (
+                            <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.75rem', color: '#2563EB', fontWeight: 600 }}>
+                              Handover Inspection: {formatDate(property.rentData.moveOut.handoverScheduledDate)}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
+                          <div>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                              Move-Out Notice Requirement
+                            </span>
+                            <p style={{ margin: '0.125rem 0 0 0', fontSize: '0.75rem', color: '#64748B' }}>
+                              Requires {property.rentData?.term?.noticeDays || 60} days advance written notice prior to departure.
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            className="ds-btn ds-btn-secondary ds-btn-sm"
+                            onClick={() => handleOpenMoveOutModal(property)}
+                            style={{ fontSize: '0.75rem', padding: '0.375rem 0.75rem' }}
+                          >
+                            <AlertTriangle size={13} />
+                            <span>Notice to Vacate</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Owner Info Block */}
                   {property.owner && (
@@ -462,6 +603,122 @@ const HouseInfo = () => {
                 Close
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Move-Out Notice Modal */}
+      {showMoveOutModal && selectedRentForMoveOut && (
+        <div className="ds-modal-backdrop" onClick={() => { if (!moveOutLoading) setShowMoveOutModal(false); }}>
+          <div className="ds-modal-card" style={{ maxWidth: '36rem' }} onClick={e => e.stopPropagation()}>
+            <div className="ds-modal-header">
+              <div className="modal-title-wrap">
+                <AlertTriangle size={20} color="#D97706" />
+                <h3 className="ds-modal-title">Submit Move-Out Notice</h3>
+              </div>
+              <button 
+                type="button" 
+                className="ds-modal-close" 
+                onClick={() => setShowMoveOutModal(false)}
+                disabled={moveOutLoading}
+                aria-label="Close dialog"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitMoveOutNotice} className="ds-modal-body">
+              {moveOutNoticeSuccess && (
+                <div className="requests-alert alert-success" style={{ background: '#ECFDF5', border: '1px solid #A7F3D0', color: '#065F46', padding: '0.875rem 1rem', borderRadius: '0.375rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <CheckCircle2 size={18} color="#059669" />
+                  <span>{moveOutNoticeSuccess}</span>
+                </div>
+              )}
+
+              {moveOutError && (
+                <div className="requests-alert alert-error" style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#991B1B', padding: '0.875rem 1rem', borderRadius: '0.375rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <AlertCircle size={18} color="#DC2626" />
+                  <span>{moveOutError}</span>
+                </div>
+              )}
+
+              <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: '0.5rem', padding: '0.875rem 1rem', marginBottom: '1.25rem' }}>
+                <h4 style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: '#1E40AF' }}>Lease Notice Requirement: 60 Days</h4>
+                <p style={{ margin: '0.25rem 0 0', fontSize: '0.8125rem', color: '#1E3A8A' }}>
+                  Submitting this notice informs your property owner of your planned move-out date to schedule a handover inspection and prepare security deposit settlement.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#1E293B', marginBottom: '0.375rem' }}>
+                    Intended Move-Out Date *
+                  </label>
+                  <input 
+                    type="date"
+                    required
+                    min={new Date().toISOString().split('T')[0]}
+                    value={moveOutForm.intendedMoveOutDate}
+                    onChange={e => setMoveOutForm({ ...moveOutForm, intendedMoveOutDate: e.target.value })}
+                    style={{ width: '100%', padding: '0.625rem 0.875rem', border: '1px solid #CBD5E1', borderRadius: '0.375rem', fontSize: '0.875rem' }}
+                  />
+                  {moveOutForm.intendedMoveOutDate && (() => {
+                    const days = calculateNoticeDays(moveOutForm.intendedMoveOutDate);
+                    const meetsReq = days >= 60;
+                    return (
+                      <div style={{ marginTop: '0.375rem', fontSize: '0.75rem', fontWeight: 600, color: meetsReq ? '#059669' : '#D97706', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                        {meetsReq ? <CheckCircle2 size={13} /> : <AlertTriangle size={13} />}
+                        <span>Notice Period: {days} days ({meetsReq ? 'Meets standard 60-day notice requirement' : 'Under recommended 60 days'})</span>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#1E293B', marginBottom: '0.375rem' }}>
+                    Reason for Relocation / Departure
+                  </label>
+                  <input 
+                    type="text"
+                    placeholder="e.g. Relocating closer to workplace, buying home..."
+                    value={moveOutForm.reason}
+                    onChange={e => setMoveOutForm({ ...moveOutForm, reason: e.target.value })}
+                    style={{ width: '100%', padding: '0.625rem 0.875rem', border: '1px solid #CBD5E1', borderRadius: '0.375rem', fontSize: '0.875rem' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#1E293B', marginBottom: '0.375rem' }}>
+                    Forwarding Address (for Deposit Disbursement & Final Statements)
+                  </label>
+                  <textarea 
+                    rows="2"
+                    placeholder="Provide your new residential address..."
+                    value={moveOutForm.forwardingAddress}
+                    onChange={e => setMoveOutForm({ ...moveOutForm, forwardingAddress: e.target.value })}
+                    style={{ width: '100%', padding: '0.625rem 0.875rem', border: '1px solid #CBD5E1', borderRadius: '0.375rem', fontSize: '0.875rem' }}
+                  />
+                </div>
+              </div>
+
+              <div className="ds-modal-footer" style={{ marginTop: '1.5rem', padding: '1rem 0 0' }}>
+                <button 
+                  type="button" 
+                  className="ds-btn ds-btn-secondary" 
+                  onClick={() => setShowMoveOutModal(false)}
+                  disabled={moveOutLoading}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="ds-btn ds-btn-primary"
+                  disabled={moveOutLoading || !moveOutForm.intendedMoveOutDate}
+                >
+                  {moveOutLoading ? 'Submitting...' : 'Confirm Move-Out Notice'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

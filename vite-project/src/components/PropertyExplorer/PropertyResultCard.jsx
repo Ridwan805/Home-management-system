@@ -9,13 +9,16 @@ import {
   Heart,
   ArrowRight,
   Sparkles,
-  Camera
+  Camera,
+  Clock,
+  CheckCircle2
 } from 'lucide-react';
 import {
   getPropertyImages,
   formatPropertyPrice,
   getPropertyAddress,
-  humanizePropertyType
+  humanizePropertyType,
+  getAvailabilityBadgeInfo
 } from './propertyUtils';
 import './PropertyResultCard.css';
 
@@ -33,6 +36,7 @@ const PropertyResultCard = ({
   const primaryImage = images.length > 0 ? images[0] : null;
 
   const isRent = property.listingType === 'For Rent';
+  const badgeInfo = getAvailabilityBadgeInfo(property);
   const bedrooms = property.specifications?.bedrooms ?? property.bedrooms;
   const bathrooms = property.specifications?.bathrooms ?? property.bathrooms;
   const area = property.specifications?.squareFootage ?? property.squareFootage ?? property.size;
@@ -84,10 +88,15 @@ const PropertyResultCard = ({
           </div>
         )}
 
-        {/* Listing Type Badge */}
-        <span className={`card-type-badge ${isRent ? 'badge-rent' : 'badge-sale'}`}>
-          {property.listingType || 'For Rent'}
-        </span>
+        {/* Listing Type & Availability Badges */}
+        <div className="card-badge-stack">
+          <span className={`card-type-badge ${isRent ? 'badge-rent' : 'badge-sale'}`}>
+            {property.listingType || 'For Rent'}
+          </span>
+          <span className={`card-availability-badge ${badgeInfo.className}`}>
+            {badgeInfo.label}
+          </span>
+        </div>
 
         {/* Wishlist Button */}
         <button
@@ -154,6 +163,20 @@ const PropertyResultCard = ({
             </span>
           )}
         </div>
+
+        {/* Reservation / 24h Rented Notice */}
+        {badgeInfo.label === 'Processing' && (
+          <div className="card-status-note note-processing">
+            <Clock size={12} />
+            <span>Under active reservation &bull; Agreement in progress</span>
+          </div>
+        )}
+        {badgeInfo.label === 'Rented' && (
+          <div className="card-status-note note-rented">
+            <CheckCircle2 size={12} />
+            <span>Rented &bull; Visible for 24 hours</span>
+          </div>
+        )}
 
         {/* Bottom Row: Amenities & Action */}
         <div className="card-bottom-row">

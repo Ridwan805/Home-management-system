@@ -12,12 +12,16 @@ const {
   generateMonthlyRentInvoices,
   generateOwnershipTransferInvoice,
   processInvoicePaymentService,
-  markOverdueInvoices
+  markOverdueInvoices,
+  downloadInvoicePDF
 } = require('../controllers/invoice.controller');
 const authMiddleware = require('../middleware/authMiddleware');
 
 // Get invoices for authenticated user (tenant or owner)
 router.get('/', authMiddleware, getInvoices);
+
+// Download invoice PDF
+router.get('/:invoiceId/pdf', authMiddleware, downloadInvoicePDF);
 
 // Get specific invoice by ID
 router.get('/:invoiceId', authMiddleware, getInvoiceById);

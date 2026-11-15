@@ -361,38 +361,140 @@ describe('Tenant Management Controller', () => {
     });
   });
 
-  describe('PUT /api/owner/tenants/:id (updateTenant)', () => {
-    it('updates rent terms and tenant contact information', async () => {
-      req.params.id = rentId;
+  describe('Move-Out Notice and Deposit Settlement Workflow', () => {
+    const {
+      submitMoveOutNotice,
+      acknowledgeMoveOut,
+      settleDepositAndTerminate
+    } = require('../controllers/tenantManagement.controller');
+
+    it('tenant submits move-out notice with >= 60 days notice', async () => {
+      req.user = { userId: tenantId, role: 'Tenant' };
+      req.params.rentId = rentId;
+      const targetDate = new Date(Date.now() + 65 * 24 * 3600 * 1000).toISOString();
       req.body = {
-        monthlyRent: 28000,
-        securityDeposit: 56000,
-        status: 'Active',
-        notes: 'Updated terms'
+        intendedMoveOutDate: targetDate,
+        reason: 'Relocating to another city',
+        forwardingAddress: 'Dhaka, Bangladesh'
       };
 
-      const mockProp = { _id: propertyId, ownerUserId, save: jest.fn().mockResolvedValue(true) };
+      const mockRent = {
+        _id: rentId,
+        tenants: [tenantId],
+        ownerId: ownerUserId,
+        status: 'Active',
+        term: { noticeDays: 60 },
+        propertyId: { _id: propertyId, title: 'Palm Heights' },
+        save: jest.fn().mockResolvedValue(true)
+      };
+
+      Rent.findById.mockReturnValue({
+        populate: jest.fn().mockReturnValue({
+          populate: jest.fn().mockResolvedValue(mockRent)
+        })
+      });
+      User.findById.mockResolvedValue({ firstName: 'Alice', lastName: 'Walker' });
+      Notification.create.mockResolvedValue({ _id: 'notif-1' });
+
+      await submitMoveOutNotice(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(mockRent.moveOut.noticeSubmitted).toBe(true);
+      expect(mockRent.moveOut.meetsRequirement).toBe(true);
+      expect(mockRent.moveOut.noticeDaysGiven).toBeGreaterThanOrEqual(60);
+      expect(mockRent.save).toHaveBeenCalled();
+      expect(Notification.create).toHaveBeenCalled();
+    });
+
+    it('owner acknowledges notice and schedules handover', async () => {
+      req.user = { userId: ownerUserId, role: 'Owner' };
+      req.params.rentId = rentId;
+      const handoverDate = new Date(Date.now() + 60 * 24 * 3600 * 1000).toISOString();
+      req.body = {
+        handoverScheduledDate: handoverDate,
+        notes: 'Handover inspection confirmed at 11 AM.'
+      };
+
+      const mockRent = {
+        _id: rentId,
+        ownerId: ownerUserId,
+        moveOut: { noticeSubmitted: true },
+        tenants: [{ _id: tenantId }],
+        save: jest.fn().mockResolvedValue(true)
+      };
+
+      Rent.findById.mockReturnValue({
+        populate: jest.fn().mockReturnValue({
+          populate: jest.fn().mockResolvedValue(mockRent)
+        })
+      });
+      Notification.create.mockResolvedValue({ _id: 'notif-2' });
+
+      await acknowledgeMoveOut(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(mockRent.moveOut.ownerAcknowledged).toBe(true);
+      expect(mockRent.moveOut.handoverNotes).toBe('Handover inspection confirmed at 11 AM.');
+      expect(mockRent.save).toHaveBeenCalled();
+    });
+
+    it('owner itemizes deductions, processes refund, terminates tenancy, and releases property', async () => {
+      req.user = { userId: ownerUserId, role: 'Owner' };
+      req.params.rentId = rentId;
+      req.body = {
+        deductions: [
+          { description: 'Wall repainting & deep cleaning', amount: 5000, category: 'repairs' },
+          { description: 'Final water bill dues', amount: 1500, category: 'utilities' }
+        ],
+        refundAmount: 23500, // 30000 - 6500 = 23500
+        method: 'Bank Transfer',
+        transactionRef: 'TXN-REFUND-999',
+        terminateTenancy: true
+      };
+
+      const mockProp = {
+        _id: propertyId,
+        ownerUserId,
+        status: 'Rented',
+        currentRentId: rentId,
+        stateHistory: [],
+        save: jest.fn().mockResolvedValue(true)
+      };
+
       const mockRent = {
         _id: rentId,
         ownerId: ownerUserId,
         propertyId: mockProp,
-        rent: { amount: 25000 },
-        securityDeposit: { amount: 50000, held: 50000 },
-        term: {},
         status: 'Active',
-        save: jest.fn().mockResolvedValue(true),
-        tenants: [tenantId]
+        securityDeposit: {
+          amount: 30000,
+          held: 30000,
+          deductions: [],
+          refundTransactions: []
+        },
+        moveOut: { noticeSubmitted: true, ownerAcknowledged: true },
+        term: {},
+        tenants: [{ _id: tenantId }],
+        save: jest.fn().mockResolvedValue(true)
       };
 
       Rent.findById.mockReturnValue({
-        populate: jest.fn().mockResolvedValue(mockRent)
+        populate: jest.fn().mockReturnValue({
+          populate: jest.fn().mockResolvedValue(mockRent)
+        })
       });
+      Notification.create.mockResolvedValue({ _id: 'notif-3' });
 
-      await updateTenant(req, res);
+      await settleDepositAndTerminate(req, res);
 
       expect(res.status).toHaveBeenCalledWith(200);
-      expect(mockRent.rent.amount).toBe(28000);
-      expect(mockRent.securityDeposit.amount).toBe(56000);
+      expect(mockRent.securityDeposit.deductions).toHaveLength(2);
+      expect(mockRent.securityDeposit.refundedAmount).toBe(23500);
+      expect(mockRent.securityDeposit.refundStatus).toBe('completed');
+      expect(mockRent.status).toBe('Ended');
+      expect(mockProp.status).toBe('Available');
+      expect(mockProp.currentRentId).toBeNull();
+      expect(mockProp.save).toHaveBeenCalled();
       expect(mockRent.save).toHaveBeenCalled();
     });
   });

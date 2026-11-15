@@ -10,7 +10,8 @@ import {
   X, 
   CheckCircle2, 
   AlertCircle,
-  ExternalLink
+  ExternalLink,
+  Download
 } from 'lucide-react';
 import { authenticatedFetch } from '../../config/api';
 import apiConfig from '../../config/api';
@@ -32,10 +33,73 @@ const PaymentInfo = () => {
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [processingPayment, setProcessingPayment] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(null);
   const [activeTab, setActiveTab] = useState('invoices'); // 'invoices' | 'history'
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState(null);
   const navigate = useNavigate();
+
+  const handleDownloadInvoicePDF = async (invoiceId, invoiceNo) => {
+    try {
+      setDownloadingPdf(`inv-${invoiceId}`);
+      const userData = localStorage.getItem('dwellSyncUser');
+      const token = userData ? JSON.parse(userData).token : '';
+      
+      const res = await fetch(apiConfig.getUrl(`/api/invoices/${invoiceId}/pdf`), {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!res.ok) throw new Error('Failed to download invoice PDF');
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Invoice-${invoiceNo || invoiceId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error('Error downloading invoice PDF:', err);
+      setError('Could not download invoice PDF. Please try again.');
+    } finally {
+      setDownloadingPdf(null);
+    }
+  };
+
+  const handleDownloadReceiptPDF = async (paymentId, receiptNumber) => {
+    try {
+      setDownloadingPdf(`rec-${paymentId}`);
+      const userData = localStorage.getItem('dwellSyncUser');
+      const token = userData ? JSON.parse(userData).token : '';
+
+      const res = await fetch(apiConfig.getUrl(`/api/payments/${paymentId}/receipt/pdf`), {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!res.ok) throw new Error('Failed to download receipt PDF');
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Receipt-${receiptNumber || paymentId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error('Error downloading receipt PDF:', err);
+      setError('Could not download receipt PDF. Please try again.');
+    } finally {
+      setDownloadingPdf(null);
+    }
+  };
 
   const fetchAllData = async (isManualRefresh = false) => {
     if (isManualRefresh) {
@@ -125,10 +189,11 @@ const PaymentInfo = () => {
         navigate
       );
       
-      if (response.success && response.url) {
-        window.location.href = response.url;
+      const checkoutTargetUrl = response.url || response.checkoutUrl;
+      if (response.success && checkoutTargetUrl) {
+        window.location.href = checkoutTargetUrl;
       } else {
-        setError('Failed to create payment session. Please try again.');
+        setError(response.message || 'Failed to create payment session. Please try again.');
       }
     } catch (err) {
       console.error('Error processing payment:', err);
@@ -157,10 +222,11 @@ const PaymentInfo = () => {
         navigate
       );
       
-      if (response.success && response.url) {
-        window.location.href = response.url;
+      const checkoutTargetUrl = response.url || response.checkoutUrl;
+      if (response.success && checkoutTargetUrl) {
+        window.location.href = checkoutTargetUrl;
       } else {
-        setError('Failed to create payment session. Please try again.');
+        setError(response.message || 'Failed to create payment session. Please try again.');
       }
     } catch (err) {
       console.error('Error processing payment:', err);
@@ -341,6 +407,7 @@ const PaymentInfo = () => {
                   <tr>
                     <th>Invoice No</th>
                     <th>Property</th>
+                    <th>Purpose</th>
                     <th>Amount</th>
                     <th>Due Date</th>
                     <th>Status</th>
@@ -350,6 +417,7 @@ const PaymentInfo = () => {
                 <tbody>
                   {invoices.map((invoice) => {
                     const isPaid = invoice.status === 'paid' || invoice.status === 'completed';
+                    const purposeLabel = (invoice.paymentPurpose || 'MONTHLY_RENT').replace(/_/g, ' ');
                     return (
                       <tr key={invoice._id}>
                         <td>
@@ -362,6 +430,11 @@ const PaymentInfo = () => {
                             {invoice.propertyId?.displayName || invoice.propertyId?.title || invoice.property?.title || 'Residential Unit'}
                           </span>
                         </td>
+                        <td>
+                          <span className="method-tag font-xs">
+                            {purposeLabel}
+                          </span>
+                        </td>
                         <td className="amount-cell">
                           {formatMoney(invoice.total || invoice.amount, invoice.currency)}
                         </td>
@@ -370,21 +443,33 @@ const PaymentInfo = () => {
                           <TenantStatusBadge status={invoice.status || 'pending'} size="sm" />
                         </td>
                         <td className="align-right">
-                          {!isPaid ? (
+                          <div style={{ display: 'flex', gap: '0.375rem', justifyContent: 'flex-end', alignItems: 'center' }}>
                             <button
                               type="button"
-                              className="ds-btn ds-btn-primary ds-btn-sm"
-                              onClick={() => handlePayInvoice(invoice)}
-                              disabled={processingPayment}
+                              className="ds-btn ds-btn-secondary ds-btn-sm"
+                              onClick={() => handleDownloadInvoicePDF(invoice._id, invoice.invoiceNo)}
+                              disabled={downloadingPdf === `inv-${invoice._id}`}
+                              title="Download official PDF invoice"
                             >
-                              <CreditCard size={14} />
-                              <span>Pay Now</span>
+                              <Download size={13} />
+                              <span>{downloadingPdf === `inv-${invoice._id}` ? '...' : 'PDF'}</span>
                             </button>
-                          ) : (
-                            <span className="paid-timestamp">
-                              Paid {formatDate(invoice.paidAt)}
-                            </span>
-                          )}
+                            {!isPaid ? (
+                              <button
+                                type="button"
+                                className="ds-btn ds-btn-primary ds-btn-sm"
+                                onClick={() => handlePayInvoice(invoice)}
+                                disabled={processingPayment}
+                              >
+                                <CreditCard size={14} />
+                                <span>Pay Now</span>
+                              </button>
+                            ) : (
+                              <span className="paid-timestamp font-xs">
+                                Paid {formatDate(invoice.paidAt)}
+                              </span>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -421,25 +506,35 @@ const PaymentInfo = () => {
                   <tr>
                     <th>Date</th>
                     <th>Property</th>
+                    <th>Purpose</th>
                     <th>Amount</th>
                     <th>Payment Method</th>
                     <th>Status</th>
-                    <th className="align-right">Receipt</th>
+                    <th className="align-right">Receipt Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {paymentHistory.map((payment) => {
                     const propTitle = payment.invoiceId?.propertyId?.displayName || 
                       payment.invoiceId?.propertyId?.address || 
+                      payment.propertyId?.displayName ||
+                      payment.propertyId?.address ||
                       payment.rentId?.propertyId?.displayName || 
                       payment.rentId?.propertyId?.address || 
                       'Rental Property';
+
+                    const purposeLabel = (payment.paymentPurpose || payment.type || 'MONTHLY_RENT').replace(/_/g, ' ');
 
                     return (
                       <tr key={payment._id}>
                         <td>{formatDate(payment.paidAt || payment.createdAt)}</td>
                         <td>
                           <span className="property-cell-title">{propTitle}</span>
+                        </td>
+                        <td>
+                          <span className="method-tag font-xs">
+                            {purposeLabel}
+                          </span>
                         </td>
                         <td className="amount-cell font-emerald">
                           {formatMoney(payment.amount, payment.currency || payment.invoiceId?.currency)}
@@ -453,15 +548,27 @@ const PaymentInfo = () => {
                           <TenantStatusBadge status={payment.status || 'completed'} size="sm" />
                         </td>
                         <td className="align-right">
-                          <button
-                            type="button"
-                            className="ds-btn ds-btn-secondary ds-btn-sm"
-                            onClick={() => handleViewReceipt(payment)}
-                            title="View official receipt"
-                          >
-                            <FileText size={14} />
-                            <span>Receipt</span>
-                          </button>
+                          <div style={{ display: 'flex', gap: '0.375rem', justifyContent: 'flex-end', alignItems: 'center' }}>
+                            <button
+                              type="button"
+                              className="ds-btn ds-btn-secondary ds-btn-sm"
+                              onClick={() => handleViewReceipt(payment)}
+                              title="View official receipt"
+                            >
+                              <FileText size={14} />
+                              <span>Receipt</span>
+                            </button>
+                            <button
+                              type="button"
+                              className="ds-btn ds-btn-primary ds-btn-sm"
+                              onClick={() => handleDownloadReceiptPDF(payment._id, payment.paymentId)}
+                              disabled={downloadingPdf === `rec-${payment._id}`}
+                              title="Download official receipt PDF"
+                            >
+                              <Download size={13} />
+                              <span>{downloadingPdf === `rec-${payment._id}` ? '...' : 'PDF'}</span>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -649,10 +756,19 @@ const PaymentInfo = () => {
               <button
                 type="button"
                 className="ds-btn ds-btn-primary"
+                onClick={() => handleDownloadReceiptPDF(selectedPayment._id, selectedPayment.paymentId)}
+                disabled={downloadingPdf === `rec-${selectedPayment._id}`}
+              >
+                <Download size={16} />
+                <span>{downloadingPdf === `rec-${selectedPayment._id}` ? 'Downloading...' : 'Download PDF'}</span>
+              </button>
+              <button
+                type="button"
+                className="ds-btn ds-btn-secondary"
                 onClick={() => window.print()}
               >
                 <Printer size={16} />
-                <span>Print Receipt</span>
+                <span>Print</span>
               </button>
               <button
                 type="button"

@@ -6,6 +6,22 @@ import UnifiedInquiryForm from './UnifiedInquiryForm';
 import apiConfig from '../config/api';
 import LocationViewerMap from './LocationViewerMap';
 import { PageLoader, ButtonSpinner } from './loading';
+import {
+  User,
+  Mail,
+  Phone,
+  Heart,
+  CheckCircle2,
+  Clock,
+  Ban,
+  FileText,
+  CreditCard,
+  Bed,
+  Bath,
+  Maximize,
+  Building2,
+  Calendar
+} from 'lucide-react';
 
 const ViewDetails = () => {
   const { propertyId } = useParams();
@@ -311,28 +327,28 @@ const ViewDetails = () => {
             <h3>Property Specifications</h3>
             <div className="property-specs-grid">
               <div className="spec-item">
-                <span className="spec-icon">🛏️</span>
+                <span className="spec-icon"><Bed size={16} color="#2563EB" /></span>
                 <span className="spec-label">Bedrooms</span>
                 <span className="spec-value">{property.bedrooms}</span>
               </div>
               <div className="spec-item">
-                <span className="spec-icon">🚿</span>
+                <span className="spec-icon"><Bath size={16} color="#2563EB" /></span>
                 <span className="spec-label">Bathrooms</span>
                 <span className="spec-value">{property.bathrooms}</span>
               </div>
               <div className="spec-item">
-                <span className="spec-icon">📏</span>
+                <span className="spec-icon"><Maximize size={16} color="#2563EB" /></span>
                 <span className="spec-label">Square Footage</span>
                 <span className="spec-value">{property.squareFootage} sqft</span>
               </div>
               <div className="spec-item">
-                <span className="spec-icon">🏷️</span>
+                <span className="spec-icon"><Building2 size={16} color="#2563EB" /></span>
                 <span className="spec-label">Property Type</span>
                 <span className="spec-value">{property.propertyType}</span>
               </div>
               {property.yearBuilt && (
                 <div className="spec-item">
-                  <span className="spec-icon">🏗️</span>
+                  <span className="spec-icon"><Calendar size={16} color="#2563EB" /></span>
                   <span className="spec-label">Year Built</span>
                   <span className="spec-value">{property.yearBuilt}</span>
                 </div>
@@ -360,108 +376,168 @@ const ViewDetails = () => {
         </div>
 
         {/* Right Column - Contact & Actions */}
-        <div className="property-sidebar">
-          <div className="property-status-card">
-            <div className="status-badge">
-              {property.status}
-            </div>
-            <p className="status-description">
-              This property is currently {property.status.toLowerCase()}
-            </p>
-          </div>
+        {(() => {
+          const rawStatus = property.status || 'Available';
+          const effectiveAvailability = ['Processing', 'Reserved'].includes(rawStatus)
+            ? 'Processing'
+            : rawStatus;
+          const isAvailable = effectiveAvailability === 'Available';
+          const isProcessing = effectiveAvailability === 'Processing';
+          const isRented = effectiveAvailability === 'Rented';
+          const isSold = effectiveAvailability === 'Sold';
+          const canApply = isAvailable && !hasApplied;
 
-          <div className="property-contact-card">
-            <h3>Owner Contact Information</h3>
-            {property.ownerUserId ? (
-              <>
-                <div className="contact-item">
-                  <span className="contact-icon">👤</span>
-                  <span className="contact-text">{property.ownerUserId.firstName} {property.ownerUserId.lastName}</span>
+          return (
+            <div className="property-sidebar">
+              <div className="property-status-card">
+                <div className={`status-badge badge-${effectiveAvailability.toLowerCase()}`}>
+                  {effectiveAvailability}
                 </div>
-                <div className="contact-item">
-                  <span className="contact-icon">📧</span>
-                  <span className="contact-text">{property.ownerUserId.email}</span>
-                </div>
-                {property.ownerUserId.phoneNumber && (
-                  <div className="contact-item">
-                    <span className="contact-icon">📞</span>
-                    <span className="contact-text">{property.ownerUserId.phoneNumber}</span>
-                  </div>
-                )}
-              </>
-            ) : (
-              <p className="no-contact-info">Owner contact information not available</p>
-            )}
-          </div>
+                <p className="status-description">
+                  {isProcessing
+                    ? 'This property is currently under active reservation while the approved applicant completes agreement details and advance payment. New applications are temporarily paused.'
+                    : isRented
+                    ? (property.is24hVisible 
+                        ? 'This property has been rented. The listing remains visible for 24 hours.' 
+                        : 'This property is currently rented.')
+                    : isSold
+                    ? 'This property has been sold.'
+                    : property.listingType === 'For Rent'
+                    ? 'This property is available for rent.'
+                    : 'This property is available for purchase.'}
+                </p>
+              </div>
 
-          <div className="property-actions-card">
-            <h3>Actions</h3>
-            {userRole && userRole !== 'Owner' && (
-              <>
-                <button 
-                  onClick={handleWishlist} 
-                  className={`action-btn wishlist-btn ${isInWishlist ? 'in-wishlist' : ''}`}
-                  disabled={wishlistLoading}
-                >
-                  {wishlistLoading ? (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
-                      <ButtonSpinner size="small" />
-                      <span>Updating...</span>
-                    </span>
-                  ) : isInWishlist ? (
-                    '❤️ Remove from Wishlist'
-                  ) : (
-                    '❤️ Add to Wishlist'
-                  )}
-                </button>
-                
-                {property.listingType === 'For Rent' ? (
-                  <button 
-                    onClick={hasApplied || property.status === 'Rented' ? null : handleApplyToRent} 
-                    className={`action-btn apply-rent-btn ${hasApplied ? 'already-applied' : ''} ${property.status === 'Rented' ? 'property-rented' : ''}`}
-                    disabled={hasApplied || applicationLoading || property.status === 'Rented'}
-                  >
-                    {applicationLoading ? (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
-                        <ButtonSpinner size="small" />
-                        <span>Checking...</span>
-                      </span>
-                    ) : property.status === 'Rented' ? (
-                      '🚫 Property Already Rented'
-                    ) : hasApplied ? (
-                      '✓ Already Applied to Rent'
-                    ) : (
-                      '📝 Apply to Rent'
+              <div className="property-contact-card">
+                <h3>Owner Contact Information</h3>
+                {property.ownerUserId ? (
+                  <>
+                    <div className="contact-item">
+                      <span className="contact-icon"><User size={15} color="#2563EB" /></span>
+                      <span className="contact-text">{property.ownerUserId.firstName} {property.ownerUserId.lastName}</span>
+                    </div>
+                    <div className="contact-item">
+                      <span className="contact-icon"><Mail size={15} color="#2563EB" /></span>
+                      <span className="contact-text">{property.ownerUserId.email}</span>
+                    </div>
+                    {property.ownerUserId.phoneNumber && (
+                      <div className="contact-item">
+                        <span className="contact-icon"><Phone size={15} color="#2563EB" /></span>
+                        <span className="contact-text">{property.ownerUserId.phoneNumber}</span>
+                      </div>
                     )}
-                  </button>
+                  </>
                 ) : (
-                  <button 
-                    onClick={hasApplied ? null : handleApplyToBuy} 
-                    className={`action-btn apply-buy-btn ${hasApplied ? 'already-applied' : ''}`}
-                    disabled={hasApplied || applicationLoading}
-                  >
-                    {applicationLoading ? (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
-                        <ButtonSpinner size="small" />
-                        <span>Checking...</span>
-                      </span>
-                    ) : hasApplied ? (
-                      '✓ Already Applied to Buy'
-                    ) : (
-                      '💰 Apply to Buy'
-                    )}
-                  </button>
+                  <p className="no-contact-info">Owner contact information not available</p>
                 )}
-              </>
-            )}
-            {userRole === 'Owner' && (
-              <p className="owner-message">As an owner, you can view property details but cannot add to wishlist or apply.</p>
-            )}
-            {!userRole && (
-              <p className="login-message">Please <a href="/login">login</a> to add to wishlist or apply.</p>
-            )}
-          </div>
-        </div>
+              </div>
+
+              <div className="property-actions-card">
+                <h3>Actions</h3>
+                {userRole && userRole !== 'Owner' && (
+                  <>
+                    <button 
+                      onClick={handleWishlist} 
+                      className={`action-btn wishlist-btn ${isInWishlist ? 'in-wishlist' : ''}`}
+                      disabled={wishlistLoading}
+                    >
+                      {wishlistLoading ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                          <ButtonSpinner size="small" />
+                          <span>Updating...</span>
+                        </span>
+                      ) : isInWishlist ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                          <Heart size={15} fill="#EF4444" color="#EF4444" />
+                          <span>Remove from Wishlist</span>
+                        </span>
+                      ) : (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                          <Heart size={15} />
+                          <span>Add to Wishlist</span>
+                        </span>
+                      )}
+                    </button>
+                    
+                    {property.listingType === 'For Rent' ? (
+                      <button 
+                        onClick={!canApply ? null : handleApplyToRent} 
+                        className={`action-btn apply-rent-btn ${hasApplied ? 'already-applied' : ''} ${!isAvailable ? 'btn-disabled-status' : ''}`}
+                        disabled={!canApply || applicationLoading}
+                      >
+                        {applicationLoading ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                            <ButtonSpinner size="small" />
+                            <span>Checking...</span>
+                          </span>
+                        ) : isRented ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                            <Ban size={15} />
+                            <span>Property Already Rented</span>
+                          </span>
+                        ) : isProcessing ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                            <Clock size={15} />
+                            <span>Under Active Reservation</span>
+                          </span>
+                        ) : hasApplied ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                            <CheckCircle2 size={15} />
+                            <span>Already Applied to Rent</span>
+                          </span>
+                        ) : (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                            <FileText size={15} />
+                            <span>Apply to Rent</span>
+                          </span>
+                        )}
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={!canApply ? null : handleApplyToBuy} 
+                        className={`action-btn apply-buy-btn ${hasApplied ? 'already-applied' : ''} ${!isAvailable ? 'btn-disabled-status' : ''}`}
+                        disabled={!canApply || applicationLoading}
+                      >
+                        {applicationLoading ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                            <ButtonSpinner size="small" />
+                            <span>Checking...</span>
+                          </span>
+                        ) : isSold ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                            <Ban size={15} />
+                            <span>Property Sold</span>
+                          </span>
+                        ) : isProcessing ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                            <Clock size={15} />
+                            <span>Purchase In Progress</span>
+                          </span>
+                        ) : hasApplied ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                            <CheckCircle2 size={15} />
+                            <span>Already Applied to Buy</span>
+                          </span>
+                        ) : (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                            <CreditCard size={15} />
+                            <span>Apply to Buy</span>
+                          </span>
+                        )}
+                      </button>
+                    )}
+                  </>
+                )}
+                {userRole === 'Owner' && (
+                  <p className="owner-message">As an owner, you can view property details but cannot add to wishlist or apply.</p>
+                )}
+                {!userRole && (
+                  <p className="login-message">Please <a href="/login">login</a> to add to wishlist or apply.</p>
+                )}
+              </div>
+            </div>
+          );
+        })()}
       </div>
       
       {/* Unified Inquiry Form Modal */}

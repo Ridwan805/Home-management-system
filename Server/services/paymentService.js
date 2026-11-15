@@ -119,7 +119,7 @@ class PaymentService {
         pendingInvoices.map(async (invoice) => {
           const payment = await Payment.findOne({
             invoiceId: invoice._id,
-            status: 'pending'
+            status: { $in: ['pending', 'processing'] }
           });
           
           return {
@@ -147,7 +147,8 @@ class PaymentService {
         payerId: tenantId,
         status: { $in: ['completed', 'paid', 'succeeded'] }
       })
-        .select('paymentId amount currency status type method provider paidAt createdAt invoiceId rentId stripeDetails')
+        .select('paymentId amount currency status type paymentPurpose method provider paidAt createdAt invoiceId rentId propertyId stripeDetails')
+        .populate('propertyId', 'displayName title address location')
         .populate('invoiceId', 'period dueDate lineItems total invoiceNo')
         .populate({
           path: 'invoiceId',

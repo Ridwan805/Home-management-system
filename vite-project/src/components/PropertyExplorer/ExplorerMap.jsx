@@ -22,19 +22,35 @@ const DEFAULT_CENTER = [23.6850, 90.3563]; // Bangladesh center
 const DEFAULT_ZOOM = 7;
 
 /**
- * Creates a custom DivIcon with formatted price
+ * Creates a custom DivIcon with formatted price and authoritative availability state
  */
 const createCustomMarker = (property, isSelected = false) => {
   const priceText = formatCompactPrice(property);
   const isRent = property.listingType === 'For Rent';
+  const availability = (property.effectiveAvailability || property.status || 'Available').toLowerCase();
 
-  const markerClass = `explorer-custom-marker ${isSelected ? 'is-selected' : ''} ${isRent ? 'rent-marker' : 'sale-marker'}`;
+  let statusClass = 'status-available';
+  let statusBadge = '';
+
+  if (availability === 'processing' || availability === 'reserved') {
+    statusClass = 'status-processing';
+    statusBadge = '<span class="marker-status-tag tag-processing">Processing</span>';
+  } else if (availability === 'rented') {
+    statusClass = 'status-rented';
+    statusBadge = '<span class="marker-status-tag tag-rented">Rented</span>';
+  } else if (availability === 'sold') {
+    statusClass = 'status-sold';
+    statusBadge = '<span class="marker-status-tag tag-sold">Sold</span>';
+  }
+
+  const markerClass = `explorer-custom-marker ${isSelected ? 'is-selected' : ''} ${isRent ? 'rent-marker' : 'sale-marker'} ${statusClass}`;
 
   return L.divIcon({
     className: markerClass,
     html: `
       <div class="marker-pill-container">
         <span class="marker-price-text">${priceText}</span>
+        ${statusBadge}
         <div class="marker-pin-tip"></div>
       </div>
     `,

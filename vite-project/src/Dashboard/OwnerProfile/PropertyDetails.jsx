@@ -5,6 +5,7 @@ import LocationPickerMap from '../../components/LocationPickerMap';
 import LocationViewerMap from '../../components/LocationViewerMap';
 import './PropertyDetails.css';
 import { CircularSpinner } from '../../components/loading';
+import { Bed, Bath, Maximize } from 'lucide-react';
 
 const PropertyDetails = () => {
   const [properties, setProperties] = useState([]);
@@ -291,8 +292,8 @@ const PropertyDetails = () => {
                 ) : (
                   <div className="property-placeholder">No Image Available</div>
                 )}
-                <span className={`status-badge ${property.status?.toLowerCase().replace(/ /g, '-')}`}>
-                  {property.status}
+                <span className={`status-badge ${(property.effectiveAvailability || property.status || 'available').toLowerCase().replace(/\s+/g, '-')}`}>
+                  {property.effectiveAvailability || property.status}
                 </span>
               </div>
               
@@ -302,9 +303,15 @@ const PropertyDetails = () => {
                 <p className="property-location">{property.city}, {property.state} {property.zipCode}</p>
                 
                 <div className="property-specs">
-                  <span>🛏️ {property.bedrooms} bd</span>
-                  <span>🚿 {property.bathrooms} ba</span>
-                  <span>📏 {property.squareFootage} sqft</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <Bed size={14} color="#64748B" /> {property.bedrooms} bd
+                  </span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <Bath size={14} color="#64748B" /> {property.bathrooms} ba
+                  </span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <Maximize size={14} color="#64748B" /> {property.squareFootage} sqft
+                  </span>
                 </div>
                 
                 <div className="property-type-info">

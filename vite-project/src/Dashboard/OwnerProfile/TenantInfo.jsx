@@ -27,16 +27,28 @@ import {
   FaFileContract,
   FaInfoCircle
 } from 'react-icons/fa';
+import {
+  CreditCard,
+  AlertTriangle,
+  Users,
+  Wrench,
+  Search,
+  Megaphone,
+  AlertCircle,
+  Scale,
+  CheckCircle2,
+  Calendar
+} from 'lucide-react';
 
 const NOTICE_TYPES = [
-  { id: 'rent_reminder', label: 'Rent Reminder', icon: '💳' },
-  { id: 'overdue_payment', label: 'Overdue Rent Notice', icon: '⚠️' },
-  { id: 'meeting', label: 'Meeting Notice', icon: '👥' },
-  { id: 'maintenance', label: 'Maintenance Notice', icon: '🔧' },
-  { id: 'inspection', label: 'Inspection Notice', icon: '🔍' },
-  { id: 'general', label: 'General Announcement', icon: '📢' },
-  { id: 'emergency', label: 'Emergency Alert', icon: '🚨' },
-  { id: 'eviction_warning', label: 'Eviction / Lease Termination', icon: '⚖️' },
+  { id: 'rent_reminder', label: 'Rent Reminder', icon: <CreditCard size={18} /> },
+  { id: 'overdue_payment', label: 'Overdue Rent Notice', icon: <AlertTriangle size={18} /> },
+  { id: 'meeting', label: 'Meeting Notice', icon: <Users size={18} /> },
+  { id: 'maintenance', label: 'Maintenance Notice', icon: <Wrench size={18} /> },
+  { id: 'inspection', label: 'Inspection Notice', icon: <Search size={18} /> },
+  { id: 'general', label: 'General Announcement', icon: <Megaphone size={18} /> },
+  { id: 'emergency', label: 'Emergency Alert', icon: <AlertCircle size={18} /> },
+  { id: 'eviction_warning', label: 'Eviction / Lease Termination', icon: <Scale size={18} /> },
 ];
 
 const TenantInfo = () => {
@@ -99,6 +111,22 @@ const TenantInfo = () => {
   // Notice Details / Audit Modal
   const [showNoticeDetailsModal, setShowNoticeDetailsModal] = useState(false);
   const [activeNoticeDetail, setActiveNoticeDetail] = useState(null);
+
+  // Move-Out & Deposit Settlement Modal
+  const [showMoveOutSettlementModal, setShowMoveOutSettlementModal] = useState(false);
+  const [selectedTenantForSettlement, setSelectedTenantForSettlement] = useState(null);
+  const [settlementStep, setSettlementStep] = useState('acknowledge'); // 'acknowledge' | 'handover' | 'settlement'
+  const [handoverDate, setHandoverDate] = useState('');
+  const [handoverNotes, setHandoverNotes] = useState('');
+  const [deductions, setDeductions] = useState([]);
+  const [newDeduction, setNewDeduction] = useState({ description: '', amount: '', category: 'repairs' });
+  const [refundAmount, setRefundAmount] = useState('');
+  const [refundMethod, setRefundMethod] = useState('Bank Transfer');
+  const [transactionRef, setTransactionRef] = useState('');
+  const [terminateTenancy, setTerminateTenancy] = useState(true);
+  const [settlementSubmitting, setSettlementSubmitting] = useState(false);
+  const [settlementSuccess, setSettlementSuccess] = useState('');
+  const [settlementError, setSettlementError] = useState('');
 
   // Form State for Add / Edit Tenant
   const [tenantFormData, setTenantFormData] = useState({
@@ -221,6 +249,144 @@ const TenantInfo = () => {
       setFormError(err.message || 'Error occurred while updating tenancy.');
     } finally {
       setFormSubmitting(false);
+    }
+  };
+
+  // Move-Out Notice & Deposit Settlement Handlers
+  const handleOpenMoveOutSettlement = (tenant) => {
+    setSelectedTenantForSettlement(tenant);
+    setSettlementError('');
+    setSettlementSuccess('');
+    const defaultDate = tenant.moveOut?.handoverScheduledDate
+      ? new Date(tenant.moveOut.handoverScheduledDate).toISOString().split('T')[0]
+      : (tenant.moveOut?.intendedMoveOutDate ? new Date(tenant.moveOut.intendedMoveOutDate).toISOString().split('T')[0] : '');
+    setHandoverDate(defaultDate);
+    setHandoverNotes(tenant.moveOut?.handoverNotes || '');
+    const existingDeductions = tenant.securityDepositDetails?.deductions || [];
+    setDeductions(existingDeductions);
+    const deposit = Number(tenant.securityDeposit || 0);
+    const existingDedTotal = existingDeductions.reduce((s, d) => s + Number(d.amount || 0), 0);
+    setRefundAmount(Math.max(0, deposit - existingDedTotal));
+    setTerminateTenancy(true);
+
+    if (!tenant.moveOut?.ownerAcknowledged) {
+      setSettlementStep('acknowledge');
+    } else if (!tenant.moveOut?.handoverCompletedDate) {
+      setSettlementStep('handover');
+    } else {
+      setSettlementStep('settlement');
+    }
+    setShowMoveOutSettlementModal(true);
+  };
+
+  const handleAcknowledgeNotice = async () => {
+    if (!selectedTenantForSettlement?.rentId) return;
+    try {
+      setSettlementSubmitting(true);
+      setSettlementError('');
+      const res = await authenticatedFetch(`${API_BASE_URL}/api/owner/tenants/${selectedTenantForSettlement.rentId}/acknowledge-move-out`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          handoverScheduledDate: handoverDate,
+          notes: handoverNotes
+        })
+      });
+      if (res && res.success) {
+        setSettlementSuccess('Move-out notice acknowledged and handover inspection scheduled!');
+        fetchTenantsData();
+        setTimeout(() => {
+          setSettlementSuccess('');
+          setSettlementStep('handover');
+        }, 1000);
+      } else {
+        setSettlementError(res?.message || 'Failed to acknowledge move-out notice');
+      }
+    } catch (e) {
+      setSettlementError(e.message || 'Error acknowledging notice');
+    } finally {
+      setSettlementSubmitting(false);
+    }
+  };
+
+  const handleRecordHandover = async () => {
+    if (!selectedTenantForSettlement?.rentId) return;
+    try {
+      setSettlementSubmitting(true);
+      setSettlementError('');
+      const res = await authenticatedFetch(`${API_BASE_URL}/api/owner/tenants/${selectedTenantForSettlement.rentId}/record-handover`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          handoverCompletedDate: new Date().toISOString(),
+          handoverNotes: handoverNotes
+        })
+      });
+      if (res && res.success) {
+        setSettlementSuccess('Handover inspection recorded!');
+        fetchTenantsData();
+        setTimeout(() => {
+          setSettlementSuccess('');
+          setSettlementStep('settlement');
+        }, 1000);
+      } else {
+        setSettlementError(res?.message || 'Failed to record handover');
+      }
+    } catch (e) {
+      setSettlementError(e.message || 'Error recording handover');
+    } finally {
+      setSettlementSubmitting(false);
+    }
+  };
+
+  const handleAddDeduction = () => {
+    if (!newDeduction.description || !newDeduction.amount) return;
+    const updated = [...deductions, { description: newDeduction.description.trim(), amount: parseFloat(newDeduction.amount) || 0, category: newDeduction.category }];
+    setDeductions(updated);
+    setNewDeduction({ description: '', amount: '', category: 'repairs' });
+    const deposit = Number(selectedTenantForSettlement?.securityDeposit || 0);
+    const totalDed = updated.reduce((s, d) => s + Number(d.amount || 0), 0);
+    setRefundAmount(Math.max(0, deposit - totalDed));
+  };
+
+  const handleRemoveDeduction = (idx) => {
+    const updated = deductions.filter((_, i) => i !== idx);
+    setDeductions(updated);
+    const deposit = Number(selectedTenantForSettlement?.securityDeposit || 0);
+    const totalDed = updated.reduce((s, d) => s + Number(d.amount || 0), 0);
+    setRefundAmount(Math.max(0, deposit - totalDed));
+  };
+
+  const handleProcessSettlement = async () => {
+    if (!selectedTenantForSettlement?.rentId) return;
+    try {
+      setSettlementSubmitting(true);
+      setSettlementError('');
+      const res = await authenticatedFetch(`${API_BASE_URL}/api/owner/tenants/${selectedTenantForSettlement.rentId}/settle-deposit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          deductions,
+          refundAmount: parseFloat(refundAmount) || 0,
+          method: refundMethod,
+          transactionRef: transactionRef.trim(),
+          note: handoverNotes.trim(),
+          terminateTenancy
+        })
+      });
+      if (res && res.success) {
+        setSettlementSuccess('Deposit settlement finalized and tenancy concluded! Property returned to Available.');
+        fetchTenantsData();
+        setTimeout(() => {
+          setShowMoveOutSettlementModal(false);
+        }, 1500);
+      } else {
+        setSettlementError(res?.message || 'Failed to settle deposit');
+      }
+    } catch (e) {
+      setSettlementError(e.message || 'Error processing settlement');
+    } finally {
+      setSettlementSubmitting(false);
     }
   };
 
@@ -502,7 +668,7 @@ const TenantInfo = () => {
         <TableSkeleton rows={5} />
       ) : filteredTenants.length === 0 ? (
         <div className="tenant-empty-state">
-          <div className="tenant-empty-icon">👥</div>
+          <div className="tenant-empty-icon"><Users size={36} color="#94A3B8" /></div>
           <h3>{searchTerm || propertyFilter !== 'all' || paymentStatusFilter !== 'all' || leaseStatusFilter !== 'all' ? 'No Matching Tenants' : 'No Active Tenants Yet'}</h3>
           <p>
             {searchTerm || propertyFilter !== 'all' || paymentStatusFilter !== 'all' || leaseStatusFilter !== 'all'
@@ -580,6 +746,13 @@ const TenantInfo = () => {
                   {/* Lease Status */}
                   <td>
                     {renderLeaseBadge(tenant.leaseStatus)}
+                    {tenant.moveOut?.noticeSubmitted && (
+                      <div style={{ marginTop: '0.25rem' }}>
+                        <span className="unit-badge-tag" style={{ background: '#FEF3C7', color: '#92400E', borderColor: '#FDE68A', fontSize: '0.6875rem', fontWeight: 600 }}>
+                          Move-Out: {new Date(tenant.moveOut.intendedMoveOutDate).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                        </span>
+                      </div>
+                    )}
                   </td>
 
                   {/* Lease Term */}
@@ -621,6 +794,14 @@ const TenantInfo = () => {
                         title="Send notice to this tenant"
                       >
                         Notice
+                      </button>
+                      <button
+                        className="action-btn-sm"
+                        style={tenant.moveOut?.noticeSubmitted ? { background: '#FEF3C7', color: '#92400E', borderColor: '#FDE68A', fontWeight: 600 } : {}}
+                        onClick={() => handleOpenMoveOutSettlement(tenant)}
+                        title="Move-Out Inspection & Deposit Settlement"
+                      >
+                        {tenant.moveOut?.noticeSubmitted ? 'Move-Out' : 'Deposit'}
                       </button>
                       <button
                         className="action-btn-sm"
@@ -1092,7 +1273,7 @@ const TenantInfo = () => {
                                   {ntc.subject}
                                 </span>
                                 <span className={`notice-delivery-pill ${ntc.status}`}>
-                                  {ntc.status === 'sent' ? '✓ Delivered' : ntc.status.toUpperCase()}
+                                  {ntc.status === 'sent' ? 'Delivered' : ntc.status.toUpperCase()}
                                 </span>
                               </div>
 
@@ -1100,8 +1281,8 @@ const TenantInfo = () => {
                                 {ntc.message}
                               </p>
 
-                              <div style={{ display: 'flex', gap: '1rem', fontSize: '0.75rem', color: '#94A3B8', marginTop: '0.5rem' }}>
-                                <span>📅 Issued: {new Date(ntc.issuedDate || ntc.createdAt).toLocaleString()}</span>
+                              <div style={{ display: 'flex', gap: '1rem', fontSize: '0.75rem', color: '#94A3B8', marginTop: '0.5rem', alignItems: 'center' }}>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><Calendar size={13} /> Issued: {new Date(ntc.issuedDate || ntc.createdAt).toLocaleString()}</span>
                                 <span>Priority: <strong>{(ntc.priority || 'normal').toUpperCase()}</strong></span>
                                 {ntc.dueDate && <span>Deadline: {new Date(ntc.dueDate).toLocaleDateString()}</span>}
                               </div>
@@ -1277,7 +1458,7 @@ const TenantInfo = () => {
               {/* Eviction Warning Statutory Disclaimer Box */}
               {noticeFormData.noticeType === 'eviction_warning' && (
                 <div className="eviction-warning-box">
-                  <h4>⚠️ Statutory Notice Procedure Warning</h4>
+                  <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><AlertTriangle size={16} /> Statutory Notice Procedure Warning</h4>
                   <p>
                     Official legal notices, cure periods, and eviction actions are strictly governed by applicable jurisdiction and statutory tenancy laws. Sending this notice serves as an official formal warning and <strong>does not constitute an unlawful self-help eviction</strong>. The tenant will not be automatically locked out or terminated in the database.
                   </p>
@@ -1416,6 +1597,352 @@ const TenantInfo = () => {
                   'Send Notice Now'
                 )}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================================
+          MODAL: MOVE-OUT INSPECTION & DEPOSIT SETTLEMENT
+          ===================================================================== */}
+      {showMoveOutSettlementModal && selectedTenantForSettlement && (
+        <div className="tenant-modal-backdrop" onClick={() => { if (!settlementSubmitting) setShowMoveOutSettlementModal(false); }}>
+          <div className="tenant-modal-dialog wide" onClick={(e) => e.stopPropagation()}>
+            <div className="tenant-modal-header">
+              <h2>Move-Out Inspection & Deposit Settlement</h2>
+              <button className="tenant-modal-close-btn" onClick={() => setShowMoveOutSettlementModal(false)} disabled={settlementSubmitting}>
+                <FaTimes />
+              </button>
+            </div>
+
+            <div className="tenant-modal-body">
+              {settlementSuccess && (
+                <div style={{ background: '#ECFDF5', border: '1px solid #A7F3D0', color: '#065F46', padding: '0.875rem 1rem', borderRadius: '0.375rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <FaCheckCircle color="#059669" />
+                  <span>{settlementSuccess}</span>
+                </div>
+              )}
+
+              {settlementError && (
+                <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#991B1B', padding: '0.875rem 1rem', borderRadius: '0.375rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <FaExclamationTriangle color="#DC2626" />
+                  <span>{settlementError}</span>
+                </div>
+              )}
+
+              {/* Tenancy & Notice Overview */}
+              <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '0.5rem', padding: '1rem 1.25rem', marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.0625rem', fontWeight: 700, color: '#0F172A' }}>
+                      {selectedTenantForSettlement.fullName} &bull; {selectedTenantForSettlement.unitNumber}
+                    </h3>
+                    <p style={{ margin: '0.25rem 0 0', fontSize: '0.8125rem', color: '#64748B' }}>
+                      {selectedTenantForSettlement.propertyName} — {selectedTenantForSettlement.propertyAddress}
+                    </p>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'block' }}>Deposit Held</span>
+                    <strong style={{ fontSize: '1.125rem', color: '#2563EB' }}>
+                      ৳{Number(selectedTenantForSettlement.securityDeposit || 0).toLocaleString()}
+                    </strong>
+                  </div>
+                </div>
+
+                {selectedTenantForSettlement.moveOut?.noticeSubmitted ? (
+                  <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid #E2E8F0', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(10rem, 1fr))', gap: '0.75rem' }}>
+                    <div>
+                      <span style={{ fontSize: '0.6875rem', color: '#64748B', textTransform: 'uppercase', fontWeight: 600 }}>Notice Filed Date</span>
+                      <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#0F172A' }}>
+                        {new Date(selectedTenantForSettlement.moveOut.noticeDate).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.6875rem', color: '#64748B', textTransform: 'uppercase', fontWeight: 600 }}>Intended Move-Out</span>
+                      <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#0F172A' }}>
+                        {new Date(selectedTenantForSettlement.moveOut.intendedMoveOutDate).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.6875rem', color: '#64748B', textTransform: 'uppercase', fontWeight: 600 }}>Notice Period Given</span>
+                      <div style={{ fontSize: '0.875rem', fontWeight: 600, color: selectedTenantForSettlement.moveOut.meetsRequirement ? '#059669' : '#D97706' }}>
+                        {selectedTenantForSettlement.moveOut.noticeDaysGiven} days ({selectedTenantForSettlement.moveOut.meetsRequirement ? 'Met 60 days' : 'Under 60 days'})
+                      </div>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.6875rem', color: '#64748B', textTransform: 'uppercase', fontWeight: 600 }}>Reason</span>
+                      <div style={{ fontSize: '0.8125rem', color: '#475569' }}>
+                        {selectedTenantForSettlement.moveOut.reason || 'N/A'}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ marginTop: '0.5rem', fontSize: '0.8125rem', color: '#64748B' }}>
+                    No move-out notice was submitted by the tenant. You can proceed directly to inspection and deposit settlement.
+                  </div>
+                )}
+              </div>
+
+              {/* Step Navigation */}
+              <div className="tenant-tabs-bar" style={{ marginBottom: '1.25rem' }}>
+                <button
+                  type="button"
+                  className={`tenant-tab-btn ${settlementStep === 'acknowledge' ? 'active' : ''}`}
+                  onClick={() => setSettlementStep('acknowledge')}
+                >
+                  1. Acknowledge Notice
+                </button>
+                <button
+                  type="button"
+                  className={`tenant-tab-btn ${settlementStep === 'handover' ? 'active' : ''}`}
+                  onClick={() => setSettlementStep('handover')}
+                >
+                  2. Handover Inspection
+                </button>
+                <button
+                  type="button"
+                  className={`tenant-tab-btn ${settlementStep === 'settlement' ? 'active' : ''}`}
+                  onClick={() => setSettlementStep('settlement')}
+                >
+                  3. Deductions & Refund
+                </button>
+              </div>
+
+              {/* STEP 1: ACKNOWLEDGE NOTICE */}
+              {settlementStep === 'acknowledge' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div className="form-field">
+                    <label>Scheduled Handover Inspection Date</label>
+                    <input
+                      type="date"
+                      value={handoverDate}
+                      onChange={(e) => setHandoverDate(e.target.value)}
+                    />
+                    <span className="field-hint">Coordinate with tenant for key return and walkthrough</span>
+                  </div>
+
+                  <div className="form-field">
+                    <label>Acknowledgment Notes / Meeting Instructions</label>
+                    <textarea
+                      rows="3"
+                      placeholder="e.g. Walkthrough confirmed at 11 AM. Tenant should return keys and remove all personal belongings."
+                      value={handoverNotes}
+                      onChange={(e) => setHandoverNotes(e.target.value)}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+                    <button
+                      type="button"
+                      className="btn-primary-blue"
+                      onClick={handleAcknowledgeNotice}
+                      disabled={settlementSubmitting}
+                    >
+                      {settlementSubmitting ? 'Acknowledging...' : 'Acknowledge Notice & Schedule Handover'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 2: RECORD HANDOVER INSPECTION */}
+              {settlementStep === 'handover' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div className="form-field">
+                    <label>Inspection & Handover Notes</label>
+                    <textarea
+                      rows="4"
+                      placeholder="Detail apartment condition: wall paint, appliances, fixtures, cleanliness, keys returned, meter readings..."
+                      value={handoverNotes}
+                      onChange={(e) => setHandoverNotes(e.target.value)}
+                    />
+                    <span className="field-hint">These notes will be preserved in the tenancy archive.</span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+                    <button
+                      type="button"
+                      className="btn-secondary-outline"
+                      onClick={() => setSettlementStep('settlement')}
+                    >
+                      Skip to Deductions
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-primary-blue"
+                      onClick={handleRecordHandover}
+                      disabled={settlementSubmitting}
+                    >
+                      {settlementSubmitting ? 'Saving...' : 'Record Handover & Proceed to Settlement'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 3: DEDUCTIONS & REFUND */}
+              {settlementStep === 'settlement' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  {/* Deductions Ledger */}
+                  <div style={{ border: '1px solid #E2E8F0', borderRadius: '0.5rem', padding: '1rem' }}>
+                    <h4 style={{ margin: '0 0 0.75rem', fontSize: '0.875rem', fontWeight: 700, color: '#0F172A', textTransform: 'uppercase' }}>
+                      Itemized Deposit Deductions
+                    </h4>
+
+                    {deductions.length === 0 ? (
+                      <p style={{ fontSize: '0.8125rem', color: '#64748B', margin: '0 0 0.75rem' }}>
+                        No deductions recorded. Deposit will be refunded in full.
+                      </p>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                        {deductions.map((d, idx) => (
+                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC', padding: '0.5rem 0.75rem', borderRadius: '0.25rem', border: '1px solid #E2E8F0' }}>
+                            <div>
+                              <strong style={{ fontSize: '0.8125rem', color: '#0F172A' }}>{d.description}</strong>
+                              <span style={{ fontSize: '0.6875rem', color: '#64748B', marginLeft: '0.5rem' }}>({d.category || 'general'})</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                              <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#DC2626' }}>-৳{Number(d.amount).toLocaleString()}</span>
+                              <button type="button" onClick={() => handleRemoveDeduction(idx)} style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer' }}>
+                                <FaTimes />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Add Deduction Row */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: '0.5rem', alignItems: 'flex-end', paddingTop: '0.75rem', borderTop: '1px solid #E2E8F0' }}>
+                      <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '0.25rem' }}>Description</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Wall patch & repaint"
+                          value={newDeduction.description}
+                          onChange={(e) => setNewDeduction({ ...newDeduction, description: e.target.value })}
+                          style={{ width: '100%', padding: '0.4375rem 0.625rem', fontSize: '0.8125rem', border: '1px solid #CBD5E1', borderRadius: '0.25rem' }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '0.25rem' }}>Amount (৳)</label>
+                        <input
+                          type="number"
+                          placeholder="0"
+                          value={newDeduction.amount}
+                          onChange={(e) => setNewDeduction({ ...newDeduction, amount: e.target.value })}
+                          style={{ width: '100%', padding: '0.4375rem 0.625rem', fontSize: '0.8125rem', border: '1px solid #CBD5E1', borderRadius: '0.25rem' }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '0.25rem' }}>Category</label>
+                        <select
+                          value={newDeduction.category}
+                          onChange={(e) => setNewDeduction({ ...newDeduction, category: e.target.value })}
+                          style={{ width: '100%', padding: '0.4375rem 0.625rem', fontSize: '0.8125rem', border: '1px solid #CBD5E1', borderRadius: '0.25rem' }}
+                        >
+                          <option value="repairs">Repairs</option>
+                          <option value="cleaning">Cleaning</option>
+                          <option value="utilities">Unpaid Utilities</option>
+                          <option value="rent">Unpaid Rent</option>
+                          <option value="other">Other</option>
+                        </select>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleAddDeduction}
+                        className="btn-secondary-outline"
+                        style={{ padding: '0.4375rem 0.75rem', fontSize: '0.8125rem', height: 'fit-content' }}
+                      >
+                        + Add
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Summary & Refund Processing */}
+                  <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '0.5rem', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.875rem', color: '#64748B' }}>Original Security Deposit:</span>
+                      <strong style={{ fontSize: '0.9375rem', color: '#0F172A' }}>৳{Number(selectedTenantForSettlement.securityDeposit || 0).toLocaleString()}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.875rem', color: '#64748B' }}>Total Deductions:</span>
+                      <strong style={{ fontSize: '0.9375rem', color: '#DC2626' }}>
+                        -৳{deductions.reduce((s, d) => s + Number(d.amount || 0), 0).toLocaleString()}
+                      </strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.5rem', borderTop: '1px solid #CBD5E1' }}>
+                      <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0F172A' }}>Net Refund Amount:</span>
+                      <strong style={{ fontSize: '1.25rem', fontWeight: 800, color: '#059669' }}>
+                        ৳{Math.max(0, Number(selectedTenantForSettlement.securityDeposit || 0) - deductions.reduce((s, d) => s + Number(d.amount || 0), 0)).toLocaleString()}
+                      </strong>
+                    </div>
+                  </div>
+
+                  {/* Refund Payment Details */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(11rem, 1fr))', gap: '0.875rem' }}>
+                    <div className="form-field">
+                      <label>Disbursed Refund Amount (৳)</label>
+                      <input
+                        type="number"
+                        value={refundAmount}
+                        onChange={(e) => setRefundAmount(e.target.value)}
+                      />
+                    </div>
+                    <div className="form-field">
+                      <label>Disbursement Method</label>
+                      <select
+                        value={refundMethod}
+                        onChange={(e) => setRefundMethod(e.target.value)}
+                      >
+                        <option value="Bank Transfer">Bank Transfer / Wire</option>
+                        <option value="bKash / Nagad">Mobile Banking (bKash/Nagad)</option>
+                        <option value="Check">Official Bank Check</option>
+                        <option value="Cash">Cash Receipt</option>
+                      </select>
+                    </div>
+                    <div className="form-field">
+                      <label>Transaction / Check Reference</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. TXN-7890123"
+                        value={transactionRef}
+                        onChange={(e) => setTransactionRef(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Terminate Tenancy & Release Property */}
+                  <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: '0.375rem', padding: '0.75rem 1rem' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', color: '#1E3A8A', fontWeight: 600 }}>
+                      <input
+                        type="checkbox"
+                        checked={terminateTenancy}
+                        onChange={(e) => setTerminateTenancy(e.target.checked)}
+                        style={{ width: '1rem', height: '1rem', accentColor: '#2563EB' }}
+                      />
+                      <span>Conclude tenancy and immediately return property/unit status to Available</span>
+                    </label>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+                    <button
+                      type="button"
+                      className="btn-navy-outline"
+                      onClick={() => setShowMoveOutSettlementModal(false)}
+                      disabled={settlementSubmitting}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-primary-blue"
+                      onClick={handleProcessSettlement}
+                      disabled={settlementSubmitting}
+                    >
+                      {settlementSubmitting ? 'Finalizing Settlement...' : 'Finalize Settlement & Terminate Tenancy'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

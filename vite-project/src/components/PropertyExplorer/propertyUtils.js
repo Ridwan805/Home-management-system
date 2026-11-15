@@ -182,3 +182,71 @@ export const humanizePropertyType = (type) => {
   };
   return map[type.toLowerCase()] || type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 };
+
+/**
+ * Canonical availability resolution:
+ * Returns 'Available', 'Processing', 'Rented', 'Sold', 'Unavailable'
+ */
+export const getPropertyAvailability = (property) => {
+  if (!property) return 'Available';
+  if (property.effectiveAvailability) return property.effectiveAvailability;
+  const s = property.status || 'Available';
+  if (['Processing', 'Reserved'].includes(s)) return 'Processing';
+  return s;
+};
+
+/**
+ * Returns badge label, CSS class modifier, and description
+ */
+export const getAvailabilityBadgeInfo = (property) => {
+  const availability = getPropertyAvailability(property);
+  switch (availability) {
+    case 'Processing':
+      return {
+        label: 'Processing',
+        className: 'badge-processing',
+        color: '#D97706',
+        bg: '#FEF3C7',
+        border: '#FDE68A',
+        description: 'Under active reservation'
+      };
+    case 'Rented':
+      return {
+        label: 'Rented',
+        className: 'badge-rented',
+        color: '#475569',
+        bg: '#F1F5F9',
+        border: '#CBD5E1',
+        description: property.is24hVisible ? 'Rented (visible for 24h)' : 'Occupied'
+      };
+    case 'Sold':
+      return {
+        label: 'Sold',
+        className: 'badge-sold',
+        color: '#334155',
+        bg: '#E2E8F0',
+        border: '#94A3B8',
+        description: 'Ownership transferred'
+      };
+    case 'Unavailable':
+      return {
+        label: 'Unavailable',
+        className: 'badge-unavailable',
+        color: '#DC2626',
+        bg: '#FEF2F2',
+        border: '#FECACA',
+        description: 'Temporarily offline'
+      };
+    case 'Available':
+    default:
+      return {
+        label: 'Available',
+        className: 'badge-available',
+        color: '#059669',
+        bg: '#ECFDF5',
+        border: '#A7F3D0',
+        description: property.listingType === 'For Rent' ? 'Available for Rent' : 'Available for Sale'
+      };
+  }
+};
+
