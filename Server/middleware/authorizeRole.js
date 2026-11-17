@@ -32,41 +32,48 @@ module.exports = (allowedRoles) => {
       console.log('🔐 AUTHORIZE ROLE: Found user:', user ? `${user.firstName} ${user.lastName} (${user.role})` : 'null');
       console.log('🔐 AUTHORIZE ROLE: Allowed roles:', allowedRoles);
       if (user) {
-        const userRoleLower = (user.role || '').toLowerCase().replace(/[\s_-]+/g, '');
-        const allowedNormalized = allowedRoles.map(r => (r || '').toLowerCase().replace(/[\s_-]+/g, ''));
+        const userRoleLower = (user.role || '').toLowerCase().replace(/[\s/_-]+/g, '');
+        const allowedNormalized = allowedRoles.map(r => (r || '').toLowerCase().replace(/[\s/_-]+/g, ''));
         
         let hasAccess = allowedRoles.includes(user.role) || 
           allowedNormalized.includes('user') ||
           allowedNormalized.includes(userRoleLower);
 
-        // Alias matching for unified 'Resident / Property Owner'
-        if (!hasAccess && (userRoleLower === 'residentpropertyowner' || userRoleLower.includes('resident') || (userRoleLower.includes('property') && userRoleLower.includes('owner')))) {
-          hasAccess = allowedNormalized.includes('owner') ||
-                      allowedNormalized.includes('propertyowner') ||
-                      allowedNormalized.includes('homeowner') ||
-                      allowedNormalized.includes('tenant') ||
-                      allowedNormalized.includes('residentpropertyowner') ||
-                      allowedNormalized.includes('resident') ||
-                      allowedNormalized.includes('user');
-        }
+        // Security Guard and Service Provider are dedicated service roles: strictly check allowed roles
+        const isRestrictedWorker = userRoleLower === 'securityguard' || userRoleLower === 'guard' || userRoleLower === 'serviceprovider';
+        if (isRestrictedWorker) {
+          hasAccess = allowedNormalized.includes(userRoleLower) || allowedRoles.includes(user.role);
+        } else {
+          // Regular Property Users (Resident / Property Owner, Owner, Tenant)
+          // 1. Unified 'Resident / Property Owner'
+          if (!hasAccess && (userRoleLower === 'residentpropertyowner' || userRoleLower.includes('resident') || (userRoleLower.includes('property') && userRoleLower.includes('owner')))) {
+            hasAccess = allowedNormalized.includes('owner') ||
+                        allowedNormalized.includes('propertyowner') ||
+                        allowedNormalized.includes('homeowner') ||
+                        allowedNormalized.includes('tenant') ||
+                        allowedNormalized.includes('renter') ||
+                        allowedNormalized.includes('residentpropertyowner') ||
+                        allowedNormalized.includes('resident') ||
+                        allowedNormalized.includes('user');
+          }
 
-        // Alias matching for owner variants
-        if (!hasAccess && (userRoleLower === 'owner' || userRoleLower === 'propertyowner')) {
-          hasAccess = allowedNormalized.includes('owner') ||
-                      allowedNormalized.includes('propertyowner') ||
-                      allowedNormalized.includes('homeowner');
-        }
+          // 2. Historical Owner accounts during migration
+          if (!hasAccess && (userRoleLower === 'owner' || userRoleLower === 'propertyowner')) {
+            hasAccess = allowedNormalized.includes('owner') ||
+                        allowedNormalized.includes('propertyowner') ||
+                        allowedNormalized.includes('homeowner') ||
+                        allowedNormalized.includes('residentpropertyowner') ||
+                        allowedNormalized.includes('user');
+          }
 
-        // Alias matching for tenant variants
-        if (!hasAccess && (userRoleLower === 'tenant')) {
-          hasAccess = allowedNormalized.includes('tenant') ||
-                      allowedNormalized.includes('renter');
-        }
-
-        // Alias matching for security guard variants
-        if (!hasAccess && (userRoleLower === 'securityguard')) {
-          hasAccess = allowedNormalized.includes('securityguard') ||
-                      allowedNormalized.includes('guard');
+          // 3. Historical Tenant accounts during migration
+          if (!hasAccess && (userRoleLower === 'tenant' || userRoleLower === 'renter')) {
+            hasAccess = allowedNormalized.includes('tenant') ||
+                        allowedNormalized.includes('renter') ||
+                        allowedNormalized.includes('residentpropertyowner') ||
+                        allowedNormalized.includes('resident') ||
+                        allowedNormalized.includes('user');
+          }
         }
 
         if (hasAccess) {

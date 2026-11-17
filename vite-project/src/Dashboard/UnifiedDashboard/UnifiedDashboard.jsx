@@ -13,7 +13,7 @@ import UnifiedOverview from './UnifiedOverview';
 import UnifiedPropertiesView from './views/UnifiedPropertiesView';
 import CreateListingForm from '../OwnerProfile/CreateListingForm';
 import UnifiedRequestsView from './views/UnifiedRequestsView';
-import TenantInfo from '../OwnerProfile/TenantInfo';
+import UnifiedTenantsBuyersView from './views/UnifiedTenantsBuyersView';
 import UnifiedLeaseAgreements from './views/UnifiedLeaseAgreements';
 import UnifiedSecurityGuards from './views/UnifiedSecurityGuards';
 import UnifiedPaymentsView from './views/UnifiedPaymentsView';
@@ -171,9 +171,10 @@ const UnifiedDashboard = () => {
 
       case 'tenants-buyers':
         return (
-          <div className="unified-embedded-view">
-            <TenantInfo onNavigateSection={handleNavigateSection} />
-          </div>
+          <UnifiedTenantsBuyersView
+            onNavigateSection={handleNavigateSection}
+            searchTerm={searchTerm}
+          />
         );
 
       case 'leases':

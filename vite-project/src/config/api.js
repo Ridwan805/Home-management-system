@@ -284,6 +284,7 @@ export default {
   endpoints: {
     // Unified Dashboard endpoint
     dashboardOverview: '/api/dashboard/overview',
+    dashboardFinancials: '/api/dashboard/financials',
 
     // Auth endpoints
 

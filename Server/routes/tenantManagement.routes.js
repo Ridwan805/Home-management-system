@@ -19,8 +19,8 @@ const {
   getMyTenancy
 } = require('../controllers/tenantManagement.controller');
 
-// Owner and Admin authorization
-const ownerAuth = [authMiddleware, authorizeRole(['Owner', 'Admin'])];
+// Owner, Resident / Property Owner, and Admin authorization for tenant/client management
+const ownerAuth = [authMiddleware, authorizeRole(['Owner', 'Admin', 'Resident / Property Owner', 'property_owner', 'user'])];
 
 // Tenant self-service tenancy & move-out routes
 router.get('/my-tenancy', authMiddleware, getMyTenancy);

@@ -33,14 +33,15 @@ function authorizeRole(roles) {
     try {
       const tokenRole = req.user?.role;
       if (!tokenRole) return res.status(403).json({ error: 'Forbidden' });
-      const allowed = roles.map(r => String(r).toLowerCase().replace(/[\s_-]+/g, ''));
-      const normalized = String(tokenRole).toLowerCase().replace(/[\s_-]+/g, '');
+      const allowed = roles.map(r => String(r).toLowerCase().replace(/[\s/_-]+/g, ''));
+      const normalized = String(tokenRole).toLowerCase().replace(/[\s/_-]+/g, '');
       
-      // Regular property users (Owner and Tenant) share unified property actions
-      const isRegularPropertyUser = (normalized === 'owner' || normalized === 'tenant');
+      // Regular property users (Resident / Property Owner, Owner, Tenant) share unified property actions
+      const isRegularPropertyUser = (normalized === 'residentpropertyowner' || normalized.includes('resident') || normalized === 'owner' || normalized === 'tenant');
       const allowsRegularPropertyUser = allowed.includes('owner') || 
                                         allowed.includes('tenant') || 
                                         allowed.includes('propertyowner') || 
+                                        allowed.includes('residentpropertyowner') ||
                                         allowed.includes('user');
 
       const isAllowed = allowed.includes(normalized) || (isRegularPropertyUser && allowsRegularPropertyUser);
