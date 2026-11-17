@@ -34,12 +34,43 @@ module.exports = (allowedRoles) => {
       if (user) {
         const userRoleLower = (user.role || '').toLowerCase().replace(/[\s_-]+/g, '');
         const allowedNormalized = allowedRoles.map(r => (r || '').toLowerCase().replace(/[\s_-]+/g, ''));
-        const hasAccess = allowedRoles.includes('user') || 
-          allowedRoles.includes(user.role) || 
-          allowedNormalized.includes(userRoleLower) ||
-          (userRoleLower === 'owner' && allowedNormalized.includes('propertyowner'));
+        
+        let hasAccess = allowedRoles.includes(user.role) || 
+          allowedNormalized.includes('user') ||
+          allowedNormalized.includes(userRoleLower);
+
+        // Alias matching for unified 'Resident / Property Owner'
+        if (!hasAccess && (userRoleLower === 'residentpropertyowner' || userRoleLower.includes('resident') || (userRoleLower.includes('property') && userRoleLower.includes('owner')))) {
+          hasAccess = allowedNormalized.includes('owner') ||
+                      allowedNormalized.includes('propertyowner') ||
+                      allowedNormalized.includes('homeowner') ||
+                      allowedNormalized.includes('tenant') ||
+                      allowedNormalized.includes('residentpropertyowner') ||
+                      allowedNormalized.includes('resident') ||
+                      allowedNormalized.includes('user');
+        }
+
+        // Alias matching for owner variants
+        if (!hasAccess && (userRoleLower === 'owner' || userRoleLower === 'propertyowner')) {
+          hasAccess = allowedNormalized.includes('owner') ||
+                      allowedNormalized.includes('propertyowner') ||
+                      allowedNormalized.includes('homeowner');
+        }
+
+        // Alias matching for tenant variants
+        if (!hasAccess && (userRoleLower === 'tenant')) {
+          hasAccess = allowedNormalized.includes('tenant') ||
+                      allowedNormalized.includes('renter');
+        }
+
+        // Alias matching for security guard variants
+        if (!hasAccess && (userRoleLower === 'securityguard')) {
+          hasAccess = allowedNormalized.includes('securityguard') ||
+                      allowedNormalized.includes('guard');
+        }
 
         if (hasAccess) {
+
           console.log('✅ AUTHORIZE ROLE: Access granted for role:', user.role);
           req.user = user;
           req.user.userId = user._id;

@@ -47,10 +47,8 @@ const HomePage = () => {
   const handleListProperty = () => {
     if (!isLoggedIn) {
       navigate('/login');
-    } else if (userRole === 'Owner') {
-      navigate('/create-listing');
     } else {
-      navigate('/dashboard');
+      navigate('/dashboard/create-listing');
     }
   };
 

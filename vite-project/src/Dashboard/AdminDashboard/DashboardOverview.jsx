@@ -221,7 +221,7 @@ const DashboardOverview = () => {
             <div className="stat-card-body">
               <span className="stat-card-label">Registered Users</span>
               <span className="stat-card-value">{stats.totalUsers}</span>
-              <span className="stat-card-sub">Owners, tenants, guards</span>
+              <span className="stat-card-sub">Residents, owners, guards</span>
             </div>
           </Link>
 

@@ -522,7 +522,13 @@ exports.getTenantsForSecurityGuard = async (req, res) => {
     }
     
     // Return only the tenants of the assigned property
-    const tenants = currentRent.tenants.filter(tenant => tenant.role === 'Tenant');
+    const tenants = currentRent.tenants.filter(tenant => 
+      tenant.role === 'Tenant' || 
+      tenant.role === 'Resident / Property Owner' || 
+      tenant.role === 'Owner' ||
+      !tenant.role || 
+      tenant.role.toLowerCase().includes('resident')
+    );
     console.log('🔍 TENANTS FOR GUARD: Filtered tenants count:', tenants.length);
     console.log('🔍 TENANTS FOR GUARD: Filtered tenants:', tenants.map(t => ({ name: t.name, email: t.email })));
     

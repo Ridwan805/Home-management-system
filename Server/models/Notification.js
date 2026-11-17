@@ -11,8 +11,8 @@ const NotificationSchema = new mongoose.Schema({
   // Recipient role for filtering and authorization
   recipientRole: {
     type: String,
-    enum: ['Tenant', 'tenant', 'Owner', 'owner', 'Security Guard', 'security guard', 'admin', 'user'],
-    default: 'user'
+    enum: ['Resident / Property Owner', 'Tenant', 'tenant', 'Owner', 'owner', 'Security Guard', 'security guard', 'admin', 'user'],
+    default: 'Resident / Property Owner'
   },
   // Optional sender user ID (e.g. owner, tenant, admin)
   senderId: {

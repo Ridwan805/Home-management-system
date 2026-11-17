@@ -43,7 +43,7 @@ const UserModeration = () => {
     email: '',
     phoneNumber: '',
     address: '',
-    role: 'Tenant'
+    role: 'Resident / Property Owner'
   });
 
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
@@ -302,7 +302,9 @@ const UserModeration = () => {
       (u.lastName && u.lastName.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (u.phoneNumber && u.phoneNumber.includes(searchTerm));
 
-    const matchesRole = selectedRole === 'All' || u.role === selectedRole;
+    const matchesRole = selectedRole === 'All' || 
+      u.role === selectedRole ||
+      (selectedRole === 'Resident / Property Owner' && (u.role === 'Resident / Property Owner' || u.role === 'Owner' || u.role === 'Tenant'));
     const matchesStatus = 
       selectedStatus === 'All' || 
       (selectedStatus === 'Active' && !u.isBanned) || 
@@ -312,8 +314,7 @@ const UserModeration = () => {
   });
 
   // Calculate statistics
-  const totalOwners = users.filter(u => u.role === 'Owner').length;
-  const totalTenants = users.filter(u => u.role === 'Tenant').length;
+  const totalResidentsAndOwners = users.filter(u => u.role === 'Resident / Property Owner' || u.role === 'Owner' || u.role === 'Tenant').length;
   const totalGuards = users.filter(u => u.role === 'Security Guard').length;
   const totalBanned = users.filter(u => u.isBanned).length;
 
@@ -326,8 +327,7 @@ const UserModeration = () => {
 
   const getRoleBadgeClass = (role) => {
     const r = (role || '').toLowerCase().replace(/\s+/g, '-');
-    if (r === 'owner') return 'role-owner';
-    if (r === 'tenant') return 'role-tenant';
+    if (r.includes('resident') || r.includes('owner') || r === 'tenant') return 'role-owner';
     if (r.includes('guard')) return 'role-guard';
     if (r === 'admin') return 'role-admin';
     return 'role-default';
@@ -397,36 +397,19 @@ const UserModeration = () => {
           </div>
 
           <div
-            className={`admin-stat-card amber ${selectedRole === 'Owner' ? 'active-filter' : ''}`}
-            onClick={() => setSelectedRole('Owner')}
+            className={`admin-stat-card amber ${selectedRole === 'Resident / Property Owner' ? 'active-filter' : ''}`}
+            onClick={() => setSelectedRole('Resident / Property Owner')}
             role="button"
             tabIndex={0}
-            title="Filter by Property Owners"
+            title="Filter by Residents & Property Owners"
           >
             <div className="stat-card-icon">
               <Building2 size={20} />
             </div>
             <div className="stat-card-body">
-              <span className="stat-card-label">Property Owners</span>
-              <span className="stat-card-value">{loading ? '—' : totalOwners}</span>
-              <span className="stat-card-sub">Listing landlords</span>
-            </div>
-          </div>
-
-          <div
-            className={`admin-stat-card emerald ${selectedRole === 'Tenant' ? 'active-filter' : ''}`}
-            onClick={() => setSelectedRole('Tenant')}
-            role="button"
-            tabIndex={0}
-            title="Filter by Tenants"
-          >
-            <div className="stat-card-icon">
-              <User size={20} />
-            </div>
-            <div className="stat-card-body">
-              <span className="stat-card-label">Active Tenants</span>
-              <span className="stat-card-value">{loading ? '—' : totalTenants}</span>
-              <span className="stat-card-sub">Renters & buyers</span>
+              <span className="stat-card-label">Residents & Owners</span>
+              <span className="stat-card-value">{loading ? '—' : totalResidentsAndOwners}</span>
+              <span className="stat-card-sub">Unified property accounts</span>
             </div>
           </div>
 
@@ -498,8 +481,7 @@ const UserModeration = () => {
                 aria-label="Filter by role"
               >
                 <option value="All">All Roles</option>
-                <option value="Owner">Owners</option>
-                <option value="Tenant">Tenants</option>
+                <option value="Resident / Property Owner">Residents & Property Owners</option>
                 <option value="Security Guard">Security Guards</option>
                 <option value="Service Provider">Service Providers</option>
                 <option value="admin">Administrators</option>
@@ -641,12 +623,12 @@ const UserModeration = () => {
                           {/* Activity / Portfolio */}
                           <td className="admin-col-portfolio">
                             <div className="admin-portfolio-pills">
-                              {u.role === 'Owner' && (
+                              {(u.role === 'Resident / Property Owner' || u.role === 'Owner') && (
                                 <span className="portfolio-pill" title="Properties listed">
                                   <Building2 size={11} /> {u.stats?.properties || 0} Props
                                 </span>
                               )}
-                              {u.role === 'Tenant' && (
+                              {(u.role === 'Resident / Property Owner' || u.role === 'Tenant') && (
                                 <span className="portfolio-pill" title="Active leases">
                                   <ArrowLeftRight size={11} /> {u.stats?.rents || 0} Leases
                                 </span>
@@ -1458,8 +1440,7 @@ const UserModeration = () => {
                     value={editFormData.role} 
                     onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value })}
                   >
-                    <option value="Owner">Owner</option>
-                    <option value="Tenant">Tenant</option>
+                    <option value="Resident / Property Owner">Resident / Property Owner</option>
                     <option value="Security Guard">Security Guard</option>
                     <option value="Service Provider">Service Provider</option>
                   </select>

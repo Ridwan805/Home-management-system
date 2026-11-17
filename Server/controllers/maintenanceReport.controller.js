@@ -75,11 +75,18 @@ const createMaintenanceReport = async (req, res) => {
     console.log('🔍 MAINTENANCE REPORT DEBUG: User role from DB:', tenant?.role);
     console.log('🔍 MAINTENANCE REPORT DEBUG: Role comparison:', tenant?.role, '!==', 'Tenant', '=', tenant?.role !== 'Tenant');
     
-    if (!tenant || tenant.role !== 'Tenant') {
+    const isResidentOrTenant = tenant && (
+      tenant.role === 'Tenant' ||
+      tenant.role === 'Resident / Property Owner' ||
+      tenant.role.toLowerCase().includes('resident') ||
+      tenant.role === 'Owner'
+    );
+
+    if (!tenant || !isResidentOrTenant) {
       console.log('🔍 MAINTENANCE REPORT DEBUG: Role validation failed!');
       return res.status(403).json({
         success: false,
-        message: 'Only tenants can create maintenance reports'
+        message: 'Only registered residents or tenants can create maintenance reports'
       });
     }
     

@@ -6,6 +6,7 @@ import ForgotPassword from './Login_and_Register/ForgotPassword';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import Navbar from './components/layout/Navbar';
 import HomePage from './HomePage/HomePage';
+import UnifiedDashboard from './Dashboard/UnifiedDashboard/UnifiedDashboard';
 import OwnerDashboard from './Dashboard/OwnerProfile/OwnerDashboard';
 import CreateListingForm from './Dashboard/OwnerProfile/CreateListingForm';
 import PropertyDetails from './Dashboard/OwnerProfile/PropertyDetails';
@@ -243,40 +244,69 @@ function AppRoutes() {
             <Route path="/properties" element={<PropertyFilter />} />
             <Route path="/properties/:propertyId" element={<ViewDetails />} />
 
-            {/* Tenant Dashboard Routes */}
-            <Route path="/tenant/:section" element={
-              <ProtectedRoute allowedRoles={['Tenant']}>
-                <TenantDashboard />
+            {/* Unified Tenant + Owner Dashboard (Accessible by regular property users: Resident / Property Owner, Owner, Tenant, user) */}
+            <Route path="/dashboard" element={
+              <ProtectedRoute allowedRoles={['Resident / Property Owner', 'Owner', 'Tenant', 'user']}>
+                <UnifiedDashboard />
               </ProtectedRoute>
             } />
-            <Route path="/tenant" element={
-              <ProtectedRoute allowedRoles={['Tenant']}>
-                <Navigate to="/tenant/dashboard" replace />
-              </ProtectedRoute>
-            } />
-            <Route path="/my-requests" element={
-              <ProtectedRoute allowedRoles={['Tenant']}>
-                <Navigate to="/tenant/request-info" replace />
+            <Route path="/dashboard/:section" element={
+              <ProtectedRoute allowedRoles={['Resident / Property Owner', 'Owner', 'Tenant', 'user']}>
+                <UnifiedDashboard />
               </ProtectedRoute>
             } />
 
-            {/* Owner Dashboard - Shared Persistent Layout (Sidebar stays mounted across all child routes) */}
-            <Route
-              element={
-                <ProtectedRoute allowedRoles={['Owner']}>
-                  <OwnerLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route path="/dashboard" element={<OwnerDashboard />} />
-              <Route path="/create-listing" element={<CreateListingPage />} />
-              <Route path="/property-details" element={<PropertyListing />} />
-              <Route path="/tenant-info" element={<TenantInfo />} />
-              <Route path="/security-guard-info" element={<SecurityGuardInfo />} />
-              <Route path="/request-info" element={<OwnerRequestsInbox />} />
-              <Route path="/payments" element={<Payment />} />
-              <Route path="/maintenance-reports" element={<MaintenanceReports />} />
-            </Route>
+            {/* Backward-Compatible Route Mappings for Tenant & Owner Legacy URLs */}
+            <Route path="/tenant/:section" element={
+              <ProtectedRoute allowedRoles={['Resident / Property Owner', 'Tenant', 'Owner', 'user']}>
+                <UnifiedDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/tenant" element={
+              <ProtectedRoute allowedRoles={['Resident / Property Owner', 'Tenant', 'Owner', 'user']}>
+                <Navigate to="/dashboard" replace />
+              </ProtectedRoute>
+            } />
+            <Route path="/my-requests" element={
+              <ProtectedRoute allowedRoles={['Resident / Property Owner', 'Tenant', 'Owner', 'user']}>
+                <Navigate to="/dashboard/applications" replace />
+              </ProtectedRoute>
+            } />
+            <Route path="/create-listing" element={
+              <ProtectedRoute allowedRoles={['Resident / Property Owner', 'Owner', 'Tenant', 'user']}>
+                <Navigate to="/dashboard/create-listing" replace />
+              </ProtectedRoute>
+            } />
+            <Route path="/property-details" element={
+              <ProtectedRoute allowedRoles={['Resident / Property Owner', 'Owner', 'Tenant', 'user']}>
+                <Navigate to="/dashboard/my-properties" replace />
+              </ProtectedRoute>
+            } />
+            <Route path="/tenant-info" element={
+              <ProtectedRoute allowedRoles={['Resident / Property Owner', 'Owner', 'Tenant', 'user']}>
+                <Navigate to="/dashboard/tenants-buyers" replace />
+              </ProtectedRoute>
+            } />
+            <Route path="/security-guard-info" element={
+              <ProtectedRoute allowedRoles={['Resident / Property Owner', 'Owner', 'Tenant', 'user']}>
+                <Navigate to="/dashboard/security-guards" replace />
+              </ProtectedRoute>
+            } />
+            <Route path="/request-info" element={
+              <ProtectedRoute allowedRoles={['Resident / Property Owner', 'Owner', 'Tenant', 'user']}>
+                <Navigate to="/dashboard/applications" replace />
+              </ProtectedRoute>
+            } />
+            <Route path="/payments" element={
+              <ProtectedRoute allowedRoles={['Resident / Property Owner', 'Owner', 'Tenant', 'user']}>
+                <Navigate to="/dashboard/payments" replace />
+              </ProtectedRoute>
+            } />
+            <Route path="/maintenance-reports" element={
+              <ProtectedRoute allowedRoles={['Resident / Property Owner', 'Owner', 'Tenant', 'user']}>
+                <Navigate to="/dashboard/maintenance" replace />
+              </ProtectedRoute>
+            } />
             
             {/* Security Guard Dashboard Routes */}
             <Route path="/security-guard/:section" element={

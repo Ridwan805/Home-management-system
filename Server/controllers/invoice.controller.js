@@ -178,6 +178,13 @@ const getInvoices = async (req, res) => {
       const ownedProperties = await Property.find({ ownerUserId: userId }).select('_id');
       const propertyIds = ownedProperties.map(p => p._id);
       filter.propertyId = { $in: propertyIds };
+    } else if (userRole === 'Resident / Property Owner' || (userRole && userRole.includes('Resident'))) {
+      const ownedProperties = await Property.find({ ownerUserId: userId }).select('_id');
+      const propertyIds = ownedProperties.map(p => p._id);
+      filter.$or = [
+        { billTo: userId },
+        { propertyId: { $in: propertyIds } }
+      ];
     }
     // Admin can see all invoices (no additional filter)
 
@@ -539,6 +546,13 @@ const getOverdueInvoices = async (req, res) => {
       const ownedProperties = await Property.find({ ownerUserId: userId }).select('_id');
       const propertyIds = ownedProperties.map(p => p._id);
       filter.propertyId = { $in: propertyIds };
+    } else if (userRole === 'Resident / Property Owner' || (userRole && userRole.includes('Resident'))) {
+      const ownedProperties = await Property.find({ ownerUserId: userId }).select('_id');
+      const propertyIds = ownedProperties.map(p => p._id);
+      filter.$or = [
+        { billTo: userId },
+        { propertyId: { $in: propertyIds } }
+      ];
     }
 
     const skip = (page - 1) * limit;

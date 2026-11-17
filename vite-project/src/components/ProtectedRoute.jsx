@@ -19,14 +19,20 @@ const ProtectedRoute = ({ children, allowedRoles = [], redirectTo = '/login' }) 
   // If user role is not in allowed roles, redirect based on their role (case-insensitive safe)
   if (allowedRoles.length > 0) {
     const normalizedRole = (userRole || '').trim().toLowerCase();
-    const isAllowed = allowedRoles.some(role => role.trim().toLowerCase() === normalizedRole);
+    const isAllowed = allowedRoles.some(role => {
+      const r = role.trim().toLowerCase();
+      if (r === normalizedRole) return true;
+      if ((r === 'owner' || r === 'tenant' || r === 'resident / property owner') && (normalizedRole === 'resident / property owner' || normalizedRole === 'owner' || normalizedRole === 'tenant' || normalizedRole.includes('resident'))) return true;
+      return false;
+    });
 
     if (!isAllowed) {
       switch (normalizedRole) {
         case 'owner':
-          return <Navigate to="/dashboard" replace />;
         case 'tenant':
-          return <Navigate to="/tenant/dashboard" replace />;
+        case 'resident / property owner':
+        case 'resident/property owner':
+          return <Navigate to="/dashboard" replace />;
         case 'security guard':
           return <Navigate to="/security-guard/profile" replace />;
         case 'admin':

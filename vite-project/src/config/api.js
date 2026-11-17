@@ -282,7 +282,11 @@ export default {
   baseUrl: API_BASE_URL,
   getImageUrl,
   endpoints: {
+    // Unified Dashboard endpoint
+    dashboardOverview: '/api/dashboard/overview',
+
     // Auth endpoints
+
     login: '/api/auth/login',
     adminLogin: '/api/admin/login',
     register: '/api/auth/register',

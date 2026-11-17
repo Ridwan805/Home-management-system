@@ -138,6 +138,8 @@ const getRents = async (req, res) => {
       filter.tenants = userId;
     } else if (userRole === 'Owner') {
       filter.ownerId = userId;
+    } else if (userRole === 'Resident / Property Owner' || (userRole && userRole.includes('Resident'))) {
+      filter.$or = [{ tenants: userId }, { ownerId: userId }, { owner: userId }];
     }
     // Admin can see all rents (no additional filter)
 

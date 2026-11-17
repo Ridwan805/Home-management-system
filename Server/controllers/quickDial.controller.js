@@ -17,7 +17,7 @@ const getOwnerContact = async (req, res) => {
     
     let ownerInfo = null;
     
-    if (userRole === 'Tenant') {
+    if (userRole === 'Tenant' || userRole === 'Resident / Property Owner' || (userRole && userRole.includes('Resident'))) {
       // For tenants, find the property owner through rent or request
       
       // First try to find through active rent
@@ -206,7 +206,7 @@ const getAllQuickDialContacts = async (req, res) => {
     // Get owner contact
     let ownerInfo = null;
     
-    if (userRole === 'Tenant') {
+    if (userRole === 'Tenant' || userRole === 'Resident / Property Owner' || (userRole && userRole.includes('Resident'))) {
       const activeRent = await Rent.findOne({ 
         tenantId: userId, 
         status: 'active' 

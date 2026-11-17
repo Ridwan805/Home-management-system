@@ -127,8 +127,7 @@ export default function Register() {
             <label>Who are you?</label>
             <select name="role" value={formData.role} onChange={handleChange} required>
               <option value="">Select</option>
-              <option value="Owner">Owner</option>
-              <option value="Tenant">Tenant</option>
+              <option value="Resident / Property Owner">Resident / Property Owner</option>
               <option value="Security Guard">Security Guard</option>
               <option value="Service Provider">Service Provider</option>
             </select>

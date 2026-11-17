@@ -51,10 +51,8 @@ const Navbar = () => {
 
   const handleDashboardClick = () => {
     const role = (userRole || '').trim().toLowerCase();
-    if (role === 'owner') {
+    if (role === 'owner' || role === 'tenant' || role.includes('resident') || role.includes('owner')) {
       navigate('/dashboard');
-    } else if (role === 'tenant') {
-      navigate('/tenant/dashboard');
     } else if (role === 'security guard') {
       navigate('/security-guard/profile');
     } else if (role === 'admin') {
@@ -66,10 +64,8 @@ const Navbar = () => {
 
   const handleProfileClick = () => {
     const role = (userRole || '').trim().toLowerCase();
-    if (role === 'owner') {
-      navigate('/dashboard');
-    } else if (role === 'tenant') {
-      navigate('/tenant/profile');
+    if (role === 'owner' || role === 'tenant' || role.includes('resident') || role.includes('owner')) {
+      navigate('/dashboard/profile');
     } else if (role === 'security guard') {
       navigate('/security-guard/profile');
     } else if (role === 'admin') {

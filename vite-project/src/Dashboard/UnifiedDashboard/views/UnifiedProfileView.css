@@ -1,0 +1,289 @@
+.unified-profile-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 1000px;
+}
+
+.profile-action-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Alert Boxes */
+.unified-alert {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1.25rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.unified-alert.success {
+  background: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  color: #166534;
+}
+
+.unified-alert.error {
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  color: #991B1B;
+}
+
+/* Hero Card */
+.profile-hero-card {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 0.75rem;
+  padding: 1.5rem 2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.profile-hero-avatar {
+  width: 5rem;
+  height: 5rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.2);
+}
+
+.profile-hero-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.hero-name-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.hero-name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
+}
+
+.hero-verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  color: #1D4ED8;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.hero-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.hero-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  color: #64748B;
+}
+
+.hero-role-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  background: #F1F5F9;
+  border: 1px solid #E2E8F0;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+/* Details Card */
+.profile-details-card,
+.profile-capabilities-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.profile-card-header {
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid #F1F5F9;
+  padding-bottom: 0.75rem;
+}
+
+.card-section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #0F172A;
+  margin: 0 0 0.25rem 0;
+}
+
+.card-section-desc {
+  font-size: 0.8125rem;
+  color: #64748B;
+  margin: 0;
+}
+
+.profile-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+}
+
+.profile-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.profile-field.full-width {
+  grid-column: 1 / -1;
+}
+
+.field-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.field-input {
+  width: 100%;
+  padding: 0.65rem 0.875rem;
+  border: 1px solid #CBD5E1;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  color: #0F172A;
+  background: #FFFFFF;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+
+.field-input:focus {
+  outline: none;
+  border-color: #2563EB;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.field-display-value {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 0.875rem;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  color: #1E293B;
+  min-height: 2.625rem;
+  box-sizing: border-box;
+}
+
+.field-icon {
+  color: #64748B;
+  flex-shrink: 0;
+}
+
+.account-id-value code {
+  font-family: monospace;
+  font-size: 0.8125rem;
+  color: #64748B;
+  background: #E2E8F0;
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.25rem;
+}
+
+/* Capabilities Grid */
+.capabilities-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+  margin-top: 1rem;
+}
+
+.capability-box {
+  display: flex;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 0.5rem;
+}
+
+.capability-icon-wrap {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.capability-icon-wrap.landlord {
+  background: #EFF6FF;
+  color: #2563EB;
+  border: 1px solid #DBEAFE;
+}
+
+.capability-icon-wrap.resident {
+  background: #F0FDF4;
+  color: #16A34A;
+  border: 1px solid #DCFCE7;
+}
+
+.capability-text h4 {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #0F172A;
+  margin: 0 0 0.25rem 0;
+}
+
+.capability-text p {
+  font-size: 0.8125rem;
+  color: #64748B;
+  margin: 0;
+  line-height: 1.4;
+}
+
+@media (max-width: 768px) {
+  .profile-hero-card {
+    flex-direction: column;
+    text-align: center;
+    padding: 1.25rem;
+  }
+  .hero-name-row,
+  .hero-meta-row {
+    justify-content: center;
+  }
+  .profile-form-grid,
+  .capabilities-grid {
+    grid-template-columns: 1fr;
+  }
+}

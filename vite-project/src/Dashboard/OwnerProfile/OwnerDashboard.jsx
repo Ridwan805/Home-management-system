@@ -24,7 +24,7 @@ const OwnerDashboard = () => {
     }
     try {
       const user = JSON.parse(userData);
-      if (user.role === 'Owner') {
+      if (user.role === 'Owner' || user.role === 'Resident / Property Owner' || (user.role && user.role.includes('Resident'))) {
         setIsOwner(true);
       } else {
         setIsOwner(false);

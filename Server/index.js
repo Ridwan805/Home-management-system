@@ -198,6 +198,8 @@ const parcelLogRoutes = require('./routes/parcelLog.routes');
 const visitorLogRoutes = require('./routes/visitorLog.routes');
 const quickDialRoutes = require('./routes/quickDial.routes');
 const tenantManagementRoutes = require('./routes/tenantManagement.routes');
+const dashboardRoutes = require('./routes/dashboard.routes');
+
 
 
 let requestManagementRoutes;
@@ -271,6 +273,9 @@ app.use('/api/visitor-logs', visitorLogRoutes);
 app.use('/api/quick-dial', quickDialRoutes);
 // Owner tenant and notice management routes
 app.use('/api/owner', tenantManagementRoutes);
+// Unified Tenant + Owner dashboard overview routes
+app.use('/api/dashboard', dashboardRoutes);
+
 
 
 

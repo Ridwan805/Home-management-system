@@ -27,6 +27,20 @@ const register = async (req, res) => {
 
     const phoneNumberValue = phoneNumber || req.body.phone || '';
 
+    // Normalize role: Unified regular property user ('Resident / Property Owner')
+    let normalizedRole = role;
+    if (
+      normalizedRole === 'Resident / Property Owner' ||
+      normalizedRole === 'Resident & Property Owner' ||
+      normalizedRole === 'resident_property_owner' ||
+      normalizedRole === 'Owner' ||
+      normalizedRole === 'Tenant' ||
+      normalizedRole === 'Resident' ||
+      normalizedRole === 'Property Owner'
+    ) {
+      normalizedRole = 'Resident / Property Owner';
+    }
+
     const newUser = new User({
       firstName,
       lastName,
@@ -35,7 +49,7 @@ const register = async (req, res) => {
       phoneNumber: phoneNumberValue,
       address: address || '',
       password: hashedPassword,
-      role, // value provided by client must match allowed enum
+      role: normalizedRole,
       securityQuestion,
       securityAnswer: hashedSecurityAnswer,
       experience: experience || '' // For Security Guards

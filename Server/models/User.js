@@ -11,7 +11,8 @@ const userSchema = new mongoose.Schema({
   password: String,
   role: {
     type: String,
-    enum: ['Owner', 'Tenant', 'Service Provider', 'Security Guard'],
+    enum: ['Resident / Property Owner', 'Owner', 'Tenant', 'Service Provider', 'Security Guard', 'user'],
+    default: 'Resident / Property Owner',
     required: true
   },
   securityQuestion: { type: String, required: true },

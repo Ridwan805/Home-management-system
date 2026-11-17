@@ -1,0 +1,250 @@
+.unified-messages-view {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 1000px;
+}
+
+.messages-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Search bar */
+.messages-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 0.5rem;
+  padding: 0.65rem 1rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.messages-search-bar .search-icon {
+  color: #94A3B8;
+  flex-shrink: 0;
+}
+
+.messages-search-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-size: 0.875rem;
+  color: #0F172A;
+  outline: none;
+}
+
+.messages-search-input::placeholder {
+  color: #94A3B8;
+}
+
+/* Threads Container */
+.threads-container {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.threads-loading,
+.threads-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  color: #64748B;
+}
+
+.threads-empty-icon {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  background: #EFF6FF;
+  color: #2563EB;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.threads-empty h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #0F172A;
+  margin: 0 0 0.25rem 0;
+}
+
+.threads-empty p {
+  font-size: 0.875rem;
+  color: #64748B;
+  margin: 0;
+  max-width: 500px;
+}
+
+.threads-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.thread-item-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.25rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #F1F5F9;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.thread-item-card:last-child {
+  border-bottom: none;
+}
+
+.thread-item-card:hover {
+  background-color: #F8FAFC;
+}
+
+.thread-avatar {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  background: #E2E8F0;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.thread-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.thread-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.thread-sender-info {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.thread-contact-name {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #0F172A;
+}
+
+.thread-contact-badge {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  background: #F1F5F9;
+  color: #475569;
+  border-radius: 0.25rem;
+}
+
+.thread-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: #94A3B8;
+  white-space: nowrap;
+}
+
+.thread-property-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: #334155;
+}
+
+.thread-property-row .prop-icon {
+  color: #64748B;
+  flex-shrink: 0;
+}
+
+.thread-property-name {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.thread-status-badge {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  text-transform: capitalize;
+}
+
+.thread-status-badge.approved,
+.thread-status-badge.accepted {
+  background: #ECFDF5;
+  color: #059669;
+}
+
+.thread-status-badge.pending {
+  background: #FFFBEB;
+  color: #D97706;
+}
+
+.thread-status-badge.rejected {
+  background: #FEF2F2;
+  color: #DC2626;
+}
+
+.thread-preview-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.25rem;
+}
+
+.thread-preview-text {
+  font-size: 0.8125rem;
+  color: #64748B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.thread-open-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #2563EB;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.25rem;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.thread-open-btn:hover {
+  background: #EFF6FF;
+}

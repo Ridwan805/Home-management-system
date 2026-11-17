@@ -59,10 +59,8 @@ export default function Login() {
         // Redirect based on user role
         setTimeout(() => {
           setPopupMessage('');
-          if (data.user.role === 'Owner') {
+          if (data.user.role === 'Owner' || data.user.role === 'Tenant' || data.user.role === 'Resident / Property Owner' || data.user.role === 'user') {
             navigate('/dashboard');
-          } else if (data.user.role === 'Tenant') {
-            navigate('/tenant/dashboard');
           } else if (data.user.role === 'admin') {
             // Redirect to admin dashboard
             navigate('/admin');

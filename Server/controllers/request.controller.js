@@ -319,6 +319,8 @@ const getRequests = async (req, res) => {
       filter.tenantId = userId;
     } else if (userRole === 'Owner') {
       filter.ownerId = userId;
+    } else if (userRole === 'Resident / Property Owner' || (userRole && userRole.includes('Resident'))) {
+      filter.$or = [{ tenantId: userId }, { ownerId: userId }];
     }
     // Admin can see all requests (no additional filter)
 
@@ -884,6 +886,13 @@ const getRequestStats = async (req, res) => {
       const properties = await Property.find({ ownerUserId: userId }).select('_id');
       const propertyIds = properties.map(p => p._id);
       matchCondition.propertyId = { $in: propertyIds };
+    } else if (userRole === 'Resident / Property Owner' || (userRole && userRole.includes('Resident'))) {
+      const properties = await Property.find({ ownerUserId: userId }).select('_id');
+      const propertyIds = properties.map(p => p._id);
+      matchCondition.$or = [
+        { tenantId: new mongoose.Types.ObjectId(userId) },
+        { propertyId: { $in: propertyIds } }
+      ];
     }
     // Admin can see all stats (no additional filter)
     

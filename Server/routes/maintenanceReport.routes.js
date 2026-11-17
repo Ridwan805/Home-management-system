@@ -21,18 +21,23 @@ function authorizeRole(roles) {
     try {
       const tokenRole = req.user?.role;
       if (!tokenRole) return res.status(403).json({ error: 'Forbidden' });
-      const allowed = roles.map(r => String(r).toLowerCase());
-      const normalized = String(tokenRole).toLowerCase();
+      const allowed = roles.map(r => String(r).toLowerCase().replace(/[\s_-]+/g, ''));
+      const normalized = String(tokenRole).toLowerCase().replace(/[\s_-]+/g, '');
       
+      const isUnifiedUser = normalized.includes('resident') || normalized.includes('propertyowner') || normalized === 'owner' || normalized === 'tenant';
+      const allowsUnifiedUser = allowed.includes('owner') || allowed.includes('tenant') || allowed.includes('residentpropertyowner') || allowed.includes('user');
+
+      const isAllowed = allowed.includes(normalized) || (isUnifiedUser && allowsUnifiedUser);
+
       // Debug log to help troubleshoot role issues
       console.log('Role check:', { 
         userRole: tokenRole, 
         normalizedRole: normalized, 
         allowedRoles: allowed, 
-        isAllowed: allowed.includes(normalized) 
+        isAllowed 
       });
       
-      if (!allowed.includes(normalized)) return res.status(403).json({ error: 'Forbidden' });
+      if (!isAllowed) return res.status(403).json({ error: 'Forbidden' });
       return next();
     } catch (error) {
       console.error('Role authorization error:', error);

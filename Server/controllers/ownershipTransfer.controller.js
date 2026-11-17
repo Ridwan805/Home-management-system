@@ -130,6 +130,8 @@ const getOwnershipTransfers = async (req, res) => {
       filter.buyerId = userId;
     } else if (userRole === 'Owner') {
       filter.sellerId = userId;
+    } else if (userRole === 'Resident / Property Owner' || (userRole && userRole.includes('Resident'))) {
+      filter.$or = [{ buyerId: userId }, { sellerId: userId }];
     }
     // Admin can see all transfers (no additional filter)
 

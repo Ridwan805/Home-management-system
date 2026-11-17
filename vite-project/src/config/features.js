@@ -4,7 +4,7 @@
  */
 
 export const isPropertySalesEnabled = () => {
-  return import.meta.env.VITE_ENABLE_PROPERTY_SALES === 'true';
+  return import.meta.env.VITE_ENABLE_PROPERTY_SALES !== 'false';
 };
 
 export default {

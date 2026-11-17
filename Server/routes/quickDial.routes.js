@@ -14,7 +14,7 @@ router.use(authenticateToken);
 // Middleware to ensure user is tenant or security guard
 const ensureTenantOrGuard = (req, res, next) => {
   const userRole = req.user.role;
-  if (userRole !== 'Tenant' && userRole !== 'Security Guard') {
+  if (userRole !== 'Tenant' && userRole !== 'Security Guard' && userRole !== 'Resident / Property Owner' && !String(userRole).includes('Resident')) {
     return res.status(403).json({
       success: false,
       message: 'Access denied. This feature is only available for tenants and security guards.'

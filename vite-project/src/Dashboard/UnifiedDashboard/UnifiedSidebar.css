@@ -1,0 +1,275 @@
+/* DwellSync Unified Sidebar - Dark Navy Modern SaaS Navigation */
+
+.unified-sidebar {
+  width: 17.5rem;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  background-color: #0F172A;
+  color: #F8FAFC;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #1E293B;
+  z-index: 1000;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+/* Brand Section */
+.unified-sidebar-brand {
+  padding: 1.25rem 1.25rem 1rem 1.25rem;
+  border-bottom: 1px solid #1E293B;
+  flex-shrink: 0;
+}
+
+.unified-brand-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.unified-brand-link {
+  text-decoration: none;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.brand-dwell {
+  color: #FFFFFF;
+}
+
+.brand-sync {
+  color: #38BDF8;
+}
+
+.unified-sidebar-close {
+  display: none;
+  background: transparent;
+  border: none;
+  color: #94A3B8;
+  padding: 0.25rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.unified-sidebar-close:hover {
+  color: #FFFFFF;
+  background: #1E293B;
+}
+
+.unified-brand-subtitle {
+  margin-top: 0.35rem;
+  font-size: 0.72rem;
+  color: #64748B;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+/* Scrollable Navigation */
+.unified-sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 1rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* Custom dark navy scrollbar */
+.unified-sidebar-nav::-webkit-scrollbar {
+  width: 5px;
+}
+
+.unified-sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.unified-sidebar-nav::-webkit-scrollbar-thumb {
+  background: #1E293B;
+  border-radius: 4px;
+}
+
+.unified-sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Navigation Section Groups */
+.unified-nav-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.unified-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.35rem 0.6rem;
+  background: transparent;
+  border: none;
+  color: #64748B;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 0.375rem;
+  transition: color 0.15s ease;
+  user-select: none;
+}
+
+.unified-group-header:hover {
+  color: #94A3B8;
+}
+
+.unified-group-title {
+  pointer-events: none;
+}
+
+.unified-group-chevron {
+  color: #475569;
+  transition: transform 0.2s ease;
+}
+
+.unified-group-items {
+  list-style: none;
+  margin: 0.35rem 0 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.unified-item-wrapper {
+  margin: 0;
+  padding: 0;
+}
+
+/* Navigation Item Buttons */
+.unified-nav-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.5rem;
+  background: transparent;
+  border: none;
+  color: #94A3B8;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+  gap: 0.7rem;
+  text-decoration: none;
+  position: relative;
+}
+
+.unified-nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748B;
+  transition: color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.unified-nav-label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.unified-nav-badge {
+  background: #2563EB;
+  color: #FFFFFF;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  border-radius: 9999px;
+  line-height: 1;
+}
+
+/* Hover and Active states */
+.unified-nav-item:hover {
+  background: #1E293B;
+  color: #F8FAFC;
+}
+
+.unified-nav-item:hover .unified-nav-icon {
+  color: #38BDF8;
+}
+
+.unified-nav-item.active {
+  background: #1E293B;
+  color: #FFFFFF;
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 0 #2563EB;
+}
+
+.unified-nav-item.active .unified-nav-icon {
+  color: #38BDF8;
+}
+
+/* Footer Section with Logout */
+.unified-sidebar-footer {
+  padding: 0.85rem 1.25rem;
+  border-top: 1px solid #1E293B;
+  flex-shrink: 0;
+  background: #0B1120;
+}
+
+.unified-logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  background: transparent;
+  border: 1px solid #334155;
+  color: #94A3B8;
+  border-radius: 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.unified-logout-btn:hover {
+  background: #EF444415;
+  border-color: #EF444450;
+  color: #EF4444;
+}
+
+/* Backdrop for Mobile */
+.unified-sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  z-index: 999;
+}
+
+/* Mobile Media Queries */
+@media (max-width: 1024px) {
+  .unified-sidebar {
+    transform: translateX(-100%);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+  }
+
+  .unified-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .unified-sidebar-close {
+    display: flex;
+  }
+}

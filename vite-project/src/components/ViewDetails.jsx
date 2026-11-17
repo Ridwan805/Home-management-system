@@ -388,6 +388,16 @@ const ViewDetails = () => {
           const isSold = effectiveAvailability === 'Sold';
           const canApply = isAvailable && !hasApplied;
 
+          const storedUser = (() => {
+            try {
+              const u = localStorage.getItem('dwellSyncUser');
+              return u ? JSON.parse(u) : null;
+            } catch { return null; }
+          })();
+          const currentUserId = storedUser?.userId || storedUser?.id || storedUser?._id;
+          const ownerId = property?.ownerUserId?._id || property?.ownerUserId;
+          const isListingOwner = Boolean(currentUserId && ownerId && String(currentUserId) === String(ownerId));
+
           return (
             <div className="property-sidebar">
               <div className="property-status-card">
@@ -435,7 +445,7 @@ const ViewDetails = () => {
 
               <div className="property-actions-card">
                 <h3>Actions</h3>
-                {userRole && userRole !== 'Owner' && (
+                {userRole && !isListingOwner && (
                   <>
                     <button 
                       onClick={handleWishlist} 
@@ -541,8 +551,8 @@ const ViewDetails = () => {
                     )}
                   </>
                 )}
-                {userRole === 'Owner' && (
-                  <p className="owner-message">As an owner, you can view property details but cannot add to wishlist or apply.</p>
+                {isListingOwner && (
+                  <p className="owner-message">You are the owner of this property listing.</p>
                 )}
                 {!userRole && (
                   <p className="login-message">Please <a href="/login">login</a> to add to wishlist or apply.</p>

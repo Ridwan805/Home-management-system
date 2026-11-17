@@ -1,0 +1,264 @@
+.unified-financials-view {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.financials-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Financial KPI Cards Grid */
+.financial-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+}
+
+.financial-kpi-card {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 0.75rem;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.kpi-icon-bubble {
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 0.625rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.kpi-icon-bubble.green {
+  background: #ECFDF5;
+  color: #059669;
+}
+
+.kpi-icon-bubble.blue {
+  background: #EFF6FF;
+  color: #2563EB;
+}
+
+.kpi-icon-bubble.indigo {
+  background: #EEF2FF;
+  color: #4F46E5;
+}
+
+.kpi-icon-bubble.amber {
+  background: #FFFBEB;
+  color: #D97706;
+}
+
+.kpi-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.kpi-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.kpi-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0F172A;
+  line-height: 1.2;
+}
+
+.kpi-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.kpi-trend.positive {
+  color: #16A34A;
+}
+
+.kpi-trend.neutral {
+  color: #64748B;
+}
+
+/* Financial Ledger Table Card */
+.financial-ledger-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.ledger-header {
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid #F1F5F9;
+  padding-bottom: 0.75rem;
+}
+
+.ledger-header h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #0F172A;
+  margin: 0 0 0.25rem 0;
+}
+
+.ledger-header p {
+  font-size: 0.8125rem;
+  color: #64748B;
+  margin: 0;
+}
+
+.ledger-table-wrap {
+  overflow-x: auto;
+}
+
+.ledger-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.ledger-table th {
+  background: #F8FAFC;
+  color: #475569;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #E2E8F0;
+}
+
+.ledger-table td {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid #F1F5F9;
+  color: #1E293B;
+}
+
+.ledger-table tr:hover td {
+  background: #F8FAFC;
+}
+
+.prop-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: #0F172A;
+}
+
+.prop-name-cell svg {
+  color: #64748B;
+  flex-shrink: 0;
+}
+
+.ledger-table td.revenue-cell {
+  color: #16A34A;
+  font-weight: 600;
+}
+
+.ledger-table td.rent-cell {
+  font-weight: 600;
+  color: #0F172A;
+}
+
+.role-badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.role-badge.owned {
+  background: #EFF6FF;
+  color: #1D4ED8;
+}
+
+.role-badge.rented {
+  background: #F0FDF4;
+  color: #15803D;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.status-badge.rented {
+  background: #ECFDF5;
+  color: #059669;
+}
+
+.status-badge.available {
+  background: #EFF6FF;
+  color: #2563EB;
+}
+
+.status-badge.processing {
+  background: #FFFBEB;
+  color: #D97706;
+}
+
+.action-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: none;
+  border: none;
+  color: #2563EB;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  transition: background 0.15s ease;
+}
+
+.action-link-btn:hover {
+  background: #EFF6FF;
+}
+
+.financials-empty-state,
+.financials-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  text-align: center;
+  color: #64748B;
+}
+
+@media (max-width: 1024px) {
+  .financial-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .financial-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}

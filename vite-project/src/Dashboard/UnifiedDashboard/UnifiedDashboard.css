@@ -1,0 +1,132 @@
+/* ==========================================================================
+   Unified DwellSync Dashboard Layout Styles
+   ========================================================================== */
+
+.unified-dashboard-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: #F8FAFC;
+  color: #0F172A;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Content Area next to Fixed/Collapsible Sidebar */
+.unified-dashboard-content-area {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  margin-left: 17rem; /* matches sidebar width */
+  min-height: 100vh;
+  background: #F8FAFC;
+  transition: margin-left 0.2s ease;
+}
+
+/* Main Content Wrapper */
+.unified-dashboard-main {
+  flex: 1;
+  padding: 1.75rem 2rem 3rem 2rem;
+  overflow-y: auto;
+  max-width: 100%;
+}
+
+.unified-content-inner {
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+/* Generic View Headers */
+.unified-view-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.unified-view-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0 0 0.35rem 0;
+  letter-spacing: -0.02em;
+}
+
+.unified-view-subtitle {
+  font-size: 0.875rem;
+  color: #64748B;
+  margin: 0;
+  line-height: 1.45;
+}
+
+/* Standard Unified Buttons */
+.unified-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.unified-btn-primary {
+  background: #2563EB;
+  color: #FFFFFF;
+}
+
+.unified-btn-primary:hover {
+  background: #1D4ED8;
+}
+
+.unified-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.unified-btn-secondary {
+  background: #FFFFFF;
+  border-color: #E2E8F0;
+  color: #334155;
+}
+
+.unified-btn-secondary:hover {
+  background: #F1F5F9;
+  border-color: #CBD5E1;
+}
+
+.unified-btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Embedded legacy view container wrappers */
+.unified-embedded-view {
+  width: 100%;
+}
+
+.unified-create-listing-wrapper {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 0.75rem;
+  padding: 1.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 1024px) {
+  .unified-dashboard-content-area {
+    margin-left: 0;
+  }
+  .unified-dashboard-main {
+    padding: 1.25rem 1rem 2.5rem 1rem;
+  }
+}
