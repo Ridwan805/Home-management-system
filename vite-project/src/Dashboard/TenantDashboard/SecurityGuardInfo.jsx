@@ -34,7 +34,7 @@ const SecurityGuardInfo = () => {
     try {
       const user = JSON.parse(userData);
       return user.token;
-    } catch (e) {
+    } catch {
       return null;
     }
   };
@@ -80,7 +80,7 @@ const SecurityGuardInfo = () => {
       } else {
         setError(data.message || 'Failed to fetch job posts');
       }
-    } catch (error) {
+    } catch {
       setError('Error fetching job posts');
     } finally {
       setLoading(false);
@@ -135,7 +135,7 @@ const SecurityGuardInfo = () => {
       } else {
         setError(data.message || 'Failed to post job');
       }
-    } catch (error) {
+    } catch {
       setError('Error posting job');
     } finally {
       setLoading(false);
@@ -190,7 +190,7 @@ const SecurityGuardInfo = () => {
       } else {
         setError(data.message || 'Failed to hire guard');
       }
-    } catch (error) {
+    } catch {
       setError('Error hiring guard');
     }
   };

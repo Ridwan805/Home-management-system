@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useCallback, useContext } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { AuthContext } from '../../App';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import apiConfig from '../../config/api';
 
 // Components
@@ -70,9 +69,7 @@ const SECTION_ALIASES = {
 
 const UnifiedDashboard = () => {
   const { section } = useParams();
-  const location = useLocation();
   const navigate = useNavigate();
-  const { currentUser } = useContext(AuthContext);
 
   // Normalize current active section
   const currentKey = section ? section.toLowerCase() : 'overview';

@@ -41,7 +41,7 @@ const menuItems = [
   }
 ];
 
-const AdminSidebar = ({ activeTab, isMobileOpen, onCloseMobile }) => {
+const AdminSidebar = ({ isMobileOpen, onCloseMobile }) => {
   const navigate = useNavigate();
   const location = useLocation();
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import './PropertyListing.css';
 import PropertyCard from './PropertyCard';
 import EditPropertyModal from './EditPropertyModal';
@@ -9,7 +9,6 @@ import API from '../config/api';
 // Using API configuration from config/api.js
 
 const PropertyListing = () => {
-  const location = useLocation();
   const navigate = useNavigate();
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -182,7 +181,7 @@ const PropertyListing = () => {
         throw new Error(errorData.message || 'Failed to update property status');
       }
       
-      const updatedProperty = await response.json();
+      await response.json();
       
       // Update the properties list with the updated property
       setProperties(properties.map(prop => 

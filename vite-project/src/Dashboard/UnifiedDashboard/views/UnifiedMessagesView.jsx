@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useContext } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   MessageSquare,
   Search,
@@ -12,13 +12,11 @@ import {
   Send
 } from 'lucide-react';
 import API from '../../../config/api';
-import { AuthContext } from '../../../App';
 import { CircularSpinner } from '../../../components/loading';
 import ApplicationMessagesModal from '../../../components/ApplicationMessaging/ApplicationMessagesModal';
 import './UnifiedMessagesView.css';
 
-const UnifiedMessagesView = ({ onNavigateSection, searchTerm = '' }) => {
-  const { currentUser } = useContext(AuthContext);
+const UnifiedMessagesView = ({ searchTerm = '' }) => {
   const [threads, setThreads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -144,6 +142,12 @@ const UnifiedMessagesView = ({ onNavigateSection, searchTerm = '' }) => {
           </button>
         </div>
       </div>
+
+      {error && (
+        <div className="unified-alert unified-alert-error" style={{ marginBottom: '1.5rem', padding: '0.875rem 1rem', background: '#fee2e2', color: '#991b1b', borderRadius: '0.5rem' }}>
+          {error}
+        </div>
+      )}
 
       {/* Search Bar */}
       <div className="messages-search-bar">

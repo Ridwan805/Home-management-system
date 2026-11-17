@@ -34,7 +34,7 @@ const ParcelLogging = () => {
     try {
       const user = JSON.parse(userData);
       return user.token;
-    } catch (e) {
+    } catch {
       return null;
     }
   };

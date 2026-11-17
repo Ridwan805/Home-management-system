@@ -100,7 +100,7 @@ const OwnerRequestsInbox = () => {
     instructions: '',
     note: ''
   });
-  const [amountError, setAmountError] = useState('');
+  const [_amountError, setAmountError] = useState('');
 
   // Receipt Modal states
   const [showReceiptModal, setShowReceiptModal] = useState(false);
@@ -718,7 +718,7 @@ const OwnerRequestsInbox = () => {
   // ==========================================================================
   // ADVANCE PAYMENT & RECEIPT HANDLERS
   // ==========================================================================
-  const handleOpenAdvancePaymentModal = (request) => {
+  const _handleOpenAdvancePaymentModal = (request) => {
     const reqObj = typeof request === 'string' ? requests.find(r => r._id === request) : request;
     setSelectedRequestForPayment(reqObj);
     setAmountError('');
@@ -732,7 +732,7 @@ const OwnerRequestsInbox = () => {
     setShowAdvancePaymentModal(true);
   };
 
-  const handleAdvancePaymentSubmit = async (e) => {
+  const _handleAdvancePaymentSubmit = async (e) => {
     e.preventDefault();
     if (!selectedRequestForPayment) return;
 

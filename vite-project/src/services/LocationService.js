@@ -227,7 +227,7 @@ class LocationService {
     try {
       const permission = await navigator.permissions.query({ name: 'geolocation' });
       return permission.state; // 'granted', 'denied', or 'prompt'
-    } catch (error) {
+    } catch {
       return 'unsupported';
     }
   }

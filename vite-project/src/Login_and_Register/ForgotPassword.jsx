@@ -50,7 +50,7 @@ export default function ForgotPassword() {
         setMessage(data.message || 'Failed to send reset code');
         setMessageType('error');
       }
-    } catch (err) {
+    } catch {
       setMessage('Server error while sending email. Try again.');
       setMessageType('error');
     }
@@ -86,7 +86,7 @@ export default function ForgotPassword() {
         setMessage(data.message || 'Failed to reset password');
         setMessageType('error');
       }
-    } catch (err) {
+    } catch {
       setMessage('Server error while resetting password. Try again.');
       setMessageType('error');
     }
@@ -112,7 +112,7 @@ export default function ForgotPassword() {
       } else {
         setMessage(data.message || 'Failed to retrieve security question');
       }
-    } catch (err) {
+    } catch {
       setMessage('Server error. Try again.');
     }
     setLoading(false);
@@ -143,7 +143,7 @@ export default function ForgotPassword() {
       } else {
         setMessage(data.message || 'Failed to reset password');
       }
-    } catch (err) {
+    } catch {
       setMessage('Server error. Try again.');
     }
     setLoading(false);

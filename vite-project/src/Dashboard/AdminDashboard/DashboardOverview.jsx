@@ -25,11 +25,6 @@ import API from '../../config/api';
 import { DashboardCardSkeleton, TableSkeleton } from '../../components/loading';
 import './adminDashboard.css';
 
-const formatCurrency = (amount) => {
-  if (!amount && amount !== 0) return '—';
-  return `৳${Number(amount).toLocaleString('en-US')}`;
-};
-
 const formatDate = (dateStr) => {
   if (!dateStr) return '—';
   return new Date(dateStr).toLocaleDateString('en-US', {

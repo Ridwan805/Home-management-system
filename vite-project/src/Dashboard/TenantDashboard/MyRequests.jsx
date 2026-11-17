@@ -211,6 +211,14 @@ const MyRequests = () => {
             title: 'Booking Deposit Confirmed',
             message: 'Your advance booking payment has been verified. The property is reserved.'
           });
+          if (data.request?.propertyId) {
+            setOwnershipProperty({
+              name: data.request.propertyId.title || data.request.propertyId.address,
+              address: data.request.propertyId.address,
+              price: data.request.proposedPrice || data.request.propertyId.price
+            });
+            setShowOwnershipModal(true);
+          }
         }
       }
       setTimeout(() => {

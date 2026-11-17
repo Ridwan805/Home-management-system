@@ -122,8 +122,8 @@ const SecurityGuardProfile = () => {
               setCurrentJob(jobData.data);
             }
           }
-        } catch (jobErr) {
-  
+        } catch {
+          // Current job lookup is optional
         }
       } catch (err) {
         setError(err.message);

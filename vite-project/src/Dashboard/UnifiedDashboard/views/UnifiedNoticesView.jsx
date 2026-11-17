@@ -11,7 +11,7 @@ import {
   AlertCircle,
   RotateCw
 } from 'lucide-react';
-import API, { authenticatedFetch } from '../../../config/api';
+import API from '../../../config/api';
 import './UnifiedNoticesView.css';
 
 const UnifiedNoticesView = () => {
@@ -31,11 +31,6 @@ const UnifiedNoticesView = () => {
   // Notice history
   const [notices, setNotices] = useState([]);
 
-  // Calculate minimum move-out date (today + 60 days)
-  const today = new Date();
-  const minDateObj = new Date(today.getFullYear(), today.getMonth() + 2, today.getDate());
-  const minDateStr = minDateObj.toISOString().split('T')[0];
-
   const fetchNoticesData = useCallback(async (isManual = false) => {
     if (isManual) setRefreshing(true);
     else setLoading(true);
@@ -43,7 +38,7 @@ const UnifiedNoticesView = () => {
     const saved = localStorage.getItem('dwellSyncUser');
     let token = null;
     if (saved) {
-      try { token = JSON.parse(saved).token; } catch (e) { token = null; }
+      try { token = JSON.parse(saved).token; } catch { token = null; }
     }
     if (!token) {
       setLoading(false);
@@ -174,7 +169,7 @@ const UnifiedNoticesView = () => {
           type="button"
           className="btn-refresh"
           onClick={() => fetchNoticesData(true)}
-          disabled={refreshing}
+          disabled={refreshing || loading}
         >
           <RotateCw size={15} className={refreshing ? 'spinning' : ''} />
           <span>Refresh</span>

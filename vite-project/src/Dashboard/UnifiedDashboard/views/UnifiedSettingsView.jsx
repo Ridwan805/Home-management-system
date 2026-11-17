@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import {
   Lock,
   Bell,
@@ -8,16 +8,13 @@ import {
   AlertCircle,
   Eye,
   EyeOff,
-  LogOut,
   Smartphone
 } from 'lucide-react';
-import { AuthContext } from '../../../App';
 import apiConfig from '../../../config/api';
 import { ButtonLoader } from '../../../components/loading';
 import './UnifiedSettingsView.css';
 
-const UnifiedSettingsView = ({ onNavigateSection }) => {
-  const { currentUser, logout } = useContext(AuthContext);
+const UnifiedSettingsView = () => {
 
   // Password state
   const [passwordForm, setPasswordForm] = useState({

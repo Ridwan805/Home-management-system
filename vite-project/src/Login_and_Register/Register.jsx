@@ -63,7 +63,7 @@ export default function Register() {
       } else {
         setIsSubmitting(false);
       }
-    } catch (err) {
+    } catch {
       setMessage('Registration failed.');
       setIsSubmitting(false);
     }

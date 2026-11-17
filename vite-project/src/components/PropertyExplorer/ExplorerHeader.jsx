@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Building2,
   Search,
@@ -11,7 +11,6 @@ import {
   X
 } from 'lucide-react';
 import { AuthContext } from '../../App';
-import { isPropertySalesEnabled } from '../../config/features';
 import './ExplorerHeader.css';
 
 const ExplorerHeader = ({
@@ -23,7 +22,6 @@ const ExplorerHeader = ({
   activeFilterCount = 0
 }) => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { isLoggedIn, logout, userRole, setPopupMessage, currentUser } = useContext(AuthContext);
 
   const [dropdownOpen, setDropdownOpen] = useState(false);

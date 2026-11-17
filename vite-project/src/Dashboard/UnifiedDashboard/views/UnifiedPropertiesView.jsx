@@ -50,7 +50,7 @@ const UnifiedPropertiesView = ({ onNavigateSection }) => {
     const saved = localStorage.getItem('dwellSyncUser');
     let token = null;
     if (saved) {
-      try { token = JSON.parse(saved).token; } catch (e) { token = null; }
+      try { token = JSON.parse(saved).token; } catch { token = null; }
     }
     if (!token) {
       setLoading(false);

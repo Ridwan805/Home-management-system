@@ -83,7 +83,7 @@ const UnifiedTenantsBuyersView = ({ onNavigateSection, searchTerm = '' }) => {
     if (saved) {
       try {
         token = JSON.parse(saved).token;
-      } catch (e) {
+      } catch {
         token = null;
       }
     }
@@ -168,7 +168,7 @@ const UnifiedTenantsBuyersView = ({ onNavigateSection, searchTerm = '' }) => {
     if (saved) {
       try {
         token = JSON.parse(saved).token;
-      } catch (e) {
+      } catch {
         token = null;
       }
     }
@@ -222,7 +222,7 @@ const UnifiedTenantsBuyersView = ({ onNavigateSection, searchTerm = '' }) => {
         day: 'numeric',
         year: 'numeric'
       });
-    } catch (e) {
+    } catch {
       return String(dateStr);
     }
   };

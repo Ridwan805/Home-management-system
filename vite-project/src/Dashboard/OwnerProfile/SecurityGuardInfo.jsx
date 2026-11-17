@@ -92,7 +92,7 @@ const SecurityGuardInfo = () => {
     try {
       setLoading(true);
       
-      const data = await authenticatedFetch(apiConfig.getUrl(apiConfig.endpoints.jobPosts), {
+      await authenticatedFetch(apiConfig.getUrl(apiConfig.endpoints.jobPosts), {
         method: 'POST',
         body: JSON.stringify(newJobPost)
       });
@@ -123,40 +123,6 @@ const SecurityGuardInfo = () => {
     }
   };
 
-  const updateApplicationStatus = async (applicationId, status) => {
-    try {
-      const data = await authenticatedFetch(apiConfig.getUrl(apiConfig.endpoints.updateApplicationStatus(applicationId)), {
-        method: 'PATCH',
-        body: JSON.stringify({ status })
-      });
-      
-      toast.success(`Application ${status} successfully!`);
-      fetchApplications(selectedJobPost._id);
-    } catch (error) {
-      console.error('Error updating application status:', error);
-      toast.error(`Failed to ${status} application`);
-    }
-  };
-
-  const hireGuard = async (applicationId) => {
-    try {
-      const data = await authenticatedFetch(apiConfig.getUrl(apiConfig.endpoints.hireGuard), {
-        method: 'POST',
-        body: JSON.stringify({ 
-          jobPostId: selectedJobPost._id,
-          applicationId: applicationId 
-        })
-      });
-      
-      toast.success('Security guard hired successfully!');
-      setShowApplicationsModal(false);
-      fetchJobPosts();
-    } catch (error) {
-      console.error('Error hiring guard:', error);
-      toast.error('Failed to hire security guard');
-    }
-  };
-
   const handleHireGuard = async (jobPostId, applicationId) => {
     if (!window.confirm('Are you sure you want to hire this security guard?')) {
       return;
@@ -164,7 +130,7 @@ const SecurityGuardInfo = () => {
     
     try {
       setLoading(true);
-      const data = await authenticatedFetch(apiConfig.getUrl(apiConfig.endpoints.hireGuard), {
+      await authenticatedFetch(apiConfig.getUrl(apiConfig.endpoints.hireGuard), {
         method: 'POST',
         body: JSON.stringify({ 
           jobPostId: jobPostId,
@@ -192,7 +158,7 @@ const SecurityGuardInfo = () => {
     
     try {
       setLoading(true);
-      const data = await authenticatedFetch(apiConfig.getUrl(apiConfig.endpoints.updateApplicationStatus(applicationId)), {
+      await authenticatedFetch(apiConfig.getUrl(apiConfig.endpoints.updateApplicationStatus(applicationId)), {
         method: 'PATCH',
         body: JSON.stringify({ 
           status: 'Rejected',
@@ -210,7 +176,7 @@ const SecurityGuardInfo = () => {
     }
   };
 
-  const handleMessageGuard = (guardId) => {
+  const handleMessageGuard = () => {
     // TODO: Implement messaging system
     toast.info('Messaging system will be implemented soon');
   };
@@ -243,7 +209,7 @@ const SecurityGuardInfo = () => {
     if (!window.confirm('Are you sure you want to delete this job post?')) return;
     
     try {
-      const data = await authenticatedFetch(apiConfig.getUrl(apiConfig.endpoints.jobPostById(jobPostId)), {
+      await authenticatedFetch(apiConfig.getUrl(apiConfig.endpoints.jobPostById(jobPostId)), {
         method: 'DELETE'
       });
       

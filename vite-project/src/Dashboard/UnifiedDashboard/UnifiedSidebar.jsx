@@ -85,7 +85,7 @@ const UnifiedSidebar = ({
   onClose,
   unreadCounts = { notifications: 0, messages: 0 }
 }) => {
-  const { logout, currentUser } = useContext(AuthContext);
+  const { logout } = useContext(AuthContext);
   const navigate = useNavigate();
 
   // Collapsible state for each navigation section (default all open)

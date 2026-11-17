@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import API from '../../config/api';
-import LocationPickerMap from '../../components/LocationPickerMap';
 import LocationViewerMap from '../../components/LocationViewerMap';
 import './PropertyDetails.css';
 import { CircularSpinner } from '../../components/loading';
@@ -12,7 +10,7 @@ const getAuthToken = () => {
   try {
     const userData = JSON.parse(localStorage.getItem('dwellSyncUser') || '{}');
     return userData?.token || localStorage.getItem('token') || null;
-  } catch (e) {
+  } catch {
     return localStorage.getItem('token') || null;
   }
 };
@@ -22,11 +20,6 @@ const PropertyDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editingProperty, setEditingProperty] = useState(null);
-  const [formData, setFormData] = useState({});
-  const [editLocation, setEditLocation] = useState({ latitude: null, longitude: null });
-  const [isEditLocationConfirmed, setIsEditLocationConfirmed] = useState(false);
-  const [updateSuccess, setUpdateSuccess] = useState(false);
-  const [updateError, setUpdateError] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState(null);
@@ -257,7 +250,7 @@ const PropertyDetails = () => {
         throw new Error('Failed to update status');
       }
 
-      const updatedProperty = await response.json();
+      await response.json();
       setProperties(prev => prev.map(prop => 
         prop._id === propertyId ? { ...prop, status: newStatus } : prop
       ));

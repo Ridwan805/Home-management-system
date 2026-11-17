@@ -230,6 +230,12 @@ const UnifiedNotificationsView = ({ onNavigateSection, onUnreadCountChange }) =>
         </div>
       </div>
 
+      {error && (
+        <div className="unified-alert unified-alert-error" style={{ marginBottom: '1.5rem', padding: '0.875rem 1rem', background: '#fee2e2', color: '#991b1b', borderRadius: '0.5rem' }}>
+          {error}
+        </div>
+      )}
+
       {/* Filter Tabs */}
       <div className="notif-filters-bar">
         <button

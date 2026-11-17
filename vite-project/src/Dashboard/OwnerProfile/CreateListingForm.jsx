@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import API from '../../config/api';
 import LocationPickerMap from '../../components/LocationPickerMap';
 import { ButtonSpinner } from '../../components/loading';
-import { isPropertySalesEnabled } from '../../config/features';
 import {
   Tag,
   Building2,
@@ -346,7 +344,6 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
   const validateForm = () => {
     const errors = [];
     const isLand = form.propertyType === 'land';
-    const isCommercial = COMMERCIAL_PROPERTY_TYPES.includes(form.propertyType);
     const isResidential = RESIDENTIAL_TYPES.includes(form.propertyType);
 
     // Basic Category & Pricing
@@ -427,7 +424,7 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
       errors.push('Please enter a valid email address');
     }
 
-    const phoneRegex = /^[\d\s\-\+\(\)]+$/;
+    const phoneRegex = /^[\d\s\-+()]+$/;
     if (form.contactPhone && !phoneRegex.test(form.contactPhone)) {
       errors.push('Please enter a valid phone number');
     }

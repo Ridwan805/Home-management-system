@@ -78,7 +78,7 @@ export default function Login() {
         setMessage(data.message);
         setIsSubmitting(false);
       }
-    } catch (err) {
+    } catch {
       setMessage('Error in login');
       setIsSubmitting(false);
     }

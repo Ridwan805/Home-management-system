@@ -112,7 +112,6 @@ const HouseInfo = () => {
 
     const isDaysBased = term.noticePeriodUnit === 'days' || (term.noticeDays && term.noticeDays !== 60 && !term.noticePeriodMonths);
     const noticeMonths = Number(term.noticePeriodMonths) || (term.noticeDays === 30 ? 1 : 2);
-    const noticeDays = Number(term.noticeDays) || 60;
 
     let earliestDate;
     let requiredLabel;

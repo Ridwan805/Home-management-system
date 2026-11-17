@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './EditPropertyModal.css';
 import { ButtonSpinner } from './loading';
-import { isPropertySalesEnabled } from '../config/features';
 import {
   Building2,
   Home,
@@ -48,7 +47,6 @@ const EditPropertyModal = ({ property, onClose, onUpdate }) => {
   const getInitialFormData = (prop) => {
     if (!prop) return {};
     const bId = prop.buildingId?._id || prop.buildingId || null;
-    const isBuildingUnit = Boolean(bId);
 
     return {
       buildingId: bId,
@@ -130,7 +128,6 @@ const EditPropertyModal = ({ property, onClose, onUpdate }) => {
 
   const isBuildingUnit = Boolean(formData.buildingId);
   const isLand = formData.propertyType === 'land';
-  const isCommercial = ['office', 'retail'].includes(formData.propertyType);
   const isResidential = RESIDENTIAL_TYPES.includes(formData.propertyType);
 
   // Handle form submission

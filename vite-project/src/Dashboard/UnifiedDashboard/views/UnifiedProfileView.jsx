@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   UserRound,
   Mail,
@@ -14,13 +14,11 @@ import {
   KeyRound,
   BadgeCheck
 } from 'lucide-react';
-import { AuthContext } from '../../../App';
 import apiConfig from '../../../config/api';
 import { ProfileSkeleton, ButtonLoader } from '../../../components/loading';
 import './UnifiedProfileView.css';
 
-const UnifiedProfileView = ({ onNavigateSection }) => {
-  const { currentUser } = useContext(AuthContext);
+const UnifiedProfileView = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);

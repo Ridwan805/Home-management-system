@@ -29,7 +29,7 @@ import calculatingImg from '../assets/calculating.jpg';
 
 const HomePage = () => {
   const navigate = useNavigate();
-  const { isLoggedIn, userRole } = useContext(AuthContext);
+  const { isLoggedIn } = useContext(AuthContext);
 
   // Affordability Calculator Modal State
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);

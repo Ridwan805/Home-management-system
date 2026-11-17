@@ -28,7 +28,7 @@ const UnifiedInvoicesView = () => {
     const saved = localStorage.getItem('dwellSyncUser');
     let token = null;
     if (saved) {
-      try { token = JSON.parse(saved).token; } catch (e) { token = null; }
+      try { token = JSON.parse(saved).token; } catch { token = null; }
     }
     if (!token) {
       setLoading(false);
@@ -88,7 +88,7 @@ const UnifiedInvoicesView = () => {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-    } catch (e) {
+    } catch {
       alert('Could not download invoice PDF. Please try again.');
     } finally {
       setDownloadingId(null);
@@ -211,7 +211,6 @@ const UnifiedInvoicesView = () => {
                   const invId = inv._id || inv.id;
                   const isPaid = (inv.status || '').toLowerCase() === 'paid';
                   const isOverdue = (inv.status || '').toLowerCase() === 'overdue';
-                  const isPending = ['pending', 'open'].includes((inv.status || '').toLowerCase());
 
                   return (
                     <tr key={invId}>

@@ -19,10 +19,15 @@ class InvoiceService {
       console.log('🧾 Generating first monthly invoice after advance payment success...');
       
       const Request = require('../models/Request');
-      const request = await Request.findById(requestId)
-        .populate('propertyId', 'title address price listingType ownerId')
-        .populate('tenantId', 'firstName lastName email')
-        .populate('ownerId', 'firstName lastName email');
+      let requestQuery = Request.findById(requestId);
+      if (typeof requestQuery.populate === 'function') {
+        requestQuery = requestQuery.populate([
+          { path: 'propertyId', select: 'title address price listingType ownerId' },
+          { path: 'tenantId', select: 'firstName lastName email' },
+          { path: 'ownerId', select: 'firstName lastName email' }
+        ]);
+      }
+      const request = await requestQuery;
       
       if (!request) {
         throw new Error('Request not found');

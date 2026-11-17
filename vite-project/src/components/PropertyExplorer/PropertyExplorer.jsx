@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useContext } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../App';
-import apiConfig, { authenticatedFetch } from '../../config/api';
+import apiConfig from '../../config/api';
 import ExplorerHeader from './ExplorerHeader';
 import PropertyFilterSidebar from './PropertyFilterSidebar';
 import PropertyResultsPanel from './PropertyResultsPanel';
@@ -14,7 +14,7 @@ import './PropertyExplorer.css';
 const PropertyExplorer = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { isLoggedIn, currentUser } = useContext(AuthContext);
+  const { isLoggedIn } = useContext(AuthContext);
 
   // 1. Synchronized Filter State from URL
   const filters = useMemo(() => {

@@ -7,7 +7,6 @@ import { CircularSpinner } from '../../components/loading';
 const ParcelLogs = () => {
   const [parcels, setParcels] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
   const getAuthToken = () => {
     const userData = localStorage.getItem('dwellSyncUser');
@@ -15,7 +14,7 @@ const ParcelLogs = () => {
     try {
       const user = JSON.parse(userData);
       return user.token;
-    } catch (e) {
+    } catch {
       return null;
     }
   };

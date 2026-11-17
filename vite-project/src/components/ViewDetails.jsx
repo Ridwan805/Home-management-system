@@ -6,7 +6,6 @@ import UnifiedInquiryForm from './UnifiedInquiryForm';
 import apiConfig from '../config/api';
 import LocationViewerMap from './LocationViewerMap';
 import { PageLoader, ButtonSpinner } from './loading';
-import { isPropertySalesEnabled } from '../config/features';
 import {
   User,
   Mail,
@@ -211,7 +210,7 @@ const ViewDetails = () => {
     setRequestType(null);
   };
 
-  const handleSubmitRequest = async (result) => {
+  const handleSubmitRequest = async () => {
     // The form submission is now handled directly in UnifiedInquiryForm component
     // This function is called only on successful submission
     toast.success('Request submitted successfully!');

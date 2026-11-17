@@ -70,7 +70,7 @@ const UnifiedOverview = ({ onNavigateSection, searchTerm = '' }) => {
     if (saved) {
       try {
         token = JSON.parse(saved).token;
-      } catch (e) {
+      } catch {
         token = null;
       }
     }

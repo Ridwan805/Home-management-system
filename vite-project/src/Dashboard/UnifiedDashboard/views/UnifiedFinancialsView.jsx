@@ -90,7 +90,7 @@ const UnifiedFinancialsView = ({ onNavigateSection, searchTerm = '' }) => {
     if (saved) {
       try {
         token = JSON.parse(saved).token;
-      } catch (e) {
+      } catch {
         token = null;
       }
     }
@@ -181,7 +181,7 @@ const UnifiedFinancialsView = ({ onNavigateSection, searchTerm = '' }) => {
         day: 'numeric',
         year: 'numeric'
       });
-    } catch (e) {
+    } catch {
       return String(dateStr);
     }
   };
