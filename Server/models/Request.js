@@ -178,18 +178,18 @@ const RequestSchema = new mongoose.Schema({
     required: false // Set when purchase request is approved and OwnershipTransfer is created
   },
 
-  // Payload - Stores all submitted form data from unified inquiry form
+  // Payload - Stores all submitted form data from unified inquiry form (Supports both Rent & Buy workflows)
   payload: {
-    // Family Members (≥1 required)
+    // Family / Occupant Members
     familyMembers: [{
-      name: { type: String, required: true },
-      relation: { type: String, required: true },
-      age: { type: Number, required: true }
+      name: { type: String },
+      relation: { type: String },
+      age: { type: Number }
     }],
     
     // Belongings with pets/vehicle toggles
     belongings: {
-      items: [{ type: String }], // Free input list
+      items: [{ type: String }],
       hasPets: { type: Boolean, default: false },
       petDetails: { type: String, default: '' },
       hasVehicle: { type: Boolean, default: false },
@@ -198,10 +198,9 @@ const RequestSchema = new mongoose.Schema({
     
     // Occupation details
     occupation: {
-      employmentType: { type: String, required: true }, // employed, self-employed, student, unemployed
-      role: { type: String, required: true },
-      yearsOfExperience: { type: Number, required: true },
-      // Conditional employer fields
+      employmentType: { type: String },
+      role: { type: String },
+      yearsOfExperience: { type: Number },
       companyName: { type: String },
       companyAddress: { type: String },
       supervisorName: { type: String },
@@ -210,15 +209,16 @@ const RequestSchema = new mongoose.Schema({
     
     // Identity & Compliance with file uploads
     identity: {
-      nidFileUrl: { type: String, required: true }, // Required NID card
-      tinFileUrl: { type: String }, // Optional TIN certificate
-      personalPhotoUrl: { type: String, required: true } // Required personal photo
+      nidFileUrl: { type: String },
+      tinFileUrl: { type: String },
+      personalPhotoUrl: { type: String },
+      supportingDocUrl: { type: String },
+      phone: { type: String }
     },
     
     // Financial Information
     financials: {
-      monthlyIncome: { type: Number, required: true },
-      // Optional fields
+      monthlyIncome: { type: Number },
       bankName: { type: String },
       accountNumber: { type: String },
       creditScore: { type: Number },
@@ -226,12 +226,67 @@ const RequestSchema = new mongoose.Schema({
       incomeSource: { type: String }
     },
     
-    // Letter to Owner
+    // Letter / Message to Owner
     letterToOwner: { 
       type: String, 
-      required: true,
-      minlength: 20,
-      maxlength: 1500
+      maxlength: 2500,
+      default: ''
+    },
+    messageToOwner: {
+      type: String,
+      maxlength: 2500,
+      default: ''
+    },
+
+    // DwellSync 2.0: Rent Workflow Specifics
+    rentDetails: {
+      preferredMoveInDate: { type: Date },
+      leaseDuration: { type: String },
+      occupantsCount: { type: Number, default: 1 },
+      specialRequests: { type: String, default: '' }
+    },
+
+    // DwellSync 2.0: Buy Workflow Specifics
+    purchaseProposal: {
+      askingPrice: { type: Number },
+      offeredPrice: { type: Number },
+      financingMethod: { type: String },
+      purchaseTimeline: { type: String },
+      proposalNotes: { type: String, default: '' },
+      intendedLandUse: { type: String, default: '' }
+    },
+
+    // Buyer Information
+    buyerInfo: {
+      buyerType: { type: String, enum: ['individual', 'organizational'], default: 'individual' },
+      fullName: { type: String },
+      email: { type: String },
+      phoneNumber: { type: String },
+      buyerAddress: { type: String },
+      organizationName: { type: String },
+      registrationNumber: { type: String },
+      authorizedSignatory: { type: String },
+      secondaryContact: { type: String }
+    },
+
+    // Living Requirements
+    livingRequirements: {
+      hasPets: { type: Boolean, default: false },
+      petDetails: { type: String, default: '' },
+      hasVehicle: { type: Boolean, default: false },
+      vehicleDetails: { type: String, default: '' },
+      parkingNeeded: { type: Boolean, default: false },
+      specialRequests: { type: String, default: '' },
+      additionalNotes: { type: String, default: '' }
+    },
+
+    // Employment & Affordability
+    employmentAffordability: {
+      employmentStatus: { type: String },
+      employerName: { type: String },
+      jobRole: { type: String },
+      monthlyIncome: { type: Number },
+      additionalIncome: { type: Number }
     }
   },
 

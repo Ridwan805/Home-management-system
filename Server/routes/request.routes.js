@@ -22,7 +22,7 @@ const storage = multer.diskStorage({
     let subfolder = '';
     if (file.fieldname === 'nidFile') {
       subfolder = 'nid';
-    } else if (file.fieldname === 'tinFile') {
+    } else if (file.fieldname === 'tinFile' || file.fieldname === 'supportingDoc' || file.fieldname === 'tradeLicense') {
       subfolder = 'tin';
     } else if (file.fieldname === 'personalPhoto') {
       subfolder = 'personal';
@@ -61,8 +61,8 @@ const upload = multer({
       } else {
         cb(new Error('Personal photo must be a JPEG, JPG, or PNG image'));
       }
-    } else if (file.fieldname === 'nidFile' || file.fieldname === 'tinFile') {
-      // NID and TIN can be images or PDFs
+    } else if (['nidFile', 'tinFile', 'supportingDoc', 'tradeLicense'].includes(file.fieldname)) {
+      // NID, TIN, Trade License, and supporting docs can be images or PDFs
       const allowedTypes = /jpeg|jpg|png|pdf/;
       const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
       const mimetype = allowedTypes.test(file.mimetype);
@@ -70,7 +70,7 @@ const upload = multer({
       if (mimetype && extname) {
         return cb(null, true);
       } else {
-        cb(new Error('Identity documents must be JPEG, JPG, PNG, or PDF files'));
+        cb(new Error('Identity & supporting documents must be JPEG, JPG, PNG, or PDF files'));
       }
     } else {
       cb(new Error('Unexpected file field'));
@@ -87,7 +87,9 @@ router.use(authMiddleware);
 const uploader = upload.fields([
   { name: 'nidFile', maxCount: 1 },
   { name: 'tinFile', maxCount: 1 },
-  { name: 'personalPhoto', maxCount: 1 }
+  { name: 'personalPhoto', maxCount: 1 },
+  { name: 'supportingDoc', maxCount: 1 },
+  { name: 'tradeLicense', maxCount: 1 }
 ]);
 
 router.post('/', (req, res, next) => {

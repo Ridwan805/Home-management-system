@@ -12,6 +12,7 @@ const {
   getPropertyById,
   updateProperty,
   updatePropertyStatus,
+  convertPropertyToRental,
   deleteProperty,
   getPropertyAssignments,
   getTenantAssignments,
@@ -125,6 +126,9 @@ router.patch('/:id', auth, authorizeRole(['owner', 'admin']), upload.array('imag
 
 // PUT /api/properties/:id/status - Update property status (owner/admin only)
 router.put('/:id/status', auth, authorizeRole(['owner', 'admin']), updatePropertyStatus);
+
+// POST /api/properties/:id/convert-to-rental - Safely convert For Sale property to For Rent (owner/admin only)
+router.post('/:id/convert-to-rental', auth, authorizeRole(['owner', 'admin']), convertPropertyToRental);
 
 // DELETE /api/properties/:id - Delete property (owner/admin only)
 router.delete('/:id', auth, authorizeRole(['owner', 'admin']), deleteProperty);

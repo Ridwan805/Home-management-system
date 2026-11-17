@@ -19,6 +19,7 @@ module.exports = (allowedRoles) => {
       if (admin && admin.isActive) {
         if (allowedRoles.includes('admin') || allowedRoles.includes(admin.role)) {
           req.user = admin;
+          req.user.userId = admin._id;
           req.userType = 'admin';
           return next();
         }
@@ -31,9 +32,17 @@ module.exports = (allowedRoles) => {
       console.log('🔐 AUTHORIZE ROLE: Found user:', user ? `${user.firstName} ${user.lastName} (${user.role})` : 'null');
       console.log('🔐 AUTHORIZE ROLE: Allowed roles:', allowedRoles);
       if (user) {
-        if (allowedRoles.includes('user') || allowedRoles.includes(user.role)) {
+        const userRoleLower = (user.role || '').toLowerCase().replace(/[\s_-]+/g, '');
+        const allowedNormalized = allowedRoles.map(r => (r || '').toLowerCase().replace(/[\s_-]+/g, ''));
+        const hasAccess = allowedRoles.includes('user') || 
+          allowedRoles.includes(user.role) || 
+          allowedNormalized.includes(userRoleLower) ||
+          (userRoleLower === 'owner' && allowedNormalized.includes('propertyowner'));
+
+        if (hasAccess) {
           console.log('✅ AUTHORIZE ROLE: Access granted for role:', user.role);
           req.user = user;
+          req.user.userId = user._id;
           req.userType = 'user';
           console.log('🔄 AUTHORIZE ROLE: Calling next() middleware');
           return next();

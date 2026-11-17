@@ -5,12 +5,10 @@ import {
   FaBath, 
   FaRulerCombined, 
   FaMapMarkerAlt, 
-  FaHeart, 
-  FaRegHeart, 
   FaArrowRight, 
-  FaPhoneAlt, 
-  FaTag
+  FaPhoneAlt 
 } from 'react-icons/fa';
+import { Heart, Building2 } from 'lucide-react';
 import './PropertyCard.css';
 import apiConfig from '../config/api';
 
@@ -137,7 +135,7 @@ const PropertyCard = ({ property, onEdit, onViewDetails, onDelete, onStatusChang
         ) : (
           <div className="property-card-placeholder">
             <div className="placeholder-icon-wrap">
-              <FaTag />
+              <Building2 size={32} />
             </div>
             <span>No Photos Available</span>
           </div>
@@ -156,13 +154,20 @@ const PropertyCard = ({ property, onEdit, onViewDetails, onDelete, onStatusChang
 
         {/* Wishlist Heart Button (Top Right) */}
         <button 
+          type="button"
           className={`wishlist-btn ${isWishlisted ? 'active' : ''}`}
           onClick={handleToggleWishlist}
           title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
-          aria-label="Wishlist"
+          aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
           disabled={isWishlistLoading}
         >
-          {isWishlisted ? <FaHeart className="heart-icon active" /> : <FaRegHeart className="heart-icon" />}
+          <Heart
+            size={16}
+            fill={isWishlisted ? '#2563EB' : 'none'}
+            color={isWishlisted ? '#2563EB' : '#64748B'}
+            strokeWidth={isWishlisted ? 2.5 : 2}
+            className="wishlist-heart-icon"
+          />
         </button>
 
         {/* Bottom Badges Bar */}

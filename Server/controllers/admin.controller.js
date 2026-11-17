@@ -61,57 +61,158 @@ exports.adminLogin = async (req, res) => {
 // Get dashboard metrics
 exports.getDashboardMetrics = async (req, res) => {
   try {
-    // Use MongoDB aggregation for efficient counting
-    const [totalUsers, activeProperties, pendingProperties, unresolvedReports] = await Promise.all([
-      User.countDocuments(),
-      Property.countDocuments({ status: 'approved' }),
-      Property.countDocuments({ status: 'pending' }),
-      Report.countDocuments({ status: { $ne: 'resolved' } })
-    ]);
-
-    // Calculate total properties (approved + pending + rejected)
-    const totalProperties = await Property.countDocuments();
-    
-    // For now, we'll use unresolvedReports as totalBookings since we don't have a Booking model
-    // This should be updated when a Booking model is implemented
-    const totalBookings = unresolvedReports;
-
-    res.json({
+    const [
       totalUsers,
       totalProperties,
       pendingProperties,
-      totalBookings
+      approvedProperties,
+      rejectedProperties,
+      unresolvedReports,
+      totalReports
+    ] = await Promise.all([
+      User.countDocuments(),
+      Property.countDocuments({ isDeleted: { $ne: true } }),
+      Property.countDocuments({ status: 'pending', isDeleted: { $ne: true } }),
+      Property.countDocuments({ status: { $in: ['Available', 'approved', 'Rented', 'Sold', 'Reserved', 'Processing'] }, isDeleted: { $ne: true } }),
+      Property.countDocuments({ status: 'rejected', isDeleted: { $ne: true } }),
+      Report.countDocuments({ status: { $ne: 'resolved' } }),
+      Report.countDocuments()
+    ]);
+
+    res.json({
+      success: true,
+      totalUsers,
+      totalProperties,
+      pendingProperties,
+      approvedProperties,
+      rejectedProperties,
+      unresolvedReports,
+      totalReports,
+      totalBookings: unresolvedReports, // backward compatibility
+      activeProperties: approvedProperties // backward compatibility
     });
   } catch (err) {
     console.error('Error fetching dashboard metrics:', err);
-    res.status(500).json({ message: 'Failed to fetch dashboard metrics' });
+    res.status(500).json({ success: false, message: 'Failed to fetch dashboard metrics' });
   }
 };
 
-// Get pending properties
+// Get pending and moderated properties with filters and summary stats
 exports.getPendingProperties = async (req, res) => {
   try {
-    const properties = await Property.find({ status: 'pending' })
-      .populate('ownerUserId', 'firstName lastName email')
-      .populate('owner', 'firstName lastName email')
-      .sort({ createdAt: -1 });
-    
+    const { status, search, propertyType, listingType, sort, page = 1, limit = 20 } = req.query;
+
+    const query = { isDeleted: { $ne: true } };
+
+    // Status filter
+    if (status && status !== 'all') {
+      if (status === 'approved' || status === 'Available') {
+        query.status = { $in: ['Available', 'approved', 'Rented', 'Sold', 'Reserved', 'Processing'] };
+      } else {
+        query.status = status;
+      }
+    } else if (!status) {
+      // Default to pending if not specified
+      query.status = 'pending';
+    }
+
+    // Property Type filter
+    if (propertyType && propertyType !== 'all') {
+      query.propertyType = propertyType;
+    }
+
+    // Listing Type filter
+    if (listingType && listingType !== 'all') {
+      query.listingType = listingType;
+    }
+
+    // Text search filter
+    if (search && search.trim()) {
+      const q = search.trim();
+      const regex = new RegExp(q, 'i');
+      query.$or = [
+        { address: regex },
+        { displayName: regex },
+        { title: regex },
+        { description: regex },
+        { 'location.address': regex },
+        { 'location.city': regex }
+      ];
+    }
+
+    const sortOption = sort === 'oldest' ? { createdAt: 1 } : { createdAt: -1 };
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+    const skip = (pageNum - 1) * limitNum;
+
+    const [
+      properties,
+      totalFiltered,
+      pendingCount,
+      approvedCount,
+      rejectedCount,
+      totalCount
+    ] = await Promise.all([
+      Property.find(query)
+        .populate('ownerUserId', 'firstName lastName email phoneNumber name role')
+        .populate('owner', 'firstName lastName email phoneNumber name role')
+        .populate('buildingId', 'name address specifications facilities floors totalUnits')
+        .sort(sortOption)
+        .skip(skip)
+        .limit(limitNum),
+      Property.countDocuments(query),
+      Property.countDocuments({ status: 'pending', isDeleted: { $ne: true } }),
+      Property.countDocuments({ status: { $in: ['Available', 'approved', 'Rented', 'Sold', 'Reserved', 'Processing'] }, isDeleted: { $ne: true } }),
+      Property.countDocuments({ status: 'rejected', isDeleted: { $ne: true } }),
+      Property.countDocuments({ isDeleted: { $ne: true } })
+    ]);
+
     // Ensure owner data is available by using either ownerUserId or owner field
     const processedProperties = properties.map(property => {
       const propertyObj = property.toObject();
-      
-      // If ownerUserId is not populated but owner is, use owner data
       if (!propertyObj.ownerUserId && propertyObj.owner) {
         propertyObj.ownerUserId = propertyObj.owner;
       }
-      
       return propertyObj;
     });
-    
-    res.json(processedProperties);
+
+    // In-memory owner search filter if user searched by owner name/email
+    let finalProperties = processedProperties;
+    if (search && search.trim()) {
+      const q = search.trim().toLowerCase();
+      finalProperties = processedProperties.filter(p => {
+        const owner = p.ownerUserId || p.owner;
+        const ownerName = `${owner?.firstName || ''} ${owner?.lastName || ''}`.trim() || owner?.name || '';
+        const ownerEmail = owner?.email || '';
+        const propTitle = p.displayName || p.title || p.address || '';
+        return (
+          ownerName.toLowerCase().includes(q) ||
+          ownerEmail.toLowerCase().includes(q) ||
+          propTitle.toLowerCase().includes(q) ||
+          (p.address || '').toLowerCase().includes(q)
+        );
+      });
+    }
+
+    res.json({
+      success: true,
+      properties: finalProperties,
+      stats: {
+        pendingProperties: pendingCount,
+        approvedProperties: approvedCount,
+        rejectedProperties: rejectedCount,
+        totalProperties: totalCount
+      },
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total: totalFiltered,
+        pages: Math.ceil(totalFiltered / limitNum)
+      }
+    });
   } catch (err) {
     console.error('Error fetching pending properties:', err);
-    res.status(500).json({ message: 'Failed to fetch pending properties' });
+    res.status(500).json({ success: false, message: 'Failed to fetch pending properties' });
   }
 };
 
@@ -122,57 +223,85 @@ exports.approveProperty = async (req, res) => {
     const { status, rejectionReason } = req.body; // 'Available' or 'rejected'
 
     if (status !== 'Available' && status !== 'rejected') {
-      return res.status(400).json({ message: 'Invalid status value' });
+      return res.status(400).json({ success: false, message: 'Invalid status value. Must be "Available" or "rejected"' });
     }
 
-    const updateData = { status };
-    
-    // If rejecting, add the reason
-    if (status === 'rejected' && rejectionReason) {
-      updateData.rejectionReason = rejectionReason;
+    if (status === 'rejected' && (!rejectionReason || !rejectionReason.trim())) {
+      return res.status(400).json({ success: false, message: 'Rejection reason is required when rejecting a listing' });
     }
 
-    // Find the property and include owner information
-    const property = await Property.findById(id).populate('owner', 'email name');
+    const property = await Property.findById(id)
+      .populate('owner', 'email firstName lastName name')
+      .populate('ownerUserId', 'email firstName lastName name');
 
     if (!property) {
-      return res.status(404).json({ message: 'Property not found' });
+      return res.status(404).json({ success: false, message: 'Property not found' });
     }
 
-    // Update the property status
-    property.status = status;
-    if (status === 'rejected' && rejectionReason) {
-      property.rejectionReason = rejectionReason;
+    // Eligibility validation: Cannot approve if already rented or sold
+    if (property.status === 'Rented' || property.status === 'Sold') {
+      return res.status(400).json({
+        success: false,
+        message: `Property is currently ${property.status} and its tenancy lifecycle cannot be overridden by admin approval`
+      });
     }
-    
+
+    const reviewerId = req.admin?._id || req.user?.id || req.user?.userId;
+    const now = new Date();
+
+    property.status = status;
+    if (status === 'rejected') {
+      property.rejectionReason = rejectionReason.trim();
+    } else {
+      property.rejectionReason = null;
+    }
+
+    if (!property.stateHistory) property.stateHistory = [];
+    property.stateHistory.push({
+      state: status,
+      timestamp: now,
+      triggeredBy: reviewerId,
+      reason: status === 'rejected' ? rejectionReason.trim() : 'Admin Moderation Approval',
+      metadata: { reviewerRole: 'admin' }
+    });
+
     await property.save();
 
     // Create notification for the owner
     try {
       const notificationService = require('../services/notificationService');
-      const notificationTitle = status === 'Available' ? 'Property Approved' : 'Property Rejected';
-      const notificationMessage = status === 'Available' 
-        ? `Your property at ${property.address} has been approved by admin.` 
-        : `Your property at ${property.address} has been rejected. Reason: ${rejectionReason || 'Not specified'}`;
-      
-      await notificationService.createNotification({
-        userId: property.owner._id,
-        title: notificationTitle,
-        message: notificationMessage,
-        type: 'property_status',
-        relatedId: property._id
-      });
-      
-      console.log(`Notification sent to owner about property ${status}`);
+      const ownerUser = property.ownerUserId || property.owner;
+      const ownerId = ownerUser?._id;
+      if (ownerId) {
+        const notificationTitle = status === 'Available' ? 'Property Approved' : 'Property Rejected';
+        const notificationMessage = status === 'Available' 
+          ? `Your property listing at ${property.address || property.displayName} has been approved by admin and is now available.` 
+          : `Your property listing at ${property.address || property.displayName} was rejected. Reason: ${rejectionReason.trim()}`;
+
+        await notificationService.createNotification({
+          recipientId: ownerId,
+          recipientRole: 'Owner',
+          senderId: reviewerId,
+          title: notificationTitle,
+          message: notificationMessage,
+          type: 'property_status',
+          relatedEntityType: 'Property',
+          relatedEntityId: property._id,
+          actionUrl: '/property-details'
+        });
+      }
     } catch (notificationErr) {
       console.error('Error sending notification:', notificationErr);
-      // Continue with the response even if notification fails
     }
 
-    res.json(property);
+    res.json({
+      success: true,
+      message: status === 'Available' ? 'Property approved successfully' : 'Property rejected',
+      property
+    });
   } catch (err) {
     console.error('Error approving/rejecting property:', err);
-    res.status(500).json({ message: 'Failed to update property status' });
+    res.status(500).json({ success: false, message: 'Failed to update property status' });
   }
 };
 

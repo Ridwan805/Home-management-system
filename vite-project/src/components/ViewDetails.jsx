@@ -6,6 +6,7 @@ import UnifiedInquiryForm from './UnifiedInquiryForm';
 import apiConfig from '../config/api';
 import LocationViewerMap from './LocationViewerMap';
 import { PageLoader, ButtonSpinner } from './loading';
+import { isPropertySalesEnabled } from '../config/features';
 import {
   User,
   Mail,
@@ -493,38 +494,50 @@ const ViewDetails = () => {
                         )}
                       </button>
                     ) : (
-                      <button 
-                        onClick={!canApply ? null : handleApplyToBuy} 
-                        className={`action-btn apply-buy-btn ${hasApplied ? 'already-applied' : ''} ${!isAvailable ? 'btn-disabled-status' : ''}`}
-                        disabled={!canApply || applicationLoading}
-                      >
-                        {applicationLoading ? (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
-                            <ButtonSpinner size="small" />
-                            <span>Checking...</span>
-                          </span>
-                        ) : isSold ? (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
-                            <Ban size={15} />
-                            <span>Property Sold</span>
-                          </span>
-                        ) : isProcessing ? (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
-                            <Clock size={15} />
-                            <span>Purchase In Progress</span>
-                          </span>
-                        ) : hasApplied ? (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
-                            <CheckCircle2 size={15} />
-                            <span>Already Applied to Buy</span>
-                          </span>
-                        ) : (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
-                            <CreditCard size={15} />
-                            <span>Apply to Buy</span>
-                          </span>
+                      <>
+                        <button 
+                          onClick={(!canApply || !isPropertySalesEnabled()) ? null : handleApplyToBuy} 
+                          className={`action-btn apply-buy-btn ${hasApplied ? 'already-applied' : ''} ${(!isAvailable || !isPropertySalesEnabled()) ? 'btn-disabled-status' : ''}`}
+                          disabled={!canApply || !isPropertySalesEnabled() || applicationLoading}
+                        >
+                          {applicationLoading ? (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                              <ButtonSpinner size="small" />
+                              <span>Checking...</span>
+                            </span>
+                          ) : !isPropertySalesEnabled() ? (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                              <Ban size={15} />
+                              <span>Property Sales Paused</span>
+                            </span>
+                          ) : isSold ? (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                              <Ban size={15} />
+                              <span>Property Sold</span>
+                            </span>
+                          ) : isProcessing ? (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                              <Clock size={15} />
+                              <span>Purchase In Progress</span>
+                            </span>
+                          ) : hasApplied ? (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                              <CheckCircle2 size={15} />
+                              <span>Already Applied to Buy</span>
+                            </span>
+                          ) : (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                              <CreditCard size={15} />
+                              <span>Apply to Buy</span>
+                            </span>
+                          )}
+                        </button>
+                        {!isPropertySalesEnabled() && (
+                          <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.8125rem', color: '#64748B', textAlign: 'center' }}>
+                            Property purchase applications are temporarily on hold. Only rental listings are active.
+                          </p>
                         )}
-                      </button>
+                      </>
                     )}
                   </>
                 )}

@@ -67,8 +67,18 @@ const RentSchema = new mongoose.Schema({
     },
     noticeDays: { 
       type: Number, 
-      default: 30,
+      default: 60,
       min: 0 
+    },
+    noticePeriodMonths: {
+      type: Number,
+      default: 2,
+      min: 0
+    },
+    noticePeriodUnit: {
+      type: String,
+      enum: ['months', 'days'],
+      default: 'months'
     }
   },
   
@@ -141,19 +151,69 @@ const RentSchema = new mongoose.Schema({
   // Move-out and termination tracking
   moveOut: {
     noticeSubmitted: { type: Boolean, default: false },
+    status: {
+      type: String,
+      enum: [
+        'none',
+        'Notice Submitted',
+        'Owner Acknowledged',
+        'Inspection Scheduled',
+        'Handover Completed',
+        'Settlement Pending',
+        'Refund Pending',
+        'Completed'
+      ],
+      default: 'none'
+    },
     noticeDate: { type: Date },
     intendedMoveOutDate: { type: Date },
+    earliestCompliantDate: { type: Date },
+    noticeMonthsGiven: { type: Number },
     noticeDaysGiven: { type: Number },
-    meetsRequirement: { type: Boolean },
+    requiredNotice: { type: String, default: '2 Calendar Months' },
+    meetsRequirement: { type: Boolean, default: true },
+    isShorterNotice: { type: Boolean, default: false },
+    shortNoticeExplanation: { type: String, default: '' },
     reason: { type: String, default: '' },
+    forwardingPhone: { type: String, default: '' },
+    forwardingEmail: { type: String, default: '' },
     forwardingAddress: { type: String, default: '' },
+    remarks: { type: String, default: '' },
     ownerAcknowledged: { type: Boolean, default: false },
     acknowledgedAt: { type: Date },
+    acknowledgmentNotes: { type: String, default: '' },
     handoverScheduledDate: { type: Date },
     handoverCompletedDate: { type: Date },
     handoverNotes: { type: String, default: '' },
     settlementCompleted: { type: Boolean, default: false },
-    settlementDate: { type: Date }
+    settlementDate: { type: Date },
+    refundStatus: {
+      type: String,
+      enum: ['none', 'pending', 'partial', 'completed'],
+      default: 'none'
+    },
+    refundStatement: {
+      originalDeposit: { type: Number, default: 0 },
+      reconciledInvoicesAmount: { type: Number, default: 0 },
+      totalDeductions: { type: Number, default: 0 },
+      refundEligibleAmount: { type: Number, default: 0 },
+      actualRefundedAmount: { type: Number, default: 0 },
+      refundMethod: { type: String, default: 'Stripe' },
+      stripeRefundId: { type: String, default: '' },
+      transactionRef: { type: String, default: '' },
+      itemizedDeductions: [DeductionSchema],
+      preparedAt: { type: Date },
+      completedAt: { type: Date },
+      note: { type: String, default: '' }
+    },
+    history: [{
+      status: { type: String, required: true },
+      action: { type: String, required: true },
+      timestamp: { type: Date, default: Date.now },
+      actorRole: { type: String, enum: ['Tenant', 'Owner', 'System'], default: 'Tenant' },
+      actorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      note: { type: String, default: '' }
+    }]
   },
   
   // Billing configuration
@@ -187,7 +247,16 @@ const RentSchema = new mongoose.Schema({
   // History and audit trail
   history: [RentHistorySchema],
   
-  // Additional metadata
+  // Additional metadata & financial reconciliation
+  reconciliationStatus: {
+    type: String,
+    enum: ['verified', 'reconciliation_required', 'legacy_direct_activation'],
+    default: 'verified'
+  },
+  advancePaymentVerified: {
+    type: Boolean,
+    default: false
+  },
   notes: { 
     type: String, 
     default: '' 

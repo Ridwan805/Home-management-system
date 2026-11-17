@@ -261,12 +261,30 @@
   background: #FFFFFF;
   border: 1px solid #E2E8F0;
   border-radius: 0.75rem;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: visible;
+  min-height: 18rem;
   box-shadow: 0 0.0625rem 0.1875rem rgba(0, 0, 0, 0.03);
+  scrollbar-width: thin;
+  scrollbar-color: #CBD5E1 #F8FAFC;
+}
+
+.tenant-table-container::-webkit-scrollbar {
+  height: 0.375rem;
+}
+
+.tenant-table-container::-webkit-scrollbar-track {
+  background: #F8FAFC;
+}
+
+.tenant-table-container::-webkit-scrollbar-thumb {
+  background-color: #CBD5E1;
+  border-radius: 9999px;
 }
 
 .tenant-table {
   width: 100%;
+  min-width: 68rem;
   border-collapse: collapse;
   text-align: left;
 }
@@ -422,16 +440,233 @@
 .badge-lease.terminated { background-color: #F1F5F9; color: #475569; }
 .badge-lease.expired { background-color: #FEF2F2; color: #B91C1C; }
 
+.tenant-table th:last-child,
+.tenant-table td.tenant-actions-td,
+.tenant-table td:last-child {
+  min-width: 22rem;
+  width: 22rem;
+}
+
 .tenant-actions-cell {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.375rem;
+  width: 100%;
+  flex-wrap: nowrap;
+}
+
+/* Clean, Balanced Action Buttons */
+.tenant-btn-action {
+  height: 2.125rem;
+  padding: 0 0.55rem;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  white-space: nowrap;
+  box-sizing: border-box;
+  user-select: none;
+  border: 1px solid transparent;
+  line-height: 1;
+}
+
+/* 1. Profile Button */
+.tenant-btn-action.profile-btn {
+  background-color: #EFF6FF;
+  color: #1D4ED8;
+  border-color: #BFDBFE;
+}
+
+.tenant-btn-action.profile-btn:hover {
+  background-color: #DBEAFE;
+  border-color: #93C5FD;
+  color: #1E40AF;
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.08);
+}
+
+/* 2. Messages Button */
+.tenant-btn-action.msg-btn {
+  background-color: #FFFFFF;
+  color: #334155;
+  border-color: #CBD5E1;
+}
+
+.tenant-btn-action.msg-btn:hover:not(:disabled) {
+  background-color: #F8FAFC;
+  border-color: #94A3B8;
+  color: #0F172A;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.tenant-btn-action.msg-btn.unread {
+  background-color: #2563EB;
+  color: #FFFFFF;
+  border-color: #2563EB;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+}
+
+.tenant-btn-action.msg-btn.unread:hover:not(:disabled) {
+  background-color: #1D4ED8;
+  border-color: #1D4ED8;
+}
+
+/* 3. Invoices Button */
+.tenant-btn-action.invoice-btn {
+  background-color: #FFFFFF;
+  color: #334155;
+  border-color: #CBD5E1;
+}
+
+.tenant-btn-action.invoice-btn:hover {
+  background-color: #F8FAFC;
+  border-color: #94A3B8;
+  color: #0F172A;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+/* 4. More Button & Dropdown Menu */
+.tenant-actions-more-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.tenant-btn-action.more-btn {
+  background-color: #FFFFFF;
+  color: #475569;
+  border-color: #CBD5E1;
+  padding: 0 0.55rem;
+}
+
+.tenant-btn-action.more-btn:hover,
+.tenant-btn-action.more-btn.active {
+  background-color: #F8FAFC;
+  border-color: #94A3B8;
+  color: #0F172A;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.tenant-btn-action.more-btn.active {
+  border-color: #2563EB;
+  background-color: #EFF6FF;
+  color: #1D4ED8;
+}
+
+.tenant-btn-action.more-btn .chevron-icon {
+  transition: transform 0.2s ease;
+  color: #64748B;
+}
+
+.tenant-btn-action.more-btn .chevron-icon.open {
+  transform: rotate(180deg);
+  color: #1D4ED8;
+}
+
+.tenant-action-dot-notice {
+  width: 0.4375rem;
+  height: 0.4375rem;
+  border-radius: 50%;
+  background-color: #D97706;
+  display: inline-block;
+  margin-left: 0.125rem;
+}
+
+/* Dropdown Menu Popup */
+.tenant-actions-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 0.375rem);
+  right: 0;
+  min-width: 12rem;
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.1), 0 4px 6px -4px rgba(15, 23, 42, 0.06);
+  padding: 0.375rem;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  animation: tenantDropdownFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes tenantDropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.tenant-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  background: transparent;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #334155;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s, color 0.15s;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+
+.tenant-dropdown-item:hover {
+  background-color: #F1F5F9;
+  color: #0F172A;
+}
+
+.tenant-dropdown-item .dropdown-item-icon {
+  color: #64748B;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.tenant-dropdown-item:hover .dropdown-item-icon {
+  color: #2563EB;
+}
+
+.tenant-dropdown-item.item-moveout {
+  background-color: #FFFBEB;
+  color: #92400E;
+}
+
+.tenant-dropdown-item.item-moveout .dropdown-item-icon {
+  color: #D97706;
+}
+
+.tenant-dropdown-item.item-moveout:hover {
+  background-color: #FEF3C7;
+  color: #78350F;
+}
+
+.dropdown-moveout-tag {
+  margin-left: auto;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  background-color: #FEF3C7;
+  color: #92400E;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  border: 1px solid #FDE68A;
 }
 
 .action-btn-sm {
-  padding: 0.375rem 0.625rem;
+  padding: 0.28rem 0.55rem;
   border-radius: 0.375rem;
-  font-size: 0.8rem;
+  font-size: 0.775rem;
   font-weight: 600;
   border: 1px solid #CBD5E1;
   background: #FFFFFF;
@@ -441,6 +676,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
+  white-space: nowrap;
 }
 
 .action-btn-sm:hover {
@@ -458,6 +694,53 @@
 .action-btn-sm.view-btn:hover {
   background-color: #DBEAFE;
   border-color: #93C5FD;
+}
+
+.action-btn-sm.msg-btn {
+  color: #2563EB;
+  border-color: #BFDBFE;
+  background-color: #EFF6FF;
+}
+
+.action-btn-sm.msg-btn:hover:not(:disabled) {
+  background-color: #DBEAFE;
+  border-color: #93C5FD;
+}
+
+.action-btn-sm.msg-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.action-btn-sm.msg-btn-unread {
+  background-color: #2563EB !important;
+  border-color: #2563EB !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 0.125rem 0.375rem rgba(37, 99, 235, 0.25);
+}
+
+.action-btn-sm.msg-btn-unread:hover:not(:disabled) {
+  background-color: #1D4ED8 !important;
+  border-color: #1D4ED8 !important;
+}
+
+.msg-badge-unread {
+  background-color: #DC2626;
+  color: #FFFFFF;
+  border-radius: 9999px;
+  padding: 0.1rem 0.375rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.msg-count-subtle {
+  font-size: 0.6875rem;
+  color: #64748B;
+  background: rgba(0, 0, 0, 0.06);
+  padding: 0.0625rem 0.3125rem;
+  border-radius: 9999px;
+  font-weight: 600;
 }
 
 /* Empty State */
@@ -886,6 +1169,132 @@
 .notice-delivery-pill.failed { background: #FEE2E2; color: #991B1B; }
 .notice-delivery-pill.draft { background: #F1F5F9; color: #475569; }
 
+/* ==========================================================================
+   Client Directory Category Tabs (All Clients / Active Tenants / Property Buyers)
+   ========================================================================== */
+.client-tabs-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 2px solid #E2E8F0;
+  padding-bottom: 0.125rem;
+  overflow-x: auto;
+}
+
+.client-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.125rem;
+  border: none;
+  background: transparent;
+  color: #64748B;
+  font-size: 0.925rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 0.5rem 0.5rem 0 0;
+  transition: all 0.15s ease-in-out;
+  position: relative;
+  bottom: -2px;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+
+.client-tab-btn:hover {
+  color: #0F172A;
+  background-color: #F1F5F9;
+}
+
+.client-tab-btn.active {
+  color: #2563EB;
+  background-color: #FFFFFF;
+  border-bottom: 2px solid #2563EB;
+}
+
+.client-tab-counter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  background-color: #F1F5F9;
+  color: #475569;
+}
+
+.client-tab-btn.active .client-tab-counter {
+  background-color: #EFF6FF;
+  color: #2563EB;
+}
+
+/* Client Role Badges */
+.client-role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.4375rem;
+  border-radius: 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+}
+
+.client-role-badge.tenant {
+  background-color: #EFF6FF;
+  color: #1D4ED8;
+  border: 1px solid #BFDBFE;
+}
+
+.client-role-badge.buyer {
+  background-color: #FAF5FF;
+  color: #7E22CE;
+  border: 1px solid #E9D5FF;
+}
+
+.tenant-avatar.buyer {
+  background: linear-gradient(135deg, #7C3AED, #6D28D9);
+}
+
+.listing-type-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  line-height: 1.2;
+}
+
+.listing-type-badge.sale {
+  background-color: #ECFDF5;
+  color: #047857;
+  border: 1px solid #A7F3D0;
+}
+
+.listing-type-badge.rent {
+  background-color: #EFF6FF;
+  color: #1D4ED8;
+  border: 1px solid #BFDBFE;
+}
+
+/* Purchase Status Badges */
+.badge-purchase {
+  display: inline-block;
+  padding: 0.1875rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.775rem;
+  font-weight: 600;
+}
+
+.badge-purchase.approved { background-color: #EFF6FF; color: #1D4ED8; }
+.badge-purchase.awaiting-advance { background-color: #FFFBEB; color: #B45309; }
+.badge-purchase.advance-paid { background-color: #F0FDF4; color: #15803D; }
+.badge-purchase.fully-paid { background-color: #ECFDF5; color: #047857; font-weight: 700; border: 1px solid #A7F3D0; }
+.badge-purchase.completed { background-color: #F8FAFC; color: #0F172A; border: 1px solid #CBD5E1; }
+
 /* Responsive Adjustments */
 @media (max-width: 48rem) {
   .tenant-mgmt-container {
@@ -918,8 +1327,13 @@
     width: 100%;
   }
 
-  .tenant-table {
-    display: block;
-    overflow-x: auto;
+  .tenant-actions-cell {
+    flex-wrap: wrap;
+    gap: 0.375rem;
+  }
+
+  .tenant-actions-dropdown-menu {
+    right: 0;
+    left: auto;
   }
 }

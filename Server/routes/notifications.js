@@ -6,6 +6,7 @@ const {
   getUserNotifications,
   markNotificationAsRead,
   markAllNotificationsAsRead,
+  deleteNotification,
   getUnreadCount
 } = require('../controllers/notifications.controller');
 
@@ -20,5 +21,8 @@ router.put('/:notificationId/read', auth, markNotificationAsRead);
 
 // PUT /api/notifications/read-all - Mark all notifications as read
 router.put('/read-all', auth, markAllNotificationsAsRead);
+
+// DELETE /api/notifications/:notificationId - Delete notification
+router.delete('/:notificationId', auth, deleteNotification);
 
 module.exports = router;

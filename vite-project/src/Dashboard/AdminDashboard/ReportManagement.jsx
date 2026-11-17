@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import API from '../../config/api';
-import { FaTrash, FaBan, FaExclamationTriangle, FaFlag, FaUser, FaExclamationCircle } from 'react-icons/fa';
+import { Trash2, Ban, AlertTriangle, Flag, User, AlertCircle } from 'lucide-react';
 import { TableSkeleton } from '../../components/loading';
 
 const ReportManagement = () => {
@@ -142,12 +142,12 @@ const ReportManagement = () => {
               <div key={report._id} className={`report-card ${actionInProgress ? 'action-in-progress' : ''}`}>
                 <div className="report-header">
                   <div className="report-type">
-                    <FaFlag className="report-icon" />
+                    <Flag size={16} className="report-icon" />
                     <h3>Report Type: {report.type}</h3>
                   </div>
                   <div className="report-status">
                     <span className={`status-badge status-${report.status || 'pending'}`}>
-                      {report.status === 'escalated' ? <FaExclamationTriangle /> : <FaExclamationCircle />}
+                      {report.status === 'escalated' ? <AlertTriangle size={13} /> : <AlertCircle size={13} />}
                       {report.status || 'pending'}
                     </span>
                   </div>
@@ -155,12 +155,12 @@ const ReportManagement = () => {
                 
                 <div className="report-details">
                   <div className="report-detail-item">
-                    <FaUser className="detail-icon" />
+                    <User size={14} className="detail-icon" />
                     <p><strong>Reported by:</strong> {report.reportedBy?.name || 'Unknown'}</p>
                   </div>
                   
                   <div className="report-detail-item">
-                    <FaUser className="detail-icon" />
+                    <User size={14} className="detail-icon" />
                     <p><strong>Reported User:</strong> {report.reportedUser?.name || 'Unknown'}</p>
                     {report.reportedUser?.isBanned && <span className="user-banned-tag">Banned</span>}
                   </div>
@@ -177,21 +177,21 @@ const ReportManagement = () => {
                     className="delete-btn"
                     disabled={actionInProgress}
                   >
-                    <FaTrash className="btn-icon" /> Delete Report
+                    <Trash2 size={13} className="btn-icon" /> Delete Report
                   </button>
                   <button 
                     onClick={() => handleBanUser(report.reportedUser?._id)} 
                     className="ban-btn"
                     disabled={actionInProgress || !report.reportedUser || report.reportedUser.isBanned}
                   >
-                    <FaBan className="btn-icon" /> {report.reportedUser?.isBanned ? 'User Banned' : 'Ban User'}
+                    <Ban size={13} className="btn-icon" /> {report.reportedUser?.isBanned ? 'User Banned' : 'Ban User'}
                   </button>
                   <button 
                     onClick={() => handleEscalateToLegal(report._id)} 
                     className="escalate-btn"
                     disabled={actionInProgress || report.status === 'escalated'}
                   >
-                    <FaExclamationTriangle className="btn-icon" /> {report.status === 'escalated' ? 'Escalated' : 'Escalate to Legal'}
+                    <AlertTriangle size={13} className="btn-icon" /> {report.status === 'escalated' ? 'Escalated' : 'Escalate to Legal'}
                   </button>
                 </div>
               </div>

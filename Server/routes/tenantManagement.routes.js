@@ -15,6 +15,7 @@ const {
   acknowledgeMoveOut,
   recordHandover,
   settleDepositAndTerminate,
+  amendTenancyTerms,
   getMyTenancy
 } = require('../controllers/tenantManagement.controller');
 
@@ -36,6 +37,7 @@ router.post('/tenants/:id/payments', ownerAuth, recordManualPayment);
 router.post('/tenants/:rentId/acknowledge-move-out', ownerAuth, acknowledgeMoveOut);
 router.post('/tenants/:rentId/record-handover', ownerAuth, recordHandover);
 router.post('/tenants/:rentId/settle-deposit', ownerAuth, settleDepositAndTerminate);
+router.patch('/tenants/:rentId/amend-terms', ownerAuth, amendTenancyTerms);
 
 // Notice Management routes
 router.get('/notices', ownerAuth, getOwnerNotices);

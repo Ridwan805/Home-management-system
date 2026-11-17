@@ -83,10 +83,18 @@ const Payment = () => {
         setMetrics(data.metrics || {});
         setPayments(data.payments || []);
         setInvoices(data.invoices || []);
+        setPaymentMessage(null);
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        if (res.status === 401) {
+          setPaymentMessage({ type: 'error', text: 'Authentication session expired. Please sign in again.' });
+        } else {
+          setPaymentMessage({ type: 'error', text: errData.message || 'Failed to retrieve owner financial data. Please check your backend database connection.' });
+        }
       }
     } catch (err) {
       console.error('Error fetching owner payments:', err);
-      setPaymentMessage({ type: 'error', text: 'Failed to load owner financial data.' });
+      setPaymentMessage({ type: 'error', text: 'Cannot connect to backend payment service. Please verify the server is running.' });
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -127,6 +135,15 @@ const Payment = () => {
       fetchHiredGuards();
     }
   }, [activeTab, refreshGuards]);
+
+  useEffect(() => {
+    if (paymentMessage) {
+      const timer = setTimeout(() => {
+        setPaymentMessage(null);
+      }, 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [paymentMessage]);
 
   // Handle URL return parameters
   useEffect(() => {
@@ -295,11 +312,43 @@ const Payment = () => {
     <div className="payment-container">
       {/* Alert Banner */}
       {paymentMessage && (
-        <div className={`payment-message ${paymentMessage.type}`}>
-          <span>{paymentMessage.text}</span>
-          <button className="close-message-btn" onClick={() => setPaymentMessage(null)}>
-            <X size={16} />
-          </button>
+        <div className={`payment-message ${paymentMessage.type}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', padding: '0.75rem 1rem', borderRadius: '0.5rem', marginBottom: '1.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flex: 1 }}>
+            {paymentMessage.type === 'error' ? (
+              <AlertTriangle size={18} style={{ color: '#DC2626', flexShrink: 0 }} />
+            ) : (
+              <CheckCircle2 size={18} style={{ color: '#059669', flexShrink: 0 }} />
+            )}
+            <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>{paymentMessage.text}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+            {paymentMessage.type === 'error' && (
+              <button
+                type="button"
+                onClick={() => fetchOwnerPaymentData(true)}
+                disabled={refreshing}
+                style={{
+                  background: '#FFFFFF',
+                  border: '1px solid #FECACA',
+                  color: '#991B1B',
+                  borderRadius: '0.375rem',
+                  padding: '0.25rem 0.625rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem'
+                }}
+              >
+                <RotateCw size={12} className={refreshing ? 'spin-icon' : ''} />
+                <span>{refreshing ? 'Retrying...' : 'Retry'}</span>
+              </button>
+            )}
+            <button className="close-message-btn" onClick={() => setPaymentMessage(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', display: 'flex', alignItems: 'center' }}>
+              <X size={16} />
+            </button>
+          </div>
         </div>
       )}
 
@@ -451,22 +500,41 @@ const Payment = () => {
                             {formatMoney(p.amount)}
                           </td>
                           <td>
-                            <span style={{ fontSize: '0.75rem', background: '#ECFDF5', color: '#047857', padding: '0.2rem 0.5rem', borderRadius: '0.25rem', fontWeight: 600 }}>
+                            <span style={{
+                              fontSize: '0.75rem',
+                              background: p.status === 'completed' || p.status === 'paid' ? '#ECFDF5' : p.status === 'processing' ? '#FEF3C7' : '#F1F5F9',
+                              color: p.status === 'completed' || p.status === 'paid' ? '#047857' : p.status === 'processing' ? '#B45309' : '#64748B',
+                              padding: '0.2rem 0.5rem',
+                              borderRadius: '0.25rem',
+                              fontWeight: 600
+                            }}>
                               {p.status?.toUpperCase()}
                             </span>
                           </td>
                           <td style={{ textAlign: 'right' }}>
-                            <button
-                              type="button"
-                              className="action-btn download-btn"
-                              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.35rem 0.75rem', fontSize: '0.8125rem' }}
-                              onClick={() => handleDownloadReceiptPDF(p._id, p.paymentId)}
-                              disabled={downloadingPdf === `rec-${p._id}`}
-                              title="Download official receipt PDF"
-                            >
-                              <Download size={13} />
-                              <span>{downloadingPdf === `rec-${p._id}` ? '...' : 'Receipt PDF'}</span>
-                            </button>
+                            {['completed', 'paid', 'succeeded'].includes(p.status) ? (
+                              <button
+                                type="button"
+                                className="ds-btn-pdf-outline"
+                                onClick={() => handleDownloadReceiptPDF(p._id, p.paymentId)}
+                                disabled={downloadingPdf === `rec-${p._id}`}
+                                title="Download official payment receipt PDF"
+                              >
+                                {downloadingPdf === `rec-${p._id}` ? (
+                                  <>
+                                    <RotateCw size={13} className="spin-icon" />
+                                    <span>Generating...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <FileText size={13} />
+                                    <span>Download Receipt</span>
+                                  </>
+                                )}
+                              </button>
+                            ) : (
+                              <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>—</span>
+                            )}
                           </td>
                         </tr>
                       );
@@ -536,8 +604,8 @@ const Payment = () => {
                           <td>
                             <span style={{
                               fontSize: '0.75rem',
-                              background: isPaid ? '#ECFDF5' : (inv.status === 'overdue' ? '#FEF2F2' : '#FEF3C7'),
-                              color: isPaid ? '#047857' : (inv.status === 'overdue' ? '#DC2626' : '#D97706'),
+                              background: isPaid ? '#ECFDF5' : (inv.status === 'overdue' ? '#FEF2F2' : (inv.status === 'void' ? '#F1F5F9' : '#FEF3C7')),
+                              color: isPaid ? '#047857' : (inv.status === 'overdue' ? '#DC2626' : (inv.status === 'void' ? '#64748B' : '#D97706')),
                               padding: '0.2rem 0.5rem',
                               borderRadius: '0.25rem',
                               fontWeight: 600
@@ -548,14 +616,22 @@ const Payment = () => {
                           <td style={{ textAlign: 'right' }}>
                             <button
                               type="button"
-                              className="action-btn download-btn"
-                              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.35rem 0.75rem', fontSize: '0.8125rem' }}
+                              className="ds-btn-pdf-outline"
                               onClick={() => handleDownloadInvoicePDF(inv._id, inv.invoiceNo)}
                               disabled={downloadingPdf === `inv-${inv._id}`}
                               title="Download official PDF invoice"
                             >
-                              <Download size={13} />
-                              <span>{downloadingPdf === `inv-${inv._id}` ? '...' : 'Invoice PDF'}</span>
+                              {downloadingPdf === `inv-${inv._id}` ? (
+                                <>
+                                  <RotateCw size={13} className="spin-icon" />
+                                  <span>Generating...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Download size={13} />
+                                  <span>Download Invoice</span>
+                                </>
+                              )}
                             </button>
                           </td>
                         </tr>

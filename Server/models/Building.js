@@ -236,6 +236,11 @@ const buildingSchema = new mongoose.Schema({
     default: true
   },
   
+  managedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  
   // Audit Fields
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,

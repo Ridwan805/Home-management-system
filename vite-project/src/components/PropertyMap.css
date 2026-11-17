@@ -435,3 +435,13 @@
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+/* Ensure Leaflet controls and popup close buttons never inherit oval padding */
+.property-map-container .leaflet-control-zoom a,
+.property-map-container .leaflet-popup-close-button {
+  padding: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

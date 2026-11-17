@@ -131,57 +131,95 @@ class GuardrailsService {
       errors.push('Invalid request type');
     }
 
-    // Payload validation for the unified inquiry form
+    // Payload validation for inquiry form (DwellSync 2.0 dual-workflow + backward compatibility)
     if (requestData.payload) {
-      // Validate family members
-      if (!requestData.payload.familyMembers || !Array.isArray(requestData.payload.familyMembers) || requestData.payload.familyMembers.length === 0) {
-        errors.push('At least one family member is required');
-      } else {
-        // Validate each family member
-        requestData.payload.familyMembers.forEach((member, index) => {
-          if (!member.name) {
-            errors.push(`Family member ${index + 1} name is required`);
-          }
-          if (!member.relation) {
-            errors.push(`Family member ${index + 1} relation is required`);
-          }
-          if (!member.age && member.age !== 0) {
-            errors.push(`Family member ${index + 1} age is required`);
-          }
-        });
-      }
+      const isBuy = requestData.requestType === 'Buy';
+      const isModernRent = requestData.requestType === 'Rent' && (requestData.payload.rentDetails || requestData.payload.livingRequirements);
+      const isModernBuy = isBuy && (requestData.payload.purchaseProposal || requestData.payload.buyerInfo);
 
-      // Validate occupation
-      if (!requestData.payload.occupation) {
-        errors.push('Occupation information is required');
+      if (isModernBuy) {
+        // Validate Buy proposal
+        if (requestData.payload.purchaseProposal) {
+          const { offeredPrice } = requestData.payload.purchaseProposal;
+          if (offeredPrice !== undefined && (isNaN(offeredPrice) || Number(offeredPrice) <= 0)) {
+            errors.push('Proposed purchase offer must be a positive number');
+          }
+        }
+        // Validate Organizational Buyer
+        if (requestData.payload.buyerInfo?.buyerType === 'organizational') {
+          if (!requestData.payload.buyerInfo.organizationName?.trim()) {
+            errors.push('Organization / Company name is required for corporate buyers');
+          }
+        }
+      } else if (isModernRent) {
+        // Validate Modern Rent details
+        if (requestData.payload.rentDetails) {
+          const { preferredMoveInDate, occupantsCount } = requestData.payload.rentDetails;
+          if (!preferredMoveInDate) {
+            errors.push('Preferred move-in date is required');
+          }
+          if (occupantsCount !== undefined && Number(occupantsCount) < 1) {
+            errors.push('Number of occupants must be at least 1');
+          }
+        }
+        // Validate any optional occupants entered
+        if (Array.isArray(requestData.payload.familyMembers) && requestData.payload.familyMembers.length > 0) {
+          requestData.payload.familyMembers.forEach((member, index) => {
+            if (member.name && !member.relation) {
+              errors.push(`Occupant ${index + 1} relation is required`);
+            }
+          });
+        }
       } else {
-        if (!requestData.payload.occupation.employmentType) {
-          errors.push('Employment type is required');
+        // Legacy 8-step form validation (Maintains 100% backward compatibility for existing tests)
+        if (!requestData.payload.familyMembers || !Array.isArray(requestData.payload.familyMembers) || requestData.payload.familyMembers.length === 0) {
+          errors.push('At least one family member is required');
+        } else {
+          requestData.payload.familyMembers.forEach((member, index) => {
+            if (!member.name) {
+              errors.push(`Family member ${index + 1} name is required`);
+            }
+            if (!member.relation) {
+              errors.push(`Family member ${index + 1} relation is required`);
+            }
+            if (!member.age && member.age !== 0) {
+              errors.push(`Family member ${index + 1} age is required`);
+            }
+          });
         }
-        if (!requestData.payload.occupation.role) {
-          errors.push('Occupation role is required');
-        }
-        if (!requestData.payload.occupation.yearsOfExperience && requestData.payload.occupation.yearsOfExperience !== 0) {
-          errors.push('Years of experience is required');
-        }
-      }
 
-      // Validate financials
-      if (!requestData.payload.financials) {
-        errors.push('Financial information is required');
-      } else {
-        if (!requestData.payload.financials.monthlyIncome && requestData.payload.financials.monthlyIncome !== 0) {
-          errors.push('Monthly income is required');
+        if (!requestData.payload.occupation) {
+          errors.push('Occupation information is required');
+        } else {
+          if (!requestData.payload.occupation.employmentType) {
+            errors.push('Employment type is required');
+          }
+          if (!requestData.payload.occupation.role) {
+            errors.push('Occupation role is required');
+          }
+          if (!requestData.payload.occupation.yearsOfExperience && requestData.payload.occupation.yearsOfExperience !== 0) {
+            errors.push('Years of experience is required');
+          }
         }
-      }
 
-      // Validate letter to owner
-      if (!requestData.payload.letterToOwner) {
-        errors.push('Letter to owner is required');
-      } else if (requestData.payload.letterToOwner.length < 20) {
-        errors.push('Letter to owner must be at least 20 characters');
-      } else if (requestData.payload.letterToOwner.length > 1500) {
-        errors.push('Letter to owner must not exceed 1500 characters');
+        if (!requestData.payload.financials) {
+          errors.push('Financial information is required');
+        } else {
+          if (!requestData.payload.financials.monthlyIncome && requestData.payload.financials.monthlyIncome !== 0) {
+            errors.push('Monthly income is required');
+          }
+        }
+
+        if (!requestData.payload.letterToOwner && !requestData.payload.messageToOwner) {
+          errors.push('Letter to owner is required');
+        } else {
+          const letter = requestData.payload.letterToOwner || requestData.payload.messageToOwner || '';
+          if (letter.length < 20) {
+            errors.push('Letter to owner must be at least 20 characters');
+          } else if (letter.length > 2500) {
+            errors.push('Letter to owner must not exceed 2500 characters');
+          }
+        }
       }
     }
 

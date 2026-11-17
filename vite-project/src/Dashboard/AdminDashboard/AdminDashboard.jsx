@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react'; // Required for React components and hooks
+import React, { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { Menu } from 'lucide-react';
 import AdminSidebar from './AdminSidebar';
 import DashboardOverview from './DashboardOverview';
 import PendingProperties from './PendingProperties';
@@ -12,12 +13,19 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState('overview');
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   // Check if user is logged in and has admin role
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('dwellSyncUser') || '{}');
-    if (!user.token || user.role?.toLowerCase() !== 'admin') {
-      navigate('/login');
+    try {
+      const user = JSON.parse(localStorage.getItem('dwellSyncUser') || '{}');
+      const token = user.token || user.accessToken || (user.user && user.user.token) || localStorage.getItem('token');
+      const role = (user.role || (user.user && user.user.role) || '').toLowerCase();
+      if (!token || role !== 'admin') {
+        navigate('/login', { replace: true });
+      }
+    } catch {
+      navigate('/login', { replace: true });
     }
   }, [navigate]);
 
@@ -36,8 +44,31 @@ const AdminDashboard = () => {
   }, [location.pathname]);
 
   return (
-    <div className="admin-dashboard">
-      <AdminSidebar activeTab={activeTab} />
+    <div className="admin-dashboard-container">
+      {/* Mobile Top Navigation Bar */}
+      <header className="admin-mobile-topbar">
+        <button
+          type="button"
+          className="admin-mobile-toggle-btn"
+          onClick={() => setIsMobileNavOpen(true)}
+          aria-label="Open Admin Menu"
+        >
+          <Menu size={20} />
+        </button>
+        <div className="admin-mobile-brand">
+          <span>Dwell</span><span className="brand-sync">Sync</span>
+          <span className="admin-mobile-badge">Admin</span>
+        </div>
+      </header>
+
+      {/* Sidebar Navigation */}
+      <AdminSidebar
+        activeTab={activeTab}
+        isMobileOpen={isMobileNavOpen}
+        onCloseMobile={() => setIsMobileNavOpen(false)}
+      />
+
+      {/* Main Content Area */}
       <main className="admin-dashboard-main">
         <Routes>
           <Route path="/" element={<DashboardOverview />} />
@@ -47,6 +78,7 @@ const AdminDashboard = () => {
           <Route path="*" element={<DashboardOverview />} />
         </Routes>
       </main>
+
       <QuickDialButton />
     </div>
   );

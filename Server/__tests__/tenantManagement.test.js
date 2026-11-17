@@ -16,6 +16,7 @@ jest.mock('../models/Invoice');
 jest.mock('../models/Payment');
 jest.mock('../models/Notification');
 jest.mock('../models/Notice');
+jest.mock('../models/Request');
 jest.mock('../services/emailService', () => ({
   sendTenantNoticeEmail: jest.fn().mockResolvedValue({ success: true, emailId: 'mock-email-123' }),
   sendPasswordResetEmail: jest.fn().mockResolvedValue({ success: true, emailId: 'mock-email-456' })
@@ -28,6 +29,7 @@ const Invoice = require('../models/Invoice');
 const Payment = require('../models/Payment');
 const Notification = require('../models/Notification');
 const Notice = require('../models/Notice');
+const Request = require('../models/Request');
 const { sendTenantNoticeEmail } = require('../services/emailService');
 
 describe('Tenant Management Controller', () => {
@@ -51,6 +53,17 @@ describe('Tenant Management Controller', () => {
       status: jest.fn().mockReturnThis(),
       json: jest.fn().mockReturnThis()
     };
+
+    Request.findById = jest.fn().mockReturnValue({
+      select: jest.fn().mockReturnThis(),
+      populate: jest.fn().mockResolvedValue(null)
+    });
+    Request.findOne = jest.fn().mockReturnValue({
+      select: jest.fn().mockReturnThis(),
+      populate: jest.fn().mockReturnValue({
+        sort: jest.fn().mockResolvedValue(null)
+      })
+    });
   });
 
   describe('GET /api/owner/tenants (getOwnerTenants)', () => {
@@ -142,6 +155,67 @@ describe('Tenant Management Controller', () => {
       expect(jsonResponse.tenants).toHaveLength(1);
       expect(jsonResponse.tenants[0].fullName).toBe('Alice Walker');
       expect(jsonResponse.tenants[0].paymentStatus).toBe('Paid');
+    });
+
+    it('correctly resolves owner identity when req.user is a Mongoose model instance with _id', async () => {
+      req.user = {
+        _id: new mongoose.Types.ObjectId(ownerUserId),
+        role: 'Owner'
+      };
+
+      const mockProp = {
+        _id: propertyId,
+        title: 'Sunset Residences',
+        address: '123 Beach Road',
+        unitNumber: 'Apt 4B',
+        floorNumber: 4,
+        propertyType: 'apartment_unit'
+      };
+
+      Property.find.mockReturnValue({
+        select: jest.fn().mockResolvedValue([mockProp])
+      });
+
+      const mockRent = {
+        _id: rentId,
+        propertyId: mockProp,
+        tenants: [
+          {
+            _id: tenantId,
+            firstName: 'Alice',
+            lastName: 'Walker',
+            email: 'alice@example.com',
+            phoneNumber: '01700000000',
+            address: '123 Beach Road'
+          }
+        ],
+        rent: { amount: 25000, currency: 'BDT' },
+        securityDeposit: { amount: 50000 },
+        term: { startDate: new Date('2026-01-01'), endDate: new Date('2027-01-01'), type: 'fixed' },
+        status: 'Active',
+        notes: 'Good tenant',
+        createdAt: new Date('2026-01-01')
+      };
+
+      Rent.find.mockReturnValue({
+        populate: jest.fn().mockReturnThis(),
+        sort: jest.fn().mockResolvedValue([mockRent])
+      });
+
+      Invoice.find.mockReturnValue({
+        sort: jest.fn().mockResolvedValue([])
+      });
+
+      Notice.countDocuments.mockResolvedValue(0);
+
+      await getOwnerTenants(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      const jsonResponse = res.json.mock.calls[0][0];
+      expect(jsonResponse.success).toBe(true);
+      expect(jsonResponse.summary.totalTenants).toBe(1);
+      expect(jsonResponse.tenants).toHaveLength(1);
+      expect(jsonResponse.tenants[0].fullName).toBe('Alice Walker');
     });
   });
 

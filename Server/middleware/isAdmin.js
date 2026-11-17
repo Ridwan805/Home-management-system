@@ -8,7 +8,8 @@ module.exports = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const admin = await Admin.findOne({ _id: decoded.id });
+    const adminId = decoded.id || decoded.userId || decoded._id;
+    const admin = await Admin.findOne({ _id: adminId });
 
     if (!admin || admin.role !== 'admin' || !admin.isActive) {
       return res.status(403).json({ message: 'Access denied' });

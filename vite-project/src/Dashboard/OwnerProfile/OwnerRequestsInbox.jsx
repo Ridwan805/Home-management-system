@@ -50,7 +50,7 @@ const OwnerRequestsInbox = () => {
 
   // Filtering states
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('All'); // 'All' | 'Pending' | 'Under Review' | 'Approved' | 'Rejected'
+  const [statusFilter, setStatusFilter] = useState('Active'); // 'Active' (default action queue) | 'Completed' | 'Pending' | 'Under Review' | 'Approved' | 'Rejected' | 'All'
   const [granularStatus, setGranularStatus] = useState('All');
   const [typeFilter, setTypeFilter] = useState('All'); // 'All' | 'Rent' | 'Buy'
 
@@ -285,10 +285,18 @@ const OwnerRequestsInbox = () => {
     return 'AP';
   };
 
+  // Helper: Authoritatively determine whether application is an active tenancy
+  const isRentalTenancyActive = useCallback((request) => {
+    if (!request || request.requestType === 'Buy') return false;
+    return Boolean(request.rentId || request.status === 'Paid/Completed');
+  }, []);
+
   // Status Counts Calculation for Tabs
   const statusCounts = useMemo(() => {
     const counts = {
       all: requests.length,
+      activeQueue: 0,
+      completed: 0,
       pending: 0,
       underReview: 0,
       approved: 0,
@@ -297,19 +305,27 @@ const OwnerRequestsInbox = () => {
 
     requests.forEach(r => {
       const s = r.status || '';
+      const isCompletedTenancy = isRentalTenancyActive(r) || (r.requestType === 'Buy' && ['AdvancePaid', 'Confirmed for Sale'].includes(s));
+
+      if (isCompletedTenancy) {
+        counts.completed += 1;
+      } else if (!['Rejected', 'Canceled', 'Withdrawn', 'Expired'].includes(s)) {
+        counts.activeQueue += 1;
+      }
+
       if (['Submitted', 'Info Requested', 'Pending'].includes(s)) {
         counts.pending += 1;
       } else if (s === 'Under Review') {
         counts.underReview += 1;
-      } else if (['Approved', 'Paid/Completed', 'AdvancePaid', 'Approved – Pay Advance'].includes(s)) {
+      } else if (['Approved', 'Approved – Pay Advance', 'Offer Sent'].includes(s) && !isCompletedTenancy) {
         counts.approved += 1;
-      } else if (s === 'Rejected') {
+      } else if (['Rejected', 'Canceled', 'Withdrawn', 'Expired'].includes(s)) {
         counts.rejected += 1;
       }
     });
 
     return counts;
-  }, [requests]);
+  }, [requests, isRentalTenancyActive]);
 
   // Filtered Requests Logic
   const filteredRequests = useMemo(() => {
@@ -347,14 +363,24 @@ const OwnerRequestsInbox = () => {
       // 3. Status Tab Filter
       if (statusFilter !== 'All') {
         const s = request.status || '';
-        if (statusFilter === 'Pending') {
+        const isCompletedTenancy = isRentalTenancyActive(request) || (request.requestType === 'Buy' && ['AdvancePaid', 'Confirmed for Sale'].includes(s));
+
+        if (statusFilter === 'Active') {
+          // Default Active Queue: only applications requiring owner action or awaiting applicant advance
+          if (isCompletedTenancy || ['Rejected', 'Canceled', 'Withdrawn', 'Expired'].includes(s)) {
+            return false;
+          }
+        } else if (statusFilter === 'Completed') {
+          // Completed / Tenancy Active filter
+          if (!isCompletedTenancy) return false;
+        } else if (statusFilter === 'Pending') {
           if (!['Submitted', 'Info Requested', 'Pending'].includes(s)) return false;
         } else if (statusFilter === 'Under Review') {
           if (s !== 'Under Review') return false;
         } else if (statusFilter === 'Approved') {
-          if (!['Approved', 'Paid/Completed', 'AdvancePaid', 'Approved – Pay Advance'].includes(s)) return false;
+          if (!['Approved', 'Approved – Pay Advance', 'Offer Sent'].includes(s) || isCompletedTenancy) return false;
         } else if (statusFilter === 'Rejected') {
-          if (s !== 'Rejected') return false;
+          if (!['Rejected', 'Canceled', 'Withdrawn', 'Expired'].includes(s)) return false;
         }
       }
 
@@ -365,7 +391,7 @@ const OwnerRequestsInbox = () => {
 
       return true;
     });
-  }, [requests, searchTerm, statusFilter, granularStatus, typeFilter]);
+  }, [requests, searchTerm, statusFilter, granularStatus, typeFilter, isRentalTenancyActive]);
 
   // Status Badge Component
   const renderStatusBadge = (status) => {
@@ -869,11 +895,21 @@ const OwnerRequestsInbox = () => {
         {/* Status Filter Tabs / Pills */}
         <div className="requests-status-tabs">
           <button
-            onClick={() => { setStatusFilter('All'); setGranularStatus('All'); }}
-            className={`status-tab-btn ${statusFilter === 'All' && granularStatus === 'All' ? 'active' : ''}`}
+            onClick={() => { setStatusFilter('Active'); setGranularStatus('All'); }}
+            className={`status-tab-btn ${statusFilter === 'Active' ? 'active' : ''}`}
+            title="Applications requiring owner action or awaiting applicant payment"
           >
-            All
-            <span className="status-tab-count">{statusCounts.all}</span>
+            Active Queue
+            <span className="status-tab-count">{statusCounts.activeQueue}</span>
+          </button>
+
+          <button
+            onClick={() => { setStatusFilter('Completed'); setGranularStatus('All'); }}
+            className={`status-tab-btn ${statusFilter === 'Completed' ? 'active' : ''}`}
+            title="Completed applications with activated tenancies"
+          >
+            Completed & Tenancies
+            <span className="status-tab-count">{statusCounts.completed}</span>
           </button>
 
           <button
@@ -896,7 +932,7 @@ const OwnerRequestsInbox = () => {
             onClick={() => { setStatusFilter('Approved'); setGranularStatus('All'); }}
             className={`status-tab-btn ${statusFilter === 'Approved' ? 'active' : ''}`}
           >
-            Approved
+            Approved / Offers
             <span className="status-tab-count">{statusCounts.approved}</span>
           </button>
 
@@ -904,8 +940,16 @@ const OwnerRequestsInbox = () => {
             onClick={() => { setStatusFilter('Rejected'); setGranularStatus('All'); }}
             className={`status-tab-btn ${statusFilter === 'Rejected' ? 'active' : ''}`}
           >
-            Rejected
+            Archived / Rejected
             <span className="status-tab-count">{statusCounts.rejected}</span>
+          </button>
+
+          <button
+            onClick={() => { setStatusFilter('All'); setGranularStatus('All'); }}
+            className={`status-tab-btn ${statusFilter === 'All' && granularStatus === 'All' ? 'active' : ''}`}
+          >
+            All Applications
+            <span className="status-tab-count">{statusCounts.all}</span>
           </button>
 
           {/* Granular status selector */}
@@ -1001,10 +1045,10 @@ const OwnerRequestsInbox = () => {
               request.propertyId?.price ||
               0;
 
-            const isPendingApproval = ['Submitted', 'Under Review', 'Info Requested'].includes(request.status);
-            const isApprovedActive = ['Approved', 'Paid/Completed'].includes(request.status);
-            const isAdvancePaid = request.status === 'AdvancePaid';
-            const isRejected = request.status === 'Rejected';
+            const isTenancyActive = isRentalTenancyActive(request);
+            const isPendingApproval = ['Submitted', 'Under Review', 'Info Requested'].includes(request.status) && !isTenancyActive;
+            const isAdvancePaid = request.status === 'AdvancePaid' && request.requestType === 'Buy';
+            const isRejected = ['Rejected', 'Canceled', 'Withdrawn', 'Expired'].includes(request.status);
 
             return (
               <div key={request._id} className="inbox-request-card">
@@ -1161,7 +1205,7 @@ const OwnerRequestsInbox = () => {
                     )}
 
                     {/* Approved Actions */}
-                    {isApprovedActive && (
+                    {isTenancyActive && (
                       <>
                         <span className="active-tenancy-indicator">
                           <CheckCircle2 size={14} /> Tenancy Active

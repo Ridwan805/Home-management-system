@@ -829,20 +829,23 @@ return (
                       <span>View Details</span>
                     </button>
 
-                    <button
-                      type="button"
-                      className={`ds-btn ds-btn-sm ${request.unreadMessagesCount > 0 ? 'ds-btn-message-unread' : 'ds-btn-secondary'}`}
-                      onClick={() => handleOpenMessages(request)}
-                      title={request.unreadMessagesCount > 0 ? `${request.unreadMessagesCount} unread message(s)` : 'Direct communication with owner'}
-                    >
-                      <MessageSquare size={14} />
-                      <span>Messages</span>
-                      {request.unreadMessagesCount > 0 ? (
-                        <span className="ds-msg-unread-badge">{request.unreadMessagesCount}</span>
-                      ) : (request.messagesCount > 0 ? (
-                        <span className="ds-msg-count-subtle">{request.messagesCount}</span>
-                      ) : null)}
-                    </button>
+                    {/* For active tenancies, the primary entry point is House Info; for pending applications, keep direct messaging accessible */}
+                    {(!request.rentId && !['Paid/Completed'].includes(request.status)) && (
+                      <button
+                        type="button"
+                        className={`ds-btn ds-btn-sm ${request.unreadMessagesCount > 0 ? 'ds-btn-message-unread' : 'ds-btn-secondary'}`}
+                        onClick={() => handleOpenMessages(request)}
+                        title={request.unreadMessagesCount > 0 ? `${request.unreadMessagesCount} unread message(s)` : 'Direct communication with owner'}
+                      >
+                        <MessageSquare size={14} />
+                        <span>Messages</span>
+                        {request.unreadMessagesCount > 0 ? (
+                          <span className="ds-msg-unread-badge">{request.unreadMessagesCount}</span>
+                        ) : (request.messagesCount > 0 ? (
+                          <span className="ds-msg-count-subtle">{request.messagesCount}</span>
+                        ) : null)}
+                      </button>
+                    )}
 
                     {['Submitted', 'Under Review', 'Info Requested'].includes(request.status) && (
                       <button

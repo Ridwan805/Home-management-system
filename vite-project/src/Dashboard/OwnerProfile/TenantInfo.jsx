@@ -2,31 +2,13 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './TenantInfo.css';
 import { authenticatedFetch, API_BASE_URL } from '../../config/api';
+import ApplicationMessagesModal from '../../components/ApplicationMessaging/ApplicationMessagesModal';
 import {
   DashboardCardSkeleton,
   TableSkeleton,
   CircularSpinner,
   ButtonLoader
 } from '../../components/loading';
-import {
-  FaSearch,
-  FaBullhorn,
-  FaSync,
-  FaUser,
-  FaHome,
-  FaMoneyBillWave,
-  FaFileInvoiceDollar,
-  FaTimes,
-  FaCheckCircle,
-  FaExclamationTriangle,
-  FaEnvelope,
-  FaPhone,
-  FaPrint,
-  FaCalendarAlt,
-  FaShieldAlt,
-  FaFileContract,
-  FaInfoCircle
-} from 'react-icons/fa';
 import {
   CreditCard,
   AlertTriangle,
@@ -38,7 +20,25 @@ import {
   Scale,
   CheckCircle2,
   Calendar,
-  Plus
+  Plus,
+  RotateCw,
+  User,
+  Home,
+  Banknote,
+  Receipt,
+  X,
+  Mail,
+  Phone,
+  Printer,
+  ShieldCheck,
+  FileText,
+  Info,
+  MessageCircle,
+  Eye,
+  Download,
+  Clock,
+  ChevronDown,
+  Landmark
 } from 'lucide-react';
 
 const NOTICE_TYPES = [
@@ -58,10 +58,15 @@ const TenantInfo = () => {
   // State
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState('all'); // 'all' | 'tenants' | 'buyers'
   const [summary, setSummary] = useState({
+    totalClients: 0,
     totalTenants: 0,
+    propertyBuyers: 0,
     occupiedApartments: 0,
     outstandingRent: 0,
+    outstandingPurchaseBalance: 0,
+    totalOutstanding: 0,
     activeNotices: 0
   });
   const [tenants, setTenants] = useState([]);
@@ -83,16 +88,58 @@ const TenantInfo = () => {
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileData, setProfileData] = useState(null);
 
-  // Payment Recording Modal
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [paymentFormData, setPaymentFormData] = useState({
+  // Issue Monthly Rent Invoice Modal (Online Stripe Workflow)
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [invoiceFormData, setInvoiceFormData] = useState({
     amount: '',
-    paymentMethod: 'cash',
-    paymentDate: new Date().toISOString().split('T')[0],
     rentMonth: '',
-    referenceNote: ''
+    dueDate: '',
+    notes: ''
   });
-  const [paymentSubmitting, setPaymentSubmitting] = useState(false);
+  const [invoiceSubmitting, setInvoiceSubmitting] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(null);
+
+  // Global Page Notification (Inline Banner instead of alert)
+  const [pageNotification, setPageNotification] = useState(null);
+
+  // Two-way Application Messaging Modal
+  const [showMessagesModal, setShowMessagesModal] = useState(false);
+  const [selectedTenantForMessages, setSelectedTenantForMessages] = useState(null);
+
+  // Active Dropdown for Table Actions ('More' Menu)
+  const [activeDropdownTenantId, setActiveDropdownTenantId] = useState(null);
+
+  // Close actions dropdown menu on outside click or escape key
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (!e.target.closest('.tenant-actions-more-wrap')) {
+        setActiveDropdownTenantId(null);
+      }
+    };
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setActiveDropdownTenantId(null);
+      }
+    };
+    document.addEventListener('click', handleOutsideClick);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('click', handleOutsideClick);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  const handleOpenMessages = (tenant) => {
+    if (!tenant.requestId) {
+      setPageNotification({
+        type: 'error',
+        message: 'No linked application conversation record found for this tenancy.'
+      });
+      return;
+    }
+    setSelectedTenantForMessages(tenant);
+    setShowMessagesModal(true);
+  };
 
   // Notice Composer Modal
   const [showNoticeModal, setShowNoticeModal] = useState(false);
@@ -144,7 +191,7 @@ const TenantInfo = () => {
   const [formSubmitting, setFormSubmitting] = useState(false);
   const [formError, setFormError] = useState(null);
 
-  // Load Tenants Data
+  // Load Tenants & Buyers Data
   const fetchTenantsData = async () => {
     try {
       setLoading(true);
@@ -158,17 +205,26 @@ const TenantInfo = () => {
 
       const res = await authenticatedFetch(`${API_BASE_URL}/api/owner/tenants?${queryParams.toString()}`);
       if (res && res.success) {
-        setSummary(res.summary || { totalTenants: 0, occupiedApartments: 0, outstandingRent: 0, activeNotices: 0 });
-        setTenants(res.tenants || []);
+        setSummary(res.summary || {
+          totalClients: 0,
+          totalTenants: 0,
+          propertyBuyers: 0,
+          occupiedApartments: 0,
+          outstandingRent: 0,
+          outstandingPurchaseBalance: 0,
+          totalOutstanding: 0,
+          activeNotices: 0
+        });
+        setTenants(res.clients || res.tenants || []);
         if (res.properties && res.properties.length > 0) {
           setProperties(res.properties);
         }
       } else {
-        setError(res?.message || 'Failed to load tenants directory');
+        setError(res?.message || 'Failed to load client directory');
       }
     } catch (err) {
-      console.error('Error fetching tenants:', err);
-      setError(err.message || 'Error loading tenant information. Please try again.');
+      console.error('Error fetching clients:', err);
+      setError(err.message || 'Error loading client information. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -179,19 +235,20 @@ const TenantInfo = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propertyFilter, paymentStatusFilter, leaseStatusFilter]);
 
-  // Open Detailed Profile
+  // Open Detailed Profile / Dossier
   const handleOpenProfile = async (tenantRecord) => {
     setSelectedTenantRecord(tenantRecord);
     setShowProfileModal(true);
     setActiveProfileTab('overview');
     try {
       setProfileLoading(true);
-      const res = await authenticatedFetch(`${API_BASE_URL}/api/owner/tenants/${tenantRecord.rentId}`);
+      const lookupId = tenantRecord.rentId || tenantRecord.requestId || tenantRecord._id;
+      const res = await authenticatedFetch(`${API_BASE_URL}/api/owner/tenants/${lookupId}`);
       if (res && res.success) {
         setProfileData(res);
       }
     } catch (err) {
-      console.error('Error loading tenant profile:', err);
+      console.error('Error loading client profile:', err);
     } finally {
       setProfileLoading(false);
     }
@@ -388,46 +445,134 @@ const TenantInfo = () => {
     }
   };
 
-  // Open Payment Recorder
-  const handleOpenPaymentModal = (tenant) => {
+  // Auto-dismiss inline page notifications
+  useEffect(() => {
+    if (pageNotification) {
+      const timer = setTimeout(() => setPageNotification(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [pageNotification]);
+
+  // Open Issue Invoice Modal
+  const handleOpenInvoiceModal = (tenant) => {
     setSelectedTenantRecord(tenant);
-    setPaymentFormData({
+    const now = new Date();
+    const defaultDue = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const monthLabel = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    setInvoiceFormData({
       amount: tenant.monthlyRent || '',
-      paymentMethod: 'cash',
-      paymentDate: new Date().toISOString().split('T')[0],
-      rentMonth: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-      referenceNote: `Rent payment for ${tenant.unitNumber}`
+      rentMonth: monthLabel,
+      dueDate: defaultDue,
+      notes: `Monthly Rent for ${tenant.propertyName || ''} (${tenant.unitNumber || ''}) - ${monthLabel}`
     });
-    setShowPaymentModal(true);
+    setShowInvoiceModal(true);
   };
 
-  // Submit Manual Payment
-  const handleSubmitPayment = async (e) => {
+  // Submit New Rent Invoice (Enables Tenant Online Stripe Payment)
+  const handleSubmitInvoice = async (e) => {
     e.preventDefault();
     if (!selectedTenantRecord) return;
 
     try {
-      setPaymentSubmitting(true);
-      const res = await authenticatedFetch(`${API_BASE_URL}/api/owner/tenants/${selectedTenantRecord.rentId}/payments`, {
+      setInvoiceSubmitting(true);
+      const res = await authenticatedFetch(`${API_BASE_URL}/api/invoices`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(paymentFormData)
+        body: JSON.stringify({
+          rentId: selectedTenantRecord.rentId,
+          billTo: selectedTenantRecord.tenantId,
+          propertyId: selectedTenantRecord.propertyId,
+          dueDate: invoiceFormData.dueDate,
+          lineItems: [
+            {
+              type: 'rent',
+              description: invoiceFormData.notes || `Monthly Rent - ${invoiceFormData.rentMonth}`,
+              amount: Number(invoiceFormData.amount),
+              quantity: 1,
+              unitPrice: Number(invoiceFormData.amount)
+            }
+          ]
+        })
       });
 
-      if (res && res.success) {
-        setShowPaymentModal(false);
+      if (res && (res.invoice || res._id || res.invoiceNo)) {
+        setShowInvoiceModal(false);
+        setPageNotification({
+          type: 'success',
+          message: `Official Rent Invoice #${res.invoice?.invoiceNo || res.invoiceNo || ''} issued successfully. Tenant can now pay online via Stripe.`
+        });
         await fetchTenantsData();
         if (showProfileModal) {
           handleOpenProfile(selectedTenantRecord);
         }
       } else {
-        alert(res?.message || 'Failed to record payment');
+        setPageNotification({
+          type: 'error',
+          message: res?.message || 'Failed to issue rent invoice'
+        });
       }
     } catch (err) {
-      console.error('Error recording payment:', err);
-      alert(err.message || 'Error recording payment.');
+      console.error('Error creating invoice:', err);
+      setPageNotification({
+        type: 'error',
+        message: err.message || 'Error occurred while creating rent invoice.'
+      });
     } finally {
-      setPaymentSubmitting(false);
+      setInvoiceSubmitting(false);
+    }
+  };
+
+  // Download Authorized Invoice PDF
+  const handleDownloadInvoicePDF = async (invoiceId, invoiceNo) => {
+    try {
+      setDownloadingPdf(`inv-${invoiceId}`);
+      const userData = localStorage.getItem('dwellSyncUser');
+      const token = userData ? JSON.parse(userData).token : '';
+      const res = await fetch(`${API_BASE_URL}/api/invoices/${invoiceId}/pdf`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to download invoice PDF');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Invoice-${invoiceNo || invoiceId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error('Error downloading invoice PDF:', err);
+      setPageNotification({ type: 'error', message: 'Could not download invoice PDF. Please try again.' });
+    } finally {
+      setDownloadingPdf(null);
+    }
+  };
+
+  // Download Verified Payment Receipt PDF
+  const handleDownloadReceiptPDF = async (paymentId, receiptNumber) => {
+    try {
+      setDownloadingPdf(`rec-${paymentId}`);
+      const userData = localStorage.getItem('dwellSyncUser');
+      const token = userData ? JSON.parse(userData).token : '';
+      const res = await fetch(`${API_BASE_URL}/api/payments/${paymentId}/receipt/pdf`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to download receipt PDF');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Receipt-${receiptNumber || paymentId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error('Error downloading receipt PDF:', err);
+      setPageNotification({ type: 'error', message: 'Could not download receipt PDF. Please try again.' });
+    } finally {
+      setDownloadingPdf(null);
     }
   };
 
@@ -464,12 +609,12 @@ const TenantInfo = () => {
   // Submit Notice
   const handleSubmitNotice = async (status = 'sent') => {
     if (!noticeFormData.subject.trim() || !noticeFormData.message.trim()) {
-      alert('Please enter both subject and message body for the notice.');
+      setPageNotification({ type: 'error', message: 'Please enter both subject and message body for the notice.' });
       return;
     }
 
     if (noticeFormData.noticeType === 'eviction_warning' && !noticeFormData.legalDisclaimerAcknowledged) {
-      alert('You must acknowledge the legal notice requirement before sending an eviction or lease termination notice.');
+      setPageNotification({ type: 'error', message: 'You must acknowledge the legal notice requirement before sending an eviction or lease termination notice.' });
       return;
     }
 
@@ -485,71 +630,154 @@ const TenantInfo = () => {
 
       if (res && res.success) {
         setShowNoticeModal(false);
-        alert(status === 'draft' ? 'Notice saved as draft.' : 'Notice dispatched successfully to tenants via in-app notification and email!');
+        setPageNotification({
+          type: 'success',
+          message: status === 'draft' ? 'Notice saved as draft.' : 'Notice dispatched successfully to tenants via in-app notification and email!'
+        });
         await fetchTenantsData();
         if (showProfileModal && selectedTenantRecord) {
           handleOpenProfile(selectedTenantRecord);
         }
       } else {
-        alert(res?.message || 'Failed to dispatch notice');
+        setPageNotification({ type: 'error', message: res?.message || 'Failed to dispatch notice' });
       }
     } catch (err) {
       console.error('Error dispatching notice:', err);
-      alert(err.message || 'Error occurred while sending notice.');
+      setPageNotification({ type: 'error', message: err.message || 'Error occurred while sending notice.' });
     } finally {
       setNoticeSubmitting(false);
     }
   };
 
   // Helper for Payment Status Badge
-  const renderPaymentBadge = (status) => {
+  const renderPaymentBadge = (status, isStripe = false) => {
     const s = (status || '').toLowerCase();
-    if (s === 'paid') return <span className="badge-status paid"><FaCheckCircle /> Paid</span>;
-    if (s === 'overdue') return <span className="badge-status overdue"><FaExclamationTriangle /> Overdue</span>;
-    if (s === 'partially paid') return <span className="badge-status partially-paid"><FaInfoCircle /> Partial</span>;
-    return <span className="badge-status pending"><FaInfoCircle /> Pending</span>;
+    if (s === 'paid' || s === 'completed') {
+      return (
+        <span className="badge-status paid">
+          <CheckCircle2 size={13} /> {isStripe ? 'Paid (Stripe)' : 'Paid'}
+        </span>
+      );
+    }
+    if (s === 'overdue') return <span className="badge-status overdue"><AlertTriangle size={13} /> Overdue</span>;
+    if (s === 'partially paid' || s === 'partially_paid') return <span className="badge-status partially-paid"><Info size={13} /> Partial</span>;
+    return <span className="badge-status pending"><Clock size={13} /> Pending</span>;
   };
 
   // Helper for Lease Status Badge
   const renderLeaseBadge = (status) => {
-    const s = (status || '').toLowerCase();
+    const s = (status || '').toLowerCase().replace(/\s+/g, '-');
     return <span className={`badge-lease ${s}`}>{status || 'Active'}</span>;
   };
 
-  // Filtered in-memory search
+  // Helper for Purchase Status Badge
+  const renderPurchaseBadge = (status) => {
+    const s = (status || '').toLowerCase().replace(/\s+/g, '-');
+    return <span className={`badge-purchase ${s}`}>{status || 'Approved'}</span>;
+  };
+
+  // Filtered in-memory search & category tabs
   const filteredTenants = useMemo(() => {
     return tenants.filter(t => {
+      // 1. Tab category filter
+      if (activeTab === 'tenants' && t.clientType !== 'tenant') return false;
+      if (activeTab === 'buyers' && t.clientType !== 'buyer') return false;
+
+      // 2. Text search
       const q = searchTerm.trim().toLowerCase();
-      if (!q) return true;
-      return (
-        t.fullName?.toLowerCase().includes(q) ||
-        t.email?.toLowerCase().includes(q) ||
-        t.phoneNumber?.toLowerCase().includes(q) ||
-        t.propertyName?.toLowerCase().includes(q) ||
-        t.unitNumber?.toLowerCase().includes(q) ||
-        t.propertyAddress?.toLowerCase().includes(q)
-      );
+      if (q) {
+        const matches = (
+          t.fullName?.toLowerCase().includes(q) ||
+          t.email?.toLowerCase().includes(q) ||
+          t.phoneNumber?.toLowerCase().includes(q) ||
+          t.propertyName?.toLowerCase().includes(q) ||
+          t.unitNumber?.toLowerCase().includes(q) ||
+          t.propertyAddress?.toLowerCase().includes(q)
+        );
+        if (!matches) return false;
+      }
+
+      return true;
     });
-  }, [tenants, searchTerm]);
+  }, [tenants, activeTab, searchTerm]);
 
   return (
     <div className="tenant-mgmt-container">
+      {/* Global Notification Banner */}
+      {pageNotification && (
+        <div
+          style={{
+            padding: '0.75rem 1rem',
+            borderRadius: '0.375rem',
+            marginBottom: '1rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            fontSize: '0.875rem',
+            fontWeight: 500,
+            background: pageNotification.type === 'success' ? '#ECFDF5' : '#FEF2F2',
+            color: pageNotification.type === 'success' ? '#065F46' : '#991B1B',
+            border: `1px solid ${pageNotification.type === 'success' ? '#A7F3D0' : '#FECACA'}`
+          }}
+        >
+          {pageNotification.type === 'success' ? (
+            <CheckCircle2 size={16} />
+          ) : (
+            <AlertCircle size={16} />
+          )}
+          <span>{pageNotification.message}</span>
+        </div>
+      )}
+
       {/* Header and Top Action Row */}
       <header className="tenant-mgmt-header">
         <div className="tenant-mgmt-title-group">
-          <h1>Tenant Management</h1>
-          <p>Directory, verified lease agreements, rent payment tracking, and formal tenant notices</p>
+          <h1>Tenants & Buyers</h1>
+          <p>Directory of verified tenants, property buyers, lease agreements, and transaction settlement tracking</p>
         </div>
 
         <div className="tenant-mgmt-actions">
           <button className="btn-secondary-outline" onClick={fetchTenantsData} title="Refresh records">
-            <FaSync /> Refresh
+            <RotateCw size={16} /> Refresh
           </button>
           <button className="btn-navy-outline" onClick={() => handleOpenNoticeModal(null)}>
-            <FaBullhorn /> Send Notice
+            <Megaphone size={16} /> Send Notice
           </button>
         </div>
       </header>
+
+      {/* Category Tabs: All Clients / Active Tenants / Property Buyers */}
+      <div className="client-tabs-nav">
+        <button
+          type="button"
+          className={`client-tab-btn ${activeTab === 'all' ? 'active' : ''}`}
+          onClick={() => setActiveTab('all')}
+        >
+          <Users size={16} />
+          <span>All Clients</span>
+          <span className="client-tab-counter">{tenants.length}</span>
+        </button>
+
+        <button
+          type="button"
+          className={`client-tab-btn ${activeTab === 'tenants' ? 'active' : ''}`}
+          onClick={() => setActiveTab('tenants')}
+        >
+          <Home size={16} />
+          <span>Active Tenants</span>
+          <span className="client-tab-counter">{summary.totalTenants || tenants.filter(t => t.clientType === 'tenant').length}</span>
+        </button>
+
+        <button
+          type="button"
+          className={`client-tab-btn ${activeTab === 'buyers' ? 'active' : ''}`}
+          onClick={() => setActiveTab('buyers')}
+        >
+          <Landmark size={16} />
+          <span>Property Buyers</span>
+          <span className="client-tab-counter">{summary.propertyBuyers || tenants.filter(t => t.clientType === 'buyer').length}</span>
+        </button>
+      </div>
 
       {/* Metric Summary Cards */}
       {loading ? (
@@ -561,38 +789,42 @@ const TenantInfo = () => {
       ) : (
         <section className="tenant-stats-grid">
           <div className="tenant-stat-card">
-            <div className="tenant-stat-icon-wrap blue"><FaUser /></div>
+            <div className="tenant-stat-icon-wrap blue"><Users size={18} /></div>
             <div className="tenant-stat-details">
-              <span className="tenant-stat-label">Total Tenants</span>
+              <span className="tenant-stat-label">Total Clients</span>
+              <span className="tenant-stat-value">{summary.totalClients || (summary.totalTenants + summary.propertyBuyers)}</span>
+              <span className="tenant-stat-subtext">
+                {summary.totalTenants} Tenants · {summary.propertyBuyers} Buyers
+              </span>
+            </div>
+          </div>
+
+          <div className="tenant-stat-card">
+            <div className="tenant-stat-icon-wrap emerald"><Home size={18} /></div>
+            <div className="tenant-stat-details">
+              <span className="tenant-stat-label">Active Tenants</span>
               <span className="tenant-stat-value">{summary.totalTenants}</span>
-              <span className="tenant-stat-subtext">Active verified tenancies</span>
+              <span className="tenant-stat-subtext">Occupying {summary.occupiedApartments} properties</span>
             </div>
           </div>
 
           <div className="tenant-stat-card">
-            <div className="tenant-stat-icon-wrap emerald"><FaHome /></div>
+            <div className="tenant-stat-icon-wrap purple"><Landmark size={18} /></div>
             <div className="tenant-stat-details">
-              <span className="tenant-stat-label">Occupied Units</span>
-              <span className="tenant-stat-value">{summary.occupiedApartments}</span>
-              <span className="tenant-stat-subtext">Across your portfolio</span>
+              <span className="tenant-stat-label">Property Buyers</span>
+              <span className="tenant-stat-value">{summary.propertyBuyers}</span>
+              <span className="tenant-stat-subtext">Verified sales & bookings</span>
             </div>
           </div>
 
           <div className="tenant-stat-card">
-            <div className="tenant-stat-icon-wrap amber"><FaMoneyBillWave /></div>
+            <div className="tenant-stat-icon-wrap amber"><Banknote size={18} /></div>
             <div className="tenant-stat-details">
-              <span className="tenant-stat-label">Outstanding Rent</span>
-              <span className="tenant-stat-value">৳{Number(summary.outstandingRent).toLocaleString()}</span>
-              <span className="tenant-stat-subtext">Pending / overdue balances</span>
-            </div>
-          </div>
-
-          <div className="tenant-stat-card">
-            <div className="tenant-stat-icon-wrap purple"><FaBullhorn /></div>
-            <div className="tenant-stat-details">
-              <span className="tenant-stat-label">Active Notices</span>
-              <span className="tenant-stat-value">{summary.activeNotices}</span>
-              <span className="tenant-stat-subtext">Dispatched in last 30 days</span>
+              <span className="tenant-stat-label">Outstanding Dues</span>
+              <span className="tenant-stat-value">৳{Number((summary.outstandingRent || 0) + (summary.outstandingPurchaseBalance || 0)).toLocaleString()}</span>
+              <span className="tenant-stat-subtext">
+                Rent: ৳{Number(summary.outstandingRent || 0).toLocaleString()} · Buy: ৳{Number(summary.outstandingPurchaseBalance || 0).toLocaleString()}
+              </span>
             </div>
           </div>
         </section>
@@ -601,7 +833,7 @@ const TenantInfo = () => {
       {/* Search and Filters Bar */}
       <section className="tenant-filters-bar">
         <div className="tenant-search-box">
-          <FaSearch className="tenant-search-icon" />
+          <Search size={16} className="tenant-search-icon" />
           <input
             type="text"
             className="tenant-search-input"
@@ -656,22 +888,34 @@ const TenantInfo = () => {
             <strong>Error:</strong> {error}
           </div>
           <button className="btn-secondary-outline" onClick={fetchTenantsData} style={{ background: '#fff' }}>
-            <FaSync /> Retry
+            <RotateCw size={14} /> Retry
           </button>
         </div>
       )}
 
-      {/* Tenants Table */}
+      {/* Client Table */}
       {loading ? (
         <TableSkeleton rows={5} />
       ) : filteredTenants.length === 0 ? (
         <div className="tenant-empty-state">
           <div className="tenant-empty-icon"><Users size={36} color="#94A3B8" /></div>
-          <h3>{searchTerm || propertyFilter !== 'all' || paymentStatusFilter !== 'all' || leaseStatusFilter !== 'all' ? 'No Matching Tenants' : 'No Active Tenants Yet'}</h3>
+          <h3>
+            {searchTerm || propertyFilter !== 'all' || paymentStatusFilter !== 'all' || leaseStatusFilter !== 'all'
+              ? 'No Matching Records'
+              : activeTab === 'buyers'
+                ? 'No Property Buyers Yet'
+                : activeTab === 'tenants'
+                  ? 'No Active Tenants Yet'
+                  : 'No Clients Found'}
+          </h3>
           <p>
             {searchTerm || propertyFilter !== 'all' || paymentStatusFilter !== 'all' || leaseStatusFilter !== 'all'
-              ? 'No tenants match your search and filter criteria.'
-              : 'Tenants will appear here automatically once their rental applications have been approved and their tenancy is active.'}
+              ? 'No client relationships match your search and filter criteria.'
+              : activeTab === 'buyers'
+                ? 'Buyers will appear here once their purchase applications are approved or booking payments are verified.'
+                : activeTab === 'tenants'
+                  ? 'Tenants will appear here automatically once their rental applications have been approved and their tenancy is active.'
+                  : 'Client relationships will appear here once applications are approved.'}
           </p>
           <button className="btn-primary-blue" onClick={() => navigate('/request-info')}>
             View Property Requests
@@ -682,136 +926,315 @@ const TenantInfo = () => {
           <table className="tenant-table">
             <thead>
               <tr>
-                <th>Tenant</th>
-                <th>Apartment & Unit</th>
-                <th>Monthly Rent</th>
+                <th>Client</th>
+                <th>Property & Unit</th>
+                <th>Rent / Price</th>
                 <th>Payment Status</th>
-                <th>Lease Status</th>
-                <th>Move-In Date</th>
+                <th>Agreement Status</th>
+                <th>Key Dates</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filteredTenants.map(tenant => (
-                <tr key={tenant._id}>
-                  {/* Identity */}
-                  <td>
-                    <div className="tenant-identity-cell">
-                      <div className="tenant-avatar">
-                        {(tenant.firstName?.[0] || tenant.fullName?.[0] || 'T').toUpperCase()}
-                      </div>
-                      <div className="tenant-name-col">
-                        <span className="tenant-full-name">{tenant.fullName}</span>
-                        <span className="tenant-contact-sub">
-                          <FaEnvelope style={{ fontSize: '0.625rem' }} /> {tenant.email}
-                        </span>
-                        {tenant.phoneNumber && (
+              {filteredTenants.map(client => {
+                const isBuyer = client.clientType === 'buyer';
+                const rowKey = client.relationshipId || client._id;
+
+                return (
+                  <tr key={rowKey}>
+                    {/* 1. Client Identity */}
+                    <td>
+                      <div className="tenant-identity-cell">
+                        <div className={`tenant-avatar ${isBuyer ? 'buyer' : 'tenant'}`}>
+                          {(client.firstName?.[0] || client.fullName?.[0] || 'C').toUpperCase()}
+                        </div>
+                        <div className="tenant-name-col">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexWrap: 'wrap' }}>
+                            <span className="tenant-full-name">{client.fullName}</span>
+                            <span className={`client-role-badge ${client.clientType || 'tenant'}`}>
+                              {isBuyer ? 'Buyer' : 'Tenant'}
+                            </span>
+                          </div>
                           <span className="tenant-contact-sub">
-                            <FaPhone style={{ fontSize: '0.625rem' }} /> {tenant.phoneNumber}
+                            <Mail size={12} /> {client.email}
                           </span>
+                          {client.phoneNumber && (
+                            <span className="tenant-contact-sub">
+                              <Phone size={12} /> {client.phoneNumber}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* 2. Property & Unit */}
+                    <td>
+                      <div className="property-unit-col">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexWrap: 'wrap' }}>
+                          <span className="property-title-text">{client.propertyName}</span>
+                          <span className={`listing-type-badge ${client.listingType === 'For Sale' ? 'sale' : 'rent'}`}>
+                            {client.listingType || (isBuyer ? 'For Sale' : 'For Rent')}
+                          </span>
+                          {client.unitNumber && <span className="unit-badge-tag">{client.unitNumber}</span>}
+                        </div>
+                        {client.propertyAddress && client.propertyAddress !== client.propertyName && (
+                          <span className="property-address-sub">{client.propertyAddress}</span>
                         )}
                       </div>
-                    </div>
-                  </td>
+                    </td>
 
-                  {/* Property & Unit */}
-                  <td>
-                    <div className="property-unit-col">
-                      <span className="property-title-text">{tenant.propertyName}</span>
-                      <span className="unit-badge-tag">{tenant.unitNumber}</span>
-                      <span className="property-address-sub">{tenant.propertyAddress}</span>
-                    </div>
-                  </td>
+                    {/* 3. Monthly Rent / Purchase Price */}
+                    <td>
+                      {isBuyer ? (
+                        <div>
+                          <div className="rent-amount-cell">
+                            ৳{Number(client.purchasePrice || 0).toLocaleString()}
+                            <span className="rent-cycle-sub"> (Total Price)</span>
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 600, marginTop: '0.125rem' }}>
+                            Paid: ৳{Number(client.advancePaid || client.totalPaid || 0).toLocaleString()}
+                          </div>
+                          {client.remainingBalance > 0 ? (
+                            <div style={{ fontSize: '0.75rem', color: '#DC2626', fontWeight: 600, marginTop: '0.125rem' }}>
+                              Due: ৳{Number(client.remainingBalance).toLocaleString()}
+                            </div>
+                          ) : (
+                            <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 600, marginTop: '0.125rem' }}>
+                              Fully Settled
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="rent-amount-cell">
+                            ৳{Number(client.monthlyRent).toLocaleString()}
+                            <span className="rent-cycle-sub"> / month</span>
+                          </div>
+                          {client.outstandingBalance > 0 && (
+                            <div style={{ fontSize: '0.75rem', color: '#DC2626', fontWeight: 600, marginTop: '0.125rem' }}>
+                              Due: ৳{Number(client.outstandingBalance).toLocaleString()}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </td>
 
-                  {/* Monthly Rent */}
-                  <td>
-                    <div className="rent-amount-cell">
-                      ৳{Number(tenant.monthlyRent).toLocaleString()}
-                      <span className="rent-cycle-sub"> / month</span>
-                    </div>
-                    {tenant.outstandingBalance > 0 && (
-                      <div style={{ fontSize: '0.75rem', color: '#DC2626', fontWeight: 600, marginTop: '0.125rem' }}>
-                        Due: ৳{tenant.outstandingBalance.toLocaleString()}
+                    {/* 4. Payment Status */}
+                    <td>
+                      {renderPaymentBadge(client.paymentStatus)}
+                    </td>
+
+                    {/* 5. Agreement / Lease Status */}
+                    <td>
+                      {isBuyer ? (
+                        <div>
+                          {renderPurchaseBadge(client.purchaseStatus)}
+                          <div style={{ marginTop: '0.25rem' }}>
+                            <span className="unit-badge-tag" style={{ background: '#F8FAFC', color: '#475569', borderColor: '#E2E8F0', fontSize: '0.6875rem' }}>
+                              Deed: {client.deedStatus || 'Pending Conveyance'}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          {renderLeaseBadge(client.leaseStatus)}
+                          {client.moveOut?.noticeSubmitted && (
+                            <div style={{ marginTop: '0.25rem' }}>
+                              <span className="unit-badge-tag" style={{ background: '#FEF3C7', color: '#92400E', borderColor: '#FDE68A', fontSize: '0.6875rem', fontWeight: 600 }}>
+                                Move-Out: {new Date(client.moveOut.intendedMoveOutDate).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </td>
+
+                    {/* 6. Key Dates */}
+                    <td>
+                      {isBuyer ? (
+                        <div>
+                          <div style={{ fontSize: '0.85rem', color: '#1E293B', fontWeight: 500 }}>
+                            {client.agreementDate ? new Date(client.agreementDate).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            }) : '—'}
+                          </div>
+                          <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
+                            Purchase Agreement
+                          </span>
+                        </div>
+                      ) : (
+                        <div>
+                          <div style={{ fontSize: '0.85rem', color: '#1E293B', fontWeight: 500 }}>
+                            {new Date(client.leaseStartDate).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            })}
+                          </div>
+                          <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
+                            {client.leaseEndDate
+                              ? `Until ${new Date(client.leaseEndDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
+                              : 'Month-to-Month'}
+                          </span>
+                        </div>
+                      )}
+                    </td>
+
+                    {/* 7. Actions */}
+                    <td className="tenant-actions-td">
+                      <div className="tenant-actions-cell">
+                        {/* 1. Profile / Dossier */}
+                        <button
+                          type="button"
+                          className="tenant-btn-action profile-btn"
+                          onClick={() => handleOpenProfile(client)}
+                          title={`View comprehensive ${isBuyer ? 'buyer' : 'tenant'} dossier`}
+                        >
+                          <Eye size={13} />
+                          <span>{isBuyer ? 'Dossier' : 'Profile'}</span>
+                        </button>
+
+                        {/* 2. Messages */}
+                        <button
+                          type="button"
+                          className={`tenant-btn-action msg-btn ${client.unreadMessagesCount > 0 ? 'unread' : ''}`}
+                          onClick={() => handleOpenMessages(client)}
+                          title={`Open messaging with ${client.fullName}`}
+                          disabled={!client.requestId}
+                        >
+                          <MessageCircle size={13} />
+                          <span>Messages</span>
+                          {client.unreadMessagesCount > 0 && (
+                            <span className="msg-badge-unread">{client.unreadMessagesCount}</span>
+                          )}
+                        </button>
+
+                        {/* 3. Invoices / Payments */}
+                        <button
+                          type="button"
+                          className="tenant-btn-action invoice-btn"
+                          onClick={() => {
+                            handleOpenProfile(client);
+                            setActiveProfileTab('payments');
+                          }}
+                          title={`View ${isBuyer ? 'verified purchase payments' : 'invoices and rent payment history'}`}
+                        >
+                          <Receipt size={13} />
+                          <span>{isBuyer ? 'Payments' : 'Invoices'}</span>
+                        </button>
+
+                        {/* 4. More Dropdown */}
+                        <div className="tenant-actions-more-wrap">
+                          <button
+                            type="button"
+                            className={`tenant-btn-action more-btn ${activeDropdownTenantId === rowKey ? 'active' : ''}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveDropdownTenantId(prev => prev === rowKey ? null : rowKey);
+                            }}
+                            title="More actions"
+                            aria-expanded={activeDropdownTenantId === rowKey}
+                          >
+                            <span>More</span>
+                            <ChevronDown size={13} className={`chevron-icon ${activeDropdownTenantId === rowKey ? 'open' : ''}`} />
+                            {client.moveOut?.noticeSubmitted && (
+                              <span className="tenant-action-dot-notice" title="Notice to vacate submitted" />
+                            )}
+                          </button>
+
+                          {activeDropdownTenantId === rowKey && (
+                            <div className="tenant-actions-dropdown-menu" onClick={(e) => e.stopPropagation()}>
+                              {isBuyer ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    className="tenant-dropdown-item"
+                                    onClick={() => {
+                                      setActiveDropdownTenantId(null);
+                                      handleOpenNoticeModal(client);
+                                    }}
+                                  >
+                                    <Megaphone size={14} className="dropdown-item-icon" />
+                                    <span>Send Notice</span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    className="tenant-dropdown-item"
+                                    onClick={() => {
+                                      setActiveDropdownTenantId(null);
+                                      handleOpenProfile(client);
+                                      setActiveProfileTab('overview');
+                                    }}
+                                  >
+                                    <FileText size={14} className="dropdown-item-icon" />
+                                    <span>Purchase Agreement</span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    className="tenant-dropdown-item"
+                                    onClick={() => {
+                                      setActiveDropdownTenantId(null);
+                                      navigate(`/property/${client.propertyId}`);
+                                    }}
+                                  >
+                                    <Home size={14} className="dropdown-item-icon" />
+                                    <span>View Property</span>
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    type="button"
+                                    className="tenant-dropdown-item"
+                                    onClick={() => {
+                                      setActiveDropdownTenantId(null);
+                                      handleOpenNoticeModal(client);
+                                    }}
+                                  >
+                                    <Megaphone size={14} className="dropdown-item-icon" />
+                                    <span>Send Notice</span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    className={`tenant-dropdown-item ${client.moveOut?.noticeSubmitted ? 'item-moveout' : ''}`}
+                                    onClick={() => {
+                                      setActiveDropdownTenantId(null);
+                                      handleOpenMoveOutSettlement(client);
+                                    }}
+                                  >
+                                    <ShieldCheck size={14} className="dropdown-item-icon" />
+                                    <span>Manage Deposit</span>
+                                    {client.moveOut?.noticeSubmitted && (
+                                      <span className="dropdown-moveout-tag">Move-Out</span>
+                                    )}
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    className="tenant-dropdown-item"
+                                    onClick={() => {
+                                      setActiveDropdownTenantId(null);
+                                      handleOpenEditTenant(client);
+                                    }}
+                                  >
+                                    <FileText size={14} className="dropdown-item-icon" />
+                                    <span>Edit Tenant</span>
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    )}
-                  </td>
-
-                  {/* Payment Status */}
-                  <td>
-                    {renderPaymentBadge(tenant.paymentStatus)}
-                  </td>
-
-                  {/* Lease Status */}
-                  <td>
-                    {renderLeaseBadge(tenant.leaseStatus)}
-                    {tenant.moveOut?.noticeSubmitted && (
-                      <div style={{ marginTop: '0.25rem' }}>
-                        <span className="unit-badge-tag" style={{ background: '#FEF3C7', color: '#92400E', borderColor: '#FDE68A', fontSize: '0.6875rem', fontWeight: 600 }}>
-                          Move-Out: {new Date(tenant.moveOut.intendedMoveOutDate).toLocaleDateString([], { month: 'short', day: 'numeric' })}
-                        </span>
-                      </div>
-                    )}
-                  </td>
-
-                  {/* Lease Term */}
-                  <td>
-                    <div style={{ fontSize: '0.85rem', color: '#1E293B', fontWeight: 500 }}>
-                      {new Date(tenant.leaseStartDate).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric'
-                      })}
-                    </div>
-                    <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
-                      {tenant.leaseEndDate
-                        ? `Until ${new Date(tenant.leaseEndDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
-                        : 'Month-to-Month'}
-                    </span>
-                  </td>
-
-                  {/* Actions */}
-                  <td>
-                    <div className="tenant-actions-cell">
-                      <button
-                        className="action-btn-sm view-btn"
-                        onClick={() => handleOpenProfile(tenant)}
-                        title="View comprehensive tenant profile"
-                      >
-                        Profile
-                      </button>
-                      <button
-                        className="action-btn-sm"
-                        onClick={() => handleOpenPaymentModal(tenant)}
-                        title="Record a payment"
-                      >
-                        Pay
-                      </button>
-                      <button
-                        className="action-btn-sm"
-                        onClick={() => handleOpenNoticeModal(tenant)}
-                        title="Send notice to this tenant"
-                      >
-                        Notice
-                      </button>
-                      <button
-                        className="action-btn-sm"
-                        style={tenant.moveOut?.noticeSubmitted ? { background: '#FEF3C7', color: '#92400E', borderColor: '#FDE68A', fontWeight: 600 } : {}}
-                        onClick={() => handleOpenMoveOutSettlement(tenant)}
-                        title="Move-Out Inspection & Deposit Settlement"
-                      >
-                        {tenant.moveOut?.noticeSubmitted ? 'Move-Out' : 'Deposit'}
-                      </button>
-                      <button
-                        className="action-btn-sm"
-                        onClick={() => handleOpenEditTenant(tenant)}
-                        title="Edit tenancy details"
-                      >
-                        Edit
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -826,7 +1249,7 @@ const TenantInfo = () => {
             <div className="tenant-modal-header">
               <h2>Edit Tenancy Agreement</h2>
               <button className="tenant-modal-close-btn" onClick={() => setShowEditModal(false)}>
-                <FaTimes />
+                <X size={16} />
               </button>
             </div>
 
@@ -1009,7 +1432,7 @@ const TenantInfo = () => {
             <div className="tenant-modal-header">
               <h2>Tenant Dossier & Records</h2>
               <button className="tenant-modal-close-btn" onClick={() => setShowProfileModal(false)}>
-                <FaTimes />
+                <X size={16} />
               </button>
             </div>
 
@@ -1035,162 +1458,424 @@ const TenantInfo = () => {
                       </div>
                     </div>
 
-                    <div style={{ textAlign: 'right' }}>
+                    <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.375rem' }}>
                       {renderPaymentBadge(selectedTenantRecord.paymentStatus)}
-                      <div style={{ marginTop: '0.375rem' }}>
+                      <div>
                         {renderLeaseBadge(profileData.tenant?.leaseStatus)}
                       </div>
+                      {selectedTenantRecord.requestId && (
+                        <button
+                          type="button"
+                          className="action-btn-sm msg-btn"
+                          style={{ marginTop: '0.25rem' }}
+                          onClick={() => handleOpenMessages(selectedTenantRecord)}
+                          title="Open messages"
+                        >
+                          <MessageCircle size={13} />
+                          <span>Messages</span>
+                          {selectedTenantRecord.unreadMessagesCount > 0 && (
+                            <span className="msg-badge-unread">{selectedTenantRecord.unreadMessagesCount}</span>
+                          )}
+                        </button>
+                      )}
                     </div>
                   </div>
 
+                  {/* Tabs Bar */}
                   {/* Tabs Bar */}
                   <div className="tenant-tabs-bar">
                     <button
                       className={`tenant-tab-btn ${activeProfileTab === 'overview' ? 'active' : ''}`}
                       onClick={() => setActiveProfileTab('overview')}
                     >
-                      <FaUser /> Overview & Agreement
+                      <User size={15} /> Overview & Agreement
                     </button>
                     <button
                       className={`tenant-tab-btn ${activeProfileTab === 'payments' ? 'active' : ''}`}
                       onClick={() => setActiveProfileTab('payments')}
                     >
-                      <FaMoneyBillWave /> Payment History ({profileData.invoices?.length || 0})
+                      <Banknote size={15} /> {selectedTenantRecord.clientType === 'buyer' ? 'Verified Payments' : 'Invoices & Payments'} ({selectedTenantRecord.clientType === 'buyer' ? (profileData.payments?.length || 0) : (profileData.invoices?.length || 0)})
                     </button>
                     <button
                       className={`tenant-tab-btn ${activeProfileTab === 'notices' ? 'active' : ''}`}
                       onClick={() => setActiveProfileTab('notices')}
                     >
-                      <FaBullhorn /> Notices & Audit ({profileData.notices?.length || 0})
+                      <Megaphone size={15} /> Notices & Audit ({profileData.notices?.length || 0})
                     </button>
                   </div>
 
                   {/* TAB 1: OVERVIEW */}
                   {activeProfileTab === 'overview' && (
                     <div>
-                      <div className="dossier-info-cards">
-                        {/* Personal Contact */}
-                        <div className="dossier-card">
-                          <h4><FaUser /> Contact Details</h4>
-                          <div className="dossier-card-grid">
-                            <div className="item">
-                              <label>Full Name</label>
-                              <span>{selectedTenantRecord.fullName}</span>
+                      {selectedTenantRecord.clientType === 'buyer' ? (
+                        <div>
+                          <div className="dossier-info-cards">
+                            {/* Buyer Contact */}
+                            <div className="dossier-card">
+                              <h4><User size={15} /> Buyer Contact Information</h4>
+                              <div className="dossier-card-grid">
+                                <div className="item">
+                                  <label>Buyer Name</label>
+                                  <span>{selectedTenantRecord.fullName}</span>
+                                </div>
+                                <div className="item">
+                                  <label>Email Address</label>
+                                  <span>{selectedTenantRecord.email}</span>
+                                </div>
+                                <div className="item">
+                                  <label>Phone Number</label>
+                                  <span>{selectedTenantRecord.phoneNumber || 'Not provided'}</span>
+                                </div>
+                                <div className="item">
+                                  <label>Application ID</label>
+                                  <span style={{ fontSize: '0.75rem', fontFamily: 'monospace' }}>
+                                    {selectedTenantRecord.requestHumanId || selectedTenantRecord.requestId}
+                                  </span>
+                                </div>
+                              </div>
                             </div>
-                            <div className="item">
-                              <label>Email Address</label>
-                              <span>{selectedTenantRecord.email}</span>
+
+                            {/* Property Specifications */}
+                            <div className="dossier-card">
+                              <h4><Home size={15} /> Property Specifications</h4>
+                              <div className="dossier-card-grid">
+                                <div className="item">
+                                  <label>Property Name</label>
+                                  <span>{selectedTenantRecord.propertyName}</span>
+                                </div>
+                                <div className="item">
+                                  <label>Plot / Unit</label>
+                                  <span>{selectedTenantRecord.unitNumber || 'Stand-alone'}</span>
+                                </div>
+                                <div className="item">
+                                  <label>Address</label>
+                                  <span>{selectedTenantRecord.propertyAddress}</span>
+                                </div>
+                                <div className="item">
+                                  <label>Property Type</label>
+                                  <span>{selectedTenantRecord.propertyType}</span>
+                                </div>
+                              </div>
                             </div>
-                            <div className="item">
-                              <label>Phone Number</label>
-                              <span>{selectedTenantRecord.phoneNumber || 'Not provided'}</span>
+
+                            {/* Purchase Agreement & Financials */}
+                            <div className="dossier-card">
+                              <h4><Receipt size={15} /> Purchase Agreement & Financials</h4>
+                              <div className="dossier-card-grid">
+                                <div className="item">
+                                  <label>Total Purchase Price</label>
+                                  <span style={{ color: '#2563EB', fontWeight: 700 }}>৳{Number(selectedTenantRecord.purchasePrice || 0).toLocaleString()}</span>
+                                </div>
+                                <div className="item">
+                                  <label>Verified Advance Paid</label>
+                                  <span style={{ color: '#059669', fontWeight: 700 }}>৳{Number(selectedTenantRecord.advancePaid || 0).toLocaleString()}</span>
+                                </div>
+                                <div className="item">
+                                  <label>Remaining Balance</label>
+                                  <span style={{ color: selectedTenantRecord.remainingBalance > 0 ? '#DC2626' : '#059669', fontWeight: 700 }}>
+                                    {selectedTenantRecord.remainingBalance === 0 ? '৳0 (Fully Settled)' : `৳${Number(selectedTenantRecord.remainingBalance).toLocaleString()}`}
+                                  </span>
+                                </div>
+                                <div className="item">
+                                  <label>Purchase Status</label>
+                                  <span>{renderPurchaseBadge(selectedTenantRecord.purchaseStatus)}</span>
+                                </div>
+                              </div>
                             </div>
-                            <div className="item">
-                              <label>Registered User ID</label>
-                              <span style={{ fontSize: '0.75rem', fontFamily: 'monospace' }}>
-                                {selectedTenantRecord.tenantId}
-                              </span>
+
+                            {/* Transaction & Conveyance Status */}
+                            <div className="dossier-card">
+                              <h4><ShieldCheck size={15} /> Conveyance & Settlement</h4>
+                              <div className="dossier-card-grid">
+                                <div className="item">
+                                  <label>Agreement Date</label>
+                                  <span>{selectedTenantRecord.agreementDate ? new Date(selectedTenantRecord.agreementDate).toLocaleDateString() : '—'}</span>
+                                </div>
+                                <div className="item">
+                                  <label>Deed Conveyance</label>
+                                  <span style={{ fontWeight: 600 }}>{selectedTenantRecord.deedStatus || 'Pending Conveyance'}</span>
+                                </div>
+                                <div className="item">
+                                  <label>Payment Settlement</label>
+                                  <span>{selectedTenantRecord.remainingBalance === 0 ? '100% Settled' : 'Advance Confirmed'}</span>
+                                </div>
+                                <div className="item">
+                                  <label>Stripe Transactions</label>
+                                  <span>{profileData.payments?.length || 0} Verified</span>
+                                </div>
+                              </div>
                             </div>
                           </div>
-                        </div>
 
-                        {/* Property & Apartment */}
-                        <div className="dossier-card">
-                          <h4><FaHome /> Apartment Specifications</h4>
-                          <div className="dossier-card-grid">
-                            <div className="item">
-                              <label>Property Name</label>
-                              <span>{selectedTenantRecord.propertyName}</span>
+                          {/* Buyer Credentials & Application Dossier */}
+                          {profileData.tenant?.purchaseData?.payload && (
+                            <div style={{ marginTop: '1rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '0.5rem', padding: '1rem' }}>
+                              <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.925rem', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                                <FileText size={15} /> Applicant Dossier & Verification Documents
+                              </h4>
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(14rem, 1fr))', gap: '0.75rem', fontSize: '0.85rem' }}>
+                                {profileData.tenant.purchaseData.payload.occupation && (
+                                  <div>
+                                    <span style={{ color: '#64748B', display: 'block', fontSize: '0.75rem' }}>Occupation & Employer</span>
+                                    <strong style={{ color: '#1E293B' }}>
+                                      {profileData.tenant.purchaseData.payload.occupation.role} at {profileData.tenant.purchaseData.payload.occupation.companyName} ({profileData.tenant.purchaseData.payload.occupation.yearsOfExperience} yrs)
+                                    </strong>
+                                  </div>
+                                )}
+                                {profileData.tenant.purchaseData.payload.financials && (
+                                  <div>
+                                    <span style={{ color: '#64748B', display: 'block', fontSize: '0.75rem' }}>Declared Income & Banking</span>
+                                    <strong style={{ color: '#1E293B' }}>
+                                      Monthly: ৳{Number(profileData.tenant.purchaseData.payload.financials.monthlyIncome || 0).toLocaleString()} ({profileData.tenant.purchaseData.payload.financials.bankName || 'Bank'})
+                                    </strong>
+                                  </div>
+                                )}
+                                {profileData.tenant.purchaseData.payload.identity && (
+                                  <div>
+                                    <span style={{ color: '#64748B', display: 'block', fontSize: '0.75rem' }}>Verification Credentials</span>
+                                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
+                                      {profileData.tenant.purchaseData.payload.identity.nidFileUrl && (
+                                        <a href={profileData.tenant.purchaseData.payload.identity.nidFileUrl} target="_blank" rel="noreferrer" className="action-btn-sm" style={{ textDecoration: 'none' }}>
+                                          NID Document
+                                        </a>
+                                      )}
+                                      {profileData.tenant.purchaseData.payload.identity.tinFileUrl && (
+                                        <a href={profileData.tenant.purchaseData.payload.identity.tinFileUrl} target="_blank" rel="noreferrer" className="action-btn-sm" style={{ textDecoration: 'none' }}>
+                                          TIN Document
+                                        </a>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                            <div className="item">
-                              <label>Unit / Floor</label>
-                              <span>{selectedTenantRecord.unitNumber} (Floor {selectedTenantRecord.floorNumber})</span>
+                          )}
+
+                          {selectedTenantRecord.notes && (
+                            <div style={{ marginTop: '0.75rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '0.5rem', padding: '0.875rem', fontSize: '0.875rem' }}>
+                              <strong style={{ color: '#334155' }}>Agreement Notes / Terms:</strong>
+                              <p style={{ margin: '0.25rem 0 0 0', color: '#64748B' }}>{selectedTenantRecord.notes}</p>
                             </div>
-                            <div className="item">
-                              <label>Address</label>
-                              <span>{selectedTenantRecord.propertyAddress}</span>
+                          )}
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="dossier-info-cards">
+                            {/* Personal Contact */}
+                            <div className="dossier-card">
+                              <h4><User size={15} /> Contact Details</h4>
+                              <div className="dossier-card-grid">
+                                <div className="item">
+                                  <label>Full Name</label>
+                                  <span>{selectedTenantRecord.fullName}</span>
+                                </div>
+                                <div className="item">
+                                  <label>Email Address</label>
+                                  <span>{selectedTenantRecord.email}</span>
+                                </div>
+                                <div className="item">
+                                  <label>Phone Number</label>
+                                  <span>{selectedTenantRecord.phoneNumber || 'Not provided'}</span>
+                                </div>
+                                <div className="item">
+                                  <label>Registered User ID</label>
+                                  <span style={{ fontSize: '0.75rem', fontFamily: 'monospace' }}>
+                                    {selectedTenantRecord.tenantId}
+                                  </span>
+                                </div>
+                              </div>
                             </div>
-                            <div className="item">
-                              <label>Property Type</label>
-                              <span>{selectedTenantRecord.propertyType}</span>
+
+                            {/* Property & Apartment */}
+                            <div className="dossier-card">
+                              <h4><Home size={15} /> Apartment Specifications</h4>
+                              <div className="dossier-card-grid">
+                                <div className="item">
+                                  <label>Property Name</label>
+                                  <span>{selectedTenantRecord.propertyName}</span>
+                                </div>
+                                <div className="item">
+                                  <label>Unit / Floor</label>
+                                  <span>{selectedTenantRecord.unitNumber} (Floor {selectedTenantRecord.floorNumber})</span>
+                                </div>
+                                <div className="item">
+                                  <label>Address</label>
+                                  <span>{selectedTenantRecord.propertyAddress}</span>
+                                </div>
+                                <div className="item">
+                                  <label>Property Type</label>
+                                  <span>{selectedTenantRecord.propertyType}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Tenancy Agreement */}
+                            <div className="dossier-card">
+                              <h4><FileText size={15} /> Lease & Rental Agreement</h4>
+                              <div className="dossier-card-grid">
+                                <div className="item">
+                                  <label>Monthly Rent</label>
+                                  <span style={{ color: '#2563EB' }}>৳{Number(selectedTenantRecord.monthlyRent).toLocaleString()}</span>
+                                </div>
+                                <div className="item">
+                                  <label>Security Deposit</label>
+                                  <span>৳{Number(selectedTenantRecord.securityDeposit || 0).toLocaleString()}</span>
+                                </div>
+                                <div className="item">
+                                  <label>Move-In / Lease Start</label>
+                                  <span>{new Date(selectedTenantRecord.leaseStartDate).toLocaleDateString()}</span>
+                                </div>
+                                <div className="item">
+                                  <label>Lease Expiration</label>
+                                  <span>{selectedTenantRecord.leaseEndDate ? new Date(selectedTenantRecord.leaseEndDate).toLocaleDateString() : 'Month-to-Month'}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Financial Ledger Summary */}
+                            <div className="dossier-card">
+                              <h4><Receipt size={15} /> Financial Health</h4>
+                              <div className="dossier-card-grid">
+                                <div className="item">
+                                  <label>Total Billed</label>
+                                  <span>৳{Number(profileData.financialSummary?.totalBilled || 0).toLocaleString()}</span>
+                                </div>
+                                <div className="item">
+                                  <label>Total Paid</label>
+                                  <span style={{ color: '#059669' }}>৳{Number(profileData.financialSummary?.totalPaid || 0).toLocaleString()}</span>
+                                </div>
+                                <div className="item">
+                                  <label>Current Outstanding</label>
+                                  <span style={{ color: profileData.financialSummary?.balanceDue > 0 ? '#DC2626' : '#0F172A' }}>
+                                    ৳{Number(profileData.financialSummary?.balanceDue || 0).toLocaleString()}
+                                  </span>
+                                </div>
+                                <div className="item">
+                                  <label>Payment Rate</label>
+                                  <span>{profileData.financialSummary?.paymentRate}%</span>
+                                </div>
+                              </div>
                             </div>
                           </div>
-                        </div>
 
-                        {/* Tenancy Agreement */}
-                        <div className="dossier-card">
-                          <h4><FaFileContract /> Lease & Rental Agreement</h4>
-                          <div className="dossier-card-grid">
-                            <div className="item">
-                              <label>Monthly Rent</label>
-                              <span style={{ color: '#2563EB' }}>৳{Number(selectedTenantRecord.monthlyRent).toLocaleString()}</span>
+                          {/* Notes Box */}
+                          {selectedTenantRecord.notes && (
+                            <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '0.5rem', padding: '0.875rem', fontSize: '0.875rem' }}>
+                              <strong style={{ color: '#334155' }}>Agreement Notes:</strong>
+                              <p style={{ margin: '0.25rem 0 0 0', color: '#64748B' }}>{selectedTenantRecord.notes}</p>
                             </div>
-                            <div className="item">
-                              <label>Security Deposit</label>
-                              <span>৳{Number(selectedTenantRecord.securityDeposit || 0).toLocaleString()}</span>
-                            </div>
-                            <div className="item">
-                              <label>Move-In / Lease Start</label>
-                              <span>{new Date(selectedTenantRecord.leaseStartDate).toLocaleDateString()}</span>
-                            </div>
-                            <div className="item">
-                              <label>Lease Expiration</label>
-                              <span>{selectedTenantRecord.leaseEndDate ? new Date(selectedTenantRecord.leaseEndDate).toLocaleDateString() : 'Month-to-Month'}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Financial Ledger Summary */}
-                        <div className="dossier-card">
-                          <h4><FaFileInvoiceDollar /> Financial Health</h4>
-                          <div className="dossier-card-grid">
-                            <div className="item">
-                              <label>Total Billed</label>
-                              <span>৳{Number(profileData.financialSummary?.totalBilled || 0).toLocaleString()}</span>
-                            </div>
-                            <div className="item">
-                              <label>Total Paid</label>
-                              <span style={{ color: '#059669' }}>৳{Number(profileData.financialSummary?.totalPaid || 0).toLocaleString()}</span>
-                            </div>
-                            <div className="item">
-                              <label>Current Outstanding</label>
-                              <span style={{ color: profileData.financialSummary?.balanceDue > 0 ? '#DC2626' : '#0F172A' }}>
-                                ৳{Number(profileData.financialSummary?.balanceDue || 0).toLocaleString()}
-                              </span>
-                            </div>
-                            <div className="item">
-                              <label>Payment Rate</label>
-                              <span>{profileData.financialSummary?.paymentRate}%</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Notes Box */}
-                      {selectedTenantRecord.notes && (
-                        <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '0.5rem', padding: '0.875rem', fontSize: '0.875rem' }}>
-                          <strong style={{ color: '#334155' }}>Agreement Notes:</strong>
-                          <p style={{ margin: '0.25rem 0 0 0', color: '#64748B' }}>{selectedTenantRecord.notes}</p>
+                          )}
                         </div>
                       )}
                     </div>
                   )}
 
-                  {/* TAB 2: PAYMENT HISTORY */}
+                  {/* TAB 2: INVOICES & VERIFIED PAYMENT RECORDS */}
                   {activeProfileTab === 'payments' && (
                     <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                        <h4 style={{ margin: 0, color: '#0F172A', fontSize: '1rem' }}>Invoices & Verified Payment Records</h4>
-                        <button className="btn-primary-blue" onClick={() => handleOpenPaymentModal(selectedTenantRecord)}>
-                          <Plus size={14} /> Record Payment
-                        </button>
-                      </div>
+                      {selectedTenantRecord.clientType === 'buyer' ? (
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                            <div>
+                              <h4 style={{ margin: 0, color: '#0F172A', fontSize: '1rem' }}>Verified Purchase Payments (Stripe)</h4>
+                              <span style={{ fontSize: '0.8125rem', color: '#64748B' }}>
+                                Authoritative purchase payments verified via Stripe and banking records.
+                              </span>
+                            </div>
+                          </div>
+
+                          {(!profileData.payments || profileData.payments.length === 0) ? (
+                            <div className="tenant-empty-state" style={{ padding: '2.25rem' }}>
+                              <p>No verified purchase payments recorded yet for this property transaction.</p>
+                            </div>
+                          ) : (
+                            <div className="tenant-table-container">
+                              <table className="tenant-table">
+                                <thead>
+                                  <tr>
+                                    <th>Payment ID</th>
+                                    <th>Description / Purpose</th>
+                                    <th>Amount (BDT)</th>
+                                    <th>Payment Method</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                    <th>Receipt</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {profileData.payments.map((pmt) => (
+                                    <tr key={pmt._id || pmt.paymentId}>
+                                      <td>
+                                        <strong style={{ color: '#0F172A', fontFamily: 'monospace' }}>
+                                          {pmt.paymentId || pmt._id}
+                                        </strong>
+                                      </td>
+                                      <td>
+                                        <div>{pmt.description || pmt.paymentPurpose || 'Purchase Deposit'}</div>
+                                        {pmt.stripePaymentIntentId && (
+                                          <div style={{ fontSize: '0.75rem', color: '#64748B', fontFamily: 'monospace' }}>
+                                            {pmt.stripePaymentIntentId}
+                                          </div>
+                                        )}
+                                      </td>
+                                      <td style={{ color: '#059669', fontWeight: 700 }}>
+                                        ৳{Number(pmt.amount || 0).toLocaleString()}
+                                      </td>
+                                      <td>
+                                        <span className="unit-badge-tag" style={{ textTransform: 'capitalize' }}>
+                                          {pmt.method || pmt.provider || 'Stripe'}
+                                        </span>
+                                      </td>
+                                      <td>
+                                        <span className="badge-status paid">
+                                          <CheckCircle2 size={13} /> {pmt.status || 'Completed'}
+                                        </span>
+                                      </td>
+                                      <td>
+                                        {pmt.createdAt ? new Date(pmt.createdAt).toLocaleDateString('en-US', {
+                                          year: 'numeric',
+                                          month: 'short',
+                                          day: 'numeric'
+                                        }) : '—'}
+                                      </td>
+                                      <td>
+                                        <button
+                                          type="button"
+                                          className="btn-secondary-outline action-btn-sm"
+                                          onClick={() => handleDownloadReceiptPDF(pmt._id, pmt.paymentId)}
+                                          disabled={downloadingPdf === `rec-${pmt._id}`}
+                                          title="Download PDF Receipt"
+                                        >
+                                          <Download size={13} />
+                                          <span>{downloadingPdf === `rec-${pmt._id}` ? '...' : 'Receipt'}</span>
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                            <div>
+                              <h4 style={{ margin: 0, color: '#0F172A', fontSize: '1rem' }}>Invoices & Verified Payments</h4>
+                              <span style={{ fontSize: '0.8125rem', color: '#64748B' }}>
+                                Tenants pay online securely via Stripe. Invoices update automatically when confirmed.
+                              </span>
+                            </div>
+                            <button className="btn-primary-blue" onClick={() => handleOpenInvoiceModal(selectedTenantRecord)}>
+                              <Plus size={14} /> Issue Rent Invoice
+                            </button>
+                          </div>
 
                       {profileData.invoices?.length === 0 ? (
                         <div className="tenant-empty-state" style={{ padding: '2.25rem' }}>
                           <p>No rent invoices recorded yet for this tenancy.</p>
-                          <button className="btn-primary-blue" onClick={() => handleOpenPaymentModal(selectedTenantRecord)}>
-                            Record First Payment
+                          <button className="btn-primary-blue" onClick={() => handleOpenInvoiceModal(selectedTenantRecord)}>
+                            Issue First Rent Invoice
                           </button>
                         </div>
                       ) : (
@@ -1203,47 +1888,95 @@ const TenantInfo = () => {
                                 <th>Billed</th>
                                 <th>Paid</th>
                                 <th>Balance</th>
-                                <th>Status</th>
-                                <th>Receipt</th>
+                                <th>Payment Status</th>
+                                <th>Authorized Downloads</th>
                               </tr>
                             </thead>
                             <tbody>
-                              {profileData.invoices.map((inv) => (
-                                <tr key={inv._id}>
-                                  <td>
-                                    <strong style={{ color: '#0F172A' }}>{inv.invoiceNo}</strong>
-                                    <div style={{ fontSize: '0.75rem', color: '#64748B' }}>
-                                      {inv.lineItems?.[0]?.description || 'Monthly Rent'}
-                                    </div>
-                                  </td>
-                                  <td>
-                                    {inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : 'N/A'}
-                                  </td>
-                                  <td>৳{Number(inv.total).toLocaleString()}</td>
-                                  <td style={{ color: '#059669', fontWeight: 600 }}>৳{Number(inv.paidAmount || 0).toLocaleString()}</td>
-                                  <td style={{ color: (inv.balance || 0) > 0 ? '#DC2626' : '#64748B', fontWeight: 600 }}>
-                                    ৳{Number(inv.balance !== undefined ? inv.balance : (inv.total - (inv.paidAmount || 0))).toLocaleString()}
-                                  </td>
-                                  <td>
-                                    {renderPaymentBadge(inv.status === 'paid' ? 'Paid' : (inv.status === 'partially_paid' ? 'Partially Paid' : (new Date(inv.dueDate) < new Date() ? 'Overdue' : 'Pending')))}
-                                  </td>
-                                  <td>
-                                    <button
-                                      className="action-btn-sm"
-                                      onClick={() => window.print()}
-                                      title="Print receipt / invoice"
-                                    >
-                                      <FaPrint /> Print
-                                    </button>
-                                  </td>
-                                </tr>
-                              ))}
+                              {profileData.invoices.map((inv) => {
+                                const isPaid = inv.status === 'paid';
+                                const hasStripe = inv.payments?.some(p => p.method === 'stripe' || p.provider === 'stripe') || 
+                                  Boolean(inv.payments?.[0]?.stripeDetails?.sessionId);
+                                return (
+                                  <tr key={inv._id}>
+                                    <td>
+                                      <strong style={{ color: '#0F172A' }}>{inv.invoiceNo}</strong>
+                                      <div style={{ fontSize: '0.75rem', color: '#64748B' }}>
+                                        {inv.lineItems?.[0]?.description || 'Monthly Rent'}
+                                      </div>
+                                    </td>
+                                    <td>
+                                      {inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : 'N/A'}
+                                    </td>
+                                    <td>৳{Number(inv.total).toLocaleString()}</td>
+                                    <td style={{ color: '#059669', fontWeight: 600 }}>৳{Number(inv.paidAmount || 0).toLocaleString()}</td>
+                                    <td style={{ color: (inv.balance || 0) > 0 ? '#DC2626' : '#64748B', fontWeight: 600 }}>
+                                      ৳{Number(inv.balance !== undefined ? inv.balance : (inv.total - (inv.paidAmount || 0))).toLocaleString()}
+                                    </td>
+                                    <td>
+                                      {isPaid ? (
+                                        <span className="badge-status paid">
+                                          <CheckCircle2 size={13} /> {hasStripe ? 'Paid (Stripe Verified)' : 'Paid'}
+                                        </span>
+                                      ) : inv.status === 'partially_paid' ? (
+                                        <span className="badge-status partially-paid">
+                                          <Info size={13} /> Partial
+                                        </span>
+                                      ) : new Date(inv.dueDate) < new Date() ? (
+                                        <span className="badge-status overdue">
+                                          <AlertTriangle size={13} /> Overdue
+                                        </span>
+                                      ) : (
+                                        <span className="badge-status pending">
+                                          <Clock size={13} /> Awaiting Payment
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td>
+                                      <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center' }}>
+                                        <button
+                                          type="button"
+                                          className="action-btn-sm"
+                                          onClick={() => handleDownloadInvoicePDF(inv._id, inv.invoiceNo)}
+                                          disabled={downloadingPdf === `inv-${inv._id}`}
+                                          title="Download authorized PDF invoice"
+                                        >
+                                          <Download size={13} />
+                                          <span>{downloadingPdf === `inv-${inv._id}` ? '...' : 'Invoice PDF'}</span>
+                                        </button>
+                                        {isPaid && (
+                                          <button
+                                            type="button"
+                                            className="action-btn-sm"
+                                            style={{ borderColor: '#A7F3D0', color: '#065F46', background: '#ECFDF5' }}
+                                            onClick={() => {
+                                              const payId = inv.payments?.[0]?._id || inv.payments?.[0];
+                                              if (payId) {
+                                                handleDownloadReceiptPDF(payId, inv.receiptNumber || inv.invoiceNo);
+                                              } else {
+                                                handleDownloadInvoicePDF(inv._id, inv.invoiceNo);
+                                              }
+                                            }}
+                                            disabled={downloadingPdf?.startsWith('rec-')}
+                                            title="Download verified payment receipt"
+                                          >
+                                            <Download size={13} />
+                                            <span>Receipt PDF</span>
+                                          </button>
+                                        )}
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>
                       )}
                     </div>
                   )}
+                </div>
+              )}
 
                   {/* TAB 3: NOTICES & COMMUNICATION */}
                   {activeProfileTab === 'notices' && (
@@ -1251,7 +1984,7 @@ const TenantInfo = () => {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                         <h4 style={{ margin: 0, color: '#0F172A', fontSize: '1rem' }}>Notice Delivery & Audit Trail</h4>
                         <button className="btn-navy-outline" onClick={() => handleOpenNoticeModal(selectedTenantRecord)}>
-                          <FaBullhorn /> Compose Notice for Tenant
+                          <Megaphone size={14} /> Compose Notice for Tenant
                         </button>
                       </div>
 
@@ -1300,8 +2033,8 @@ const TenantInfo = () => {
               <button className="btn-navy-outline" onClick={() => setShowProfileModal(false)}>
                 Close
               </button>
-              <button className="btn-primary-blue" onClick={() => handleOpenPaymentModal(selectedTenantRecord)}>
-                Record Payment
+              <button className="btn-primary-blue" onClick={() => handleOpenInvoiceModal(selectedTenantRecord)}>
+                <Plus size={14} /> Issue Rent Invoice
               </button>
             </div>
           </div>
@@ -1309,84 +2042,75 @@ const TenantInfo = () => {
       )}
 
       {/* =====================================================================
-          MODAL 3: RECORD MANUAL PAYMENT MODAL
+          MODAL 3: ISSUE MONTHLY RENT INVOICE (Online Stripe Workflow)
           ===================================================================== */}
-      {showPaymentModal && selectedTenantRecord && (
-        <div className="tenant-modal-backdrop" onClick={() => setShowPaymentModal(false)}>
+      {showInvoiceModal && selectedTenantRecord && (
+        <div className="tenant-modal-backdrop" onClick={() => setShowInvoiceModal(false)}>
           <div className="tenant-modal-dialog" onClick={(e) => e.stopPropagation()}>
             <div className="tenant-modal-header">
-              <h2>Record Rent Payment</h2>
-              <button className="tenant-modal-close-btn" onClick={() => setShowPaymentModal(false)}>
-                <FaTimes />
+              <h2>Issue Monthly Rent Invoice</h2>
+              <button className="tenant-modal-close-btn" onClick={() => setShowInvoiceModal(false)}>
+                <X size={16} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmitPayment}>
+            <form onSubmit={handleSubmitInvoice}>
               <div className="tenant-modal-body">
-                <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '0.5rem', padding: '0.75rem 1rem', marginBottom: '1.125rem' }}>
-                  <div style={{ fontWeight: 600, color: '#0F172A' }}>{selectedTenantRecord.fullName}</div>
-                  <div style={{ fontSize: '0.825rem', color: '#64748B' }}>
+                <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: '0.5rem', padding: '0.75rem 1rem', marginBottom: '1.125rem' }}>
+                  <div style={{ fontWeight: 600, color: '#1E3A8A' }}>{selectedTenantRecord.fullName}</div>
+                  <div style={{ fontSize: '0.825rem', color: '#2563EB' }}>
                     {selectedTenantRecord.propertyName} &bull; {selectedTenantRecord.unitNumber}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.25rem' }}>
+                    Issuing this invoice enables the tenant to pay online securely via Stripe. When payment completes, records and receipts update automatically.
                   </div>
                 </div>
 
                 <div className="form-grid-2">
                   <div className="form-field">
-                    <label>Payment Amount (BDT ৳) *</label>
+                    <label>Rent Month / Billing Period *</label>
                     <input
-                      type="number"
+                      type="text"
                       required
-                      min="1"
-                      placeholder="e.g. 25000"
-                      value={paymentFormData.amount}
-                      onChange={(e) => setPaymentFormData({ ...paymentFormData, amount: e.target.value })}
+                      placeholder="e.g. December 2026"
+                      value={invoiceFormData.rentMonth}
+                      onChange={(e) => setInvoiceFormData({ ...invoiceFormData, rentMonth: e.target.value })}
                     />
                   </div>
 
                   <div className="form-field">
-                    <label>Payment Method *</label>
-                    <select
-                      value={paymentFormData.paymentMethod}
-                      onChange={(e) => setPaymentFormData({ ...paymentFormData, paymentMethod: e.target.value })}
-                    >
-                      <option value="cash">Cash (Direct)</option>
-                      <option value="bank_transfer">Bank Transfer</option>
-                      <option value="check">Check</option>
-                      <option value="mobile_banking">Mobile Banking (bKash / Nagad)</option>
-                    </select>
-                  </div>
-
-                  <div className="form-field">
-                    <label>Payment Date *</label>
+                    <label>Invoice Due Date *</label>
                     <input
                       type="date"
                       required
-                      value={paymentFormData.paymentDate}
-                      onChange={(e) => setPaymentFormData({ ...paymentFormData, paymentDate: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="form-field">
-                    <label>Rent Month / Cycle</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. November 2026"
-                      value={paymentFormData.rentMonth}
-                      onChange={(e) => setPaymentFormData({ ...paymentFormData, rentMonth: e.target.value })}
+                      value={invoiceFormData.dueDate}
+                      onChange={(e) => setInvoiceFormData({ ...invoiceFormData, dueDate: e.target.value })}
                     />
                   </div>
 
                   <div className="form-field form-group-full">
-                    <label>Transaction Reference / Audit Note</label>
+                    <label>Monthly Rent Amount (BDT ৳) *</label>
                     <input
-                      type="text"
-                      placeholder="Receipt number, bank transaction ID, or check note..."
-                      value={paymentFormData.referenceNote}
-                      onChange={(e) => setPaymentFormData({ ...paymentFormData, referenceNote: e.target.value })}
+                      type="number"
+                      required
+                      min="1"
+                      placeholder="e.g. 65000"
+                      value={invoiceFormData.amount}
+                      onChange={(e) => setInvoiceFormData({ ...invoiceFormData, amount: e.target.value })}
                     />
                     <span className="field-hint">
-                      This entry will be recorded in the tenant ledger with an audit trail and in-app receipt confirmation.
+                      Defaults to the agreed monthly rent from the active tenancy lease.
                     </span>
+                  </div>
+
+                  <div className="form-field form-group-full">
+                    <label>Description / Line Item Note</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Monthly Rent - December 2026"
+                      value={invoiceFormData.notes}
+                      onChange={(e) => setInvoiceFormData({ ...invoiceFormData, notes: e.target.value })}
+                    />
                   </div>
                 </div>
               </div>
@@ -1395,22 +2119,22 @@ const TenantInfo = () => {
                 <button
                   type="button"
                   className="btn-navy-outline"
-                  onClick={() => setShowPaymentModal(false)}
-                  disabled={paymentSubmitting}
+                  onClick={() => setShowInvoiceModal(false)}
+                  disabled={invoiceSubmitting}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   className="btn-primary-blue"
-                  disabled={paymentSubmitting}
+                  disabled={invoiceSubmitting}
                 >
-                  {paymentSubmitting ? (
+                  {invoiceSubmitting ? (
                     <>
-                      <ButtonLoader size="small" /> Recording...
+                      <ButtonLoader size="small" /> Issuing Invoice...
                     </>
                   ) : (
-                    'Confirm & Record Payment'
+                    'Confirm & Issue Invoice'
                   )}
                 </button>
               </div>
@@ -1428,7 +2152,7 @@ const TenantInfo = () => {
             <div className="tenant-modal-header">
               <h2>Compose Tenant Notice</h2>
               <button className="tenant-modal-close-btn" onClick={() => setShowNoticeModal(false)}>
-                <FaTimes />
+                <X size={16} />
               </button>
             </div>
 
@@ -1609,21 +2333,21 @@ const TenantInfo = () => {
             <div className="tenant-modal-header">
               <h2>Move-Out Inspection & Deposit Settlement</h2>
               <button className="tenant-modal-close-btn" onClick={() => setShowMoveOutSettlementModal(false)} disabled={settlementSubmitting}>
-                <FaTimes />
+                <X size={16} />
               </button>
             </div>
 
             <div className="tenant-modal-body">
               {settlementSuccess && (
                 <div style={{ background: '#ECFDF5', border: '1px solid #A7F3D0', color: '#065F46', padding: '0.875rem 1rem', borderRadius: '0.375rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <FaCheckCircle color="#059669" />
+                  <CheckCircle2 size={16} color="#059669" />
                   <span>{settlementSuccess}</span>
                 </div>
               )}
 
               {settlementError && (
                 <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#991B1B', padding: '0.875rem 1rem', borderRadius: '0.375rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <FaExclamationTriangle color="#DC2626" />
+                  <AlertTriangle size={16} color="#DC2626" />
                   <span>{settlementError}</span>
                 </div>
               )}
@@ -1800,7 +2524,7 @@ const TenantInfo = () => {
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                               <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#DC2626' }}>-৳{Number(d.amount).toLocaleString()}</span>
                               <button type="button" onClick={() => handleRemoveDeduction(idx)} style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer' }}>
-                                <FaTimes />
+                                <X size={14} />
                               </button>
                             </div>
                           </div>
@@ -1944,6 +2668,30 @@ const TenantInfo = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Two-Way Application Messaging Modal (Reuses Original Application Conversation) */}
+      {showMessagesModal && selectedTenantForMessages && (
+        <ApplicationMessagesModal
+          isOpen={showMessagesModal}
+          onClose={() => {
+            setShowMessagesModal(false);
+            setSelectedTenantForMessages(null);
+          }}
+          requestId={selectedTenantForMessages.requestId}
+          requestRef={selectedTenantForMessages.requestHumanId || selectedTenantForMessages.requestId}
+          property={{
+            title: selectedTenantForMessages.propertyName,
+            unitNumber: selectedTenantForMessages.unitNumber,
+            address: selectedTenantForMessages.propertyAddress
+          }}
+          counterpartRole="Tenant"
+          counterpartName={selectedTenantForMessages.fullName}
+          status={selectedTenantForMessages.leaseStatus || 'Active'}
+          onMessagesUpdated={() => {
+            fetchTenantsData();
+          }}
+        />
       )}
     </div>
   );

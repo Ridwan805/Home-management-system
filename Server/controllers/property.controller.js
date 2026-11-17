@@ -5,6 +5,9 @@ const Rent = require('../models/Rent');
 const OwnershipTransfer = require('../models/OwnershipTransfer');
 const User = require('../models/User');
 const Request = require('../models/Request');
+const Payment = require('../models/Payment');
+const NotificationService = require('../services/notificationService');
+const { isPropertySalesEnabled } = require('../utils/featureFlags');
 const {
   getPublicPropertiesFilter,
   enrichPropertyWithAvailability,
@@ -290,6 +293,15 @@ const createProperty = async (req, res) => {
     
     const userId = req.user._id || req.user.userId || req.user.id;
 
+    // Feature flag: Prevent creating For Sale listings when property sales are paused
+    if (!isPropertySalesEnabled() && req.body.listingType === 'For Sale') {
+      return res.status(400).json({
+        success: false,
+        message: 'Property sales are temporarily paused. New properties must be listed For Rent.',
+        code: 'SALES_DISABLED'
+      });
+    }
+
     console.log('Raw req.body:', req.body);
     
     // Parse JSON fields safely (handles both JSON request bodies and multipart FormData strings)
@@ -503,6 +515,20 @@ const createProperty = async (req, res) => {
     
     await property.save();
 
+    // Notify admins of new property listing submitted for moderation
+    try {
+      await NotificationService.notifyAdmins({
+        type: 'admin_moderation',
+        title: 'New Property Submitted for Moderation',
+        message: `Property "${property.title || property.address || 'New Listing'}" has been submitted for admin approval.`,
+        relatedEntityType: 'Property',
+        relatedEntityId: property._id,
+        actionUrl: '/admin/pending-properties'
+      });
+    } catch (adminNotifErr) {
+      console.warn('⚠️ Admin notification warning on property creation:', adminNotifErr.message);
+    }
+
     const populatedProperty = await Property.findById(property._id)
       .populate('ownerUserId', 'firstName lastName email')
       .populate('buildingId', 'name address amenities');
@@ -594,6 +620,15 @@ const updateProperty = async (req, res) => {
       return res.status(403).json({ 
         success: false, 
         message: 'Not authorized to update this property' 
+      });
+    }
+
+    // Feature Flag: Prevent switching listing type to For Sale when sales are disabled
+    if (!isPropertySalesEnabled() && req.body.listingType === 'For Sale' && property.listingType !== 'For Sale') {
+      return res.status(400).json({
+        success: false,
+        message: 'Property sales are temporarily paused. Listings cannot be changed to For Sale.',
+        code: 'SALES_DISABLED'
       });
     }
 
@@ -1041,20 +1076,95 @@ const getTenantAssignments = async (req, res) => {
         }
       })
       .populate('ownerId', 'firstName lastName email phoneNumber')
-      .populate('requestId');
+      .populate({
+        path: 'requestId',
+        populate: {
+          path: 'messages.senderId',
+          select: 'firstName lastName email role'
+        }
+      });
+
+    // Helper for computing unread message counts
+    const computeUnread = (messages, uid) => {
+      if (!Array.isArray(messages) || !uid) return 0;
+      const uidStr = uid.toString();
+      return messages.filter(msg => {
+        const senderStr = (msg.senderId?._id || msg.senderId)?.toString();
+        if (senderStr === uidStr) return false;
+        if (msg.readBy && msg.readBy.some(id => (id?._id || id)?.toString() === uidStr)) return false;
+        if ((!msg.readBy || msg.readBy.length === 0) && msg.isRead) return false;
+        return true;
+      }).length;
+    };
 
     // Find approved/paid purchase requests where user is the buyer
-    const approvedRequests = await Request.find({
-      tenantId: userId,
-      status: { $in: ['Paid/Completed', 'AdvancePaid', 'Confirmed for Sale'] }
-    }).populate({
-      path: 'propertyId',
-      populate: {
-        path: 'ownerUserId',
-        select: 'firstName lastName email'
+    let approvedRequests = [];
+    try {
+      const rq = Request.find({
+        tenantId: userId,
+        $or: [
+          { requestType: { $regex: /^buy$/i } },
+          { listingType: 'For Sale' }
+        ],
+        status: {
+          $in: [
+            'Approved',
+            'Approved – Pay Advance',
+            'Payment Submitted',
+            'AdvancePaid',
+            'Confirmed for Sale',
+            'Paid/Completed',
+            'Completed',
+            'Processing'
+          ]
+        }
+      });
+      if (rq && typeof rq.populate === 'function') {
+        approvedRequests = await rq
+          .populate({
+            path: 'propertyId',
+            populate: {
+              path: 'ownerUserId',
+              select: 'firstName lastName email phoneNumber'
+            }
+          })
+          .populate('ownerId', 'firstName lastName email phoneNumber')
+          .populate('messages.senderId', 'firstName lastName email role');
       }
-    }).populate('ownerId', 'firstName lastName email');
+    } catch (reqErr) {
+      console.warn('[WARN] Could not fetch purchase requests in getTenantAssignments:', reqErr.message);
+      approvedRequests = [];
+    }
+    if (!Array.isArray(approvedRequests)) approvedRequests = [];
     
+    // Fetch verified payments for user's purchase requests
+    const purchaseReqIds = approvedRequests.map(r => r._id);
+    const purchasePropIds = approvedRequests.map(r => r.propertyId?._id || r.propertyId).filter(Boolean);
+
+    let purchasePayments = [];
+    try {
+      purchasePayments = await Payment.find({
+        $or: [
+          { requestId: { $in: purchaseReqIds } },
+          { propertyId: { $in: purchasePropIds }, payerId: userId },
+          { propertyId: { $in: purchasePropIds }, userId: userId }
+        ],
+        status: 'completed'
+      }).sort({ createdAt: -1 });
+    } catch (pmtErr) {
+      console.warn('[WARN] Could not fetch purchase payments in getTenantAssignments:', pmtErr.message);
+      purchasePayments = [];
+    }
+
+    const paymentsByRequestId = {};
+    purchasePayments.forEach(p => {
+      const rId = p.requestId ? p.requestId.toString() : null;
+      if (rId) {
+        if (!paymentsByRequestId[rId]) paymentsByRequestId[rId] = [];
+        paymentsByRequestId[rId].push(p);
+      }
+    });
+
     // Find properties owned by the user (buyers remain tenants by role)
     const ownedProperties = await Property.find({
       ownerUserId: userId,
@@ -1063,40 +1173,96 @@ const getTenantAssignments = async (req, res) => {
     });
     
     const assignments = {
-      rentedProperties: activeRents.map(rentDoc => ({
-        property: rentDoc.propertyId,
-        request: rentDoc.requestId ? {
-          _id: rentDoc.requestId._id,
-          requestId: rentDoc.requestId.requestId,
-          status: rentDoc.requestId.status,
-          approvedAt: rentDoc.requestId.updatedAt,
-          requestType: 'Rent'
-        } : null,
-        rent: {
-          _id: rentDoc._id,
-          term: rentDoc.term,
-          rent: rentDoc.rent,
-          securityDeposit: rentDoc.securityDeposit,
-          moveOut: rentDoc.moveOut,
-          status: rentDoc.status
-        },
-        type: 'rental'
-      })),
+      rentedProperties: activeRents.map(rentDoc => {
+        const reqDoc = rentDoc.requestId;
+        const unreadCount = reqDoc ? computeUnread(reqDoc.messages, userId) : 0;
+        return {
+          property: rentDoc.propertyId,
+          request: reqDoc ? {
+            _id: reqDoc._id,
+            requestId: reqDoc.requestId,
+            status: reqDoc.status,
+            approvedAt: reqDoc.updatedAt,
+            requestType: 'Rent',
+            unreadMessagesCount: unreadCount,
+            messagesCount: reqDoc.messages?.length || 0
+          } : null,
+          rent: {
+            _id: rentDoc._id,
+            term: rentDoc.term,
+            rent: rentDoc.rent,
+            securityDeposit: rentDoc.securityDeposit,
+            moveOut: rentDoc.moveOut,
+            status: rentDoc.status
+          },
+          type: 'rental'
+        };
+      }),
       ownedProperties: [
-        // Include properties purchased through approved requests
-        ...approvedRequests
-          .filter(request => request.requestType === 'Buy')
-          .map(request => ({
-            property: request.propertyId,
+        // Include properties purchased through approved requests with reconciled purchaseData
+        ...approvedRequests.map(reqDoc => {
+          const property = reqDoc.propertyId;
+          const reqIdStr = reqDoc._id.toString();
+          const verifiedPayments = paymentsByRequestId[reqIdStr] || purchasePayments.filter(p =>
+            p.propertyId?.toString() === property?._id?.toString()
+          );
+
+          const verifiedPaid = verifiedPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+          const agreedPrice = Number(
+            property?.pricing?.sale ||
+            property?.previousSalePricing?.salePrice ||
+            reqDoc.offer?.offeredPrice ||
+            (property?.listingType === 'For Sale' ? property?.price : 0) ||
+            reqDoc.offer?.advanceAmount ||
+            reqDoc.advancePayment?.amount ||
+            0
+          );
+
+          const remainingBalance = Math.max(0, agreedPrice - verifiedPaid);
+
+          let purchaseStatus;
+          const rawStatus = (reqDoc.status || '').trim();
+          const isSold = property?.status === 'Sold' || rawStatus.toLowerCase() === 'completed' || rawStatus.toLowerCase() === 'paid/completed';
+
+          if (isSold) {
+            purchaseStatus = 'Completed';
+          } else if (verifiedPaid >= agreedPrice && agreedPrice > 0) {
+            purchaseStatus = 'Fully Paid';
+          } else if (verifiedPaid > 0 || rawStatus.toLowerCase() === 'advancepaid') {
+            purchaseStatus = 'Advance Paid';
+          } else if (rawStatus.toLowerCase() === 'approved' || rawStatus.toLowerCase() === 'approved – pay advance') {
+            purchaseStatus = 'Approved';
+          } else {
+            purchaseStatus = rawStatus || 'Approved';
+          }
+
+          const unreadCount = computeUnread(reqDoc.messages, userId);
+
+          return {
+            property: reqDoc.propertyId,
             request: {
-              _id: request._id,
-              requestId: request.requestId,
-              status: request.status,
-              approvedAt: request.updatedAt,
-              requestType: request.requestType
+              _id: reqDoc._id,
+              requestId: reqDoc.requestId,
+              status: purchaseStatus,
+              rawStatus: reqDoc.status,
+              approvedAt: reqDoc.updatedAt,
+              requestType: reqDoc.requestType || 'Buy',
+              unreadMessagesCount: unreadCount,
+              messagesCount: reqDoc.messages?.length || 0
+            },
+            purchaseData: {
+              status: purchaseStatus,
+              agreedPrice,
+              advancePaid: verifiedPaid,
+              remainingBalance,
+              payments: verifiedPayments,
+              seller: property?.ownerUserId || reqDoc.ownerId,
+              offer: reqDoc.offer,
+              ownershipTransfer: null
             },
             type: 'ownership'
-          })),
+          };
+        }),
         // Include existing owned properties
         ...ownedProperties.map(property => ({
           property,
@@ -1558,6 +1724,131 @@ const getTenantProperties = async (req, res) => {
   }
 };
 
+/**
+ * POST /api/properties/:id/convert-to-rental
+ * Explicitly and safely converts an existing "For Sale" property to "For Rent".
+ * Requires explicit monthly rent and optional security deposit from authorized owner.
+ * Preserves previous sale price, location, media, description, and applicant history.
+ */
+const convertPropertyToRental = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = (req.user._id || req.user.userId || req.user.id)?.toString();
+    const userRole = req.user.role;
+    const { monthlyRent, securityDeposit, status } = req.body;
+
+    const property = await Property.findById(id);
+    if (!property) {
+      return res.status(404).json({
+        success: false,
+        message: 'Property not found'
+      });
+    }
+
+    // Check authorization: Owner or Admin
+    const propOwnerId = (property.ownerUserId?._id || property.ownerUserId || property.owner?._id || property.owner || property.ownerId)?.toString();
+    const isOwner = propOwnerId === userId;
+    const isAdmin = userRole === 'Admin';
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only the authorized property owner or an administrator can convert this listing'
+      });
+    }
+
+    if (property.listingType !== 'For Sale') {
+      return res.status(400).json({
+        success: false,
+        message: `Property is currently listed as "${property.listingType}". Conversion is only permitted for "For Sale" properties.`
+      });
+    }
+
+    // Monthly Rent Validation: Must be provided, positive, and NOT identical to previous sale price
+    const rentNum = Number(monthlyRent);
+    if (!rentNum || isNaN(rentNum) || rentNum <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid monthly rental price greater than ৳0.'
+      });
+    }
+
+    const previousSalePrice = Number(property.pricing?.sale || property.price || 0);
+    if (previousSalePrice > 0 && rentNum === previousSalePrice) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid rental price. The previous property sale price of ৳${previousSalePrice.toLocaleString()} cannot be used as monthly rent. Please enter a realistic monthly rental price.`
+      });
+    }
+
+    // Security Deposit: Configurable, defaults to 0 if not provided
+    const depositNum = (securityDeposit !== undefined && securityDeposit !== '' && !isNaN(Number(securityDeposit)))
+      ? Math.max(0, Number(securityDeposit))
+      : 0;
+
+    // Prevent conflicting commitments: Ensure no active rental tenancy already exists
+    const activeRent = await Rent.findOne({
+      propertyId: property._id,
+      status: 'Active',
+      isDeleted: { $ne: true }
+    });
+    if (activeRent) {
+      return res.status(400).json({
+        success: false,
+        message: 'This property already has an active tenancy agreement and cannot be converted.'
+      });
+    }
+
+    // Safely preserve historical sale details without deleting any past transaction/request data
+    property.previousSalePricing = {
+      salePrice: previousSalePrice,
+      deposit: property.pricing?.deposit || 0,
+      convertedAt: new Date(),
+      convertedBy: userId,
+      originalListingType: 'For Sale'
+    };
+
+    // Update pricing structure
+    if (!property.pricing) property.pricing = {};
+    property.pricing.rent = rentNum;
+    property.pricing.deposit = depositNum;
+    if (previousSalePrice > 0) {
+      property.pricing.sale = previousSalePrice;
+    }
+
+    // Convert listing type
+    property.listingType = 'For Rent';
+
+    // Set valid rental status: Available, Processing, or Rented
+    const targetStatus = (status && ['Available', 'Processing', 'Rented'].includes(status))
+      ? status
+      : 'Available';
+    property.status = targetStatus;
+
+    if (!property.stateHistory) property.stateHistory = [];
+    property.stateHistory.push({
+      state: property.status,
+      timestamp: new Date(),
+      triggeredBy: userId,
+      notes: `Converted to rental listing by authorized owner. Monthly rent: ৳${rentNum.toLocaleString()}, Deposit: ৳${depositNum.toLocaleString()}`
+    });
+
+    await property.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Property listing successfully converted to "For Rent" at ৳${rentNum.toLocaleString()}/month with ৳${depositNum.toLocaleString()} deposit.`,
+      property
+    });
+  } catch (err) {
+    console.error('Error in convertPropertyToRental:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Server error: ' + err.message
+    });
+  }
+};
+
 module.exports = {
   getAllProperties,
   getTopProperties,
@@ -1566,6 +1857,7 @@ module.exports = {
   getPropertyById,
   updateProperty,
   updatePropertyStatus,
+  convertPropertyToRental,
   deleteProperty,
   getPropertyAssignments,
   getTenantAssignments,

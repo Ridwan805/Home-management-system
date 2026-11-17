@@ -136,16 +136,26 @@ const PaymentInfo = () => {
     
     if (status === 'success' && sessionId) {
       setError('');
-      setSuccessMessage('Payment completed successfully. Your invoice records have been updated.');
-      setTimeout(() => {
+      setSuccessMessage('Verifying payment confirmation with Stripe...');
+      
+      authenticatedFetch(
+        apiConfig.getUrl(`/api/stripe/verify-session/${sessionId}`),
+        {},
+        navigate
+      ).then(res => {
+        if (res && res.success) {
+          setSuccessMessage('Payment verified and completed successfully! Your invoice records have been updated.');
+        } else {
+          setSuccessMessage('Payment completed. Records updated.');
+        }
         fetchAllData();
-      }, 1200);
-      
-      setTimeout(() => {
-        setSuccessMessage(null);
-      }, 5000);
-      
-      window.history.replaceState({}, document.title, window.location.pathname);
+      }).catch(err => {
+        console.warn('Verification warning:', err);
+        fetchAllData();
+      }).finally(() => {
+        setTimeout(() => setSuccessMessage(null), 6000);
+        window.history.replaceState({}, document.title, window.location.pathname);
+      });
     } else if (status === 'cancelled') {
       setError('Payment was cancelled. You can try again anytime.');
       setTimeout(() => {
@@ -263,20 +273,28 @@ const PaymentInfo = () => {
   };
 
   const calculateSummary = () => {
-    // Group invoices by currency
-    const totalOutstanding = invoices
+    // Filter payable active invoices (exclude voided test/cancelled invoices)
+    const activeInvoices = invoices.filter(inv => inv.status !== 'void');
+
+    // Total outstanding: unpaid balance on active non-paid invoices
+    const totalOutstanding = activeInvoices
       .filter(inv => inv.status !== 'paid' && inv.status !== 'completed')
-      .reduce((sum, inv) => sum + (inv.total || inv.amount || 0), 0);
+      .reduce((sum, inv) => sum + (inv.balance !== undefined ? Number(inv.balance) : (Number(inv.total || inv.amount) || 0)), 0);
     
-    const totalPaid = paymentHistory
-      .reduce((sum, payment) => sum + (payment.amount || 0), 0);
+    // Total paid: only verified completed payment records
+    const verifiedPayments = paymentHistory
+      .filter(p => ['completed', 'paid', 'succeeded'].includes(p.status));
+    const totalPaid = verifiedPayments
+      .reduce((sum, payment) => sum + (Number(payment.amount) || 0), 0);
     
-    const overdueAmount = invoices
-      .filter(inv => inv.status === 'overdue')
-      .reduce((sum, inv) => sum + (inv.total || inv.amount || 0), 0);
+    // Overdue amount: past-due unpaid invoice balances
+    const now = new Date();
+    const overdueAmount = activeInvoices
+      .filter(inv => (inv.status === 'overdue' || (new Date(inv.dueDate) < now && inv.status !== 'paid' && inv.status !== 'completed')))
+      .reduce((sum, inv) => sum + (inv.balance !== undefined ? Number(inv.balance) : (Number(inv.total || inv.amount) || 0)), 0);
 
     // Primary currency detected
-    const primaryCurrency = invoices[0]?.currency || paymentHistory[0]?.currency || 'USD';
+    const primaryCurrency = invoices[0]?.currency || paymentHistory[0]?.currency || 'BDT';
 
     return { totalOutstanding, totalPaid, overdueAmount, primaryCurrency };
   };
@@ -443,7 +461,8 @@ const PaymentInfo = () => {
                           <TenantStatusBadge status={invoice.status || 'pending'} size="sm" />
                         </td>
                         <td className="align-right">
-                          <div style={{ display: 'flex', gap: '0.375rem', justifyContent: 'flex-end', alignItems: 'center' }}>
+                          <div style={{ display: 'flex', gap: '0.375rem', justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap' }}>
+                            {/* 1. Download Invoice PDF */}
                             <button
                               type="button"
                               className="ds-btn ds-btn-secondary ds-btn-sm"
@@ -452,22 +471,57 @@ const PaymentInfo = () => {
                               title="Download official PDF invoice"
                             >
                               <Download size={13} />
-                              <span>{downloadingPdf === `inv-${invoice._id}` ? '...' : 'PDF'}</span>
+                              <span>{downloadingPdf === `inv-${invoice._id}` ? '...' : 'Invoice'}</span>
                             </button>
-                            {!isPaid ? (
+
+                            {/* 2. Paid state: Download Receipt */}
+                            {isPaid && (
+                              <button
+                                type="button"
+                                className="ds-btn ds-btn-secondary ds-btn-sm"
+                                style={{ borderColor: '#A7F3D0', color: '#047857', background: '#ECFDF5' }}
+                                onClick={() => {
+                                  const paymentId = invoice.payments?.[0]?._id || invoice.payments?.[0] || invoice.payment?._id || invoice.payment;
+                                  if (paymentId) {
+                                    handleDownloadReceiptPDF(paymentId, invoice.receiptNumber);
+                                  } else {
+                                    setError('Receipt record is pending allocation.');
+                                  }
+                                }}
+                                disabled={downloadingPdf?.startsWith('rec-')}
+                                title="Download official payment receipt"
+                              >
+                                <FileText size={13} />
+                                <span>Receipt</span>
+                              </button>
+                            )}
+
+                            {/* 3. Processing state: Disabled Button */}
+                            {!isPaid && (invoice.status === 'processing' || invoice.payment?.status === 'processing') && (
+                              <button
+                                type="button"
+                                className="ds-btn ds-btn-secondary ds-btn-sm"
+                                disabled={true}
+                                title="Payment is currently processing with Stripe"
+                                style={{ opacity: 0.7, cursor: 'not-allowed', color: '#B45309', background: '#FEF3C7', borderColor: '#FDE68A' }}
+                              >
+                                <Clock size={13} />
+                                <span>Processing</span>
+                              </button>
+                            )}
+
+                            {/* 4. Unpaid state (open/overdue): Pay Now Button */}
+                            {!isPaid && invoice.status !== 'processing' && invoice.payment?.status !== 'processing' && invoice.status !== 'void' && (
                               <button
                                 type="button"
                                 className="ds-btn ds-btn-primary ds-btn-sm"
                                 onClick={() => handlePayInvoice(invoice)}
                                 disabled={processingPayment}
+                                title="Pay invoice online securely via Stripe"
                               >
                                 <CreditCard size={14} />
-                                <span>Pay Now</span>
+                                <span>{processingPayment ? 'Processing...' : 'Pay Now'}</span>
                               </button>
-                            ) : (
-                              <span className="paid-timestamp font-xs">
-                                Paid {formatDate(invoice.paidAt)}
-                              </span>
                             )}
                           </div>
                         </td>

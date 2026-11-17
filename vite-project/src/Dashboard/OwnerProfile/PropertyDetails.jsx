@@ -5,7 +5,17 @@ import LocationPickerMap from '../../components/LocationPickerMap';
 import LocationViewerMap from '../../components/LocationViewerMap';
 import './PropertyDetails.css';
 import { CircularSpinner } from '../../components/loading';
-import { Bed, Bath, Maximize } from 'lucide-react';
+import EditPropertyModal from '../../components/EditPropertyModal';
+import { Bed, Bath, Maximize, ArrowRightLeft, AlertCircle, CheckCircle2, Info } from 'lucide-react';
+
+const getAuthToken = () => {
+  try {
+    const userData = JSON.parse(localStorage.getItem('dwellSyncUser') || '{}');
+    return userData?.token || localStorage.getItem('token') || null;
+  } catch (e) {
+    return localStorage.getItem('token') || null;
+  }
+};
 
 const PropertyDetails = () => {
   const [properties, setProperties] = useState([]);
@@ -22,12 +32,21 @@ const PropertyDetails = () => {
   const [selectedProperty, setSelectedProperty] = useState(null);
   const [showStatusDropdown, setShowStatusDropdown] = useState(null);
 
+  // Safe Property Conversion State
+  const [convertModalProperty, setConvertModalProperty] = useState(null);
+  const [convertRent, setConvertRent] = useState('');
+  const [convertDeposit, setConvertDeposit] = useState('');
+  const [convertStatus, setConvertStatus] = useState('Available');
+  const [convertSubmitting, setConvertSubmitting] = useState(false);
+  const [convertError, setConvertError] = useState('');
+  const [convertSuccess, setConvertSuccess] = useState('');
+
   const statusOptions = ['Available', 'Not Available', 'Sold', 'Rented'];
 
   useEffect(() => {
     const fetchProperties = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = getAuthToken();
         if (!token) {
           setError('No authentication token found');
           setLoading(false);
@@ -83,113 +102,105 @@ const PropertyDetails = () => {
     setSelectedProperty(null);
   };
 
+  const handleOpenConvert = (prop) => {
+    setConvertModalProperty(prop);
+    setConvertRent('');
+    setConvertDeposit('');
+    setConvertStatus('Available');
+    setConvertError('');
+    setConvertSuccess('');
+  };
+
+  const handleCloseConvert = () => {
+    setConvertModalProperty(null);
+    setConvertRent('');
+    setConvertDeposit('');
+    setConvertError('');
+    setConvertSuccess('');
+  };
+
+  const handleExecuteConversion = async (e) => {
+    e.preventDefault();
+    if (!convertModalProperty) return;
+
+    const rentNum = Number(convertRent);
+    if (!rentNum || isNaN(rentNum) || rentNum <= 0) {
+      setConvertError('Please enter a valid monthly rent greater than ৳0');
+      return;
+    }
+
+    const salePrice = Number(convertModalProperty.pricing?.sale || convertModalProperty.price || 0);
+    if (salePrice > 0 && rentNum === salePrice) {
+      setConvertError(`Previous sale price (৳${salePrice.toLocaleString()}) cannot be used as monthly rent.`);
+      return;
+    }
+
+    setConvertSubmitting(true);
+    setConvertError('');
+    setConvertSuccess('');
+
+    try {
+      const token = getAuthToken();
+      const res = await fetch(API.getUrl(`/api/properties/${convertModalProperty._id}/convert-to-rental`), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          monthlyRent: rentNum,
+          securityDeposit: Number(convertDeposit) || 0,
+          status: convertStatus
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Conversion failed');
+      }
+
+      setConvertSuccess(data.message || 'Property successfully converted to rental!');
+      setProperties(prev => prev.map(p => 
+        p._id === convertModalProperty._id ? {
+          ...p,
+          ...data.property,
+          listingType: 'For Rent',
+          price: rentNum,
+          pricing: { ...(p.pricing || {}), rent: rentNum, deposit: Number(convertDeposit) || 0 }
+        } : p
+      ));
+
+      setTimeout(() => {
+        handleCloseConvert();
+      }, 1500);
+    } catch (err) {
+      console.error('Error converting property:', err);
+      setConvertError(err.message || 'Failed to convert property');
+    } finally {
+      setConvertSubmitting(false);
+    }
+  };
+
   const handleEditClick = (property) => {
     setEditingProperty(property);
-    const existingLat = property.location?.latitude ?? property.location?.coordinates?.latitude ?? null;
-    const existingLng = property.location?.longitude ?? property.location?.coordinates?.longitude ?? null;
-    setEditLocation({
-      latitude: existingLat !== null && !isNaN(Number(existingLat)) ? Number(existingLat) : null,
-      longitude: existingLng !== null && !isNaN(Number(existingLng)) ? Number(existingLng) : null
-    });
-    setIsEditLocationConfirmed(existingLat !== null && existingLng !== null);
-
-    setFormData({
-      address: property.address || '',
-      propertyType: property.propertyType || '',
-      bedrooms: property.bedrooms || '',
-      bathrooms: property.bathrooms || '',
-      squareFootage: property.squareFootage || '',
-      price: property.price || '',
-      listingType: property.listingType || '',
-      status: property.status || '',
-      city: property.city || '',
-      state: property.state || '',
-      zipCode: property.zipCode || '',
-      description: property.description || '',
-      yearBuilt: property.yearBuilt || '',
-      contactEmail: property.contactEmail || '',
-      contactPhone: property.contactPhone || '',
-      location_link: property.location?.location_link || '',
-      amenities: property.amenities || []
-    });
-    setUpdateSuccess(false);
-    setUpdateError(null);
   };
 
   const handleCancelEdit = () => {
     setEditingProperty(null);
-    setFormData({});
-    setEditLocation({ latitude: null, longitude: null });
-    setIsEditLocationConfirmed(false);
-    setUpdateSuccess(false);
-    setUpdateError(null);
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleImageChange = (e) => {
-    const files = Array.from(e.target.files);
-    setFormData(prev => ({ ...prev, newImages: files }));
-  };
-
-  const handleRemoveImage = (indexToRemove) => {
-    setFormData(prev => ({
-      ...prev,
-      existingImages: prev.existingImages.filter((_, index) => index !== indexToRemove)
-    }));
-  };
-
-  const handleUpdateSubmit = async (e) => {
-    e.preventDefault();
-    setUpdateError(null);
-    
+  const handleUpdateProperty = async (propertyId, updatedData) => {
     try {
-      const token = localStorage.getItem('token') || JSON.parse(localStorage.getItem('dwellSyncUser') || '{}')?.token;
-      const formDataToSend = new FormData();
-      
-      Object.keys(formData).forEach(key => {
-        if (key === 'newImages' && formData[key]) {
-          formData[key].forEach(file => {
-            formDataToSend.append('images', file);
-          });
-        } else if (key === 'amenities') {
-          formDataToSend.append(key, JSON.stringify(formData[key]));
-        } else if (formData[key] !== undefined && formData[key] !== null) {
-          formDataToSend.append(key, formData[key]);
-        }
-      });
+      const token = getAuthToken();
+      if (!token) throw new Error('User not authenticated');
 
-      // Append location data if coordinates exist
-      if (editLocation.latitude !== null && editLocation.longitude !== null) {
-        const locationData = {
-          latitude: editLocation.latitude,
-          longitude: editLocation.longitude,
-          coordinates: {
-            latitude: editLocation.latitude,
-            longitude: editLocation.longitude
-          },
-          address: formData.address || editingProperty.address,
-          city: formData.city || editingProperty.city,
-          state: formData.state || editingProperty.state,
-          zipCode: formData.zipCode || editingProperty.zipCode,
-          country: editingProperty.location?.country || 'Bangladesh',
-          location_link: formData.location_link || editingProperty.location?.location_link || ''
-        };
-        formDataToSend.append('location', JSON.stringify(locationData));
-      }
-
-      const response = await fetch(API.getUrl(API.endpoints.propertyById(editingProperty._id)), {
+      const response = await fetch(API.getUrl(API.endpoints.propertyById(propertyId)), {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         },
-        body: formDataToSend
+        body: JSON.stringify(updatedData)
       });
 
       if (!response.ok) {
@@ -197,25 +208,19 @@ const PropertyDetails = () => {
         throw new Error(errorData.message || 'Failed to update property');
       }
 
-      const updatedProperty = await response.json();
+      const updated = await response.json();
       setProperties(prev => prev.map(prop => 
-        prop._id === editingProperty._id ? updatedProperty.property : prop
+        prop._id === propertyId ? (updated.property || updated) : prop
       ));
-      
-      setUpdateSuccess(true);
-      setTimeout(() => {
-        handleCancelEdit();
-      }, 2000);
-      
     } catch (err) {
       console.error('Error updating property:', err);
-      setUpdateError(err.message);
+      throw err;
     }
   };
 
   const handleDeleteProperty = async (propertyId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(API.getUrl(API.endpoints.propertyById(propertyId)), {
         method: 'DELETE',
         headers: {
@@ -238,7 +243,7 @@ const PropertyDetails = () => {
 
   const handleStatusUpdate = async (propertyId, newStatus) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(API.getUrl(API.endpoints.propertyStatus(propertyId)), {
         method: 'PATCH',
         headers: {
@@ -298,7 +303,10 @@ const PropertyDetails = () => {
               </div>
               
               <div className="property-info">
-                <h3>৳{property.price?.toLocaleString()}</h3>
+                <h3>
+                  ৳{property.price?.toLocaleString()}
+                  {property.listingType === 'For Rent' && <span style={{ fontSize: '0.8125rem', color: '#64748B', fontWeight: 500 }}> / mo</span>}
+                </h3>
                 <p className="property-address">{property.address}</p>
                 <p className="property-location">{property.city}, {property.state} {property.zipCode}</p>
                 
@@ -316,7 +324,16 @@ const PropertyDetails = () => {
                 
                 <div className="property-type-info">
                   <span className="property-type">{property.propertyType}</span>
-                  <span className="listing-type">{property.listingType}</span>
+                  <span className={`listing-type ${property.listingType === 'For Sale' ? 'sale' : 'rent'}`} style={{
+                    background: property.listingType === 'For Sale' ? '#FEF3C7' : '#EFF6FF',
+                    color: property.listingType === 'For Sale' ? '#B45309' : '#1D4ED8',
+                    padding: '0.125rem 0.5rem',
+                    borderRadius: '0.25rem',
+                    fontSize: '0.75rem',
+                    fontWeight: 600
+                  }}>
+                    {property.listingType}
+                  </span>
                 </div>
                 
                 {property.description && (
@@ -326,6 +343,31 @@ const PropertyDetails = () => {
                 <div className="property-actions">
                   <button className="view-details-btn" onClick={() => handleViewDetails(property)}>View Details</button>
                   <button className="edit-btn" onClick={() => handleEditClick(property)} disabled={property.status === 'pending'}>Edit</button>
+
+                  {property.listingType === 'For Sale' && (
+                    <button
+                      type="button"
+                      className="convert-btn"
+                      onClick={() => handleOpenConvert(property)}
+                      title="Convert this listing safely to For Rent"
+                      style={{
+                        background: '#EFF6FF',
+                        color: '#2563EB',
+                        border: '1px solid #BFDBFE',
+                        borderRadius: '0.375rem',
+                        padding: '0.5rem 0.75rem',
+                        fontSize: '0.8125rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.375rem'
+                      }}
+                    >
+                      <ArrowRightLeft size={14} />
+                      <span>Convert to Rental</span>
+                    </button>
+                  )}
                   
                   <div className="status-action">
                     <button
@@ -449,230 +491,116 @@ const PropertyDetails = () => {
 
       {/* Edit Property Modal */}
       {editingProperty && (
-        <div className="modal-overlay edit-form-modal" onClick={handleCancelEdit}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close-btn" onClick={handleCancelEdit}>&times;</button>
-            <h2>Edit Property</h2>
-            {updateError && <div className="error-state">Error: {updateError}</div>}
-            {updateSuccess && <div className="loading-state">Property updated successfully!</div>}
-            
-            <form onSubmit={handleUpdateSubmit}>
-              <div className="form-group">
-                <label htmlFor="address">Address</label>
-                <input
-                  type="text"
-                  id="address"
-                  name="address"
-                  value={formData.address || ''}
-                  onChange={handleInputChange}
-                  required
-                />
+        <EditPropertyModal 
+          property={editingProperty}
+          onClose={handleCancelEdit}
+          onUpdate={handleUpdateProperty}
+        />
+      )}
+
+      {/* Safe Property Conversion Modal */}
+      {convertModalProperty && (
+        <div className="modal-overlay" onClick={handleCloseConvert} role="dialog" aria-modal="true">
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '32rem', padding: '1.5rem', borderRadius: '0.75rem', background: '#FFFFFF' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <ArrowRightLeft size={18} color="#2563EB" />
+                <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#0F172A', margin: 0 }}>Convert to For Rent</h2>
               </div>
-              
-              <div className="form-group">
-                <label htmlFor="propertyType">Property Type</label>
-                <input
-                  type="text"
-                  id="propertyType"
-                  name="propertyType"
-                  value={formData.propertyType || ''}
-                  onChange={handleInputChange}
-                  required
-                />
+              <button type="button" onClick={handleCloseConvert} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', color: '#64748B' }}>&times;</button>
+            </div>
+
+            <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: '0.5rem', padding: '0.875rem', marginBottom: '1.25rem' }}>
+              <strong style={{ display: 'block', fontSize: '0.8125rem', color: '#1E40AF', marginBottom: '0.25rem' }}>
+                {convertModalProperty.address || 'Property Listing'}
+              </strong>
+              <p style={{ margin: 0, fontSize: '0.75rem', color: '#1E3A8A', lineHeight: 1.4 }}>
+                Current Listing: <strong>For Sale</strong> (৳{Number(convertModalProperty.pricing?.sale || convertModalProperty.price || 0).toLocaleString()}).
+                Converting safely transitions this listing to <strong>For Rent</strong> while permanently preserving historical sale records and verified payments.
+              </p>
+            </div>
+
+            {convertError && (
+              <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '0.375rem', padding: '0.625rem 0.875rem', color: '#DC2626', fontSize: '0.8125rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <AlertCircle size={16} />
+                <span>{convertError}</span>
               </div>
-              
-              <div className="form-group">
-                <label htmlFor="bedrooms">Bedrooms</label>
-                <input
-                  type="number"
-                  id="bedrooms"
-                  name="bedrooms"
-                  value={formData.bedrooms || ''}
-                  onChange={handleInputChange}
-                  required
-                />
+            )}
+
+            {convertSuccess && (
+              <div style={{ background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '0.375rem', padding: '0.625rem 0.875rem', color: '#059669', fontSize: '0.8125rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <CheckCircle2 size={16} />
+                <span>{convertSuccess}</span>
               </div>
-              
-              <div className="form-group">
-                <label htmlFor="bathrooms">Bathrooms</label>
-                <input
-                  type="number"
-                  id="bathrooms"
-                  name="bathrooms"
-                  value={formData.bathrooms || ''}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="squareFootage">Square Footage</label>
+            )}
+
+            <form onSubmit={handleExecuteConversion}>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#0F172A', marginBottom: '0.375rem' }}>
+                  Monthly Rent (BDT) <span style={{ color: '#DC2626' }}>*</span>
+                </label>
                 <input
                   type="number"
-                  id="squareFootage"
-                  name="squareFootage"
-                  value={formData.squareFootage || ''}
-                  onChange={handleInputChange}
+                  value={convertRent}
+                  onChange={e => setConvertRent(e.target.value)}
+                  placeholder="e.g. 35000"
+                  min="1"
                   required
+                  style={{ width: '100%', padding: '0.625rem 0.75rem', border: '1px solid #CBD5E1', borderRadius: '0.375rem', fontSize: '0.875rem', boxSizing: 'border-box' }}
                 />
+                <small style={{ color: '#64748B', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
+                  Must be the actual monthly rental price, not the previous sale price.
+                </small>
               </div>
-              
-              <div className="form-group">
-                <label htmlFor="price">Price</label>
+
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#0F172A', marginBottom: '0.375rem' }}>
+                  Security Deposit (BDT)
+                </label>
                 <input
                   type="number"
-                  id="price"
-                  name="price"
-                  value={formData.price || ''}
-                  onChange={handleInputChange}
-                  required
+                  value={convertDeposit}
+                  onChange={e => setConvertDeposit(e.target.value)}
+                  placeholder="e.g. 70000"
+                  min="0"
+                  style={{ width: '100%', padding: '0.625rem 0.75rem', border: '1px solid #CBD5E1', borderRadius: '0.375rem', fontSize: '0.875rem', boxSizing: 'border-box' }}
                 />
+                <small style={{ color: '#64748B', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
+                  Refundable advance security deposit held during tenancy.
+                </small>
               </div>
-              
-              <div className="form-group">
-                <label htmlFor="listingType">Listing Type</label>
+
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#0F172A', marginBottom: '0.375rem' }}>
+                  Initial Rental Status
+                </label>
                 <select
-                  id="listingType"
-                  name="listingType"
-                  value={formData.listingType || ''}
-                  onChange={handleInputChange}
-                  required
+                  value={convertStatus}
+                  onChange={e => setConvertStatus(e.target.value)}
+                  style={{ width: '100%', padding: '0.625rem 0.75rem', border: '1px solid #CBD5E1', borderRadius: '0.375rem', fontSize: '0.875rem', boxSizing: 'border-box' }}
                 >
-                  <option value="For Sale">For Sale</option>
-                  <option value="For Rent">For Rent</option>
+                  <option value="Available">Available for Rent</option>
+                  <option value="Processing">Processing (Under Review)</option>
+                  <option value="Rented">Rented</option>
                 </select>
               </div>
-              
-              <div className="form-group">
-                <label htmlFor="status">Status</label>
-                <select
-                  id="status"
-                  name="status"
-                  value={formData.status || ''}
-                  onChange={handleInputChange}
-                  required
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                <button
+                  type="button"
+                  onClick={handleCloseConvert}
+                  disabled={convertSubmitting}
+                  style={{ padding: '0.5rem 1rem', border: '1px solid #CBD5E1', borderRadius: '0.375rem', background: '#F8FAFC', color: '#475569', fontWeight: 600, cursor: 'pointer' }}
                 >
-                  {statusOptions.map(option => (
-                    <option key={option} value={option}>{option}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="city">City</label>
-                <input
-                  type="text"
-                  id="city"
-                  name="city"
-                  value={formData.city || ''}
-                  onChange={handleInputChange}
-                />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="state">State</label>
-                <input
-                  type="text"
-                  id="state"
-                  name="state"
-                  value={formData.state || ''}
-                  onChange={handleInputChange}
-                />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="zipCode">Zip Code</label>
-                <input
-                  type="text"
-                  id="zipCode"
-                  name="zipCode"
-                  value={formData.zipCode || ''}
-                  onChange={handleInputChange}
-                />
-              </div>
-              
-              <div className="form-group full-width">
-                <LocationPickerMap
-                  initialLocation={editLocation.latitude !== null ? editLocation : null}
-                  onLocationChange={({ latitude, longitude, location_link, isConfirmed }) => {
-                    setEditLocation({ latitude, longitude });
-                    setIsEditLocationConfirmed(isConfirmed);
-                    if (location_link) {
-                      setFormData(prev => ({ ...prev, location_link }));
-                    }
-                  }}
-                  isConfirmed={isEditLocationConfirmed}
-                  onConfirmChange={(confirmed) => setIsEditLocationConfirmed(confirmed)}
-                  locationLink={formData.location_link || ''}
-                  onLocationLinkChange={(newLink) => {
-                    setFormData(prev => ({ ...prev, location_link: newLink }));
-                  }}
-                  required={false}
-                  title="Property Location"
-                />
-              </div>
-
-              <div className="form-group full-width">
-                <label htmlFor="description">Description*</label>
-                <textarea
-                  id="description"
-                  name="description"
-                  value={formData.description || ''}
-                  onChange={handleInputChange}
-                  rows="4"
-                  required
-                  placeholder="Describe the property, highlights, nearby facilities, etc."
-                ></textarea>
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="yearBuilt">Year Built</label>
-                <input
-                  type="number"
-                  id="yearBuilt"
-                  name="yearBuilt"
-                  value={formData.yearBuilt || ''}
-                  onChange={handleInputChange}
-                />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="contactEmail">Contact Email</label>
-                <input
-                  type="email"
-                  id="contactEmail"
-                  name="contactEmail"
-                  value={formData.contactEmail || ''}
-                  onChange={handleInputChange}
-                />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="contactPhone">Contact Phone</label>
-                <input
-                  type="text"
-                  id="contactPhone"
-                  name="contactPhone"
-                  value={formData.contactPhone || ''}
-                  onChange={handleInputChange}
-                />
-              </div>
-
-              <div className="form-group file-input-group">
-                <label htmlFor="newImages">Add New Images</label>
-                <input
-                  type="file"
-                  id="newImages"
-                  name="newImages"
-                  multiple
-                  accept="image/*"
-                  onChange={handleImageChange}
-                />
-              </div>
-
-              <div className="form-actions">
-                <button type="submit" className="submit-btn">Update Property</button>
-                <button type="button" className="cancel-btn" onClick={handleCancelEdit}>Cancel</button>
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={convertSubmitting}
+                  style={{ padding: '0.5rem 1.25rem', border: 'none', borderRadius: '0.375rem', background: '#2563EB', color: '#FFFFFF', fontWeight: 600, cursor: 'pointer' }}
+                >
+                  {convertSubmitting ? 'Converting...' : 'Confirm Conversion'}
+                </button>
               </div>
             </form>
           </div>

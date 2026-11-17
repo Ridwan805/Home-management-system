@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard,
@@ -29,6 +29,17 @@ const navItems = [
 const TenantSidebarNav = ({ activeSection, setActiveSection, isOpen, onClose }) => {
   const { logout } = useContext(AuthContext);
   const navigate = useNavigate();
+
+  // Handle escape key to close mobile drawer
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isOpen && onClose) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   const handleLogout = () => {
     if (onClose) onClose();

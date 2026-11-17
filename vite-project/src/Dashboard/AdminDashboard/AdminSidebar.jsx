@@ -1,55 +1,165 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { FaTachometerAlt, FaHourglass, FaFlag, FaUsers, FaSignOutAlt } from 'react-icons/fa';
-import './adminDashboard.css'; // Make sure your filename casing matches here
+import React, { useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import {
+  LayoutDashboard,
+  Building2,
+  Flag,
+  Users,
+  LogOut,
+  X
+} from 'lucide-react';
+import './adminDashboard.css';
 
-const AdminSidebar = ({ activeTab }) => {
-  const { pathname } = useLocation();
+const menuItems = [
+  {
+    key: 'overview',
+    path: '/admin',
+    label: 'Dashboard',
+    description: 'Overview & Metrics',
+    icon: <LayoutDashboard size={18} />
+  },
+  {
+    key: 'pending-properties',
+    path: '/admin/pending-properties',
+    label: 'Property Approvals',
+    description: 'Review & Moderation',
+    icon: <Building2 size={18} />
+  },
+  {
+    key: 'report-management',
+    path: '/admin/reports',
+    label: 'Reports',
+    description: 'System & User Reports',
+    icon: <Flag size={18} />
+  },
+  {
+    key: 'user-moderation',
+    path: '/admin/users',
+    label: 'User Moderation',
+    description: 'Accounts & Access',
+    icon: <Users size={18} />
+  }
+];
 
-  // Handle logout
+const AdminSidebar = ({ activeTab, isMobileOpen, onCloseMobile }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Handle escape key to close mobile drawer
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isMobileOpen && onCloseMobile) {
+        onCloseMobile();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isMobileOpen, onCloseMobile]);
+
+  const currentUser = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('dwellSyncUser') || '{}');
+    } catch {
+      return {};
+    }
+  })();
+  const adminEmail = currentUser.email || (currentUser.user && currentUser.user.email) || 'admin@dwell.com';
+  const adminName = currentUser.name || (currentUser.user && currentUser.user.name) || adminEmail.split('@')[0] || 'Administrator';
+
   const handleLogout = () => {
+    if (onCloseMobile) onCloseMobile();
     localStorage.removeItem('dwellSyncUser');
-    window.location.href = '/login';
+    navigate('/login');
+  };
+
+  const handleLinkClick = () => {
+    if (onCloseMobile) onCloseMobile();
   };
 
   return (
-    <aside className="admin-sidebar">
-      <h2 className="admin-logo">Admin Panel</h2>
-      <nav>
-        <ul>
-          <li className={activeTab === 'overview' ? 'active' : ''}>
-            <Link to="/admin">
-              <FaTachometerAlt className="nav-icon" />
-              <span>Dashboard</span>
+    <>
+      {/* Mobile Backdrop Overlay */}
+      {isMobileOpen && (
+        <div
+          className="admin-sidebar-backdrop"
+          onClick={onCloseMobile}
+          aria-hidden="true"
+        />
+      )}
+
+      <aside className={`admin-sidebar ${isMobileOpen ? 'mobile-open' : ''}`}>
+        {/* Brand Header */}
+        <div className="admin-sidebar-header">
+          <div className="admin-sidebar-brand-row">
+            <Link to="/admin" className="admin-sidebar-title" onClick={handleLinkClick}>
+              Dwell<span>Sync</span>
             </Link>
-          </li>
-          <li className={activeTab === 'pending-properties' ? 'active' : ''}>
-            <Link to="/admin/pending-properties">
-              <FaHourglass className="nav-icon" />
-              <span>Pending Properties</span>
-            </Link>
-          </li>
-          <li className={activeTab === 'report-management' ? 'active' : ''}>
-            <Link to="/admin/reports">
-              <FaFlag className="nav-icon" />
-              <span>Reports</span>
-            </Link>
-          </li>
-          <li className={activeTab === 'user-moderation' ? 'active' : ''}>
-            <Link to="/admin/users">
-              <FaUsers className="nav-icon" />
-              <span>User Moderation</span>
-            </Link>
-          </li>
-          <li className="logout-item">
-            <button onClick={handleLogout} className="logout-button">
-              <FaSignOutAlt className="nav-icon" />
-              <span>Logout</span>
-            </button>
-          </li>
-        </ul>
-      </nav>
-    </aside>
+            <span className="admin-portal-badge">Admin Portal</span>
+            {onCloseMobile && (
+              <button
+                type="button"
+                className="admin-sidebar-close-btn"
+                onClick={onCloseMobile}
+                aria-label="Close navigation"
+              >
+                <X size={18} />
+              </button>
+            )}
+          </div>
+          <span className="admin-sidebar-subtitle">Platform Moderation & Ops</span>
+        </div>
+
+        {/* Navigation Menu */}
+        <nav className="admin-sidebar-nav" aria-label="Admin Navigation">
+          <ul className="admin-sidebar-menu">
+            {menuItems.map((item) => {
+              const isActive =
+                item.path === '/admin'
+                  ? location.pathname === '/admin' || location.pathname === '/admin/'
+                  : location.pathname.startsWith(item.path);
+
+              return (
+                <li key={item.key} className="admin-menu-item-wrapper">
+                  <Link
+                    to={item.path}
+                    className={`admin-menu-item ${isActive ? 'active' : ''}`}
+                    onClick={handleLinkClick}
+                  >
+                    <span className="admin-menu-icon">{item.icon}</span>
+                    <div className="admin-menu-text">
+                      <div className="admin-menu-label">{item.label}</div>
+                      <div className="admin-menu-desc">{item.description}</div>
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+
+        {/* Logout Section Anchored at Bottom with Admin Profile Pill */}
+        <div className="admin-sidebar-footer">
+          <div className="admin-user-profile-card">
+            <div className="admin-user-avatar">
+              {adminName.charAt(0).toUpperCase()}
+            </div>
+            <div className="admin-user-info">
+              <span className="admin-user-name">{adminName}</span>
+              <span className="admin-user-role">Super Admin</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="admin-logout-btn"
+            onClick={handleLogout}
+            title="Sign out of Admin Portal"
+          >
+            <LogOut size={16} />
+            <span>Logout</span>
+          </button>
+        </div>
+      </aside>
+    </>
   );
 };
 

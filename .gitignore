@@ -24,3 +24,7 @@ Thumbs.db
 # Local credentials documents
 USER_CREDENTIALS.md
 *.credentials.md
+
+# Uploads
+Server/tenant_pics/
+Server/uploads/

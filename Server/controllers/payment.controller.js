@@ -1,6 +1,7 @@
 const Payment = require('../models/Payment');
 const Invoice = require('../models/Invoice');
 const Property = require('../models/Property');
+const User = require('../models/User');
 const PaymentService = require('../services/paymentService');
 const stripePaymentService = require('../services/stripePaymentService');
 const PDFService = require('../services/pdf/pdfService');
@@ -244,7 +245,7 @@ class PaymentController {
    */
   static async getOwnerPayments(req, res) {
     try {
-      const ownerId = req.user.userId;
+      const ownerId = req.user?.userId || req.user?.id || req.user?._id;
       if (!ownerId) {
         return res.status(401).json({ success: false, message: 'Authentication required' });
       }

@@ -56,6 +56,12 @@ button {
   cursor: pointer;
   transition: border-color 0.25s;
 }
+
+/* Guard against oval distortion on circular and icon buttons */
+button:is([class*="wishlist"], [class*="close"], [class*="arrow"], [class*="circle"], [class*="icon-btn"]) {
+  padding: 0;
+  box-sizing: border-box;
+}
 button:hover {
   border-color: #646cff;
 }

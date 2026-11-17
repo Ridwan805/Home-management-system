@@ -11,6 +11,7 @@
  */
 
 const RENTED_VISIBILITY_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+const { isPropertySalesEnabled } = require('../utils/featureFlags');
 
 /**
  * Generates the authoritative MongoDB filter for public property discovery
@@ -150,6 +151,13 @@ const enrichPropertyWithAvailability = (property) => {
     availabilityReason = prop.listingType === 'For Rent' 
       ? 'Available for lease application.' 
       : 'Available for purchase inquiry.';
+  }
+
+  // Feature Flag: If property sales are disabled, disable applications on For Sale properties
+  if (!isPropertySalesEnabled() && prop.listingType === 'For Sale') {
+    canApply = false;
+    availabilityReason = 'Property sales are temporarily paused. Only rental listings are active.';
+    prop.salesPaused = true;
   }
 
   prop.effectiveAvailability = effectiveAvailability;

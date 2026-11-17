@@ -282,15 +282,47 @@ const createBuilding = async (req, res) => {
     const userRole = req.user.role;
 
     // Allow Admin and Property Owner to create buildings
-    if (userRole !== 'Admin' && userRole !== 'Property Owner') {
+    const isOwnerOrAdmin = userRole === 'Admin' || userRole === 'Property Owner' || userRole === 'Owner' || (req.user?.role && req.user.role.toLowerCase().includes('owner'));
+    if (!isOwnerOrAdmin) {
       return res.status(403).json({
         success: false,
         message: 'Only administrators and property owners can create buildings'
       });
     }
 
+    // Ensure address and fullAddress
+    const address = req.body.address || {};
+    if (!address.fullAddress) {
+      address.fullAddress = [address.street, address.city, address.state, address.zipCode].filter(Boolean).join(', ') || 'Dhaka, Bangladesh';
+    }
+    if (!address.street) address.street = address.fullAddress || 'Main Street';
+    if (!address.city) address.city = 'Dhaka';
+    if (!address.state) address.state = 'Dhaka Division';
+    if (!address.zipCode) address.zipCode = '1200';
+    if (!address.country) address.country = 'Bangladesh';
+
+    // Ensure location and valid [longitude, latitude] coordinates
+    let coordinates = [90.4125, 23.8103]; // Default Dhaka coordinates
+    if (req.body.location?.coordinates && Array.isArray(req.body.location.coordinates) && req.body.location.coordinates.length === 2) {
+      const [lng, lat] = req.body.location.coordinates.map(Number);
+      if (!isNaN(lng) && !isNaN(lat) && lng >= -180 && lng <= 180 && lat >= -90 && lat <= 90) {
+        coordinates = [lng, lat];
+      }
+    } else if (req.body.longitude !== undefined && req.body.latitude !== undefined) {
+      const lng = Number(req.body.longitude);
+      const lat = Number(req.body.latitude);
+      if (!isNaN(lng) && !isNaN(lat) && lng >= -180 && lng <= 180 && lat >= -90 && lat <= 90) {
+        coordinates = [lng, lat];
+      }
+    }
+
     const buildingData = {
       ...req.body,
+      address,
+      location: {
+        type: 'Point',
+        coordinates
+      },
       managedBy: userId,
       createdBy: userId,
       updatedBy: userId,
@@ -323,7 +355,7 @@ const createBuilding = async (req, res) => {
 const updateBuilding = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.userId;
+    const userId = req.user.userId || req.user._id?.toString() || req.user.id;
     const userRole = req.user.role;
 
     const building = await Building.findById(id);
@@ -335,9 +367,9 @@ const updateBuilding = async (req, res) => {
     }
 
     // Check authorization (Admin, building manager, or building owner)
-    const isManager = building.managedBy?.toString() === userId;
-    const isOwner = building.createdBy?.toString() === userId;
-    const isAdmin = userRole === 'Admin';
+    const isManager = building.managedBy?.toString() === userId?.toString();
+    const isOwner = building.createdBy?.toString() === userId?.toString();
+    const isAdmin = (userRole || '').toLowerCase() === 'admin';
 
     if (!isManager && !isAdmin && !isOwner) {
       return res.status(403).json({
@@ -376,25 +408,25 @@ const updateBuilding = async (req, res) => {
 const deleteBuilding = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.userId;
+    const userId = req.user.userId || req.user._id?.toString() || req.user.id;
     const userRole = req.user.role;
-
-    // Check authorization (Admin or building owner)
-    const isOwner = building.createdBy?.toString() === userId;
-    const isAdmin = userRole === 'Admin';
-
-    if (!isAdmin && !isOwner) {
-      return res.status(403).json({
-        success: false,
-        message: 'Only administrators or building owners can delete buildings'
-      });
-    }
 
     const building = await Building.findById(id);
     if (!building) {
       return res.status(404).json({
         success: false,
         message: 'Building not found'
+      });
+    }
+
+    // Check authorization (Admin or building owner)
+    const isOwner = building.createdBy?.toString() === userId?.toString();
+    const isAdmin = (userRole || '').toLowerCase() === 'admin';
+
+    if (!isAdmin && !isOwner) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only administrators or building owners can delete buildings'
       });
     }
 

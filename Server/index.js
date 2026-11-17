@@ -10,12 +10,15 @@ if (process.platform === 'win32' && process.env.NODE_ENV !== 'production') {
 }
 
 const express = require('express');
+const http = require('http');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const multer = require('multer');
 require('dotenv').config();
 const path = require('path');
 const fs = require('fs');
+// Real-time WebSocket Service
+const { initSocket } = require('./services/socketService');
 // PaymentScheduler service reactivated as guard layer for webhook failures
 const PaymentScheduler = require('./services/paymentScheduler');
 // Invoice service for automatic invoice generation
@@ -229,6 +232,17 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+// Feature flags public endpoint
+app.get('/api/features', (req, res) => {
+  const { isPropertySalesEnabled } = require('./utils/featureFlags');
+  res.json({
+    success: true,
+    features: {
+      enablePropertySales: isPropertySalesEnabled()
+    }
+  });
+});
+
 // Special route for Stripe webhook that needs raw body
 app.post('/api/stripe/webhook', express.raw({type: 'application/json'}), require('./controllers/stripe.controller').handleWebhook);
 
@@ -328,9 +342,22 @@ app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
 
+// Global process safety handlers to prevent server crashes from unhandled errors
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('⚠️ Unhandled Promise Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('❌ Uncaught Exception:', err.message, err.stack);
+});
+
 const port = process.env.PORT || 5001; // Your local fallback port
 
-app.listen(port, () => {
+// Attach Socket.IO to HTTP server
+const server = http.createServer(app);
+initSocket(server, allowedOrigins);
+
+server.listen(port, () => {
   console.log(`🚀 Server running on port ${port}`);
   
   // Start PaymentScheduler as guard layer (runs every 5 minutes)

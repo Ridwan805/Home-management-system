@@ -6,6 +6,7 @@ const User = require('../models/User');
 const UserLedgerSummary = require('../models/UserLedgerSummary');
 const RentBalance = require('../models/RentBalance');
 const PaymentService = require('./paymentService');
+const NotificationService = require('./notificationService');
 const cron = require('node-cron');
 
 class InvoiceService {
@@ -121,6 +122,22 @@ class InvoiceService {
       
       // Create corresponding payment object
       await PaymentService.createPaymentForInvoice(invoice);
+
+      // Notify tenant about monthly invoice
+      try {
+        await NotificationService.createNotification({
+          recipientId: invoice.billTo,
+          recipientRole: 'Tenant',
+          type: 'payment',
+          title: `Monthly Rent Invoice #${invoice.invoiceNo}`,
+          message: `Your monthly rent invoice for ৳${invoice.total?.toLocaleString()} has been issued and is due by ${new Date(invoice.dueDate).toLocaleDateString()}.`,
+          relatedEntityType: 'Invoice',
+          relatedEntityId: invoice._id,
+          actionUrl: '/tenant/payment'
+        });
+      } catch (notifErr) {
+        console.warn('⚠️ Invoice notification error:', notifErr.message);
+      }
       
       console.log(`🧾 Generated first monthly invoice ${invoice.invoiceNo} for tenant ${request.tenantId._id}`);
       return invoice;
@@ -218,6 +235,22 @@ class InvoiceService {
             await this.updateUserLedgerSummary(tenant._id, invoice.total, 'expense');
             await this.updateUserLedgerSummary(rent.ownerId._id, invoice.total, 'income');
             
+            // Notify tenant about regular monthly invoice
+            try {
+              await NotificationService.createNotification({
+                recipientId: tenant._id,
+                recipientRole: 'Tenant',
+                type: 'payment',
+                title: `Monthly Rent Invoice #${invoice.invoiceNo}`,
+                message: `Your monthly rent invoice for ৳${invoice.total?.toLocaleString()} has been issued and is due by ${new Date(invoice.dueDate).toLocaleDateString()}.`,
+                relatedEntityType: 'Invoice',
+                relatedEntityId: invoice._id,
+                actionUrl: '/tenant/payment'
+              });
+            } catch (notifErr) {
+              console.warn('⚠️ Invoice notification error:', notifErr.message);
+            }
+
             console.log(`🧾 Generated invoice ${invoice.invoiceNo} for tenant ${tenant._id}`);
           }
           

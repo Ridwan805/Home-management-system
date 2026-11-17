@@ -477,3 +477,79 @@
     height: 2.75rem !important;
   }
 }
+
+/* Inherited Building Card inside Edit Modal */
+.edit-form-modal .edit-inherited-building-card {
+  grid-column: 1 / -1 !important;
+  background-color: #F8FAFC !important;
+  border: 1px solid #BFDBFE !important;
+  border-radius: 0.5rem !important;
+  padding: 1rem 1.25rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.edit-form-modal .edit-inherited-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  margin-bottom: 0.75rem !important;
+  padding-bottom: 0.5rem !important;
+  border-bottom: 1px solid #E2E8F0 !important;
+}
+
+.edit-form-modal .edit-inherited-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  font-size: 0.95rem !important;
+  font-weight: 700 !important;
+  color: #1E3A8A !important;
+}
+
+.edit-form-modal .edit-inherited-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.25rem !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  color: #2563EB !important;
+  background: #EFF6FF !important;
+  border: 1px solid #DBEAFE !important;
+  border-radius: 9999px !important;
+  padding: 0.15rem 0.5rem !important;
+}
+
+.edit-form-modal .edit-inherited-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 0.75rem !important;
+}
+
+.edit-form-modal .edit-inherited-item {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.2rem !important;
+}
+
+.edit-form-modal .edit-inherited-label {
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  color: #64748B !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.02em !important;
+}
+
+.edit-form-modal .edit-inherited-val {
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  color: #1E293B !important;
+}
+
+.edit-form-modal .edit-inherited-hint {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.35rem !important;
+  font-size: 0.75rem !important;
+  color: #2563EB !important;
+  margin-top: 0.6rem !important;
+}

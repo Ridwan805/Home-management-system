@@ -49,11 +49,35 @@ class PaymentStatusChecker {
       for (const request of pendingFullRequests) {
         await this.checkSinglePayment(request, 'full');
       }
+
+      // Check all generic invoices/monthly payments in pending/processing status
+      const pendingPayments = await Payment.find({
+        status: { $in: ['pending', 'processing'] },
+        $or: [
+          { stripeSessionId: { $exists: true, $ne: '' } },
+          { 'stripeDetails.sessionId': { $exists: true, $ne: '' } }
+        ],
+        isDeleted: { $ne: true }
+      });
+
+      console.log(`Found ${pendingPayments.length} pending/processing Payment records to check`);
+      const stripePaymentService = require('./stripePaymentService');
+
+      for (const p of pendingPayments) {
+        const sessId = p.stripeDetails?.sessionId || p.stripeSessionId;
+        if (!sessId) continue;
+        try {
+          await stripePaymentService.verifySession(sessId);
+        } catch (pErr) {
+          console.warn(`[SCHEDULER] Could not verify payment session ${sessId}:`, pErr.message);
+        }
+      }
       
       return { 
         checkedAdvance: pendingAdvanceRequests.length,
         checkedFull: pendingFullRequests.length,
-        total: pendingAdvanceRequests.length + pendingFullRequests.length
+        checkedPayments: pendingPayments.length,
+        total: pendingAdvanceRequests.length + pendingFullRequests.length + pendingPayments.length
       };
     } catch (error) {
       console.error('Error checking pending payments:', error);

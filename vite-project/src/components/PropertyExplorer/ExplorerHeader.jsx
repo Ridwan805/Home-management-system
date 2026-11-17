@@ -11,6 +11,7 @@ import {
   X
 } from 'lucide-react';
 import { AuthContext } from '../../App';
+import { isPropertySalesEnabled } from '../../config/features';
 import './ExplorerHeader.css';
 
 const ExplorerHeader = ({
@@ -122,20 +123,22 @@ const ExplorerHeader = ({
             </button>
             <button
               type="button"
-              className={`explorer-tab-pill ${isBuyActive ? 'active' : ''}`}
-              onClick={() => onListingTypeChange('For Sale')}
-              aria-current={isBuyActive ? 'page' : undefined}
-            >
-              Buy
-            </button>
-            <button
-              type="button"
               className={`explorer-tab-pill ${isRentActive ? 'active' : ''}`}
               onClick={() => onListingTypeChange('For Rent')}
               aria-current={isRentActive ? 'page' : undefined}
             >
               Rent
             </button>
+            {isPropertySalesEnabled() && (
+              <button
+                type="button"
+                className={`explorer-tab-pill ${isBuyActive ? 'active' : ''}`}
+                onClick={() => onListingTypeChange('For Sale')}
+                aria-current={isBuyActive ? 'page' : undefined}
+              >
+                Buy
+              </button>
+            )}
           </nav>
         </div>
 

@@ -8,18 +8,65 @@ const Notification = require('../models/Notification');
 const Notice = require('../models/Notice');
 const Request = require('../models/Request');
 const { sendTenantNoticeEmail } = require('../services/emailService');
+const { evaluateNoticeCompliance, addCalendarMonths } = require('../utils/dateUtils');
+const StripePaymentService = require('../services/stripePaymentService');
+
+/**
+ * Robust helper: Resolve authentic user ID whether req.user is a Mongoose model or decoded token
+ */
+const resolveUserId = (user) => {
+  if (!user) return null;
+  return user._id ? user._id.toString() : (user.userId ? user.userId.toString() : (user.id ? user.id.toString() : null));
+};
+
+/**
+ * Helper: Computes unread messages for a given participant
+ * @param {Array} messages 
+ * @param {string|ObjectId} userId 
+ * @returns {number}
+ */
+const computeUnreadMessagesCount = (messages, userId) => {
+  if (!Array.isArray(messages) || !userId) return 0;
+  const targetIdStr = userId.toString();
+  return messages.filter(msg => {
+    const senderIdStr = (msg.senderId?._id || msg.senderId)?.toString();
+    // Messages sent by self are never unread for self
+    if (senderIdStr === targetIdStr) return false;
+    // Check per-user readBy list
+    if (msg.readBy && msg.readBy.some(id => (id?._id || id)?.toString() === targetIdStr)) {
+      return false;
+    }
+    // Backward compatibility for legacy single-boolean read status
+    if ((!msg.readBy || msg.readBy.length === 0) && msg.isRead) {
+      return false;
+    }
+    return true;
+  }).length;
+};
 
 /**
  * Helper: Find all property IDs owned by user
  */
 const getOwnerPropertyIds = async (userId) => {
+  if (!userId) return [];
+  const userObjId = mongoose.Types.ObjectId.isValid(userId) ? new mongoose.Types.ObjectId(userId) : null;
+  const userStr = userId.toString();
+
+  const queryOr = [
+    { ownerUserId: userStr },
+    { owner: userStr },
+    { ownerId: userStr }
+  ];
+  if (userObjId) {
+    queryOr.push({ ownerUserId: userObjId });
+    queryOr.push({ owner: userObjId });
+    queryOr.push({ ownerId: userObjId });
+  }
+
   const properties = await Property.find({
-    $or: [
-      { ownerUserId: userId },
-      { owner: userId },
-      { ownerId: userId }
-    ]
-  }).select('_id title address unitNumber propertyType specifications pricing status');
+    $or: queryOr,
+    isDeleted: { $ne: true }
+  }).select('_id title address unitNumber propertyType specifications pricing status currentRentId');
   return properties;
 };
 
@@ -29,8 +76,15 @@ const getOwnerPropertyIds = async (userId) => {
  */
 const getOwnerTenants = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = resolveUserId(req.user);
     const { search, propertyId, status, paymentStatus } = req.query;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
 
     const ownedProperties = await getOwnerPropertyIds(userId);
     const ownedPropertyIds = ownedProperties.map(p => p._id);
@@ -49,12 +103,19 @@ const getOwnerTenants = async (req, res) => {
       });
     }
 
+    const userObjId = mongoose.Types.ObjectId.isValid(userId) ? new mongoose.Types.ObjectId(userId) : null;
+    const userStr = userId.toString();
+    const ownerOrConditions = [
+      { propertyId: { $in: ownedPropertyIds } },
+      { ownerId: userStr }
+    ];
+    if (userObjId) {
+      ownerOrConditions.push({ ownerId: userObjId });
+    }
+
     // Build query for Rents associated with owner's properties or ownerId
     const rentQuery = {
-      $or: [
-        { propertyId: { $in: ownedPropertyIds } },
-        { ownerId: userId }
-      ],
+      $or: ownerOrConditions,
       isDeleted: { $ne: true }
     };
 
@@ -63,7 +124,7 @@ const getOwnerTenants = async (req, res) => {
     }
 
     if (status && status !== 'all') {
-      rentQuery.status = status;
+      rentQuery.status = new RegExp(`^${status}$`, 'i');
     }
 
     const rents = await Rent.find(rentQuery)
@@ -124,8 +185,10 @@ const getOwnerTenants = async (req, res) => {
       let latestInvoiceStatus = 'Paid';
       let hasOverdue = false;
 
-      if (rentInvoices.length > 0) {
-        rentInvoices.forEach(inv => {
+      const activeInvoices = rentInvoices.filter(inv => inv.status !== 'void');
+
+      if (activeInvoices.length > 0) {
+        activeInvoices.forEach(inv => {
           rentTotalBilled += (inv.total || 0);
           rentTotalPaid += (inv.paidAmount || 0);
           const balance = (inv.balance !== undefined ? inv.balance : ((inv.total || 0) - (inv.paidAmount || 0)));
@@ -137,7 +200,7 @@ const getOwnerTenants = async (req, res) => {
           }
         });
 
-        const latestInv = rentInvoices[0];
+        const latestInv = activeInvoices[0];
         const latestBal = latestInv.balance !== undefined ? latestInv.balance : (latestInv.total - latestInv.paidAmount);
 
         if (latestBal <= 0) {
@@ -150,18 +213,60 @@ const getOwnerTenants = async (req, res) => {
           latestInvoiceStatus = 'Pending';
         }
       } else {
-        // If no invoices yet, check if rent is active
-        latestInvoiceStatus = rent.status === 'Active' ? 'Pending' : 'Paid';
+        // If no active invoices yet, check if rent is active
+        latestInvoiceStatus = rent.status === 'Active' ? 'Paid' : 'Pending';
       }
 
       if (rent.status === 'Active') {
         totalOutstanding += rentOutstanding;
       }
 
+      // Resolve linked application / conversation record
+      let matchingRequest = null;
+      if (rent.requestId) {
+        matchingRequest = await Request.findById(rent.requestId)
+          .select('_id requestId status requestType messages ownerId')
+          .populate('messages.senderId', 'firstName lastName email role');
+      }
+      if (!matchingRequest) {
+        matchingRequest = await Request.findOne({
+          $or: [
+            { rentId: rent._id },
+            { propertyId: property._id, tenantId: tenantUser._id }
+          ]
+        })
+          .select('_id requestId status requestType messages ownerId')
+          .populate('messages.senderId', 'firstName lastName email role')
+          .sort({ createdAt: -1 });
+
+        // Auto-link rent.requestId if missing
+        if (matchingRequest && !rent.requestId) {
+          rent.requestId = matchingRequest._id;
+          await rent.save().catch(() => {});
+        }
+      }
+
+      const unreadMessagesCount = matchingRequest
+        ? computeUnreadMessagesCount(matchingRequest.messages, userId)
+        : 0;
+      const messagesCount = matchingRequest && Array.isArray(matchingRequest.messages)
+        ? matchingRequest.messages.length
+        : 0;
+
       const record = {
         _id: rent._id,
+        relationshipId: `rent_${rent._id}`,
+        clientType: 'tenant',
+        listingType: 'For Rent',
+        purchasePrice: 0,
+        purchaseStatus: null,
         rentId: rent._id,
         tenantId: tenantUser._id,
+        requestId: matchingRequest ? matchingRequest._id : (rent.requestId || null),
+        requestHumanId: matchingRequest ? matchingRequest.requestId : null,
+        requestStatus: matchingRequest ? matchingRequest.status : null,
+        unreadMessagesCount,
+        messagesCount,
         fullName: `${tenantUser.firstName || ''} ${tenantUser.lastName || ''}`.trim() || tenantUser.name || 'Tenant',
         firstName: tenantUser.firstName || '',
         lastName: tenantUser.lastName || '',
@@ -178,6 +283,8 @@ const getOwnerTenants = async (req, res) => {
         currency: rent.rent?.currency || 'BDT',
         securityDeposit: rent.securityDeposit?.amount || 0,
         securityDepositDetails: rent.securityDeposit || null,
+        advancePaymentVerified: Boolean(rent.advancePaymentVerified),
+        reconciliationStatus: rent.reconciliationStatus || (rent.securityDeposit?.held > 0 && !rent.advancePaymentVerified ? 'legacy_direct_activation' : 'verified'),
         moveOut: rent.moveOut || null,
         leaseStartDate: rent.term?.startDate || rent.createdAt,
         leaseEndDate: rent.term?.endDate || null,
@@ -195,10 +302,221 @@ const getOwnerTenants = async (req, res) => {
       tenantRecords.push(record);
     }
 
+    // -------------------------------------------------------------------------
+    // 2. Fetch and Map Purchase Clients (Buyers) for Owner's Properties / OwnerId
+    // -------------------------------------------------------------------------
+    const purchaseOrConditions = [
+      { propertyId: { $in: ownedPropertyIds } },
+      { ownerId: userStr }
+    ];
+    if (userObjId) {
+      purchaseOrConditions.push({ ownerId: userObjId });
+    }
+
+    const purchaseQuery = {
+      $and: [
+        { $or: purchaseOrConditions },
+        {
+          $or: [
+            { requestType: { $regex: /^buy$/i } },
+            { listingType: 'For Sale' }
+          ]
+        },
+        {
+          status: {
+            $in: [
+              'Approved',
+              'Approved – Pay Advance',
+              'Payment Submitted',
+              'AdvancePaid',
+              'Confirmed for Sale',
+              'Paid/Completed',
+              'Completed',
+              'Processing'
+            ]
+          }
+        },
+        { isDeleted: { $ne: true } }
+      ]
+    };
+
+    if (propertyId && mongoose.Types.ObjectId.isValid(propertyId)) {
+      purchaseQuery.$and.push({ propertyId: propertyId });
+    }
+
+    if (status && status !== 'all') {
+      purchaseQuery.$and.push({ status: new RegExp(`^${status}$`, 'i') });
+    }
+
+    let purchaseRequests = [];
+    try {
+      const q = Request.find(purchaseQuery);
+      if (q && typeof q.populate === 'function') {
+        purchaseRequests = await q
+          .populate('tenantId', 'firstName lastName email phoneNumber name address')
+          .populate('propertyId', 'title address unitNumber floorNumber propertyType specifications pricing status listingType')
+          .populate('messages.senderId', 'firstName lastName email role')
+          .sort({ createdAt: -1 });
+      }
+    } catch (reqErr) {
+      console.warn('[WARN] Could not query purchase requests in getOwnerTenants:', reqErr.message);
+      purchaseRequests = [];
+    }
+    if (!Array.isArray(purchaseRequests)) purchaseRequests = [];
+
+    const purchaseReqIds = purchaseRequests.map(r => r._id);
+    const purchasePropIds = purchaseRequests.map(r => r.propertyId?._id || r.propertyId).filter(Boolean);
+
+    let purchasePayments = [];
+    if (purchaseReqIds.length > 0 || purchasePropIds.length > 0) {
+      try {
+        const pq = Payment.find({
+          $or: [
+            { requestId: { $in: purchaseReqIds } },
+            { propertyId: { $in: purchasePropIds } }
+          ],
+          status: 'completed'
+        });
+        if (pq && typeof pq.sort === 'function') {
+          purchasePayments = await pq.sort({ createdAt: -1 });
+        }
+      } catch (pmtErr) {
+        console.warn('[WARN] Could not query purchase payments in getOwnerTenants:', pmtErr.message);
+        purchasePayments = [];
+      }
+    }
+    if (!Array.isArray(purchasePayments)) purchasePayments = [];
+
+    const paymentsByRequestId = {};
+    purchasePayments.forEach(p => {
+      const rId = p.requestId ? p.requestId.toString() : null;
+      if (rId) {
+        if (!paymentsByRequestId[rId]) paymentsByRequestId[rId] = [];
+        paymentsByRequestId[rId].push(p);
+      }
+    });
+
+    let totalPurchaseOutstanding = 0;
+    const distinctBuyerIds = new Set();
+    const distinctClientIds = new Set(distinctTenantIds);
+
+    let buyerRecords = [];
+
+    for (const reqDoc of purchaseRequests) {
+      const property = reqDoc.propertyId;
+      const buyerUser = reqDoc.tenantId;
+
+      if (!property || !buyerUser) continue;
+
+      distinctBuyerIds.add(buyerUser._id.toString());
+      distinctClientIds.add(buyerUser._id.toString());
+
+      const reqIdStr = reqDoc._id.toString();
+      const verifiedPayments = paymentsByRequestId[reqIdStr] || purchasePayments.filter(p =>
+        (p.propertyId?.toString() === property._id?.toString() &&
+         (p.payerId?.toString() === buyerUser._id?.toString() || p.userId?.toString() === buyerUser._id?.toString()))
+      );
+
+      const verifiedPaid = verifiedPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+      const agreedPrice = Number(
+        property.pricing?.sale ||
+        property.previousSalePricing?.salePrice ||
+        reqDoc.offer?.offeredPrice ||
+        (property.listingType === 'For Sale' ? property.price : 0) ||
+        reqDoc.offer?.advanceAmount ||
+        reqDoc.advancePayment?.amount ||
+        0
+      );
+
+      const remainingBalance = Math.max(0, agreedPrice - verifiedPaid);
+      totalPurchaseOutstanding += remainingBalance;
+
+      let purchaseStatus;
+      const rawStatus = (reqDoc.status || '').trim();
+      const isSold = property.status === 'Sold' || rawStatus.toLowerCase() === 'completed' || rawStatus.toLowerCase() === 'paid/completed';
+
+      if (isSold) {
+        purchaseStatus = 'Completed';
+      } else if (verifiedPaid >= agreedPrice && agreedPrice > 0) {
+        purchaseStatus = 'Fully Paid';
+      } else if (verifiedPaid > 0 || rawStatus.toLowerCase() === 'advancepaid') {
+        purchaseStatus = 'Advance Paid';
+      } else if (rawStatus.toLowerCase() === 'approved' || rawStatus.toLowerCase() === 'approved – pay advance') {
+        purchaseStatus = 'Approved';
+      } else {
+        purchaseStatus = rawStatus || 'Under Review';
+      }
+
+      let buyerPaymentStatus;
+      if (remainingBalance === 0 && verifiedPaid > 0) {
+        buyerPaymentStatus = 'Paid';
+      } else if (verifiedPaid > 0) {
+        buyerPaymentStatus = 'Partially Paid';
+      } else {
+        buyerPaymentStatus = 'Pending';
+      }
+
+      const unreadMessagesCount = computeUnreadMessagesCount(reqDoc.messages, userId);
+      const messagesCount = Array.isArray(reqDoc.messages) ? reqDoc.messages.length : 0;
+
+      const buyerRecord = {
+        _id: reqDoc._id,
+        relationshipId: `buy_${reqDoc._id}`,
+        clientType: 'buyer',
+        tenantId: buyerUser._id,
+        buyerId: buyerUser._id,
+        rentId: null,
+        requestId: reqDoc._id,
+        requestHumanId: reqDoc.requestId || `REQ-${reqDoc._id.toString().slice(-6)}`,
+        requestStatus: rawStatus,
+        unreadMessagesCount,
+        messagesCount,
+        fullName: `${buyerUser.firstName || ''} ${buyerUser.lastName || ''}`.trim() || buyerUser.name || 'Buyer',
+        firstName: buyerUser.firstName || '',
+        lastName: buyerUser.lastName || '',
+        email: buyerUser.email || '',
+        phoneNumber: buyerUser.phoneNumber || '',
+        address: buyerUser.address || '',
+        propertyId: property._id,
+        propertyName: property.title || property.address || 'Property',
+        propertyAddress: property.address || '',
+        propertyType: property.propertyType || 'land',
+        listingType: property.listingType || 'For Sale',
+        unitNumber: property.unitNumber || (property.specifications && property.specifications.unitNumber) || 'Plot',
+        floorNumber: property.floorNumber || null,
+        purchasePrice: agreedPrice,
+        currency: 'BDT',
+        monthlyRent: 0,
+        securityDeposit: 0,
+        securityDepositDetails: null,
+        advancePaid: verifiedPaid,
+        remainingBalance,
+        purchaseStatus,
+        leaseStatus: purchaseStatus,
+        paymentStatus: buyerPaymentStatus,
+        outstandingBalance: remainingBalance,
+        totalPaid: verifiedPaid,
+        totalBilled: agreedPrice,
+        invoicesCount: verifiedPayments.length,
+        agreementDate: reqDoc.offer?.acceptedAt || reqDoc.createdAt,
+        leaseStartDate: reqDoc.offer?.acceptedAt || reqDoc.createdAt,
+        leaseEndDate: null,
+        leaseType: 'purchase',
+        deedStatus: isSold ? 'Transferred' : 'Pending Conveyance',
+        verifiedPaymentsCount: verifiedPayments.length,
+        notes: reqDoc.offer?.specialTerms || '',
+        createdAt: reqDoc.createdAt
+      };
+
+      buyerRecords.push(buyerRecord);
+    }
+
+    let allClientRecords = [...tenantRecords, ...buyerRecords];
+
     // Apply text search if provided
     if (search && search.trim()) {
       const q = search.trim().toLowerCase();
-      tenantRecords = tenantRecords.filter(t => 
+      allClientRecords = allClientRecords.filter(t => 
         t.fullName.toLowerCase().includes(q) ||
         t.email.toLowerCase().includes(q) ||
         t.phoneNumber.toLowerCase().includes(q) ||
@@ -210,31 +528,37 @@ const getOwnerTenants = async (req, res) => {
 
     // Apply paymentStatus filter if provided
     if (paymentStatus && paymentStatus !== 'all') {
-      tenantRecords = tenantRecords.filter(t => t.paymentStatus.toLowerCase() === paymentStatus.toLowerCase());
+      allClientRecords = allClientRecords.filter(t => t.paymentStatus.toLowerCase() === paymentStatus.toLowerCase());
     }
 
     const summary = {
+      totalClients: distinctClientIds.size,
       totalTenants: distinctTenantIds.size,
+      propertyBuyers: distinctBuyerIds.size,
       occupiedApartments: occupiedPropertyIds.size,
       outstandingRent: totalOutstanding,
+      outstandingPurchaseBalance: totalPurchaseOutstanding,
+      totalOutstanding: totalOutstanding + totalPurchaseOutstanding,
       activeNotices: activeNoticesCount
     };
 
     return res.status(200).json({
       success: true,
       summary,
-      tenants: tenantRecords,
+      tenants: allClientRecords,
+      clients: allClientRecords,
       properties: ownedProperties.map(p => ({
         _id: p._id,
         title: p.title || p.address,
         address: p.address,
         unitNumber: p.unitNumber || 'Unit 1',
-        status: p.status
+        status: p.status,
+        listingType: p.listingType
       }))
     });
 
   } catch (error) {
-    console.error('❌ Error fetching owner tenants:', error);
+    console.error('[ERROR] Error fetching owner tenants:', error);
     return res.status(500).json({
       success: false,
       message: 'Failed to retrieve tenant directory',
@@ -249,20 +573,144 @@ const getOwnerTenants = async (req, res) => {
  */
 const getTenantDetails = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = resolveUserId(req.user);
     const rentId = req.params.id;
 
     if (!mongoose.Types.ObjectId.isValid(rentId)) {
       return res.status(400).json({ success: false, message: 'Invalid tenant / tenancy ID' });
     }
 
-    const rent = await Rent.findById(rentId)
-      .populate('tenants', 'firstName lastName email phoneNumber name address createdAt')
-      .populate('propertyId')
-      .populate('ownerId', 'firstName lastName email phoneNumber name');
+    let rent = null;
+    if (mongoose.Types.ObjectId.isValid(rentId)) {
+      rent = await Rent.findById(rentId)
+        .populate('tenants', 'firstName lastName email phoneNumber name address createdAt')
+        .populate('propertyId')
+        .populate('ownerId', 'firstName lastName email phoneNumber name');
+    }
 
     if (!rent || rent.isDeleted) {
-      return res.status(404).json({ success: false, message: 'Tenancy record not found' });
+      // Check if ID is a Request (buyer record)
+      const purchaseReq = await Request.findById(rentId)
+        .populate('tenantId', 'firstName lastName email phoneNumber name address createdAt')
+        .populate('propertyId')
+        .populate('ownerId', 'firstName lastName email phoneNumber name')
+        .populate('messages.senderId', 'firstName lastName email role');
+
+      if (!purchaseReq || purchaseReq.isDeleted) {
+        return res.status(404).json({ success: false, message: 'Client / tenancy record not found' });
+      }
+
+      const property = purchaseReq.propertyId;
+      const isOwner = purchaseReq.ownerId?._id?.toString() === userId.toString() ||
+                      property?.ownerUserId?.toString() === userId.toString() ||
+                      property?.owner?.toString() === userId.toString();
+
+      if (!isOwner) {
+        return res.status(403).json({ success: false, message: 'Not authorized to access this client record' });
+      }
+
+      const buyerUser = purchaseReq.tenantId;
+
+      // Fetch Payments
+      const payments = await Payment.find({
+        $or: [
+          { requestId: purchaseReq._id },
+          { propertyId: property?._id, payerId: buyerUser?._id },
+          { propertyId: property?._id, userId: buyerUser?._id }
+        ]
+      }).sort({ createdAt: -1 });
+
+      const verifiedPayments = payments.filter(p => p.status === 'completed');
+      const verifiedPaid = verifiedPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+
+      const agreedPrice = Number(
+        property?.pricing?.sale ||
+        property?.previousSalePricing?.salePrice ||
+        purchaseReq.offer?.offeredPrice ||
+        (property?.listingType === 'For Sale' ? property?.price : 0) ||
+        purchaseReq.offer?.advanceAmount ||
+        purchaseReq.advancePayment?.amount ||
+        0
+      );
+
+      const remainingBalance = Math.max(0, agreedPrice - verifiedPaid);
+
+      let purchaseStatus;
+      const rawStatus = (purchaseReq.status || '').trim();
+      const isSold = property?.status === 'Sold' || rawStatus.toLowerCase() === 'completed' || rawStatus.toLowerCase() === 'paid/completed';
+
+      if (isSold) {
+        purchaseStatus = 'Completed';
+      } else if (verifiedPaid >= agreedPrice && agreedPrice > 0) {
+        purchaseStatus = 'Fully Paid';
+      } else if (verifiedPaid > 0 || rawStatus.toLowerCase() === 'advancepaid') {
+        purchaseStatus = 'Advance Paid';
+      } else if (rawStatus.toLowerCase() === 'approved' || rawStatus.toLowerCase() === 'approved – pay advance') {
+        purchaseStatus = 'Approved';
+      } else {
+        purchaseStatus = rawStatus || 'Under Review';
+      }
+
+      const notices = await Notice.find({
+        ownerId: userId,
+        $or: [
+          { 'recipients.tenantId': buyerUser?._id },
+          { recipientType: 'property_all', propertyId: property?._id }
+        ]
+      }).sort({ createdAt: -1 });
+
+      const unreadMessagesCount = computeUnreadMessagesCount(purchaseReq.messages, userId);
+
+      return res.status(200).json({
+        success: true,
+        clientType: 'buyer',
+        tenant: {
+          _id: purchaseReq._id,
+          rentId: null,
+          requestId: purchaseReq._id,
+          requestHumanId: purchaseReq.requestId || `REQ-${purchaseReq._id.toString().slice(-6)}`,
+          clientType: 'buyer',
+          unreadMessagesCount,
+          messagesCount: purchaseReq.messages?.length || 0,
+          user: buyerUser,
+          property: property,
+          term: {
+            type: 'purchase',
+            startDate: purchaseReq.offer?.acceptedAt || purchaseReq.createdAt,
+            agreementDate: purchaseReq.offer?.acceptedAt || purchaseReq.createdAt
+          },
+          rent: {
+            amount: agreedPrice,
+            currency: 'BDT'
+          },
+          purchaseData: {
+            agreedPrice,
+            advancePaid: verifiedPaid,
+            remainingBalance,
+            purchaseStatus,
+            deedStatus: isSold ? 'Transferred' : 'Pending Conveyance',
+            advancePayment: purchaseReq.advancePayment,
+            offer: purchaseReq.offer,
+            payload: purchaseReq.payload,
+            timeline: purchaseReq.timeline
+          },
+          securityDeposit: { amount: 0, held: 0 },
+          moveOut: null,
+          leaseStatus: purchaseStatus,
+          notes: purchaseReq.offer?.specialTerms || '',
+          history: purchaseReq.timeline || []
+        },
+        financialSummary: {
+          totalBilled: agreedPrice,
+          totalPaid: verifiedPaid,
+          balanceDue: remainingBalance,
+          currency: 'BDT',
+          paymentRate: agreedPrice > 0 ? Math.round((verifiedPaid / agreedPrice) * 100) : 100
+        },
+        invoices: [],
+        payments,
+        notices
+      });
     }
 
     // Check ownership
@@ -310,16 +758,47 @@ const getTenantDetails = async (req, res) => {
     let balanceDue = 0;
 
     invoices.forEach(inv => {
+      if (inv.status === 'void') return;
       totalBilled += (inv.total || 0);
       totalPaid += (inv.paidAmount || 0);
       const bal = inv.balance !== undefined ? inv.balance : ((inv.total || 0) - (inv.paidAmount || 0));
       if (bal > 0) balanceDue += bal;
     });
 
+    // Resolve linked Request for application conversation
+    let matchingRequest = null;
+    if (rent.requestId) {
+      matchingRequest = await Request.findById(rent.requestId)
+        .populate('messages.senderId', 'firstName lastName email role');
+    }
+    if (!matchingRequest) {
+      matchingRequest = await Request.findOne({
+        $or: [
+          { rentId: rent._id },
+          { propertyId: property._id, tenantId: tenantUser?._id }
+        ]
+      })
+        .populate('messages.senderId', 'firstName lastName email role')
+        .sort({ createdAt: -1 });
+
+      if (matchingRequest && !rent.requestId) {
+        rent.requestId = matchingRequest._id;
+        await rent.save().catch(() => {});
+      }
+    }
+
+    const unreadMessagesCount = matchingRequest
+      ? computeUnreadMessagesCount(matchingRequest.messages, userId)
+      : 0;
+
     return res.status(200).json({
       success: true,
       tenant: {
         rentId: rent._id,
+        requestId: matchingRequest ? matchingRequest._id : (rent.requestId || null),
+        requestHumanId: matchingRequest ? matchingRequest.requestId : null,
+        unreadMessagesCount,
+        messagesCount: matchingRequest?.messages?.length || 0,
         user: tenantUser,
         property: property,
         term: rent.term,
@@ -344,7 +823,7 @@ const getTenantDetails = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Error fetching tenant details:', error);
+    console.error('[ERROR] Error fetching tenant details:', error);
     return res.status(500).json({
       success: false,
       message: 'Failed to retrieve tenant details',
@@ -372,7 +851,7 @@ const createTenant = async (req, res) => {
  */
 const updateTenant = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = resolveUserId(req.user);
     const rentId = req.params.id;
     const {
       monthlyRent,
@@ -456,7 +935,7 @@ const updateTenant = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Error updating tenant:', error);
+    console.error('[ERROR] Error updating tenant:', error);
     return res.status(500).json({
       success: false,
       message: 'Failed to update tenant details',
@@ -471,7 +950,7 @@ const updateTenant = async (req, res) => {
  */
 const recordManualPayment = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = resolveUserId(req.user);
     const rentId = req.params.id;
     const {
       amount,
@@ -555,6 +1034,14 @@ const recordManualPayment = async (req, res) => {
       await targetInvoice.save();
     }
 
+    // Disallow claiming Stripe payment via manual record
+    if ((paymentMethod || '').toLowerCase() === 'stripe') {
+      return res.status(400).json({
+        success: false,
+        message: 'Manual payment recording cannot claim Stripe. Tenants must complete online payments through Stripe Checkout.'
+      });
+    }
+
     // Create Payment Record
     const paymentId = 'PAY-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6).toUpperCase();
     const newPayment = new Payment({
@@ -564,12 +1051,15 @@ const recordManualPayment = async (req, res) => {
       propertyId: property._id,
       rentId: rent._id,
       invoiceId: targetInvoice._id,
-      paymentType: 'monthly_rent',
-      paymentMethod: paymentMethod || 'cash',
+      type: 'monthly_rent',
+      method: paymentMethod || 'cash',
+      description: referenceNote || `Administrative rent reconciliation for ${property.title || property.address}`,
       amount: numAmount,
       currency: 'BDT',
       status: 'completed',
       metadata: {
+        isAdministrativeReconciliation: true,
+        reconciliationNote: 'Administrative offline reconciliation only. Not an online Stripe transaction.',
         recordedBy: userId,
         recordedAt: new Date(),
         referenceNote: referenceNote || '',
@@ -609,7 +1099,7 @@ const recordManualPayment = async (req, res) => {
         relatedModel: 'Payment'
       });
     } catch (notifErr) {
-      console.warn('⚠️ Could not send payment notification:', notifErr.message);
+      console.warn('[WARN] Could not send payment notification:', notifErr.message);
     }
 
     return res.status(201).json({
@@ -620,7 +1110,7 @@ const recordManualPayment = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Error recording manual payment:', error);
+    console.error('[ERROR] Error recording manual payment:', error);
     return res.status(500).json({
       success: false,
       message: 'Failed to record payment',
@@ -635,7 +1125,7 @@ const recordManualPayment = async (req, res) => {
  */
 const getOwnerNotices = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = resolveUserId(req.user);
     const { propertyId, status, noticeType } = req.query;
 
     const query = { ownerId: userId };
@@ -660,7 +1150,7 @@ const getOwnerNotices = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Error fetching owner notices:', error);
+    console.error('[ERROR] Error fetching owner notices:', error);
     return res.status(500).json({
       success: false,
       message: 'Failed to retrieve notices',
@@ -675,7 +1165,7 @@ const getOwnerNotices = async (req, res) => {
  */
 const createOrSendNotice = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = resolveUserId(req.user);
     const {
       noticeType,
       recipientType,
@@ -818,7 +1308,7 @@ const createOrSendNotice = async (req, res) => {
           inAppDelivered = true;
           notifId = notif._id;
         } catch (nErr) {
-          console.warn(`⚠️ Could not create in-app notification for ${target.tenantEmail}:`, nErr.message);
+          console.warn(`[WARN] Could not create in-app notification for ${target.tenantEmail}:`, nErr.message);
         }
 
         // 2. Resend Email Delivery
@@ -903,7 +1393,7 @@ const createOrSendNotice = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Error creating/sending notice:', error);
+    console.error('[ERROR] Error creating/sending notice:', error);
     return res.status(500).json({
       success: false,
       message: 'Failed to process notice',
@@ -918,7 +1408,7 @@ const createOrSendNotice = async (req, res) => {
  */
 const getNoticeDetails = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = resolveUserId(req.user);
     const noticeId = req.params.id;
 
     const notice = await Notice.findOne({ _id: noticeId, ownerId: userId })
@@ -935,7 +1425,7 @@ const getNoticeDetails = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Error fetching notice details:', error);
+    console.error('[ERROR] Error fetching notice details:', error);
     return res.status(500).json({
       success: false,
       message: 'Failed to retrieve notice details',
@@ -950,9 +1440,16 @@ const getNoticeDetails = async (req, res) => {
  */
 const submitMoveOutNotice = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = resolveUserId(req.user);
     const { rentId } = req.params;
-    const { intendedMoveOutDate, reason, forwardingAddress } = req.body;
+    const {
+      intendedMoveOutDate,
+      reason,
+      forwardingPhone,
+      forwardingEmail,
+      forwardingAddress,
+      remarks
+    } = req.body;
 
     if (!intendedMoveOutDate) {
       return res.status(400).json({ success: false, message: 'Intended move-out date is required' });
@@ -976,44 +1473,80 @@ const submitMoveOutNotice = async (req, res) => {
       return res.status(400).json({ success: false, message: `Cannot submit move-out notice for tenancy with status "${rent.status}"` });
     }
 
-    const targetDate = new Date(intendedMoveOutDate);
-    const now = new Date();
-    const diffTime = targetDate.getTime() - now.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    // Prevent duplicate submission if an active move-out notice is already pending
+    if (rent.moveOut?.noticeSubmitted && rent.moveOut?.status && !['none', 'Completed'].includes(rent.moveOut.status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'A move-out notice is already active for this tenancy. Please coordinate with your property owner.',
+        moveOut: rent.moveOut
+      });
+    }
 
-    if (diffDays < 1) {
+    const now = new Date();
+    const targetDate = new Date(intendedMoveOutDate);
+    const compliance = evaluateNoticeCompliance(now, targetDate, rent.term);
+
+    if (compliance.diffDays < 1) {
       return res.status(400).json({ success: false, message: 'Move-out date must be in the future' });
     }
 
-    const requiredNotice = rent.term?.noticeDays || 60;
-    const meetsRequirement = diffDays >= requiredNotice;
+    rent.moveOut = rent.moveOut || {};
+    rent.moveOut.noticeSubmitted = true;
+    rent.moveOut.status = 'Notice Submitted';
+    rent.moveOut.noticeDate = now;
+    rent.moveOut.intendedMoveOutDate = targetDate;
+    rent.moveOut.earliestCompliantDate = compliance.earliestCompliantDate;
+    rent.moveOut.requiredNotice = compliance.requiredNoticeLabel;
+    rent.moveOut.noticeDaysGiven = compliance.noticeDaysGiven;
+    rent.moveOut.noticeMonthsGiven = compliance.noticeMonthsGiven;
+    rent.moveOut.meetsRequirement = compliance.meetsRequirement;
+    rent.moveOut.isShorterNotice = compliance.isShorterNotice;
+    rent.moveOut.shortNoticeExplanation = compliance.shortNoticeExplanation;
+    rent.moveOut.reason = reason ? reason.trim() : 'End of lease / Tenant requested relocation';
+    rent.moveOut.forwardingPhone = forwardingPhone ? forwardingPhone.trim() : '';
+    rent.moveOut.forwardingEmail = forwardingEmail ? forwardingEmail.trim() : '';
+    rent.moveOut.forwardingAddress = forwardingAddress ? forwardingAddress.trim() : '';
+    rent.moveOut.remarks = remarks ? remarks.trim() : '';
+    rent.moveOut.ownerAcknowledged = false;
+    rent.moveOut.settlementCompleted = false;
 
-    rent.moveOut = {
-      noticeSubmitted: true,
-      noticeDate: now,
-      intendedMoveOutDate: targetDate,
-      noticeDaysGiven: diffDays,
-      meetsRequirement,
-      reason: reason || 'End of lease / Tenant requested relocation',
-      forwardingAddress: forwardingAddress || '',
-      ownerAcknowledged: false,
-      settlementCompleted: false
-    };
+    if (!rent.moveOut.history) rent.moveOut.history = [];
+    rent.moveOut.history.push({
+      status: 'Notice Submitted',
+      action: compliance.isShorterNotice
+        ? 'Notice submitted (shorter than standard term, subject to owner review)'
+        : 'Formal move-out notice submitted (compliant)',
+      timestamp: now,
+      actorRole: 'Tenant',
+      actorId: userId,
+      note: reason || remarks || 'Tenant submitted formal notice to vacate'
+    });
+
+    if (!rent.history) rent.history = [];
+    rent.history.push({
+      event: 'Move-Out Notice Submitted',
+      status: rent.status,
+      timestamp: now,
+      note: `Tenant submitted move-out notice for ${targetDate.toLocaleDateString()}. Notice: ${compliance.noticeDaysGiven} days (${compliance.meetsRequirement ? 'Compliant' : 'Short notice'}).`,
+      updatedBy: userId
+    });
 
     await rent.save();
 
-    // Create Notification for Owner
+    // Notify Owner (idempotent notification)
     try {
       const tenantUser = await User.findById(userId);
-      const tenantName = tenantUser ? `${tenantUser.firstName} ${tenantUser.lastName}` : 'Tenant';
+      const tenantName = tenantUser ? `${tenantUser.firstName} ${tenantUser.lastName}`.trim() : 'Tenant';
+      const ownerTargetId = rent.ownerId._id || rent.ownerId;
+      
       await Notification.create({
-        userId: rent.ownerId._id || rent.ownerId,
-        title: `[Move-Out Notice] ${rent.propertyId?.title || 'Property'}`,
-        message: `${tenantName} has submitted a move-out notice for ${targetDate.toLocaleDateString()} (${diffDays} days notice provided; ${meetsRequirement ? 'meets standard 60-day requirement' : 'below standard 60-day requirement'}).`,
+        userId: ownerTargetId,
+        title: `[Move-Out Notice] ${rent.propertyId?.title || 'Property Unit'}`,
+        message: `${tenantName} has submitted a move-out notice for ${targetDate.toLocaleDateString()} (${compliance.noticeDaysGiven} days notice; ${compliance.meetsRequirement ? 'meets notice term' : 'shorter notice requested'}).`,
         type: 'general'
       });
     } catch (notifErr) {
-      console.warn('Notification warning:', notifErr.message);
+      console.warn('Owner notification warning:', notifErr.message);
     }
 
     return res.status(200).json({
@@ -1034,7 +1567,7 @@ const submitMoveOutNotice = async (req, res) => {
  */
 const acknowledgeMoveOut = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = resolveUserId(req.user);
     const { rentId } = req.params;
     const { handoverScheduledDate, notes } = req.body;
 
@@ -1058,14 +1591,40 @@ const acknowledgeMoveOut = async (req, res) => {
       return res.status(400).json({ success: false, message: 'No move-out notice has been submitted for this tenancy' });
     }
 
+    const now = new Date();
     rent.moveOut.ownerAcknowledged = true;
-    rent.moveOut.acknowledgedAt = new Date();
+    rent.moveOut.acknowledgedAt = now;
     if (handoverScheduledDate) {
       rent.moveOut.handoverScheduledDate = new Date(handoverScheduledDate);
+      rent.moveOut.status = 'Inspection Scheduled';
+    } else {
+      rent.moveOut.status = 'Owner Acknowledged';
     }
     if (notes) {
+      rent.moveOut.acknowledgmentNotes = notes;
       rent.moveOut.handoverNotes = notes;
     }
+
+    if (!rent.moveOut.history) rent.moveOut.history = [];
+    rent.moveOut.history.push({
+      status: rent.moveOut.status,
+      action: handoverScheduledDate
+        ? `Owner acknowledged notice & scheduled inspection for ${new Date(handoverScheduledDate).toLocaleDateString()}`
+        : 'Owner acknowledged move-out notice',
+      timestamp: now,
+      actorRole: 'Owner',
+      actorId: userId,
+      note: notes || 'Owner acknowledged move-out'
+    });
+
+    if (!rent.history) rent.history = [];
+    rent.history.push({
+      event: 'Move-Out Notice Acknowledged',
+      status: rent.status,
+      timestamp: now,
+      note: `Owner acknowledged move-out notice.${handoverScheduledDate ? ` Inspection scheduled for ${new Date(handoverScheduledDate).toLocaleDateString()}` : ''}`,
+      updatedBy: userId
+    });
 
     await rent.save();
 
@@ -1100,7 +1659,7 @@ const acknowledgeMoveOut = async (req, res) => {
  */
 const recordHandover = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = resolveUserId(req.user);
     const { rentId } = req.params;
     const { handoverCompletedDate, handoverNotes } = req.body;
 
@@ -1116,11 +1675,32 @@ const recordHandover = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
+    const now = new Date();
     rent.moveOut = rent.moveOut || {};
-    rent.moveOut.handoverCompletedDate = handoverCompletedDate ? new Date(handoverCompletedDate) : new Date();
+    rent.moveOut.handoverCompletedDate = handoverCompletedDate ? new Date(handoverCompletedDate) : now;
     if (handoverNotes) {
       rent.moveOut.handoverNotes = handoverNotes;
     }
+    rent.moveOut.status = 'Handover Completed';
+
+    if (!rent.moveOut.history) rent.moveOut.history = [];
+    rent.moveOut.history.push({
+      status: 'Handover Completed',
+      action: 'Property walkthrough and key handover completed',
+      timestamp: now,
+      actorRole: 'Owner',
+      actorId: userId,
+      note: handoverNotes || 'Handover inspection completed'
+    });
+
+    if (!rent.history) rent.history = [];
+    rent.history.push({
+      event: 'Handover Completed',
+      status: rent.status,
+      timestamp: now,
+      note: 'Property walkthrough and key return completed. Proceeding to deposit settlement.',
+      updatedBy: userId
+    });
 
     await rent.save();
 
@@ -1141,7 +1721,7 @@ const recordHandover = async (req, res) => {
  */
 const settleDepositAndTerminate = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = resolveUserId(req.user);
     const { rentId } = req.params;
     const {
       deductions = [],
@@ -1170,6 +1750,20 @@ const settleDepositAndTerminate = async (req, res) => {
 
     const depositHeld = Number(rent.securityDeposit?.amount || 0);
 
+    // Reconcile outstanding unpaid invoices for this rent
+    let unpaidInvoices = [];
+    try {
+      unpaidInvoices = (await Invoice.find({
+        rentId: rent._id,
+        status: { $in: ['unpaid', 'overdue', 'pending'] }
+      })) || [];
+    } catch (e) {
+      unpaidInvoices = [];
+    }
+    const outstandingInvoicesTotal = Array.isArray(unpaidInvoices)
+      ? unpaidInvoices.reduce((sum, inv) => sum + (Number(inv.amount) || 0), 0)
+      : 0;
+
     // Calculate deductions
     let parsedDeductions = [];
     let totalDeductions = 0;
@@ -1177,13 +1771,44 @@ const settleDepositAndTerminate = async (req, res) => {
       parsedDeductions = deductions.map(d => ({
         description: d.description || 'Deduction',
         amount: Number(d.amount || 0),
-        date: d.date ? new Date(d.date) : new Date()
+        reason: d.reason || d.category || 'General',
+        deductedAt: d.date ? new Date(d.date) : new Date(),
+        deductedBy: userId
       }));
       totalDeductions = parsedDeductions.reduce((sum, d) => sum + d.amount, 0);
     }
 
     const netRefundable = Math.max(0, depositHeld - totalDeductions);
-    const parsedRefund = Number(refundAmount || 0);
+    const parsedRefund = Number(refundAmount !== undefined ? refundAmount : netRefundable);
+
+    let stripeRefundId = '';
+
+    // Handle Stripe Refund if method is Stripe
+    if (method && method.toLowerCase().includes('stripe')) {
+      try {
+        const originalPayment = await Payment.findOne({
+          $or: [
+            { requestId: rent.requestId, purpose: { $in: ['RENTAL_ADVANCE', 'SECURITY_DEPOSIT'] } },
+            { rentId: rent._id, purpose: { $in: ['RENTAL_ADVANCE', 'SECURITY_DEPOSIT'] } }
+          ],
+          status: 'completed'
+        });
+
+        if (originalPayment && (originalPayment.stripeDetails?.paymentIntentId || originalPayment.externalRef)) {
+          const refundResult = await StripePaymentService.processRefund({
+            paymentId: originalPayment._id,
+            amount: parsedRefund,
+            reason: 'requested_by_customer',
+            requestingUserId: userId
+          });
+          stripeRefundId = refundResult.refundId || '';
+        } else {
+          console.warn('No active Stripe charge found for original advance payment. Recording as verified manual refund.');
+        }
+      } catch (stripeErr) {
+        console.warn('Stripe refund execution warning (recording refund details):', stripeErr.message);
+      }
+    }
 
     rent.securityDeposit = rent.securityDeposit || {};
     rent.securityDeposit.deductions = parsedDeductions;
@@ -1204,23 +1829,59 @@ const settleDepositAndTerminate = async (req, res) => {
       }
       rent.securityDeposit.refundTransactions.push({
         amount: parsedRefund,
-        method,
-        transactionRef,
+        method: stripeRefundId ? 'Stripe Online Refund' : method,
+        transactionRef: stripeRefundId || transactionRef || `REF-${Date.now()}`,
         refundedAt: new Date(),
-        note,
+        note: note || (stripeRefundId ? `Stripe Refund ID: ${stripeRefundId}` : ''),
         processedBy: userId
       });
     }
 
+    const now = new Date();
     rent.moveOut = rent.moveOut || {};
     rent.moveOut.settlementCompleted = true;
-    rent.moveOut.settlementDate = new Date();
+    rent.moveOut.settlementDate = now;
+    rent.moveOut.status = 'Completed';
+    rent.moveOut.refundStatus = rent.securityDeposit.refundStatus;
+    rent.moveOut.refundStatement = {
+      originalDeposit: depositHeld,
+      reconciledInvoicesAmount: outstandingInvoicesTotal,
+      totalDeductions,
+      refundEligibleAmount: netRefundable,
+      actualRefundedAmount: parsedRefund,
+      refundMethod: stripeRefundId ? 'Stripe Online Refund' : method,
+      stripeRefundId,
+      transactionRef: stripeRefundId || transactionRef || `REF-${Date.now()}`,
+      itemizedDeductions: parsedDeductions,
+      preparedAt: now,
+      completedAt: now,
+      note
+    };
 
-    // Terminate tenancy and release property
+    if (!rent.moveOut.history) rent.moveOut.history = [];
+    rent.moveOut.history.push({
+      status: 'Completed',
+      action: 'Deposit settlement reconciled and refund issued',
+      timestamp: now,
+      actorRole: 'Owner',
+      actorId: userId,
+      note: `Original: ৳${depositHeld.toLocaleString()}, Deductions: ৳${totalDeductions.toLocaleString()}, Refunded: ৳${parsedRefund.toLocaleString()}`
+    });
+
+    if (!rent.history) rent.history = [];
+    rent.history.push({
+      event: 'Deposit Settled & Tenancy Ended',
+      status: terminateTenancy ? 'Ended' : rent.status,
+      timestamp: now,
+      note: `Deposit settlement complete: ৳${parsedRefund.toLocaleString()} refunded.`,
+      updatedBy: userId
+    });
+
+    // Terminate tenancy and release property ONLY IF terminateTenancy is true
     if (terminateTenancy) {
       rent.status = 'Ended';
       rent.term = rent.term || {};
-      rent.term.actualEndDate = new Date();
+      rent.term.actualEndDate = now;
 
       if (property) {
         property.status = 'Available';
@@ -1233,7 +1894,7 @@ const settleDepositAndTerminate = async (req, res) => {
         property.stateHistory.push({
           state: 'Available',
           status: 'Available',
-          timestamp: new Date(),
+          timestamp: now,
           note: `Tenancy ${rentId} concluded and deposit settled. Property returned to Available.`,
           updatedBy: userId
         });
@@ -1248,7 +1909,7 @@ const settleDepositAndTerminate = async (req, res) => {
             linkedRequest.timeline.push({
               event: 'Tenancy Concluded',
               actor: userId,
-              timestamp: new Date(),
+              timestamp: now,
               note: `Tenancy ended. Deposit settlement: ৳${depositHeld.toLocaleString()} original, ৳${totalDeductions.toLocaleString()} deductions, ৳${parsedRefund.toLocaleString()} refunded.`
             });
             await linkedRequest.save();
@@ -1279,10 +1940,61 @@ const settleDepositAndTerminate = async (req, res) => {
       success: true,
       message: 'Deposit settled and tenancy concluded successfully. Property released back to Available.',
       rent,
-      property
+      property,
+      refundStatement: rent.moveOut.refundStatement
     });
   } catch (error) {
     console.error('Error settling deposit and terminating tenancy:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * 13. Owner or mutual agreement amendment (e.g. updating notice requirement from 30 to 60 days)
+ * PATCH /api/owner/tenancy/:rentId/amend-terms
+ */
+const amendTenancyTerms = async (req, res) => {
+  try {
+    const userId = resolveUserId(req.user);
+    const { rentId } = req.params;
+    const { noticeDays, noticePeriodMonths, amendmentNote } = req.body;
+
+    const rent = await Rent.findById(rentId).populate('propertyId');
+    if (!rent) {
+      return res.status(404).json({ success: false, message: 'Tenancy record not found' });
+    }
+
+    const isOwner = rent.ownerId.toString() === userId.toString() ||
+                    rent.propertyId?.ownerUserId?.toString() === userId.toString();
+    if (!isOwner) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    rent.term = rent.term || {};
+    if (noticeDays !== undefined) rent.term.noticeDays = Number(noticeDays);
+    if (noticePeriodMonths !== undefined) {
+      rent.term.noticePeriodMonths = Number(noticePeriodMonths);
+      rent.term.noticePeriodUnit = 'months';
+    }
+
+    if (!rent.history) rent.history = [];
+    rent.history.push({
+      event: 'Terms Amended',
+      status: rent.status,
+      timestamp: new Date(),
+      note: amendmentNote || `Notice period amended to ${rent.term.noticePeriodMonths || 2} calendar months (${rent.term.noticeDays} days).`,
+      updatedBy: userId
+    });
+
+    await rent.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Tenancy agreement terms amended successfully',
+      term: rent.term
+    });
+  } catch (error) {
+    console.error('Error amending terms:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -1293,7 +2005,7 @@ const settleDepositAndTerminate = async (req, res) => {
  */
 const getMyTenancy = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = resolveUserId(req.user);
 
     const rent = await Rent.findOne({
       tenants: userId,
@@ -1337,5 +2049,6 @@ module.exports = {
   acknowledgeMoveOut,
   recordHandover,
   settleDepositAndTerminate,
+  amendTenancyTerms,
   getMyTenancy
 };

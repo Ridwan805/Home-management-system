@@ -37,6 +37,15 @@ const createRequest = async (req, res) => {
     
     const { propertyId, requestType, payload, consent } = req.body;
     const tenantId = req.user.userId;
+
+    // Feature Flag Guard: Temporarily disable property purchase workflow
+    const { isPropertySalesEnabled } = require('../utils/featureFlags');
+    if (!isPropertySalesEnabled() && (requestType === 'Buy' || requestType === 'Purchase')) {
+      return res.status(403).json({
+        message: 'Property purchase functionality is temporarily disabled. Only rental applications are currently accepted.',
+        code: 'SALES_DISABLED'
+      });
+    }
     
     // Parse JSON strings from FormData
     const parsedPayload = typeof payload === 'string' ? JSON.parse(payload) : payload;
@@ -94,33 +103,40 @@ const createRequest = async (req, res) => {
       }
     }
     
-    // Handle uploaded identity documents
+    // Handle uploaded identity and supporting documents
     const identityFiles = {};
     if (req.files) {
-      // Map specific file fields to identity document URLs
       if (req.files.nidFile && req.files.nidFile[0]) {
-        // Convert file path to URL format
         const relativePath = req.files.nidFile[0].path.replace(/\\/g, '/').replace('tenant_pics/', '');
         identityFiles.nidFileUrl = `/tenant_pics/${relativePath}`;
       }
       if (req.files.tinFile && req.files.tinFile[0]) {
-        // Convert file path to URL format
         const relativePath = req.files.tinFile[0].path.replace(/\\/g, '/').replace('tenant_pics/', '');
         identityFiles.tinFileUrl = `/tenant_pics/${relativePath}`;
       }
       if (req.files.personalPhoto && req.files.personalPhoto[0]) {
-        // Convert file path to URL format
         const relativePath = req.files.personalPhoto[0].path.replace(/\\/g, '/').replace('tenant_pics/', '');
         identityFiles.personalPhotoUrl = `/tenant_pics/${relativePath}`;
+      }
+      if (req.files.supportingDoc && req.files.supportingDoc[0]) {
+        const relativePath = req.files.supportingDoc[0].path.replace(/\\/g, '/').replace('tenant_pics/', '');
+        identityFiles.supportingDocUrl = `/tenant_pics/${relativePath}`;
+      }
+      if (req.files.tradeLicense && req.files.tradeLicense[0]) {
+        const relativePath = req.files.tradeLicense[0].path.replace(/\\/g, '/').replace('tenant_pics/', '');
+        identityFiles.tinFileUrl = identityFiles.tinFileUrl || `/tenant_pics/${relativePath}`;
       }
     }
     
     // Validate required identity documents
-    if (!identityFiles.nidFileUrl) {
-      return res.status(400).json({ message: 'NID card file is required' });
+    const hasNid = identityFiles.nidFileUrl || parsedPayload.identity?.nidFileUrl;
+    if (!hasNid) {
+      return res.status(400).json({ message: 'National ID / Identification document is required' });
     }
-    if (!identityFiles.personalPhotoUrl) {
-      return res.status(400).json({ message: 'Personal photo is required' });
+    const isOrgBuyer = requestType === 'Buy' && parsedPayload.buyerInfo?.buyerType === 'organizational';
+    const hasPhoto = identityFiles.personalPhotoUrl || parsedPayload.identity?.personalPhotoUrl;
+    if (!isOrgBuyer && !hasPhoto) {
+      return res.status(400).json({ message: 'Personal photograph is required' });
     }
 
     // Validate property exists and get owner info
@@ -134,6 +150,33 @@ const createRequest = async (req, res) => {
 
     if (property.isDeleted) {
       return res.status(400).json({ message: 'Property is no longer available' });
+    }
+
+    // Guard against conflicting commitments on the same property unit
+    const activeRent = await Rent.findOne({
+      propertyId: property._id,
+      status: 'Active',
+      isDeleted: { $ne: true }
+    });
+    if (activeRent || property.status === 'Rented') {
+      return res.status(400).json({
+        message: 'This property unit already has an active tenancy commitment and cannot accept new applications.',
+        code: 'UNIT_COMMITTED'
+      });
+    }
+
+    if (requestType === 'Rent') {
+      const activeSale = await Request.findOne({
+        propertyId: property._id,
+        requestType: 'Buy',
+        status: { $in: ['Confirmed for Sale', 'Paid/Completed', 'Completed'] }
+      });
+      if (activeSale) {
+        return res.status(400).json({
+          message: 'This property unit has a confirmed sale commitment and is not open for rental applications.',
+          code: 'UNIT_COMMITTED'
+        });
+      }
     }
 
     // Check if property is available for the request type
@@ -188,7 +231,7 @@ const createRequest = async (req, res) => {
       });
     }
 
-    // Create new request with unified inquiry form data
+    // Create new request with unified inquiry form data (DwellSync 2.0 dual workflow + legacy compatibility)
     const newRequest = new Request({
       propertyId,
       ownerId: ownerId,
@@ -196,18 +239,32 @@ const createRequest = async (req, res) => {
       requestType,
       payload: {
         familyMembers: parsedPayload.familyMembers || [],
-        belongings: parsedPayload.belongings || {},
-        occupation: parsedPayload.occupation || {},
+        belongings: parsedPayload.belongings || parsedPayload.livingRequirements || {},
+        occupation: parsedPayload.occupation || (parsedPayload.employmentAffordability ? {
+          employmentType: parsedPayload.employmentAffordability.employmentStatus || '',
+          role: parsedPayload.employmentAffordability.jobRole || '',
+          yearsOfExperience: 0,
+          companyName: parsedPayload.employmentAffordability.employerName || ''
+        } : {}),
         identity: {
           ...(parsedPayload.identity || {}),
           ...identityFiles
         },
-        financials: parsedPayload.financials || {},
-        letterToOwner: parsedPayload.letterToOwner || ''
+        financials: parsedPayload.financials || (parsedPayload.employmentAffordability ? {
+          monthlyIncome: Number(parsedPayload.employmentAffordability.monthlyIncome) || 0,
+          additionalIncome: Number(parsedPayload.employmentAffordability.additionalIncome) || 0
+        } : {}),
+        letterToOwner: parsedPayload.letterToOwner || parsedPayload.messageToOwner || '',
+        messageToOwner: parsedPayload.messageToOwner || parsedPayload.letterToOwner || '',
+        rentDetails: parsedPayload.rentDetails || {},
+        purchaseProposal: parsedPayload.purchaseProposal || {},
+        buyerInfo: parsedPayload.buyerInfo || {},
+        livingRequirements: parsedPayload.livingRequirements || {},
+        employmentAffordability: parsedPayload.employmentAffordability || {}
       },
       consent: {
         agreed: parsedConsent.agreed || false,
-        version: parsedConsent.version || 'v1.0',
+        version: parsedConsent.version || 'v2.0',
         timestamp: new Date(),
         ipAddress: req.ip || req.connection.remoteAddress,
         userAgent: req.get('User-Agent')

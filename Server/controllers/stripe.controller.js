@@ -1239,10 +1239,10 @@ const createInvoicePaymentSession = async (req, res) => {
 const verifyPaymentSession = async (req, res) => {
   try {
     const { sessionId } = req.params;
-    const session = await stripePaymentService.verifySession(sessionId);
+    const result = await stripePaymentService.verifySession(sessionId);
     res.status(200).json({
       success: true,
-      session
+      ...result
     });
   } catch (error) {
     console.error('Error verifying session:', error);
@@ -1256,19 +1256,24 @@ const getPaymentStatus = async (req, res) => {
     if (!sessionId) {
       return res.status(400).json({ success: false, message: 'Session ID is required' });
     }
-    const payment = await Payment.findOne({ stripeSessionId: sessionId });
-    if (payment) {
+    const payment = await Payment.findOne({
+      $or: [
+        { stripeSessionId: sessionId },
+        { 'stripeDetails.sessionId': sessionId }
+      ]
+    });
+    if (payment && ['completed', 'paid', 'succeeded'].includes(payment.status)) {
       return res.status(200).json({
         success: true,
-        paymentStatus: payment.paymentStatus || payment.status,
+        paymentStatus: 'completed',
         payment
       });
     }
-    const session = await stripePaymentService.verifySession(sessionId);
+    const result = await stripePaymentService.verifySession(sessionId);
     res.status(200).json({
       success: true,
-      paymentStatus: session.payment_status === 'paid' ? 'completed' : 'pending',
-      session
+      paymentStatus: result.status === 'paid' ? 'completed' : result.status,
+      session: result.session
     });
   } catch (error) {
     console.error('Error getting payment status:', error);

@@ -32,7 +32,11 @@ class PDFService {
     let isOwner = isPayee;
     if (!isOwner && invoice.propertyId) {
       const prop = await Property.findById(invoice.propertyId._id || invoice.propertyId);
-      if (prop && prop.ownerUserId?.toString() === requestingUserId?.toString()) {
+      if (prop && (
+        prop.ownerUserId?.toString() === requestingUserId?.toString() ||
+        prop.ownerId?.toString() === requestingUserId?.toString() ||
+        prop.owner?.toString() === requestingUserId?.toString()
+      )) {
         isOwner = true;
       }
     }
@@ -138,7 +142,11 @@ class PDFService {
     if (!isOwner && (payment.propertyId || payment.invoiceId?.propertyId || payment.rentId?.propertyId)) {
       const propRef = payment.propertyId || payment.invoiceId?.propertyId || payment.rentId?.propertyId;
       const prop = await Property.findById(propRef._id || propRef);
-      if (prop && prop.ownerUserId?.toString() === requestingUserId?.toString()) {
+      if (prop && (
+        prop.ownerUserId?.toString() === requestingUserId?.toString() ||
+        prop.ownerId?.toString() === requestingUserId?.toString() ||
+        prop.owner?.toString() === requestingUserId?.toString()
+      )) {
         isOwner = true;
       }
     }

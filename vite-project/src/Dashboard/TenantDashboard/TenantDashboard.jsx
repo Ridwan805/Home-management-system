@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import TenantSidebarNav from './TenantSidebarNav';
@@ -29,14 +29,19 @@ const TenantDashboard = () => {
   const [activeSection, setActiveSection] = useState(section || 'dashboard');
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const navigate = useNavigate();
+  const mainContentRef = useRef(null);
 
-  // Update active section when route parameter changes
+  // Update active section when route parameter changes and reset scroll position to top
   useEffect(() => {
     if (section) {
       setActiveSection(section);
     } else {
       setActiveSection('dashboard');
     }
+    if (mainContentRef.current) {
+      mainContentRef.current.scrollTop = 0;
+    }
+    window.scrollTo(0, 0);
   }, [section]);
 
   // Handle navigation between different sections
@@ -77,7 +82,7 @@ const TenantDashboard = () => {
           </Link>
         </header>
 
-        <main className="tenant-main-content">
+        <main className="tenant-main-content" ref={mainContentRef}>
           <div className="tenant-page-container">
             {activeSection === 'dashboard' && <TenantOverview />}
             {activeSection === 'profile' && <TenantProfile />}

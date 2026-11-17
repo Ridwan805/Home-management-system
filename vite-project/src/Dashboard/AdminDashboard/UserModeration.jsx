@@ -1,12 +1,13 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import axios from 'axios';
 import API from '../../config/api';
 import { 
-  FaUserAlt, FaEnvelope, FaUserShield, FaBan, FaUnlock, FaTrash, 
-  FaEye, FaEdit, FaKey, FaSearch, FaFilter, FaHome, FaFileInvoiceDollar, 
-  FaTools, FaPhone, FaMapMarkerAlt, FaTimes, FaCheck, FaCalendarAlt, FaExchangeAlt
-} from 'react-icons/fa';
+  User, Mail, Phone, MapPin, Calendar, Shield, Ban, Unlock, Trash2, 
+  Eye, Edit, Key, Search, Filter, Home, FileText, 
+  Wrench, ArrowLeftRight, RotateCw, MoreVertical, X, Check, Building2, CheckCircle2, AlertTriangle, Layers
+} from 'lucide-react';
 import { TableSkeleton, PageLoader, ButtonLoader } from '../../components/loading';
+import './adminDashboard.css';
 
 const UserModeration = () => {
   const [users, setUsers] = useState([]);
@@ -19,6 +20,13 @@ const UserModeration = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState('All');
   const [selectedStatus, setSelectedStatus] = useState('All');
+
+  // Selected User for Right-Side Panel
+  const [selectedUser, setSelectedUser] = useState(null);
+
+  // Action Dropdown Menu State
+  const [actionMenuOpenId, setActionMenuOpenId] = useState(null);
+  const dropdownRef = useRef(null);
 
   // Modal States
   const [inspectModalOpen, setInspectModalOpen] = useState(false);
@@ -42,6 +50,38 @@ const UserModeration = () => {
   const [passwordTargetUser, setPasswordTargetUser] = useState(null);
   const [newAdminPassword, setNewAdminPassword] = useState('');
 
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setActionMenuOpenId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Keyboard navigation: Escape key closes active drawer or modal
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (actionMenuOpenId) {
+          setActionMenuOpenId(null);
+        } else if (inspectModalOpen) {
+          setInspectModalOpen(false);
+        } else if (editModalOpen) {
+          setEditModalOpen(false);
+        } else if (passwordModalOpen) {
+          setPasswordModalOpen(false);
+        } else if (selectedUser) {
+          setSelectedUser(null);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [actionMenuOpenId, inspectModalOpen, editModalOpen, passwordModalOpen, selectedUser]);
+
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
@@ -57,7 +97,14 @@ const UserModeration = () => {
       const res = await axios.get(API.getUrl(API.endpoints.adminUsers), {
         headers: { Authorization: `Bearer ${user.token}` },
       });
-      setUsers(res.data);
+      const data = Array.isArray(res.data) ? res.data : [];
+      setUsers(data);
+
+      // Keep selected user in sync with fresh data
+      setSelectedUser((prev) => {
+        if (!prev) return null;
+        return data.find((u) => u._id === prev._id) || null;
+      });
     } catch (err) {
       console.error('Error fetching users:', err);
       setError('Failed to load users. Please try again.');
@@ -75,12 +122,13 @@ const UserModeration = () => {
     setTimeout(() => setActionSuccess(null), 3500);
   };
 
-  // Inspect full user activity dossier
+  // Inspect full user activity dossier modal
   const handleInspectUser = async (userId) => {
     try {
       setLoadingActivity(true);
       setInspectModalOpen(true);
       setActiveActivityTab('overview');
+      setActionMenuOpenId(null);
       const user = JSON.parse(localStorage.getItem('dwellSyncUser') || '{}');
       
       const res = await axios.get(API.getUrl(API.endpoints.adminUserActivity(userId)), {
@@ -98,6 +146,7 @@ const UserModeration = () => {
   // Open Edit Profile modal
   const handleOpenEdit = (user) => {
     setEditingUser(user);
+    setActionMenuOpenId(null);
     setEditFormData({
       firstName: user.firstName || '',
       lastName: user.lastName || '',
@@ -124,9 +173,13 @@ const UserModeration = () => {
         { headers: { Authorization: `Bearer ${user.token}` } }
       );
 
-      setUsers(users.map(u => u._id === editingUser._id ? { ...u, ...res.data.user } : u));
+      const updatedUser = { ...editingUser, ...res.data.user };
+      setUsers(users.map(u => u._id === editingUser._id ? updatedUser : u));
+      if (selectedUser?._id === editingUser._id) {
+        setSelectedUser(updatedUser);
+      }
       setEditModalOpen(false);
-      showNotification(`Profile for ${editFormData.name} updated successfully!`);
+      showNotification(`Profile for ${editFormData.name || editFormData.firstName} updated successfully!`);
     } catch (err) {
       console.error('Error saving user edit:', err);
       alert('Failed to update user profile: ' + (err.response?.data?.message || err.message));
@@ -138,6 +191,7 @@ const UserModeration = () => {
   // Open Reset Password modal
   const handleOpenPasswordReset = (user) => {
     setPasswordTargetUser(user);
+    setActionMenuOpenId(null);
     setNewAdminPassword('');
     setPasswordModalOpen(true);
   };
@@ -168,7 +222,8 @@ const UserModeration = () => {
 
   // Ban User
   const handleBanUser = async (id, userName) => {
-    if (!window.confirm(`Are you sure you want to ban user "${userName}"?`)) return;
+    setActionMenuOpenId(null);
+    if (!window.confirm(`Are you sure you want to suspend/ban user "${userName}"?`)) return;
     try {
       setActionInProgress(true);
       const user = JSON.parse(localStorage.getItem('dwellSyncUser') || '{}');
@@ -177,10 +232,13 @@ const UserModeration = () => {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       setUsers(users.map(u => u._id === id ? { ...u, isBanned: true } : u));
-      showNotification(`User "${userName}" has been banned.`);
+      if (selectedUser?._id === id) {
+        setSelectedUser(prev => prev ? { ...prev, isBanned: true } : null);
+      }
+      showNotification(`User "${userName}" has been suspended.`);
     } catch (err) {
       console.error('Error banning user:', err);
-      setError('Failed to ban user.');
+      setError('Failed to suspend user.');
     } finally {
       setActionInProgress(false);
     }
@@ -188,6 +246,7 @@ const UserModeration = () => {
 
   // Unban User
   const handleUnbanUser = async (id, userName) => {
+    setActionMenuOpenId(null);
     try {
       setActionInProgress(true);
       const user = JSON.parse(localStorage.getItem('dwellSyncUser') || '{}');
@@ -196,10 +255,13 @@ const UserModeration = () => {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       setUsers(users.map(u => u._id === id ? { ...u, isBanned: false } : u));
-      showNotification(`User "${userName}" has been unbanned.`);
+      if (selectedUser?._id === id) {
+        setSelectedUser(prev => prev ? { ...prev, isBanned: false } : null);
+      }
+      showNotification(`User "${userName}" has been reactivated.`);
     } catch (err) {
       console.error('Error unbanning user:', err);
-      setError('Failed to unban user.');
+      setError('Failed to reactivate user.');
     } finally {
       setActionInProgress(false);
     }
@@ -207,7 +269,8 @@ const UserModeration = () => {
 
   // Delete User
   const handleDeleteUser = async (id, userName) => {
-    if (!window.confirm(`⚠️ DANGER: Permanently delete user "${userName}" and all their properties, rents, and reports? This cannot be undone.`)) {
+    setActionMenuOpenId(null);
+    if (!window.confirm(`DANGER: Permanently delete user "${userName}" and associated database records? This action cannot be undone.`)) {
       return;
     }
     try {
@@ -218,6 +281,9 @@ const UserModeration = () => {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       setUsers(users.filter(u => u._id !== id));
+      if (selectedUser?._id === id) {
+        setSelectedUser(null);
+      }
       showNotification(`User "${userName}" was permanently deleted.`);
     } catch (err) {
       console.error('Error deleting user:', err);
@@ -251,227 +317,870 @@ const UserModeration = () => {
   const totalGuards = users.filter(u => u.role === 'Security Guard').length;
   const totalBanned = users.filter(u => u.isBanned).length;
 
+  const getUserInitials = (u) => {
+    if (u.firstName && u.lastName) {
+      return `${u.firstName[0]}${u.lastName[0]}`.toUpperCase();
+    }
+    return (u.name || u.email || 'U').substring(0, 2).toUpperCase();
+  };
+
+  const getRoleBadgeClass = (role) => {
+    const r = (role || '').toLowerCase().replace(/\s+/g, '-');
+    if (r === 'owner') return 'role-owner';
+    if (r === 'tenant') return 'role-tenant';
+    if (r.includes('guard')) return 'role-guard';
+    if (r === 'admin') return 'role-admin';
+    return 'role-default';
+  };
+
   return (
-    <div className="user-moderation">
-      <div className="moderation-header">
-        <div>
-          <h2>User Command Center & Activity Control</h2>
-          <p className="moderation-subtitle">
-            Inspect live activities, manage user permissions, and control accounts across the platform.
-          </p>
-        </div>
-        <button className="refresh-btn" onClick={fetchUsers} disabled={loading}>
-          ↻ Refresh Users
-        </button>
-      </div>
-
-      {actionSuccess && (
-        <div className="success-banner">
-          <FaCheck /> {actionSuccess}
-        </div>
-      )}
-
-      {/* Quick Summary Counter Cards */}
-      <div className="user-stats-strip">
-        <div className="stat-pill">
-          <span className="stat-label">Total Users</span>
-          <span className="stat-number">{users.length}</span>
-        </div>
-        <div className="stat-pill owner">
-          <span className="stat-label">Owners</span>
-          <span className="stat-number">{totalOwners}</span>
-        </div>
-        <div className="stat-pill tenant">
-          <span className="stat-label">Tenants</span>
-          <span className="stat-number">{totalTenants}</span>
-        </div>
-        <div className="stat-pill guard">
-          <span className="stat-label">Security Guards</span>
-          <span className="stat-number">{totalGuards}</span>
-        </div>
-        <div className="stat-pill banned">
-          <span className="stat-label">Banned</span>
-          <span className="stat-number">{totalBanned}</span>
-        </div>
-      </div>
-
-      {/* Search & Filter Controls */}
-      <div className="moderation-toolbar">
-        <div className="search-box">
-          <FaSearch className="search-icon" />
-          <input 
-            type="text" 
-            placeholder="Search by name, email, phone..." 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          {searchTerm && (
-            <button className="clear-search" onClick={() => setSearchTerm('')}>
-              <FaTimes />
+    <div className="admin-crm-workspace">
+      {/* =====================================================================
+          CENTRAL CONTENT & DIRECTORY PANEL
+          ===================================================================== */}
+      <div className="admin-crm-central-panel">
+        {/* Page Header */}
+        <header className="admin-page-header">
+          <div className="admin-page-title-group">
+            <h1>User Moderation & Directory</h1>
+            <p>Inspect platform accounts, review live tenant/owner activity, and moderate permissions</p>
+          </div>
+          <div className="admin-page-header-actions">
+            <button
+              type="button"
+              className="admin-btn-secondary"
+              onClick={fetchUsers}
+              disabled={loading}
+              title="Refresh users directory"
+            >
+              <RotateCw size={15} className={loading ? 'spin-icon' : ''} />
+              <span>Refresh</span>
             </button>
+          </div>
+        </header>
+
+        {/* Global Feedback Alert */}
+        {actionSuccess && (
+          <div className="admin-feedback-banner success">
+            <div className="feedback-content">
+              <CheckCircle2 size={16} />
+              <span>{actionSuccess}</span>
+            </div>
+            <button
+              type="button"
+              className="feedback-dismiss-btn"
+              onClick={() => setActionSuccess(null)}
+              aria-label="Dismiss feedback"
+            >
+              <X size={15} />
+            </button>
+          </div>
+        )}
+
+        {/* Admin KPI Summary Statistics */}
+        <section className="admin-stats-row">
+          <div
+            className={`admin-stat-card navy ${selectedRole === 'All' ? 'active-filter' : ''}`}
+            onClick={() => { setSelectedRole('All'); setSelectedStatus('All'); }}
+            role="button"
+            tabIndex={0}
+            title="All Registered Users"
+          >
+            <div className="stat-card-icon">
+              <Layers size={20} />
+            </div>
+            <div className="stat-card-body">
+              <span className="stat-card-label">Total Users</span>
+              <span className="stat-card-value">{loading ? '—' : users.length}</span>
+              <span className="stat-card-sub">Platform-wide</span>
+            </div>
+          </div>
+
+          <div
+            className={`admin-stat-card amber ${selectedRole === 'Owner' ? 'active-filter' : ''}`}
+            onClick={() => setSelectedRole('Owner')}
+            role="button"
+            tabIndex={0}
+            title="Filter by Property Owners"
+          >
+            <div className="stat-card-icon">
+              <Building2 size={20} />
+            </div>
+            <div className="stat-card-body">
+              <span className="stat-card-label">Property Owners</span>
+              <span className="stat-card-value">{loading ? '—' : totalOwners}</span>
+              <span className="stat-card-sub">Listing landlords</span>
+            </div>
+          </div>
+
+          <div
+            className={`admin-stat-card emerald ${selectedRole === 'Tenant' ? 'active-filter' : ''}`}
+            onClick={() => setSelectedRole('Tenant')}
+            role="button"
+            tabIndex={0}
+            title="Filter by Tenants"
+          >
+            <div className="stat-card-icon">
+              <User size={20} />
+            </div>
+            <div className="stat-card-body">
+              <span className="stat-card-label">Active Tenants</span>
+              <span className="stat-card-value">{loading ? '—' : totalTenants}</span>
+              <span className="stat-card-sub">Renters & buyers</span>
+            </div>
+          </div>
+
+          <div
+            className={`admin-stat-card blue ${selectedRole === 'Security Guard' ? 'active-filter' : ''}`}
+            onClick={() => setSelectedRole('Security Guard')}
+            role="button"
+            tabIndex={0}
+            title="Filter by Security Guards"
+          >
+            <div className="stat-card-icon">
+              <Shield size={20} />
+            </div>
+            <div className="stat-card-body">
+              <span className="stat-card-label">Security Guards</span>
+              <span className="stat-card-value">{loading ? '—' : totalGuards}</span>
+              <span className="stat-card-sub">Building staff</span>
+            </div>
+          </div>
+
+          <div
+            className={`admin-stat-card rose ${selectedStatus === 'Banned' ? 'active-filter' : ''}`}
+            onClick={() => setSelectedStatus(selectedStatus === 'Banned' ? 'All' : 'Banned')}
+            role="button"
+            tabIndex={0}
+            title="Filter by Suspended Users"
+          >
+            <div className="stat-card-icon">
+              <Ban size={20} />
+            </div>
+            <div className="stat-card-body">
+              <span className="stat-card-label">Suspended</span>
+              <span className="stat-card-value">{loading ? '—' : totalBanned}</span>
+              <span className="stat-card-sub">Access revoked</span>
+            </div>
+          </div>
+        </section>
+
+        {/* Filter & Search Toolbar */}
+        <section className="admin-filters-card">
+          <div className="admin-search-wrap">
+            <Search size={16} className="search-icon" />
+            <input
+              type="text"
+              className="admin-search-input"
+              placeholder="Search by full name, email, username, phone..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                className="search-clear-btn"
+                onClick={() => setSearchTerm('')}
+                aria-label="Clear search"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          <div className="admin-filter-controls">
+            {/* Role Filter */}
+            <div className="filter-group">
+              <select
+                className="admin-select"
+                value={selectedRole}
+                onChange={(e) => setSelectedRole(e.target.value)}
+                aria-label="Filter by role"
+              >
+                <option value="All">All Roles</option>
+                <option value="Owner">Owners</option>
+                <option value="Tenant">Tenants</option>
+                <option value="Security Guard">Security Guards</option>
+                <option value="Service Provider">Service Providers</option>
+                <option value="admin">Administrators</option>
+              </select>
+            </div>
+
+            {/* Status Filter */}
+            <div className="filter-group">
+              <select
+                className="admin-select"
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                aria-label="Filter by account status"
+              >
+                <option value="All">All Statuses</option>
+                <option value="Active">Active Only</option>
+                <option value="Banned">Suspended Only</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        {/* Records Section */}
+        <section className="admin-records-section">
+          {loading ? (
+            <TableSkeleton rows={7} columns={7} />
+          ) : error ? (
+            <div className="admin-error-box">
+              <AlertTriangle size={32} color="#DC2626" />
+              <h3>Unable to Load User Directory</h3>
+              <p>{error}</p>
+              <button type="button" className="admin-btn-primary" onClick={fetchUsers}>
+                <RotateCw size={14} /> Retry
+              </button>
+            </div>
+          ) : filteredUsers.length === 0 ? (
+            <div className="admin-empty-box">
+              <div className="empty-icon-wrap">
+                <User size={36} color="#64748B" />
+              </div>
+              <h3>No Users Found</h3>
+              <p>No user records match your selected search or filter criteria.</p>
+              {(searchTerm || selectedRole !== 'All' || selectedStatus !== 'All') && (
+                <button
+                  type="button"
+                  className="admin-btn-secondary"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setSelectedRole('All');
+                    setSelectedStatus('All');
+                  }}
+                >
+                  Reset Filters
+                </button>
+              )}
+            </div>
+          ) : (
+            <>
+              {/* ================= DESKTOP USER DIRECTORY TABLE ================= */}
+              <div className="admin-table-container">
+                <table className="admin-review-table admin-users-table">
+                  <thead>
+                    <tr>
+                      <th>User</th>
+                      <th>Contact</th>
+                      <th>Role</th>
+                      <th>Status</th>
+                      <th>Activity / Portfolio</th>
+                      <th>Joined</th>
+                      <th style={{ textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredUsers.map((u) => {
+                      const isSelected = selectedUser?._id === u._id;
+                      const fullName = u.firstName && u.lastName ? `${u.firstName} ${u.lastName}` : (u.name || 'Anonymous User');
+                      const initials = getUserInitials(u);
+                      const isDropdownOpen = actionMenuOpenId === u._id;
+
+                      return (
+                        <tr
+                          key={u._id}
+                          className={`admin-table-row ${isSelected ? 'selected' : ''} ${u.isBanned ? 'row-banned' : ''}`}
+                          onClick={() => setSelectedUser(u)}
+                        >
+                          {/* User Avatar & Name */}
+                          <td className="admin-col-user">
+                            <div className="admin-user-cell">
+                              <div className={`admin-user-avatar ${getRoleBadgeClass(u.role)}`}>
+                                <span>{initials}</span>
+                              </div>
+                              <div className="admin-user-identity">
+                                <span className="admin-user-name" title={fullName}>
+                                  {fullName}
+                                </span>
+                                <span className="admin-user-handle">@{u.name || u.email?.split('@')[0]}</span>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Contact Info */}
+                          <td className="admin-col-contact">
+                            <div className="admin-contact-cell">
+                              <span className="contact-line" title={u.email}>
+                                <Mail size={12} className="contact-icon" />
+                                <span>{u.email}</span>
+                              </span>
+                              {u.phoneNumber && (
+                                <span className="contact-line">
+                                  <Phone size={12} className="contact-icon" />
+                                  <span>{u.phoneNumber}</span>
+                                </span>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* Role Badge */}
+                          <td className="admin-col-role">
+                            <span className={`admin-role-pill ${getRoleBadgeClass(u.role)}`}>
+                              {u.role || 'Tenant'}
+                            </span>
+                          </td>
+
+                          {/* Account Status */}
+                          <td className="admin-col-status">
+                            {u.isBanned ? (
+                              <span className="admin-status-pill rejected">
+                                <Ban size={12} />
+                                <span>Suspended</span>
+                              </span>
+                            ) : (
+                              <span className="admin-status-pill approved">
+                                <CheckCircle2 size={12} />
+                                <span>Active</span>
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Activity / Portfolio */}
+                          <td className="admin-col-portfolio">
+                            <div className="admin-portfolio-pills">
+                              {u.role === 'Owner' && (
+                                <span className="portfolio-pill" title="Properties listed">
+                                  <Building2 size={11} /> {u.stats?.properties || 0} Props
+                                </span>
+                              )}
+                              {u.role === 'Tenant' && (
+                                <span className="portfolio-pill" title="Active leases">
+                                  <ArrowLeftRight size={11} /> {u.stats?.rents || 0} Leases
+                                </span>
+                              )}
+                              <span className="portfolio-pill" title="Requests & inquiries">
+                                <Mail size={11} /> {u.stats?.requests || 0} Reqs
+                              </span>
+                              {u.stats?.payments > 0 && (
+                                <span className="portfolio-pill" title="Payment transactions">
+                                  <FileText size={11} /> {u.stats.payments} Pays
+                                </span>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* Joined Date */}
+                          <td className="admin-col-date">
+                            <span className="date-text">
+                              {new Date(u.createdAt || Date.now()).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric'
+                              })}
+                            </span>
+                          </td>
+
+                          {/* Actions Menu */}
+                          <td className="admin-col-actions" onClick={(e) => e.stopPropagation()}>
+                            <div className="admin-user-actions-group">
+                              <button
+                                type="button"
+                                className="admin-btn-action review"
+                                onClick={() => setSelectedUser(u)}
+                                title="Inspect user details"
+                              >
+                                <Eye size={13} />
+                                <span>Activity</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                className="admin-btn-action edit"
+                                onClick={() => handleOpenEdit(u)}
+                                title="Edit user profile"
+                              >
+                                <Edit size={13} />
+                                <span>Edit</span>
+                              </button>
+
+                              {/* Three-dot dropdown menu */}
+                              <div className="admin-dropdown-wrap" ref={isDropdownOpen ? dropdownRef : null}>
+                                <button
+                                  type="button"
+                                  className="admin-btn-action more"
+                                  onClick={() => setActionMenuOpenId(isDropdownOpen ? null : u._id)}
+                                  title="More actions"
+                                  aria-expanded={isDropdownOpen}
+                                >
+                                  <MoreVertical size={14} />
+                                </button>
+
+                                {isDropdownOpen && (
+                                  <div className="admin-actions-dropdown">
+                                    <button
+                                      type="button"
+                                      className="admin-dropdown-item"
+                                      onClick={() => handleInspectUser(u._id)}
+                                    >
+                                      <FileText size={13} />
+                                      <span>View Full Dossier</span>
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      className="admin-dropdown-item"
+                                      onClick={() => handleOpenPasswordReset(u)}
+                                    >
+                                      <Key size={13} />
+                                      <span>Reset Password</span>
+                                    </button>
+
+                                    {u.isBanned ? (
+                                      <button
+                                        type="button"
+                                        className="admin-dropdown-item emerald-item"
+                                        onClick={() => handleUnbanUser(u._id, u.name)}
+                                        disabled={actionInProgress}
+                                      >
+                                        <Unlock size={13} />
+                                        <span>Reactivate Account</span>
+                                      </button>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        className="admin-dropdown-item amber-item"
+                                        onClick={() => handleBanUser(u._id, u.name)}
+                                        disabled={actionInProgress}
+                                      >
+                                        <Ban size={13} />
+                                        <span>Suspend Account</span>
+                                      </button>
+                                    )}
+
+                                    <div className="admin-dropdown-divider" />
+
+                                    <button
+                                      type="button"
+                                      className="admin-dropdown-item danger-item"
+                                      onClick={() => handleDeleteUser(u._id, u.name)}
+                                      disabled={actionInProgress}
+                                    >
+                                      <Trash2 size={13} />
+                                      <span>Delete User</span>
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* ================= RESPONSIVE STACKED CARDS (Tablet & Mobile) ================= */}
+              <div className="admin-stacked-cards-list">
+                {filteredUsers.map((u) => {
+                  const isSelected = selectedUser?._id === u._id;
+                  const fullName = u.firstName && u.lastName ? `${u.firstName} ${u.lastName}` : (u.name || 'Anonymous User');
+                  const initials = getUserInitials(u);
+                  const isDropdownOpen = actionMenuOpenId === `mobile-${u._id}`;
+
+                  return (
+                    <div
+                      key={`stacked-user-${u._id}`}
+                      className={`admin-stacked-card ${isSelected ? 'selected' : ''} ${u.isBanned ? 'row-banned' : ''}`}
+                      onClick={() => setSelectedUser(u)}
+                    >
+                      <div className="stacked-card-main">
+                        <div className={`admin-user-avatar large ${getRoleBadgeClass(u.role)}`}>
+                          <span>{initials}</span>
+                        </div>
+
+                        <div className="stacked-card-info">
+                          <div className="stacked-card-title-row">
+                            <h4 className="stacked-prop-title">{fullName}</h4>
+                            <div className="stacked-badges-cluster">
+                              <span className={`admin-role-pill ${getRoleBadgeClass(u.role)}`}>
+                                {u.role || 'Tenant'}
+                              </span>
+                              {u.isBanned ? (
+                                <span className="admin-status-pill rejected">Suspended</span>
+                              ) : (
+                                <span className="admin-status-pill approved">Active</span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="stacked-user-meta-lines">
+                            <div className="meta-line">
+                              <Mail size={12} className="meta-icon" />
+                              <span>{u.email}</span>
+                            </div>
+                            {u.phoneNumber && (
+                              <div className="meta-line">
+                                <Phone size={12} className="meta-icon" />
+                                <span>{u.phoneNumber}</span>
+                              </div>
+                            )}
+                            <div className="meta-line">
+                              <Calendar size={12} className="meta-icon" />
+                              <span>Joined {new Date(u.createdAt || Date.now()).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+
+                          <div className="stacked-activity-pills-row">
+                            <span className="portfolio-pill">
+                              <Building2 size={11} /> {u.stats?.properties || 0} Props
+                            </span>
+                            <span className="portfolio-pill">
+                              <ArrowLeftRight size={11} /> {u.stats?.rents || 0} Leases
+                            </span>
+                            <span className="portfolio-pill">
+                              <Mail size={11} /> {u.stats?.requests || 0} Reqs
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="stacked-card-actions" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          className="admin-btn-action review"
+                          onClick={() => setSelectedUser(u)}
+                        >
+                          <Eye size={13} />
+                          <span>View Profile</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          className="admin-btn-action edit"
+                          onClick={() => handleOpenEdit(u)}
+                        >
+                          <Edit size={13} />
+                          <span>Edit</span>
+                        </button>
+
+                        <div className="admin-dropdown-wrap" ref={isDropdownOpen ? dropdownRef : null}>
+                          <button
+                            type="button"
+                            className="admin-btn-action more"
+                            onClick={() => setActionMenuOpenId(isDropdownOpen ? null : `mobile-${u._id}`)}
+                          >
+                            <MoreVertical size={14} />
+                          </button>
+
+                          {isDropdownOpen && (
+                            <div className="admin-actions-dropdown">
+                              <button
+                                type="button"
+                                className="admin-dropdown-item"
+                                onClick={() => handleInspectUser(u._id)}
+                              >
+                                <FileText size={13} />
+                                <span>Full Dossier</span>
+                              </button>
+                              <button
+                                type="button"
+                                className="admin-dropdown-item"
+                                onClick={() => handleOpenPasswordReset(u)}
+                              >
+                                <Key size={13} />
+                                <span>Reset Password</span>
+                              </button>
+                              {u.isBanned ? (
+                                <button
+                                  type="button"
+                                  className="admin-dropdown-item emerald-item"
+                                  onClick={() => handleUnbanUser(u._id, u.name)}
+                                >
+                                  <Unlock size={13} />
+                                  <span>Reactivate</span>
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="admin-dropdown-item amber-item"
+                                  onClick={() => handleBanUser(u._id, u.name)}
+                                >
+                                  <Ban size={13} />
+                                  <span>Suspend</span>
+                                </button>
+                              )}
+                              <div className="admin-dropdown-divider" />
+                              <button
+                                type="button"
+                                className="admin-dropdown-item danger-item"
+                                onClick={() => handleDeleteUser(u._id, u.name)}
+                              >
+                                <Trash2 size={13} />
+                                <span>Delete User</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
-        </div>
-
-        <div className="filter-group">
-          <div className="filter-item">
-            <FaFilter className="filter-icon" />
-            <select value={selectedRole} onChange={(e) => setSelectedRole(e.target.value)}>
-              <option value="All">All Roles</option>
-              <option value="Owner">Owners</option>
-              <option value="Tenant">Tenants</option>
-              <option value="Security Guard">Security Guards</option>
-              <option value="Service Provider">Service Providers</option>
-            </select>
-          </div>
-
-          <div className="filter-item">
-            <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)}>
-              <option value="All">All Statuses</option>
-              <option value="Active">Active Only</option>
-              <option value="Banned">Banned Only</option>
-            </select>
-          </div>
-        </div>
+        </section>
       </div>
 
-      {loading ? (
-        <div style={{ padding: '1.25rem 0' }}>
-          <TableSkeleton rows={6} columns={5} />
-        </div>
-      ) : error ? (
-        <div className="error-message">
-          {error}
-          <button className="retry-button" onClick={fetchUsers}>Retry</button>
-        </div>
-      ) : filteredUsers.length === 0 ? (
-        <div className="no-users-box">
-          <FaUserAlt size={36} color="#94a3b8" />
-          <p>No users found matching your filters.</p>
-        </div>
-      ) : (
-        <div className="users-grid">
-          {filteredUsers.map((user) => {
-            const roleClass = (user.role || 'tenant').toLowerCase().replace(/\s+/g, '-');
-            return (
-              <div key={user._id} className={`user-management-card ${user.isBanned ? 'is-banned' : ''}`}>
-                <div className="card-top">
-                  <div className="user-avatar-badge">
-                    {(user.name || user.firstName || 'U').charAt(0).toUpperCase()}
+      {/* =====================================================================
+          RIGHT-SIDE CONTEXTUAL USER INFORMATION PANEL
+          Rendered only when a user is actively selected
+          ===================================================================== */}
+      {selectedUser && (
+        <>
+          {/* Drawer backdrop for tablet/mobile overlays */}
+          <div
+            className="admin-crm-drawer-backdrop"
+            onClick={() => setSelectedUser(null)}
+            aria-hidden="true"
+          />
+
+          <aside className="admin-crm-detail-panel open">
+            {/* Detail Header */}
+            <div className="crm-detail-header">
+              <div className="crm-detail-header-main">
+                <div className="crm-detail-badges-row">
+                  <span className={`admin-role-pill ${getRoleBadgeClass(selectedUser.role)}`}>
+                    {selectedUser.role || 'Tenant'}
+                  </span>
+                  {selectedUser.isBanned ? (
+                    <span className="admin-status-pill rejected">
+                      <Ban size={12} />
+                      <span>Suspended</span>
+                    </span>
+                  ) : (
+                    <span className="admin-status-pill approved">
+                      <CheckCircle2 size={12} />
+                      <span>Active</span>
+                    </span>
+                  )}
+                </div>
+                <h2 className="crm-detail-title">
+                  {selectedUser.firstName && selectedUser.lastName
+                    ? `${selectedUser.firstName} ${selectedUser.lastName}`
+                    : (selectedUser.name || 'Anonymous User')}
+                </h2>
+                <p className="crm-detail-address">
+                  <User size={13} /> @{selectedUser.name || selectedUser.email?.split('@')[0]}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="crm-detail-close-btn"
+                onClick={() => setSelectedUser(null)}
+                aria-label="Close detail panel"
+                title="Close (Esc)"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Scrollable Body */}
+            <div className="crm-detail-body">
+              {/* User Avatar & Headline Card */}
+              <div className="crm-detail-card user-hero-card">
+                <div className="user-hero-top">
+                  <div className={`admin-user-avatar hero-size ${getRoleBadgeClass(selectedUser.role)}`}>
+                    <span>{getUserInitials(selectedUser)}</span>
                   </div>
-                  <div className="user-title-area">
-                    <h3 className="user-fullname" title={user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.name}>
-                      {user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.name}
+                  <div className="user-hero-titles">
+                    <h3>
+                      {selectedUser.firstName && selectedUser.lastName
+                        ? `${selectedUser.firstName} ${selectedUser.lastName}`
+                        : (selectedUser.name || 'Anonymous User')}
                     </h3>
-                    <span className="user-username">@{user.name}</span>
-                  </div>
-                  <div className="user-badges-stack">
-                    <span className={`user-role-pill role-${roleClass}`}>
-                      {user.role}
+                    <span className="user-hero-email">{selectedUser.email}</span>
+                    <span className="user-hero-joined">
+                      Member since {new Date(selectedUser.createdAt || Date.now()).toLocaleDateString('en-US', {
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })}
                     </span>
-                    <span className={`user-status-pill ${user.isBanned ? 'status-banned' : 'status-active'}`}>
-                      {user.isBanned ? 'Banned' : 'Active'}
+                  </div>
+                </div>
+              </div>
+
+              {/* User Profile Key-Values */}
+              <div className="crm-detail-card">
+                <h3 className="crm-card-heading">User Profile Details</h3>
+                <div className="crm-key-value-grid">
+                  <div className="crm-kv-item">
+                    <span className="crm-kv-lbl">Full Name</span>
+                    <span className="crm-kv-val">
+                      {selectedUser.firstName && selectedUser.lastName
+                        ? `${selectedUser.firstName} ${selectedUser.lastName}`
+                        : (selectedUser.name || '—')}
+                    </span>
+                  </div>
+
+                  <div className="crm-kv-item">
+                    <span className="crm-kv-lbl">Username</span>
+                    <span className="crm-kv-val">@{selectedUser.name || '—'}</span>
+                  </div>
+
+                  <div className="crm-kv-item">
+                    <span className="crm-kv-lbl">Email Address</span>
+                    <span className="crm-kv-val text-break">{selectedUser.email || '—'}</span>
+                  </div>
+
+                  <div className="crm-kv-item">
+                    <span className="crm-kv-lbl">Phone Number</span>
+                    <span className="crm-kv-val">{selectedUser.phoneNumber || 'Not provided'}</span>
+                  </div>
+
+                  <div className="crm-kv-item">
+                    <span className="crm-kv-lbl">Residential Address</span>
+                    <span className="crm-kv-val">{selectedUser.address || 'Not provided'}</span>
+                  </div>
+
+                  <div className="crm-kv-item">
+                    <span className="crm-kv-lbl">Account Role</span>
+                    <span className="crm-kv-val">{selectedUser.role || 'Tenant'}</span>
+                  </div>
+
+                  <div className="crm-kv-item">
+                    <span className="crm-kv-lbl">Account Status</span>
+                    <span className={`crm-kv-val ${selectedUser.isBanned ? 'text-danger' : 'text-success'}`}>
+                      {selectedUser.isBanned ? 'Suspended (Access Revoked)' : 'Active & Verified'}
+                    </span>
+                  </div>
+
+                  <div className="crm-kv-item">
+                    <span className="crm-kv-lbl">Registration Date</span>
+                    <span className="crm-kv-val">
+                      {new Date(selectedUser.createdAt || Date.now()).toLocaleString()}
                     </span>
                   </div>
                 </div>
+              </div>
 
-                {/* Contact info */}
-                <div className="user-meta-info">
-                  <div className="meta-line">
-                    <FaEnvelope className="meta-icon" />
-                    <span>{user.email}</span>
+              {/* Live Activity Overview Tiles */}
+              <div className="crm-detail-card">
+                <h3 className="crm-card-heading">Activity Overview</h3>
+                <div className="crm-specs-tiles-grid">
+                  <div className="crm-spec-tile">
+                    <Building2 size={16} className="spec-icon" />
+                    <span className="spec-tile-lbl">Properties</span>
+                    <span className="spec-tile-val">{selectedUser.stats?.properties || 0}</span>
                   </div>
-                  {user.phoneNumber && (
-                    <div className="meta-line">
-                      <FaPhone className="meta-icon" />
-                      <span>{user.phoneNumber}</span>
-                    </div>
-                  )}
-                  {user.address && (
-                    <div className="meta-line">
-                      <FaMapMarkerAlt className="meta-icon" />
-                      <span>{user.address}</span>
-                    </div>
-                  )}
-                  <div className="meta-line">
-                    <FaCalendarAlt className="meta-icon" />
-                    <span>Joined: {new Date(user.createdAt).toLocaleDateString()}</span>
+
+                  <div className="crm-spec-tile">
+                    <ArrowLeftRight size={16} className="spec-icon" />
+                    <span className="spec-tile-lbl">Active Rents</span>
+                    <span className="spec-tile-val">{selectedUser.stats?.rents || 0}</span>
+                  </div>
+
+                  <div className="crm-spec-tile">
+                    <Mail size={16} className="spec-icon" />
+                    <span className="spec-tile-lbl">Requests</span>
+                    <span className="spec-tile-val">{selectedUser.stats?.requests || 0}</span>
+                  </div>
+
+                  <div className="crm-spec-tile">
+                    <FileText size={16} className="spec-icon" />
+                    <span className="spec-tile-lbl">Payments</span>
+                    <span className="spec-tile-val">{selectedUser.stats?.payments || 0}</span>
                   </div>
                 </div>
 
-                {/* Live Activity Counter Badges */}
-                <div className="user-activity-badges">
-                  <div className="activity-badge" title="Properties Owned">
-                    <FaHome /> <span>{user.stats?.properties || 0} Props</span>
-                  </div>
-                  <div className="activity-badge" title="Active Rents / Leases">
-                    <FaExchangeAlt /> <span>{user.stats?.rents || 0} Rents</span>
-                  </div>
-                  <div className="activity-badge" title="Requests">
-                    <FaEnvelope /> <span>{user.stats?.requests || 0} Reqs</span>
-                  </div>
-                  <div className="activity-badge" title="Payments Made">
-                    <FaFileInvoiceDollar /> <span>{user.stats?.payments || 0} Pays</span>
-                  </div>
-                  <div className="activity-badge" title="Maintenance Reports">
-                    <FaTools /> <span>{user.stats?.maintenanceReports || 0} Reports</span>
+                <div className="mt-2" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <div className="crm-spec-tile" style={{ flex: 1, minWidth: '8rem' }}>
+                    <Wrench size={16} className="spec-icon" />
+                    <span className="spec-tile-lbl">Maintenance Reports</span>
+                    <span className="spec-tile-val">{selectedUser.stats?.maintenanceReports || 0}</span>
                   </div>
                 </div>
+              </div>
 
-                {/* Admin Actions Bar */}
-                <div className="card-actions-bar">
-                  <button 
-                    className="action-btn inspect-btn"
-                    onClick={() => handleInspectUser(user._id)}
-                    title="View full user activity dossier"
+              {/* Administrative Actions Section */}
+              <div className="crm-detail-card">
+                <h3 className="crm-card-heading">Administrative Actions</h3>
+                <div className="admin-actions-stack">
+                  <button
+                    type="button"
+                    className="admin-panel-action-btn primary"
+                    onClick={() => handleInspectUser(selectedUser._id)}
                   >
-                    <FaEye /> Activity
+                    <Eye size={15} />
+                    <span>View Complete Activity Dossier</span>
                   </button>
-                  <button 
-                    className="action-btn edit-btn"
-                    onClick={() => handleOpenEdit(user)}
-                    title="Edit profile & role"
+
+                  <button
+                    type="button"
+                    className="admin-panel-action-btn secondary"
+                    onClick={() => handleOpenEdit(selectedUser)}
                   >
-                    <FaEdit /> Edit
+                    <Edit size={15} />
+                    <span>Edit Profile & Role</span>
                   </button>
-                  <button 
-                    className="action-btn pass-btn"
-                    onClick={() => handleOpenPasswordReset(user)}
-                    title="Directly reset password"
+
+                  <button
+                    type="button"
+                    className="admin-panel-action-btn secondary"
+                    onClick={() => handleOpenPasswordReset(selectedUser)}
                   >
-                    <FaKey />
+                    <Key size={15} />
+                    <span>Reset User Password</span>
                   </button>
-                  {user.isBanned ? (
-                    <button 
-                      className="action-btn unban-btn"
-                      onClick={() => handleUnbanUser(user._id, user.name)}
+
+                  {selectedUser.isBanned ? (
+                    <button
+                      type="button"
+                      className="admin-panel-action-btn emerald"
+                      onClick={() => handleUnbanUser(selectedUser._id, selectedUser.name)}
                       disabled={actionInProgress}
-                      title="Restore access"
                     >
-                      <FaUnlock />
+                      <Unlock size={15} />
+                      <span>Reactivate Account Access</span>
                     </button>
                   ) : (
-                    <button 
-                      className="action-btn ban-btn"
-                      onClick={() => handleBanUser(user._id, user.name)}
+                    <button
+                      type="button"
+                      className="admin-panel-action-btn amber"
+                      onClick={() => handleBanUser(selectedUser._id, selectedUser.name)}
                       disabled={actionInProgress}
-                      title="Ban account"
                     >
-                      <FaBan />
+                      <Ban size={15} />
+                      <span>Suspend Account Access</span>
                     </button>
                   )}
-                  <button 
-                    className="action-btn delete-btn"
-                    onClick={() => handleDeleteUser(user._id, user.name)}
+
+                  <button
+                    type="button"
+                    className="admin-panel-action-btn danger"
+                    onClick={() => handleDeleteUser(selectedUser._id, selectedUser.name)}
                     disabled={actionInProgress}
-                    title="Permanently delete user"
                   >
-                    <FaTrash />
+                    <Trash2 size={15} />
+                    <span>Permanently Delete User</span>
                   </button>
                 </div>
               </div>
-            );
-          })}
-        </div>
+            </div>
+
+            {/* Detail Sticky Footer */}
+            <div className="crm-detail-footer">
+              <button
+                type="button"
+                className="admin-btn-secondary"
+                onClick={() => setSelectedUser(null)}
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                className="admin-btn-primary"
+                onClick={() => handleInspectUser(selectedUser._id)}
+              >
+                <Eye size={14} /> Full Dossier
+              </button>
+            </div>
+          </aside>
+        </>
       )}
 
       {/* ========================================================= */}
@@ -490,7 +1199,7 @@ const UserModeration = () => {
                 )}
               </div>
               <button className="close-modal-btn" onClick={() => setInspectModalOpen(false)}>
-                <FaTimes />
+                <X size={16} />
               </button>
             </div>
 
@@ -555,7 +1264,7 @@ const UserModeration = () => {
                         <p><strong>Phone:</strong> {selectedUserActivity.user.phoneNumber || 'Not provided'}</p>
                         <p><strong>Address:</strong> {selectedUserActivity.user.address || 'Not provided'}</p>
                         <p><strong>Account Role:</strong> <span className="badge">{selectedUserActivity.user.role}</span></p>
-                        <p><strong>Account Status:</strong> {selectedUserActivity.user.isBanned ? '🚫 Banned' : '✅ Active'}</p>
+                        <p><strong>Account Status:</strong> {selectedUserActivity.user.isBanned ? 'Banned' : 'Active'}</p>
                         <p><strong>Registered On:</strong> {new Date(selectedUserActivity.user.createdAt).toLocaleString()}</p>
                       </div>
 
@@ -588,8 +1297,8 @@ const UserModeration = () => {
                               <h5>{p.title}</h5>
                               <span className={`status-pill status-${(p.status || '').toLowerCase()}`}>{p.status}</span>
                             </div>
-                            <p className="item-sub">📍 {p.address}, {p.city}</p>
-                            <p className="item-sub">💰 Rent: ${p.rent} / month | Type: {p.type} | Created: {new Date(p.createdAt).toLocaleDateString()}</p>
+                            <p className="item-sub">Address: {p.address}, {p.city}</p>
+                            <p className="item-sub">Rent: ৳{p.rent} / month | Type: {p.type} | Created: {new Date(p.createdAt).toLocaleDateString()}</p>
                           </div>
                         ))}
                       </div>
@@ -610,8 +1319,8 @@ const UserModeration = () => {
                               <h5>Lease Agreement #{r._id.slice(-6)}</h5>
                               <span className="status-pill status-active">{r.status || 'Active'}</span>
                             </div>
-                            <p className="item-sub">🏠 Property: {r.propertyId?.title || r.propertyId?.address || 'Assigned Property'}</p>
-                            <p className="item-sub">💵 Rent Amount: ${r.rentAmount} | Due Date: Day {r.dueDate || 1}</p>
+                            <p className="item-sub">Property: {r.propertyId?.title || r.propertyId?.address || 'Assigned Property'}</p>
+                            <p className="item-sub">Rent Amount: ৳{r.rentAmount} | Due Date: Day {r.dueDate || 1}</p>
                           </div>
                         ))}
                       </div>
@@ -632,7 +1341,7 @@ const UserModeration = () => {
                               <h5>Payment: ${pm.amount}</h5>
                               <span className={`status-pill status-${(pm.status || '').toLowerCase()}`}>{pm.status}</span>
                             </div>
-                            <p className="item-sub">💳 Method: {pm.paymentMethod || 'Stripe'} | Date: {new Date(pm.createdAt).toLocaleString()}</p>
+                            <p className="item-sub">Method: {pm.paymentMethod || 'Stripe'} | Date: {new Date(pm.createdAt).toLocaleString()}</p>
                           </div>
                         ))}
                       </div>
@@ -698,7 +1407,7 @@ const UserModeration = () => {
             <div className="modal-header">
               <h3>Edit User: {editingUser?.name}</h3>
               <button className="close-modal-btn" onClick={() => setEditModalOpen(false)}>
-                <FaTimes />
+                <X size={16} />
               </button>
             </div>
             <form onSubmit={handleSaveEdit} className="admin-modal-form">
@@ -744,7 +1453,7 @@ const UserModeration = () => {
 
               <div className="form-row-2">
                 <div className="modal-field">
-                  <label>User Role</label>
+                  <label>Role</label>
                   <select 
                     value={editFormData.role} 
                     onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value })}
@@ -808,11 +1517,11 @@ const UserModeration = () => {
             <div className="modal-header">
               <h3>Reset Password: {passwordTargetUser?.name}</h3>
               <button className="close-modal-btn" onClick={() => setPasswordModalOpen(false)}>
-                <FaTimes />
+                <X size={16} />
               </button>
             </div>
             <form onSubmit={handleSavePasswordReset} className="admin-modal-form">
-              <p style={{ color: '#64748b', fontSize: '0.9rem', margin: '0 0 1rem 0' }}>
+              <p style={{ color: '#64748b', fontSize: '0.875rem', margin: '0 0 1rem 0' }}>
                 Enter a new password for <strong>{passwordTargetUser?.email}</strong>. The user can immediately log in with this new password.
               </p>
               <div className="modal-field">

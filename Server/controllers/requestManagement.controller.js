@@ -9,6 +9,7 @@ const NotificationService = require('../services/notificationService');
 const { sendMessageNotificationEmail } = require('../services/emailService');
 const InvoiceService = require('../services/invoiceService');
 const stripePaymentService = require('../services/stripePaymentService');
+const socketService = require('../services/socketService');
 
 /**
  * Helper to calculate unread message count for a specific participant
@@ -560,17 +561,25 @@ const addMessage = async (req, res) => {
       : (isTenant ? 'Applicant' : 'Property Owner');
     const propertyTitle = request.propertyId?.title || request.propertyId?.address || 'Property Application';
 
-    // 1. In-App Notification
+    // 1. In-App Notification & Real-Time Socket Broadcast
     try {
       if (recipientId) {
+        const actionUrl = isTenant ? '/request-info' : '/tenant/house-info';
         await NotificationService.createNotification({
           userId: recipientId,
+          recipientId,
+          recipientRole: isTenant ? 'Owner' : 'Tenant',
+          senderId: userId,
           title: isTenant ? `Message from ${senderName}` : `Message from Owner: ${senderName}`,
           message: sanitizedMessage.length > 100 ? `${sanitizedMessage.substring(0, 97)}...` : sanitizedMessage,
           type: 'message',
-          relatedId: request._id,
-          relatedModel: 'Request'
+          relatedEntityType: 'Request',
+          relatedEntityId: request._id,
+          actionUrl
         });
+
+        const recipientUnreadCount = computeUnreadMessagesCount(request.messages, recipientId);
+        socketService.emitNewMessage(recipientId, request._id, newMessage, recipientUnreadCount);
       }
     } catch (notifErr) {
       console.warn('⚠️ In-app notification warning:', notifErr.message);
@@ -662,9 +671,15 @@ const markMessagesAsRead = async (req, res) => {
     // Also mark in-app message notifications for this request as read
     try {
       await Notification.updateMany(
-        { userId, relatedId: request._id, isRead: false },
+        { $or: [{ recipientId: userId }, { userId }], relatedEntityId: request._id, isRead: false },
         { isRead: true, readAt: new Date() }
       );
+      const unreadCount = await Notification.countDocuments({
+        $or: [{ recipientId: userId }, { userId }],
+        isRead: false
+      });
+      socketService.emitUnreadCount(userId, unreadCount);
+      socketService.emitMessagesRead(userId, request._id);
     } catch (notifErr) {
       console.warn('⚠️ Could not update in-app notifications on message read:', notifErr.message);
     }
@@ -992,6 +1007,24 @@ const approveRequest = async (req, res) => {
     });
     await property.save();
 
+    // Notify tenant of application approval & advance payment requirement
+    try {
+      const tenantRecipientId = request.tenantId?._id || request.tenantId;
+      await NotificationService.createNotification({
+        recipientId: tenantRecipientId,
+        recipientRole: 'Tenant',
+        senderId: userId,
+        type: 'request_status',
+        title: `Application Approved: ${property.title || property.address || 'Property'}`,
+        message: `Your application has been approved! Please complete the advance deposit of ৳${Number(request.offer?.advancePaymentAmount || request.advancePayment?.amount || 0).toLocaleString()} by ${new Date(paymentDeadline).toLocaleDateString()}.`,
+        relatedEntityType: 'Request',
+        relatedEntityId: request._id,
+        actionUrl: '/tenant/request-info'
+      });
+    } catch (notifErr) {
+      console.warn('⚠️ Notification error on approval:', notifErr.message);
+    }
+
     return res.status(200).json({
       success: true,
       message: 'Application approved and formal offer issued. Unit temporarily reserved until payment deadline. Tenancy will activate upon verified advance payment.',
@@ -1210,6 +1243,24 @@ const rejectRequest = async (req, res) => {
     });
     
     await request.save();
+
+    // Notify tenant of application rejection
+    try {
+      const tenantRecipientId = request.tenantId?._id || request.tenantId;
+      await NotificationService.createNotification({
+        recipientId: tenantRecipientId,
+        recipientRole: 'Tenant',
+        senderId: userId,
+        type: 'request_status',
+        title: `Application Update: ${property?.title || property?.address || 'Property'}`,
+        message: `Your application was not approved. Note: ${reason ? reason.trim() : 'Application rejected by property owner.'}`,
+        relatedEntityType: 'Request',
+        relatedEntityId: request._id,
+        actionUrl: '/tenant/request-info'
+      });
+    } catch (notifErr) {
+      console.warn('⚠️ Notification error on rejection:', notifErr.message);
+    }
     
     res.status(200).json({
       success: true,

@@ -177,6 +177,15 @@ const PropertySchema = new mongoose.Schema({
       estimatedCost: { type: Number, min: 0 }
     }
   },
+
+  // Historical sale pricing preserved upon conversion to rental
+  previousSalePricing: {
+    salePrice: { type: Number, min: 0 },
+    deposit: { type: Number, min: 0 },
+    convertedAt: { type: Date },
+    convertedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    originalListingType: { type: String, default: 'For Sale' }
+  },
   
   // Note: price field is now a virtual field, defined after schema
   
@@ -210,6 +219,13 @@ const PropertySchema = new mongoose.Schema({
     enum: PROPERTY_STATUSES, 
     default: 'Available',
     required: true
+  },
+  
+  // Rejection reason when rejected by admin moderation
+  rejectionReason: {
+    type: String,
+    trim: true,
+    default: null
   },
   
   // Listing information

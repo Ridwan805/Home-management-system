@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FaBuilding } from 'react-icons/fa';
 import './Navbar.css';
 import { AuthContext } from '../../App';
+import { isPropertySalesEnabled } from '../../config/features';
 
 const Navbar = () => {
   const location = useLocation();
@@ -107,14 +108,16 @@ const Navbar = () => {
               Properties
             </button>
           </li>
-          <li>
-            <button
-              onClick={() => navigate('/properties?listingType=For%20Sale')}
-              className={`nav-link ${isBuyActive ? 'active' : ''}`}
-            >
-              Buy
-            </button>
-          </li>
+          {isPropertySalesEnabled() && (
+            <li>
+              <button
+                onClick={() => navigate('/properties?listingType=For%20Sale')}
+                className={`nav-link ${isBuyActive ? 'active' : ''}`}
+              >
+                Buy
+              </button>
+            </li>
+          )}
           <li>
             <button
               onClick={() => navigate('/properties?listingType=For%20Rent')}

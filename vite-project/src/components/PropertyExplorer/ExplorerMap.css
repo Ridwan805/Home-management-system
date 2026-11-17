@@ -206,3 +206,13 @@
   color: #1E293B;
   border: 1px solid #94A3B8;
 }
+
+/* Ensure Leaflet controls and popup buttons never inherit oval padding */
+.explorer-map-container .leaflet-control-zoom a,
+.explorer-map-container .leaflet-popup-close-button {
+  padding: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

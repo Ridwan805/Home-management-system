@@ -88,10 +88,14 @@ const createInvoice = async (req, res) => {
     const invoiceNo = `INV-${Date.now()}-${(invoiceCount + 1).toString().padStart(4, '0')}`;
 
     // Calculate totals
-    const subtotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
-    const totalDiscounts = discounts || 0;
-    const totalFees = fees || 0;
-    const totalTax = tax || 0;
+    const subtotal = lineItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+    const totalDiscounts = Array.isArray(discounts) 
+      ? discounts.reduce((sum, d) => sum + (Number(d.amount) || 0), 0)
+      : (Number(discounts) || 0);
+    const totalFees = Array.isArray(fees)
+      ? fees.reduce((sum, f) => sum + (Number(f.amount) || 0), 0)
+      : (Number(fees) || 0);
+    const totalTax = Number(tax) || 0;
     const total = subtotal - totalDiscounts + totalFees + totalTax;
 
     // Create invoice
@@ -101,6 +105,7 @@ const createInvoice = async (req, res) => {
       ownershipTransferId,
       propertyId: property._id,
       billTo,
+      billFrom: userId,
       issuedAt: new Date(),
       dueDate: dueDate ? new Date(dueDate) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days default
       period: period ? {
@@ -110,19 +115,19 @@ const createInvoice = async (req, res) => {
       lineItems: lineItems.map(item => ({
         type: item.type,
         description: item.description,
-        amount: item.amount,
+        amount: Number(item.amount),
         quantity: item.quantity || 1,
         unitPrice: item.unitPrice || item.amount
       })),
       subtotal,
-      discounts: totalDiscounts,
-      fees: totalFees,
+      discounts: Array.isArray(discounts) ? discounts : [],
+      fees: Array.isArray(fees) ? fees : [],
       tax: totalTax,
       total,
       paidAmount: 0,
       balance: total,
       status: 'open',
-      auto: auto || { generated: false, source: null }
+      auto: auto || { generated: false, source: 'manual' }
     });
 
     await newInvoice.save();
@@ -229,8 +234,7 @@ const getInvoiceById = async (req, res) => {
       .populate('propertyId')
       .populate('billTo', 'firstName lastName email')
       .populate('rentId')
-      .populate('ownershipTransferId')
-      .populate('history.actor', 'firstName lastName');
+      .populate('ownershipTransferId');
 
     if (!invoice) {
       return res.status(404).json({ 
@@ -240,9 +244,13 @@ const getInvoiceById = async (req, res) => {
     }
 
     // Check authorization
-    const isBillTo = invoice.billTo._id.toString() === userId;
-    const isPropertyOwner = invoice.propertyId.ownerUserId?.toString() === userId;
-    const isAdmin = userRole === 'Admin';
+    const isBillTo = invoice.billTo?._id?.toString() === userId || invoice.billTo?.toString() === userId;
+    const isBillFrom = invoice.billFrom?._id?.toString() === userId || invoice.billFrom?.toString() === userId;
+    const isPropertyOwner = invoice.propertyId?.ownerUserId?.toString() === userId ||
+                            invoice.propertyId?.ownerId?.toString() === userId ||
+                            invoice.propertyId?.owner?.toString() === userId ||
+                            isBillFrom;
+    const isAdmin = (userRole || '').toLowerCase() === 'admin';
 
     if (!isBillTo && !isPropertyOwner && !isAdmin) {
       return res.status(403).json({ 

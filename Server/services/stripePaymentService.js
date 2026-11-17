@@ -260,6 +260,32 @@ class StripePaymentService {
       throw err;
     }
 
+    // Existing open Stripe session reuse & duplicate charge protection
+    if (payment.stripeDetails?.sessionId) {
+      try {
+        const existingSession = await stripe.checkout.sessions.retrieve(payment.stripeDetails.sessionId);
+        if (existingSession.payment_status === 'paid') {
+          console.log(`♻️ Found already paid Stripe session ${existingSession.id}, resolving payment...`);
+          await this.handlePaymentSuccess(existingSession);
+          return {
+            success: true,
+            alreadyPaid: true,
+            message: 'This invoice has already been paid and verified in Stripe.'
+          };
+        } else if (existingSession.status === 'open' && existingSession.url) {
+          console.log(`♻️ Reusing open active Stripe Checkout session: ${existingSession.id}`);
+          return {
+            success: true,
+            sessionId: existingSession.id,
+            url: existingSession.url,
+            reused: true
+          };
+        }
+      } catch (sessCheckErr) {
+        console.warn('⚠️ Could not check existing session with Stripe:', sessCheckErr.message);
+      }
+    }
+
     // 4. Offer Deadline Verification if applicable
     if (requestId) {
       const request = await Request.findById(requestId);
@@ -466,6 +492,26 @@ class StripePaymentService {
       }
       await invoice.save();
       console.log(`✅ Invoice #${invoice.invoiceNo} marked paid`);
+
+      // Update Rent outstanding balance if linked
+      if (invoice.rentId || payment?.rentId) {
+        const rentId = invoice.rentId || payment.rentId;
+        try {
+          const rent = await Rent.findById(rentId);
+          if (rent) {
+            const currentBal = Number(rent.outstandingBalance) || 0;
+            const deduction = Number(payment?.amount || invoice.total) || 0;
+            rent.outstandingBalance = Math.max(0, currentBal - deduction);
+            if (purpose === PAYMENT_PURPOSES.RENTAL_ADVANCE) {
+              rent.advancePaymentVerified = true;
+            }
+            await rent.save();
+            console.log(`🏠 Updated Rent ${rent._id} outstanding balance to ৳${rent.outstandingBalance}`);
+          }
+        } catch (rentErr) {
+          console.warn('⚠️ Could not update rent balance:', rentErr.message);
+        }
+      }
     }
 
     // 3. Purpose-specific workflow execution
@@ -485,6 +531,59 @@ class StripePaymentService {
     }
 
     return { success: true };
+  }
+
+  /**
+   * Authoritatively verifies a Stripe session with Stripe API and reconciles database
+   */
+  async verifySession(sessionId) {
+    if (!sessionId) {
+      throw new Error('Session ID is required for verification');
+    }
+
+    const stripe = this.getClient();
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+    if (session.payment_status === 'paid') {
+      console.log(`🔍 [VERIFY SESSION] Session ${sessionId} confirmed paid by Stripe. Processing reconciliation...`);
+      await this.handlePaymentSuccess(session);
+      return {
+        verified: true,
+        status: 'paid',
+        paymentStatus: 'completed',
+        session
+      };
+    } else if (session.status === 'expired') {
+      const payment = await Payment.findOne({
+        $or: [
+          { stripeSessionId: sessionId },
+          { 'stripeDetails.sessionId': sessionId }
+        ],
+        status: 'processing'
+      });
+      if (payment) {
+        payment.status = 'expired';
+        payment.history.push({
+          status: 'expired',
+          timestamp: new Date(),
+          note: 'Stripe checkout session expired'
+        });
+        await payment.save();
+      }
+      return {
+        verified: false,
+        status: 'expired',
+        paymentStatus: 'expired',
+        session
+      };
+    }
+
+    return {
+      verified: false,
+      status: session.status,
+      paymentStatus: session.payment_status,
+      session
+    };
   }
 
   /**
@@ -544,7 +643,9 @@ class StripePaymentService {
             type: 'fixed',
             startDate,
             endDate,
-            noticeDays
+            noticeDays: noticeDays || 60,
+            noticePeriodMonths: request.offer?.noticePeriodMonths || 2,
+            noticePeriodUnit: 'months'
           },
           rent: {
             amount: rentAmount,
@@ -674,20 +775,37 @@ class StripePaymentService {
     const prop = invoice?.propertyId || payment.propertyId;
     const propTitle = prop?.displayName || prop?.title || 'Your Residence';
 
-    // Send in-app notification
+    // Send in-app notification to tenant & owner
     try {
-      await NotificationService.sendNotification({
+      const notify = (NotificationService.sendNotification || NotificationService.createNotification).bind(NotificationService);
+      await notify({
         userId: payer._id,
-        type: 'payment_success',
+        recipientId: payer._id,
+        recipientRole: 'Tenant',
+        type: 'payment',
         title: 'Payment Confirmed',
         message: `Your payment of ৳${payment.amount?.toLocaleString()} for ${payment.paymentPurpose?.replace(/_/g, ' ') || 'Invoice'} was confirmed.`,
-        data: {
-          paymentId: payment._id,
-          invoiceId: invoice?._id,
-          amount: payment.amount,
-          currency: payment.currency
-        }
+        relatedEntityType: 'Payment',
+        relatedEntityId: payment._id,
+        actionUrl: '/tenant/payment'
       });
+
+      // Find owner of property or payee
+      const ownerId = payment.payeeId || payment.receiverId || prop?.ownerUserId || prop?.ownerId || prop?.owner;
+      if (ownerId && ownerId.toString() !== payer._id.toString()) {
+        await notify({
+          userId: ownerId,
+          recipientId: ownerId,
+          recipientRole: 'Owner',
+          senderId: payer._id,
+          type: 'payment',
+          title: 'Payment Received',
+          message: `Payment of ৳${payment.amount?.toLocaleString()} received from ${payer.firstName || 'tenant'} for ${propTitle}.`,
+          relatedEntityType: 'Payment',
+          relatedEntityId: payment._id,
+          actionUrl: '/payments'
+        });
+      }
     } catch (e) {
       console.warn('In-app notification error:', e.message);
     }

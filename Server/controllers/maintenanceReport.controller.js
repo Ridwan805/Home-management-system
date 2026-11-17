@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const MaintenanceReport = require('../models/MaintenanceReport');
 const Property = require('../models/Property');
 const User = require('../models/User');
+const NotificationService = require('../services/notificationService');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -163,6 +164,26 @@ const createMaintenanceReport = async (req, res) => {
     });
 
     await maintenanceReport.save();
+
+    // Notify owner of new maintenance report
+    try {
+      const ownerRecipientId = property.ownerUserId?._id || property.ownerUserId || property.owner;
+      if (ownerRecipientId) {
+        await NotificationService.createNotification({
+          recipientId: ownerRecipientId,
+          recipientRole: 'Owner',
+          senderId: req.user.userId,
+          type: 'maintenance',
+          title: `Maintenance Request: ${title}`,
+          message: `Tenant reported: ${description ? (description.length > 90 ? description.substring(0, 87) + '...' : description) : title} for ${property.address || 'your property'}.`,
+          relatedEntityType: 'MaintenanceReport',
+          relatedEntityId: maintenanceReport._id,
+          actionUrl: '/maintenance-reports'
+        });
+      }
+    } catch (notifErr) {
+      console.warn('⚠️ Maintenance notification error:', notifErr.message);
+    }
 
     // Populate the response with related data
     const populatedReport = await MaintenanceReport.findById(maintenanceReport._id)
@@ -412,6 +433,25 @@ const resolveReport = async (req, res) => {
     }
 
     await report.resolve(req.user.userId, resolutionNotes, actualCost);
+
+    // Notify tenant of maintenance resolution
+    try {
+      if (report.reporterId) {
+        await NotificationService.createNotification({
+          recipientId: report.reporterId,
+          recipientRole: 'Tenant',
+          senderId: req.user.userId,
+          type: 'maintenance',
+          title: `Maintenance Report Resolved: ${report.title}`,
+          message: `Your maintenance report has been marked resolved: "${resolutionNotes}".`,
+          relatedEntityType: 'MaintenanceReport',
+          relatedEntityId: report._id,
+          actionUrl: '/tenant/report-problem'
+        });
+      }
+    } catch (notifErr) {
+      console.warn('⚠️ Maintenance resolve notification error:', notifErr.message);
+    }
 
     const resolvedReport = await MaintenanceReport.findById(id)
       .populate('reporterId', 'name email phone')

@@ -37,7 +37,7 @@ router.get('/:id/properties', getBuildingPropertiesByFloor);
 router.get('/:id/summary', getBuildingSummary);
 
 // POST /api/buildings - Create a new building (admin and property owners)
-router.post('/', auth, authorizeRole(['admin', 'property_owner']), createBuilding);
+router.post('/', auth, authorizeRole(['admin', 'property_owner', 'Owner', 'Property Owner']), createBuilding);
 
 // PATCH /api/buildings/:id - Update a building (admin/manager/owner)
 router.patch('/:id', auth, updateBuilding);

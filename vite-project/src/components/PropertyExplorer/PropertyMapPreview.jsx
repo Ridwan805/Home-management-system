@@ -114,11 +114,14 @@ const PropertyMapPreview = ({
           className={`preview-wishlist-btn ${isWishlisted ? 'wishlisted' : ''}`}
           onClick={handleHeartClick}
           aria-label={isWishlisted ? 'Remove from wishlist' : 'Save to wishlist'}
+          title={isWishlisted ? 'Remove from wishlist' : 'Save to wishlist'}
         >
           <Heart
             size={16}
-            fill={isWishlisted ? '#EF4444' : 'rgba(15, 23, 42, 0.4)'}
-            color={isWishlisted ? '#EF4444' : '#FFFFFF'}
+            fill={isWishlisted ? '#2563EB' : 'none'}
+            color={isWishlisted ? '#2563EB' : '#64748B'}
+            strokeWidth={isWishlisted ? 2.5 : 2}
+            className="wishlist-heart-icon"
           />
         </button>
 
