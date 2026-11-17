@@ -66,9 +66,16 @@ const getPublicPropertiesFilter = (queryParams = {}) => {
     filter.$or = publicVisibilityConditions;
   }
 
-  // Listing Type filter
+  // Listing Type filter (supports Buy, Sale, For Sale, Rent, For Rent)
   if (queryParams.listingType && queryParams.listingType !== 'All') {
-    filter.listingType = queryParams.listingType;
+    const lt = queryParams.listingType.trim().toLowerCase();
+    if (lt === 'buy' || lt === 'sale' || lt === 'for sale' || lt === 'forsale') {
+      filter.listingType = 'For Sale';
+    } else if (lt === 'rent' || lt === 'for rent' || lt === 'forrent') {
+      filter.listingType = 'For Rent';
+    } else {
+      filter.listingType = queryParams.listingType;
+    }
   }
 
   // Property Type filter

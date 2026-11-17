@@ -93,9 +93,10 @@ const ExplorerHeader = ({
   const displayName = currentUser?.firstName || currentUser?.name || userRole || 'User';
   const initial = displayName.charAt(0).toUpperCase();
 
-  const isAllActive = !activeListingType || activeListingType === 'All';
-  const isBuyActive = activeListingType === 'For Sale';
-  const isRentActive = activeListingType === 'For Rent';
+  const normalizedType = (activeListingType || '').trim().toLowerCase();
+  const isAllActive = !activeListingType || normalizedType === 'all';
+  const isBuyActive = normalizedType === 'for sale' || normalizedType === 'buy' || normalizedType === 'sale';
+  const isRentActive = normalizedType === 'for rent' || normalizedType === 'rent';
 
   return (
     <header className="explorer-header" role="banner">
@@ -129,16 +130,14 @@ const ExplorerHeader = ({
             >
               Rent
             </button>
-            {isPropertySalesEnabled() && (
-              <button
-                type="button"
-                className={`explorer-tab-pill ${isBuyActive ? 'active' : ''}`}
-                onClick={() => onListingTypeChange('For Sale')}
-                aria-current={isBuyActive ? 'page' : undefined}
-              >
-                Buy
-              </button>
-            )}
+            <button
+              type="button"
+              className={`explorer-tab-pill ${isBuyActive ? 'active' : ''}`}
+              onClick={() => onListingTypeChange('For Sale')}
+              aria-current={isBuyActive ? 'page' : undefined}
+            >
+              Buy
+            </button>
           </nav>
         </div>
 

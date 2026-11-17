@@ -21,8 +21,17 @@ const PropertyExplorer = () => {
     const amenitiesParam = searchParams.get('amenities');
     const amenitiesList = amenitiesParam ? amenitiesParam.split(',').filter(Boolean) : [];
 
+    const rawListingType = searchParams.get('listingType') || '';
+    let normalizedListingType = rawListingType;
+    const lowerType = rawListingType.trim().toLowerCase();
+    if (lowerType === 'buy' || lowerType === 'sale' || lowerType === 'for sale' || lowerType === 'forsale') {
+      normalizedListingType = 'For Sale';
+    } else if (lowerType === 'rent' || lowerType === 'for rent' || lowerType === 'forrent') {
+      normalizedListingType = 'For Rent';
+    }
+
     return {
-      listingType: searchParams.get('listingType') || '',
+      listingType: normalizedListingType,
       propertyType: searchParams.get('propertyType') || '',
       city: searchParams.get('city') || '',
       area: searchParams.get('area') || '',
@@ -239,6 +248,15 @@ const PropertyExplorer = () => {
     // Status safety check: only display public statuses
     const publicStatuses = ['Available', 'Sold', 'Rented', 'Reserved'];
     result = result.filter(p => publicStatuses.includes(p.status) || !p.status);
+
+    // Listing Type filter (All Properties displays both Rent and Sale; Rent displays For Rent; Buy displays For Sale)
+    if (filters.listingType && filters.listingType !== 'All') {
+      const isTargetSale = filters.listingType === 'For Sale';
+      result = result.filter(p => {
+        const isPropSale = p.listingType === 'For Sale';
+        return isTargetSale ? isPropSale : !isPropSale;
+      });
+    }
 
     // Property type alias matching (e.g. Apartment matches apartment_unit, condo, studio, duplex, floor)
     if (filters.propertyType && filters.propertyType !== 'all') {

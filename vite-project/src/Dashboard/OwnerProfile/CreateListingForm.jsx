@@ -799,11 +799,7 @@ export default function CreateListingForm({ onSuccess, onCancel }) {
               >
                 <option value="">Select Listing Type</option>
                 <option value="For Rent">For Rent</option>
-                {isPropertySalesEnabled() ? (
-                  <option value="For Sale">For Sale</option>
-                ) : (
-                  <option value="For Sale" disabled>For Sale (Temporarily Disabled)</option>
-                )}
+                <option value="For Sale">For Sale</option>
               </select>
             </div>
 

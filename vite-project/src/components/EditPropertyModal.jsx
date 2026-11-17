@@ -57,10 +57,10 @@ const EditPropertyModal = ({ property, onClose, onUpdate }) => {
       unitNumber: prop.unitNumber ?? '',
       address: prop.address || prop.location?.address || '',
       propertyType: prop.propertyType || '',
-      listingType: (!isPropertySalesEnabled() && prop.listingType === 'For Sale') ? 'For Rent' : (prop.listingType || 'For Rent'),
+      listingType: prop.listingType || 'For Rent',
       price: prop.listingType === 'For Rent'
         ? (prop.pricing?.rent || prop.price || '')
-        : (!isPropertySalesEnabled() ? '' : (prop.pricing?.sale || prop.price || '')),
+        : (prop.pricing?.sale || prop.price || ''),
       deposit: prop.pricing?.deposit ?? '',
       status: prop.status || 'Available',
       bedrooms: prop.specifications?.bedrooms ?? prop.bedrooms ?? '',
@@ -429,11 +429,7 @@ const EditPropertyModal = ({ property, onClose, onUpdate }) => {
                   required
                 >
                   <option value="For Rent">For Rent</option>
-                  {isPropertySalesEnabled() ? (
-                    <option value="For Sale">For Sale</option>
-                  ) : (
-                    <option value="For Sale" disabled>For Sale (Temporarily Disabled)</option>
-                  )}
+                  <option value="For Sale">For Sale</option>
                 </select>
               </div>
 

@@ -104,16 +104,14 @@ const Navbar = () => {
               Properties
             </button>
           </li>
-          {isPropertySalesEnabled() && (
-            <li>
-              <button
-                onClick={() => navigate('/properties?listingType=For%20Sale')}
-                className={`nav-link ${isBuyActive ? 'active' : ''}`}
-              >
-                Buy
-              </button>
-            </li>
-          )}
+          <li>
+            <button
+              onClick={() => navigate('/properties?listingType=For%20Sale')}
+              className={`nav-link ${isBuyActive ? 'active' : ''}`}
+            >
+              Buy
+            </button>
+          </li>
           <li>
             <button
               onClick={() => navigate('/properties?listingType=For%20Rent')}
